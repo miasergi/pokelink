@@ -40,10 +40,15 @@ export default function PokemonCard({ mon, onClick, showHp = true, compact, sele
             <span className="font-bold truncate">{mon.nickname ?? species.displayName}</span>
             <span className="text-xs text-slate-400 shrink-0">Nv.{mon.level}</span>
           </div>
-          <div className="flex gap-1 mt-0.5">
+          <div className="flex gap-1 mt-0.5 items-center flex-wrap">
             {species.types.map((t) => (
               <TypeBadge key={t} type={t} size="sm" />
             ))}
+            {species.isMega && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-white">
+                MEGA
+              </span>
+            )}
             {mon.shiny && <span className="text-[10px] text-amber-300">✨</span>}
           </div>
           {showHp && (

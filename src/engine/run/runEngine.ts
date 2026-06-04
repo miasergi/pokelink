@@ -110,7 +110,7 @@ export interface BattleOutcomeSummary {
   runWon: boolean
 }
 
-const BOSS_DROPS = ['hyper-potion', 'max-revive', 'leftovers', 'rare-candy', 'ultra-ball', 'life-orb']
+const BOSS_DROPS = ['hyper-potion', 'max-revive', 'leftovers', 'rare-candy', 'ultra-ball', 'life-orb', 'mega-stone']
 
 export function applyBattleOutcome(
   run: RunState, node: MapNode, result: BattleResult,

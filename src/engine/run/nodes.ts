@@ -48,7 +48,11 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []
   pool.push(rng.pick(HEAL_ITEMS))
   pool.push(rng.pick(depthFrac > 0.3 ? HELD_ITEMS : [...HEAL_ITEMS, ...BATTLE_ITEMS]))
-  pool.push(rng.pick([...BATTLE_ITEMS, ...STONE_ITEMS]))
+  // A partir de media run puede aparecer una Mega Piedra (rara y poderosa).
+  const lastPool = depthFrac > 0.45 && rng.chance(0.25)
+    ? ['mega-stone']
+    : [...BATTLE_ITEMS, ...STONE_ITEMS]
+  pool.push(rng.pick(lastPool))
   // de-dup
   const set = [...new Set(pool)]
   while (set.length < 3) {
@@ -63,7 +67,8 @@ export function shopStock(rng: RNG, depthFrac: number): string[] {
   const base = ['potion', 'super-potion', 'revive', 'full-heal', 'poke-ball', 'great-ball']
   const advanced = depthFrac > 0.4 ? ['hyper-potion', 'max-potion', 'ultra-ball', 'max-revive'] : []
   const held = rng.sample(HELD_ITEMS, 2)
-  return [...base, ...advanced, ...held]
+  const mega = depthFrac > 0.5 ? ['mega-stone'] : []
+  return [...base, ...advanced, ...held, ...mega]
 }
 
 // --- Eventos aleatorios ---

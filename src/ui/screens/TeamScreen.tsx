@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, TopBar, money } from '@/ui/components/kit'
-import { getSpecies, getMove } from '@/data'
+import { getSpecies, getMove, hasMega } from '@/data'
 import { getItem } from '@/data/items'
+import EvolutionModal from '@/ui/components/EvolutionModal'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import HpBar from '@/ui/components/HpBar'
@@ -10,15 +11,16 @@ import { TYPE_ES, STAT_ES, typeGradient } from '@/ui/theme/types'
 import { typeEffectiveness } from '@/data/typechart'
 
 export default function TeamScreen() {
-  const { run, back, useItem, setLead } = useGame()
+  const { run, back, useItem, useEvolutionItem, evoFx, clearEvoFx, setLead } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   if (!run) return null
 
   const selMon = run.party.find((p) => p.uid === sel) ?? null
   const usableItems = Object.entries(run.inventory).filter(([id]) => {
     const c = getItem(id).category
-    return c === 'heal' || c === 'revive' || c === 'battle'
+    return c === 'heal' || c === 'revive' || c === 'battle' || c === 'evolution'
   })
+  const hasMegaStone = (run.inventory['mega-stone'] || 0) > 0
 
   return (
     <div className="flex flex-col flex-1">
@@ -71,6 +73,17 @@ export default function TeamScreen() {
                       )
                     })}
                   </div>
+                  {hasMega(mon.speciesId) && (
+                    <Button
+                      variant={hasMegaStone ? 'primary' : 'secondary'}
+                      full
+                      disabled={!hasMegaStone}
+                      className="!py-2 mb-1"
+                      onClick={() => useEvolutionItem('mega-stone', mon.uid)}
+                    >
+                      {hasMegaStone ? '💠 ¡Megaevolucionar!' : '💠 Necesitas una Mega Piedra'}
+                    </Button>
+                  )}
                   {i !== 0 && mon.currentHp > 0 && (
                     <Button variant="secondary" full className="!py-2 mb-1" onClick={() => setLead(mon.uid)}>
                       ⭐ Poner como líder
@@ -94,8 +107,8 @@ export default function TeamScreen() {
                   key={id}
                   onClick={() => {
                     if (!selMon) return
-                    const ok = useItem(id, selMon.uid)
-                    if (!ok) return
+                    if (item.category === 'evolution') useEvolutionItem(id, selMon.uid)
+                    else useItem(id, selMon.uid)
                   }}
                   disabled={!selMon}
                   className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-2.5 py-2 text-left disabled:opacity-40 active:scale-[0.98] transition"
@@ -114,6 +127,10 @@ export default function TeamScreen() {
           </p>
         </div>
       </div>
+
+      {evoFx && (
+        <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />
+      )}
     </div>
   )
 }

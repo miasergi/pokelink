@@ -91,6 +91,10 @@ export interface SpeciesData {
   spriteFront: string
   catchRate: number // 0..255
   baseExp: number
+  /** true si es una forma mega/primigenia. */
+  isMega?: boolean
+  /** especie base de la que mega-evoluciona (solo en formas mega). */
+  baseId?: number
 }
 
 // ----- Instancias jugables (estado mutable durante una run) -----

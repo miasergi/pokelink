@@ -1,13 +1,35 @@
 import type { MoveData, SpeciesData } from '@/types'
 import pokemonJson from './generated/pokemon.json'
 import movesJson from './generated/moves.json'
+import megasJson from './generated/megas.json'
 
 // Cast único de los JSON generados a tipos del dominio.
 export const ALL_SPECIES = pokemonJson as unknown as SpeciesData[]
 export const ALL_MOVES = movesJson as unknown as MoveData[]
+export const ALL_MEGAS = megasJson as unknown as SpeciesData[]
 
+// El mapa de búsqueda incluye base + formas mega (para getSpecies/sprites).
+// ALL_SPECIES (pools/Pokédex) contiene solo el dex base.
 const speciesById = new Map<number, SpeciesData>()
 for (const s of ALL_SPECIES) speciesById.set(s.id, s)
+for (const m of ALL_MEGAS) speciesById.set(m.id, m)
+
+// baseId -> formas mega disponibles
+const megasByBase = new Map<number, SpeciesData[]>()
+for (const m of ALL_MEGAS) {
+  if (m.baseId == null) continue
+  if (!megasByBase.has(m.baseId)) megasByBase.set(m.baseId, [])
+  megasByBase.get(m.baseId)!.push(m)
+}
+
+/** Formas mega/primigenias de una especie base (vacío si no tiene). */
+export function getMegaForms(baseId: number): SpeciesData[] {
+  return megasByBase.get(baseId) ?? []
+}
+
+export function hasMega(baseId: number): boolean {
+  return megasByBase.has(baseId)
+}
 
 const moveById = new Map<number, MoveData>()
 for (const m of ALL_MOVES) moveById.set(m.id, m)

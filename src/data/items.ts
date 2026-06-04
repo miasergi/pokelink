@@ -36,6 +36,7 @@ export const ITEMS: ItemData[] = [
   { id: 'dusk-stone', name: 'Piedra Noche', category: 'evolution', description: 'Hace evolucionar a ciertos Pokémon.', price: 3000, sprite: ITEM_SPRITE('dusk-stone') },
   { id: 'dawn-stone', name: 'Piedra Alba', category: 'evolution', description: 'Hace evolucionar a ciertos Pokémon.', price: 3000, sprite: ITEM_SPRITE('dawn-stone') },
   { id: 'ice-stone', name: 'Piedra Hielo', category: 'evolution', description: 'Hace evolucionar a ciertos Pokémon.', price: 3000, sprite: ITEM_SPRITE('ice-stone') },
+  { id: 'mega-stone', name: 'Mega Piedra', category: 'evolution', description: 'Megaevoluciona de forma permanente a un Pokémon compatible (¡gran subida de poder!).', price: 8000, sprite: ITEM_SPRITE('mega-ring') },
 
   // --- Poké Balls ---
   { id: 'poke-ball', name: 'Poké Ball', category: 'ball', description: 'Captura Pokémon (x1).', price: 200, sprite: ITEM_SPRITE('poke-ball') },

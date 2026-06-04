@@ -1,17 +1,18 @@
 import type { NodeType } from '@/engine/run/types'
+import { NodeTypeIcon, IconCheck } from './icons'
 
-export const NODE_META: Record<NodeType, { icon: string; label: string; color: string }> = {
-  battle: { icon: '⚔️', label: 'Salvaje', color: '#64748b' },
-  trainer: { icon: '🧢', label: 'Entrenador', color: '#0ea5e9' },
-  catch: { icon: '🔴', label: 'Captura', color: '#ef4444' },
-  item: { icon: '🎁', label: 'Objeto', color: '#a855f7' },
-  shop: { icon: '🛒', label: 'Tienda', color: '#22c55e' },
-  event: { icon: '❓', label: 'Evento', color: '#eab308' },
-  heal: { icon: '➕', label: 'Centro Pokémon', color: '#f472b6' },
-  rival: { icon: '😎', label: 'Rival', color: '#f97316' },
-  gym: { icon: '🏅', label: 'Gimnasio', color: '#fbbf24' },
-  elite: { icon: '👑', label: 'Alto Mando', color: '#c084fc' },
-  champion: { icon: '🏆', label: 'Campeón', color: '#fde047' },
+export const NODE_META: Record<NodeType, { label: string; color: string }> = {
+  battle: { label: 'Salvaje', color: '#94a3b8' },
+  trainer: { label: 'Entrenador', color: '#38bdf8' },
+  catch: { label: 'Captura', color: '#f87171' },
+  item: { label: 'Objeto', color: '#c084fc' },
+  shop: { label: 'Tienda', color: '#34d399' },
+  event: { label: 'Evento', color: '#fbbf24' },
+  heal: { label: 'Centro Pokémon', color: '#f472b6' },
+  rival: { label: 'Rival', color: '#fb923c' },
+  gym: { label: 'Gimnasio', color: '#fcd34d' },
+  elite: { label: 'Alto Mando', color: '#c084fc' },
+  champion: { label: 'Campeón', color: '#fde047' },
 }
 
 export default function NodeIcon({
@@ -25,6 +26,7 @@ export default function NodeIcon({
 }) {
   const meta = NODE_META[type]
   const isBoss = type === 'gym' || type === 'elite' || type === 'champion' || type === 'rival'
+  const iconSize = Math.round(size * (isBoss ? 0.62 : 0.54))
   return (
     <div
       className={`grid place-items-center rounded-full border-2 transition ${
@@ -34,13 +36,18 @@ export default function NodeIcon({
         width: size,
         height: size,
         borderColor: cleared ? '#475569' : meta.color,
-        background: cleared ? '#1e293b' : `${meta.color}22`,
-        boxShadow: active ? `0 0 16px ${meta.color}88` : 'none',
+        background: cleared
+          ? '#1e293b'
+          : `radial-gradient(circle at 50% 35%, ${meta.color}33, ${meta.color}14)`,
+        boxShadow: active ? `0 0 16px ${meta.color}99` : 'none',
+        color: cleared ? '#64748b' : meta.color,
       }}
     >
-      <span style={{ fontSize: isBoss ? size * 0.5 : size * 0.42 }}>
-        {cleared ? '✓' : meta.icon}
-      </span>
+      {cleared ? (
+        <IconCheck size={Math.round(size * 0.5)} />
+      ) : (
+        <NodeTypeIcon type={type} size={iconSize} className="drop-shadow" />
+      )}
     </div>
   )
 }

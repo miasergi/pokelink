@@ -275,6 +275,62 @@ async function main() {
   species.sort((a, b) => a.id - b.id)
   await writeFile(path.join(OUT_DIR, 'pokemon.json'), JSON.stringify(species))
   console.log(`✓ ${species.length} Pokémon -> pokemon.json`)
+
+  // 3) Megaevoluciones y formas primigenias
+  const speciesById = new Map(species.map((s) => [s.id, s]))
+  const megaVarieties = [] // { baseId, baseSpecies, url }
+  for (const sp of speciesData) {
+    if (!sp || !sp.varieties) continue
+    for (const v of sp.varieties) {
+      const n = v.pokemon.name
+      if (n.includes('-mega') || n.includes('-primal')) {
+        megaVarieties.push({ baseId: idFromUrl(sp.url || `/${sp.id}/`) || sp.id, url: v.pokemon.url, name: n })
+      }
+    }
+  }
+  console.log('Descargando megaevoluciones...')
+  const megaDetails = await pool(megaVarieties, (m) => getJSON(m.url), 'megas')
+  const megas = []
+  for (let i = 0; i < megaVarieties.length; i++) {
+    const mv = megaVarieties[i]
+    const d = megaDetails[i]
+    if (!d) continue
+    const base = speciesById.get(mv.baseId)
+    if (!base) continue
+    const stats = {}
+    for (const s of d.stats) {
+      const k = mapStat(s.stat.name)
+      if (k) stats[k] = s.base_stat
+    }
+    const isPrimal = mv.name.includes('-primal')
+    const suffix = mv.name.endsWith('-x') ? ' X' : mv.name.endsWith('-y') ? ' Y' : ''
+    megas.push({
+      id: d.id,
+      baseId: mv.baseId,
+      name: d.name,
+      displayName: isPrimal
+        ? `${base.displayName} Primigenio`
+        : `Mega ${base.displayName}${suffix}`,
+      types: d.types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
+      baseStats: {
+        hp: stats.hp, atk: stats.atk, def: stats.def, spa: stats.spa, spd: stats.spd, spe: stats.spe,
+      },
+      generation: base.generation,
+      learnset: base.learnset,
+      evolutions: [],
+      isFinal: true,
+      legendary: base.legendary,
+      spriteArtwork: ARTWORK(d.id),
+      spriteFront: FRONT(d.id),
+      catchRate: base.catchRate,
+      baseExp: base.baseExp,
+      isMega: true,
+    })
+  }
+  megas.sort((a, b) => a.baseId - b.baseId)
+  await writeFile(path.join(OUT_DIR, 'megas.json'), JSON.stringify(megas))
+  console.log(`✓ ${megas.length} megaevoluciones -> megas.json`)
+
   console.log('Hecho.')
 }
 

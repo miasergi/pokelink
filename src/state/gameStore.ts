@@ -8,6 +8,8 @@ import {
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
+import { getMegaForms } from '@/data'
+import { evolutionByItem, evolve } from '@/engine/team/evolution'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
 export type ScreenName =
@@ -32,6 +34,7 @@ interface GameState {
   pendingBattle: PendingBattle | null
   lastSummary: BattleOutcomeSummary | null
   lastEventResult: string | null
+  evoFx: { uid: string; fromId: number; toId: number } | null
   loaded: boolean
   hasSavedRun: boolean
 
@@ -57,6 +60,8 @@ interface GameState {
 
   // objetos sobre el equipo
   useItem: (itemId: string, monUid: string) => boolean
+  useEvolutionItem: (itemId: string, monUid: string) => boolean
+  clearEvoFx: () => void
   setLead: (monUid: string) => void
 }
 
@@ -75,6 +80,7 @@ export const useGame = create<GameState>((set, get) => ({
   pendingBattle: null,
   lastSummary: null,
   lastEventResult: null,
+  evoFx: null,
   loaded: false,
   hasSavedRun: false,
 
@@ -232,6 +238,30 @@ export const useGame = create<GameState>((set, get) => ({
     set({ run })
     return ok
   },
+
+  useEvolutionItem: (itemId, monUid) => {
+    const cur = get().run
+    if (!cur) return false
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === monUid)
+    if (!mon) return false
+    const fromId = mon.speciesId
+    let target = null
+    if (itemId === 'mega-stone') {
+      const forms = getMegaForms(mon.speciesId)
+      target = forms[0] ?? null
+    } else {
+      target = evolutionByItem(mon, itemId)
+    }
+    if (!target) return false
+    evolve(mon, target)
+    removeItem(run, itemId, 1)
+    persist(run)
+    set({ run, evoFx: { uid: monUid, fromId, toId: target.id } })
+    return true
+  },
+
+  clearEvoFx: () => set({ evoFx: null }),
 
   setLead: (monUid) => {
     const cur = get().run
