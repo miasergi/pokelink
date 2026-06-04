@@ -48,6 +48,7 @@ export interface MoveEffect {
 export interface MoveData {
   id: number
   name: string
+  displayName: string
   type: PokemonType
   category: MoveCategory
   power: number // 0 para status

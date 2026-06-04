@@ -130,6 +130,13 @@ function idFromUrl(url) {
   return m ? Number(m[1]) : null
 }
 
+/** Nombre en español de un array `names` de PokeAPI (con fallback). */
+function esName(names, fallback) {
+  if (!Array.isArray(names)) return fallback
+  const es = names.find((n) => n.language && n.language.name === 'es')
+  return es && es.name ? es.name : fallback
+}
+
 function parseEvolutionChain(chain) {
   // Devuelve Map<fromId, EvolutionStep[]>
   const steps = new Map()
@@ -201,6 +208,7 @@ async function main() {
     moves.push({
       id: mv.id,
       name: mv.name,
+      displayName: esName(mv.names, capitalize(mv.name)),
       type: mv.type.name,
       category,
       power: mv.power || 0,
@@ -251,7 +259,7 @@ async function main() {
     species.push({
       id,
       name: p.name,
-      displayName: capitalize(sp.name),
+      displayName: esName(sp.names, capitalize(sp.name)),
       types: p.types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
       baseStats: {
         hp: stats.hp,

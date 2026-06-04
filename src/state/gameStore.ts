@@ -63,6 +63,7 @@ interface GameState {
   useEvolutionItem: (itemId: string, monUid: string) => boolean
   clearEvoFx: () => void
   setLead: (monUid: string) => void
+  setPartyOrder: (uids: string[]) => void
 }
 
 function persist(run: RunState | null) {
@@ -272,6 +273,19 @@ export const useGame = create<GameState>((set, get) => ({
       const [mon] = run.party.splice(idx, 1)
       run.party.unshift(mon)
     }
+    persist(run)
+    set({ run })
+  },
+
+  setPartyOrder: (uids) => {
+    const cur = get().run
+    if (!cur) return
+    const run = cloneRun(cur)
+    const byUid = new Map(run.party.map((p) => [p.uid, p]))
+    const reordered = uids.map((u) => byUid.get(u)).filter(Boolean) as typeof run.party
+    // conserva cualquier miembro no incluido (seguridad)
+    for (const p of run.party) if (!uids.includes(p.uid)) reordered.push(p)
+    if (reordered.length === run.party.length) run.party = reordered
     persist(run)
     set({ run })
   },

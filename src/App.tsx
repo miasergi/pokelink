@@ -54,5 +54,10 @@ export default function App() {
   }
 
   const Current = SCREENS[screen.name] ?? HomeScreen
-  return <Current />
+  // key por pantalla -> animación de entrada al cambiar de pantalla
+  return (
+    <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter">
+      <Current />
+    </div>
+  )
 }

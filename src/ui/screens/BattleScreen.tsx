@@ -112,17 +112,20 @@ export default function BattleScreen() {
         <div key={`flash-${idx}`} className="absolute inset-0 z-10 pointer-events-none fx-flash" style={{ background: frame.flash.color }} />
       )}
 
-      <div className="relative flex-1 flex flex-col p-3 safe-top">
+      <div className="relative flex-1 flex flex-col px-4 pt-4 safe-top gap-1">
         {/* Enemigo */}
         <div className="flex items-start justify-between gap-2">
-          <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
-          <div className="relative">
+          <div className="mt-1">
+            <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
+          </div>
+          <div className="relative mr-1">
             <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
+            <Platform />
             <div className={lungeEnemy}>
               <Sprite
                 speciesId={frame.enemy.speciesId}
                 shiny={frame.enemy.shiny}
-                className={`w-32 h-32 object-contain drop-shadow-2xl transition-all ${
+                className={`relative w-28 h-28 object-contain drop-shadow-2xl transition-all ${
                   frame.enemy.fainted ? 'animate-faint' : ''
                 } ${frame.anim.enemy === 'hit' ? 'animate-shake brightness-150' : ''}`}
               />
@@ -131,7 +134,7 @@ export default function BattleScreen() {
         </div>
 
         {/* Banner de movimiento + mensaje central */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-2">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 px-2">
           {frame.acting && (
             <div
               key={`mv-${idx}`}
@@ -144,29 +147,32 @@ export default function BattleScreen() {
               >
                 {TYPE_ES[frame.acting.moveType]}
               </span>
-              <span className="font-extrabold text-sm">{capitalize(frame.acting.moveName)}</span>
+              <span className="font-extrabold text-sm">{frame.acting.moveName}</span>
             </div>
           )}
-          <div className="bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-2 text-center min-h-[2.6rem] flex items-center max-w-[92%] shadow-xl">
+          <div className="bg-slate-900/85 border border-slate-700 rounded-2xl px-4 py-2.5 text-center min-h-[3rem] flex items-center justify-center w-full shadow-xl">
             <span className="text-sm font-semibold">{frame.message}</span>
           </div>
         </div>
 
         {/* Jugador */}
-        <div className="flex items-end justify-between gap-2">
-          <div className="relative">
+        <div className="flex items-end justify-between gap-2 mb-1">
+          <div className="relative ml-1">
             <SpriteFx side="player" fx={frame.fx} idx={idx} />
+            <Platform />
             <div className={lungePlayer}>
               <Sprite
                 speciesId={frame.player.speciesId}
                 shiny={frame.player.shiny}
-                className={`w-36 h-36 object-contain drop-shadow-2xl transition-all ${
+                className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all ${
                   frame.player.fainted ? 'animate-faint' : ''
                 } ${frame.anim.player === 'hit' ? 'animate-shake brightness-150' : ''}`}
               />
             </div>
           </div>
-          <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+          <div className="mb-1">
+            <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+          </div>
         </div>
       </div>
 
@@ -306,7 +312,7 @@ function buildFrames(
       }
       case 'move': {
         const s = getSide(e.side)!
-        message = `${s.name} usó ${capitalize(e.moveName)}.`
+        message = `${s.name} usó ${e.moveName}.`
         lastAttacker = e.side
         lastMoveType[e.side] = e.moveType as PokemonType
         push({ acting: { side: e.side, moveType: e.moveType as PokemonType, moveName: e.moveName } })
@@ -377,9 +383,16 @@ function buildFrames(
   return frames
 }
 
-function capitalize(s: string) {
-  return s.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+/** Sombra elíptica bajo el Pokémon (sensación de "plataforma" de combate). */
+function Platform() {
+  return (
+    <div
+      className="absolute left-1/2 -translate-x-1/2 bottom-1 rounded-[50%] pointer-events-none"
+      style={{ width: 86, height: 18, background: 'radial-gradient(ellipse, rgba(0,0,0,0.45), rgba(0,0,0,0) 70%)' }}
+    />
+  )
 }
+
 function statName(stat: string) {
   const map: Record<string, string> = {
     atk: 'Ataque', def: 'Defensa', spa: 'At. Esp.', spd: 'Def. Esp.', spe: 'Velocidad',

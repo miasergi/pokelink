@@ -27,7 +27,7 @@ interface SideState {
 }
 
 const STRUGGLE: MoveData = {
-  id: -1, name: 'Forcejeo', type: 'normal', category: 'physical',
+  id: -1, name: 'struggle', displayName: 'Forcejeo', type: 'normal', category: 'physical',
   power: 50, accuracy: 100, pp: 1, priority: 0, effect: { recoil: 0.25 },
 }
 
@@ -222,7 +222,7 @@ function performMove(
     move = getMove(slot.moveId)
   }
 
-  events.push({ kind: 'move', side: atk.side, uid: attacker.uid, moveName: move.name, moveType: move.type })
+  events.push({ kind: 'move', side: atk.side, uid: attacker.uid, moveName: move.displayName, moveType: move.type })
 
   // Precisión
   if (move.accuracy > 0) {

@@ -5,6 +5,7 @@ import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
 import { IconCrown, IconTrophy } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
 import PartyBar from '@/ui/components/PartyBar'
+import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { Button, money, TopBar } from '@/ui/components/kit'
 import { KANTO_GYM_LEADERS, KANTO_ELITE_FOUR } from '@/data/trainers/gen1'
 
@@ -148,9 +149,19 @@ export default function MapScreen() {
                     dim={!isReach && !node.cleared}
                   />
                   {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival') && (
-                    <span className="text-[8px] mt-0.5 font-bold whitespace-nowrap" style={{ color: meta.color }}>
-                      Nv.{node.enemyLevel}
-                    </span>
+                    <div className="flex flex-col items-center mt-0.5 leading-tight">
+                      <span className="text-[8px] font-bold whitespace-nowrap" style={{ color: meta.color }}>
+                        Nv.{node.enemyLevel}
+                      </span>
+                      {node.content.kind === 'trainer' && node.content.trainer.specialtyType && (
+                        <span
+                          className="text-[8px] font-bold whitespace-nowrap"
+                          style={{ color: TYPE_HEX[node.content.trainer.specialtyType] }}
+                        >
+                          {TYPE_ES[node.content.trainer.specialtyType]}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               )
