@@ -30,7 +30,7 @@ export default function NodeIcon({
   const meta = NODE_META[node.type]
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival'
   const img = nodeImage(node)
-  const imgSize = Math.round(size * (isBoss ? 1.02 : 0.86))
+  const imgSize = Math.round(size * (isBoss ? 1.12 : 0.94))
 
   return (
     <div

@@ -36,42 +36,38 @@ export function generateMap(
   // --- Plan de capas (secuencia de Kanto) ---
   const plan: LayerPlan[] = []
   const gyms = KANTO_GYM_LEADERS
-  const routeWidth = () => rng.int(2, 4)
+  // Rutas anchas (3-4 nodos) y largas: la mayor parte del recorrido roguelike
+  // transcurre entre líderes (capturas, objetos, entrenadores, eventos...).
+  const routeWidth = () => rng.int(3, 4)
 
   const pushRoute = (n: number) => {
     for (let i = 0; i < n; i++) plan.push({ kind: 'route', width: routeWidth() })
   }
+  const heal = () => plan.push({ kind: 'heal' })
+  const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i] })
   const pushRival = (level: number, extras: number[]) => {
     const ridMid = evolutionAtLevel(rivalStarterId, level)
     plan.push({ kind: 'boss', type: 'rival', trainer: buildKantoRival(ridMid, level, extras) })
   }
 
-  pushRoute(2)
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 0, trainer: gyms[0] })
-  pushRoute(2)
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 1, trainer: gyms[1] })
-  pushRoute(2)
-  pushRival(20, [16, 19]) // Rattata, Pidgey-ish placeholders por nivel
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 2, trainer: gyms[2] })
-  pushRoute(3)
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 3, trainer: gyms[3] })
-  pushRoute(3)
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 4, trainer: gyms[4] })
-  pushRoute(3)
-  plan.push({ kind: 'heal' })
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 5, trainer: gyms[5] })
-  pushRoute(3)
-  pushRival(45, [18, 65, 112])
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 6, trainer: gyms[6] })
-  pushRoute(3)
-  plan.push({ kind: 'boss', type: 'gym', bossIndex: 7, trainer: gyms[7] })
-  pushRoute(2)
-  plan.push({ kind: 'heal' })
+  // --- Recorrido de Kanto (largo, estilo roguelike) ---
+  pushRoute(6); gym(0)
+  pushRoute(5); pushRival(18, [16, 19]); heal(); gym(1)
+  pushRoute(5); gym(2)
+  pushRoute(6); heal(); gym(3)
+  pushRoute(5); gym(4)
+  pushRoute(6); pushRival(42, [18, 64]); heal(); gym(5)
+  pushRoute(5); gym(6)
+  pushRoute(6); heal(); gym(7)
+  // Calle Victoria + Liga Pokémon
+  pushRoute(5)
+  pushRival(56, [18, 65, 112])
+  pushRoute(2); heal()
   plan.push({ kind: 'boss', type: 'elite', bossIndex: 0, trainer: KANTO_ELITE_FOUR[0] })
   plan.push({ kind: 'boss', type: 'elite', bossIndex: 1, trainer: KANTO_ELITE_FOUR[1] })
   plan.push({ kind: 'boss', type: 'elite', bossIndex: 2, trainer: KANTO_ELITE_FOUR[2] })
   plan.push({ kind: 'boss', type: 'elite', bossIndex: 3, trainer: KANTO_ELITE_FOUR[3] })
-  plan.push({ kind: 'heal' })
+  heal()
   plan.push({ kind: 'boss', type: 'champion', trainer: buildKantoChampion(rivalFinalId) })
 
   // --- Niveles ancla (interpolación de niveles de ruta) ---

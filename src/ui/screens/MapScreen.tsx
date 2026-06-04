@@ -8,8 +8,8 @@ import PartyBar from '@/ui/components/PartyBar'
 import { Button, money, TopBar } from '@/ui/components/kit'
 import { KANTO_GYM_LEADERS, KANTO_ELITE_FOUR } from '@/data/trainers/gen1'
 
-const ROW_H = 100
-const NODE = 46
+const ROW_H = 124
+const NODE = 60
 
 export default function MapScreen() {
   const { run, chooseNode, navigate, lastEventResult } = useGame()
