@@ -1,5 +1,7 @@
-import type { NodeType } from '@/engine/run/types'
-import { NodeTypeIcon, IconCheck } from './icons'
+import { useState } from 'react'
+import type { MapNode, NodeType } from '@/engine/run/types'
+import { nodeImage } from './nodeImage'
+import { IconCheck } from './icons'
 
 export const NODE_META: Record<NodeType, { label: string; color: string }> = {
   battle: { label: 'Salvaje', color: '#94a3b8' },
@@ -16,37 +18,64 @@ export const NODE_META: Record<NodeType, { label: string; color: string }> = {
 }
 
 export default function NodeIcon({
-  type, size = 44, active, cleared, dim,
+  node, size = 46, active, cleared, dim,
 }: {
-  type: NodeType
+  node: MapNode
   size?: number
   active?: boolean
   cleared?: boolean
   dim?: boolean
 }) {
-  const meta = NODE_META[type]
-  const isBoss = type === 'gym' || type === 'elite' || type === 'champion' || type === 'rival'
-  const iconSize = Math.round(size * (isBoss ? 0.62 : 0.54))
+  const [errored, setErrored] = useState(false)
+  const meta = NODE_META[node.type]
+  const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival'
+  const img = nodeImage(node)
+  const imgSize = Math.round(size * (isBoss ? 1.02 : 0.86))
+
   return (
     <div
-      className={`grid place-items-center rounded-full border-2 transition ${
-        active ? 'animate-pulse ring-4 ring-red-400/50' : ''
-      } ${dim ? 'opacity-30' : ''}`}
+      className={`relative grid place-items-center rounded-full transition ${
+        active ? 'ring-4 ring-red-400/50' : ''
+      } ${dim ? 'opacity-40' : ''}`}
       style={{
         width: size,
         height: size,
-        borderColor: cleared ? '#475569' : meta.color,
+        border: `2px solid ${cleared ? '#475569' : meta.color}`,
         background: cleared
-          ? '#1e293b'
-          : `radial-gradient(circle at 50% 35%, ${meta.color}33, ${meta.color}14)`,
-        boxShadow: active ? `0 0 16px ${meta.color}99` : 'none',
-        color: cleared ? '#64748b' : meta.color,
+          ? '#16202e'
+          : `radial-gradient(circle at 50% 38%, ${meta.color}30, #0b1220 78%)`,
+        boxShadow: active
+          ? `0 0 18px ${meta.color}, inset 0 0 10px ${meta.color}44`
+          : isBoss
+            ? `0 0 8px ${meta.color}66`
+            : 'none',
       }}
     >
-      {cleared ? (
-        <IconCheck size={Math.round(size * 0.5)} />
+      {!errored ? (
+        <img
+          src={img.url}
+          alt={meta.label}
+          onError={() => setErrored(true)}
+          draggable={false}
+          className={`object-contain ${cleared ? 'grayscale opacity-40' : 'drop-shadow'}`}
+          style={{
+            width: imgSize,
+            height: imgSize,
+            imageRendering: img.pixel ? 'pixelated' : 'auto',
+            marginTop: img.pixel ? -2 : 0,
+          }}
+        />
       ) : (
-        <NodeTypeIcon type={type} size={iconSize} className="drop-shadow" />
+        <span style={{ color: meta.color, fontWeight: 800, fontSize: size * 0.4 }}>?</span>
+      )}
+
+      {cleared && (
+        <span
+          className="absolute -bottom-1 -right-1 grid place-items-center rounded-full bg-emerald-600 text-white"
+          style={{ width: size * 0.42, height: size * 0.42 }}
+        >
+          <IconCheck size={size * 0.28} />
+        </span>
       )}
     </div>
   )

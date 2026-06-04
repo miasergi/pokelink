@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
 import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
-import { IconBadge, IconCrown, IconTrophy } from '@/ui/components/icons'
+import { IconCrown, IconTrophy } from '@/ui/components/icons'
+import { badgeSprite } from '@/ui/components/nodeImage'
 import PartyBar from '@/ui/components/PartyBar'
 import { Button, money, TopBar } from '@/ui/components/kit'
 import { KANTO_GYM_LEADERS, KANTO_ELITE_FOUR } from '@/data/trainers/gen1'
@@ -73,13 +74,14 @@ export default function MapScreen() {
       {/* progreso de medallas */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border-b border-slate-800 overflow-x-auto no-scrollbar">
         {KANTO_GYM_LEADERS.map((g, i) => (
-          <span
+          <img
             key={g.id}
+            src={badgeSprite(i + 1)}
             title={g.name}
-            style={{ color: i < run.stats.gymsDefeated ? '#fcd34d' : '#475569' }}
-          >
-            <IconBadge size={18} />
-          </span>
+            alt={g.name}
+            className={`w-5 h-5 object-contain ${i < run.stats.gymsDefeated ? '' : 'grayscale opacity-30'}`}
+            style={{ imageRendering: 'pixelated' }}
+          />
         ))}
         <span className="mx-0.5 text-slate-600">·</span>
         {KANTO_ELITE_FOUR.map((g, i) => (
@@ -139,7 +141,7 @@ export default function MapScreen() {
                   }}
                 >
                   <NodeIcon
-                    type={node.type}
+                    node={node}
                     size={NODE}
                     active={isReach}
                     cleared={node.cleared && !isCurrent}
