@@ -81,8 +81,8 @@ function chooseNext(run: RunState, nodes: MapNode[]): MapNode {
   return [...nodes].sort((a, b) => score(b) - score(a))[0]
 }
 
-function playRun(seed: number, starterId: number): { run: RunState; steps: number } {
-  const run = createRun({ mode: 'generation', gen: 1, starterId, seed })
+function playRun(seed: number, starterId: number, gen = 1): { run: RunState; steps: number } {
+  const run = createRun({ mode: 'generation', difficulty: 'normal', gen, starterId, seed })
   let steps = 0
   while (run.status === 'active' && steps < 200) {
     steps++
@@ -146,5 +146,21 @@ describe('simulación de runs completas (balance)', () => {
     // Una run jugada con criterio debe poder completar todo el recorrido de Kanto.
     expect(maxGyms).toBeGreaterThanOrEqual(5)
     void avgGyms
+  })
+
+  it('Johto (Gen 2) es jugable y completable', () => {
+    let maxGyms = 0
+    let wins = 0
+    for (const seed of [1, 2, 3, 7, 11, 23]) {
+      for (const starter of [152, 155, 158]) {
+        const { run } = playRun(seed * 100 + starter, starter, 2)
+        expect(run.status === 'won' || run.status === 'lost').toBe(true)
+        maxGyms = Math.max(maxGyms, run.stats.gymsDefeated)
+        if (run.status === 'won') wins++
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`\n[JOHTO] maxGimnasios=${maxGyms} victorias=${wins}`)
+    expect(maxGyms).toBeGreaterThanOrEqual(5)
   })
 })

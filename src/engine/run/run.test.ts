@@ -3,7 +3,7 @@ import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleO
 
 describe('creación de run y mapa', () => {
   it('crea una run jugable de Gen 1', () => {
-    const run = createRun({ mode: 'generation', gen: 1, starterId: 4, seed: 123 })
+    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 123 })
     expect(run.party).toHaveLength(1)
     expect(run.party[0].speciesId).toBe(4)
     expect(run.party[0].level).toBe(5)
@@ -13,7 +13,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('el mapa es totalmente conexo (cada nodo no final tiene salida)', () => {
-    const run = createRun({ mode: 'generation', gen: 1, starterId: 1, seed: 7 })
+    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 1, seed: 7 })
     const { layers, nodes } = run.map
     for (let i = 0; i < layers.length - 1; i++) {
       for (const id of layers[i]) {
@@ -30,7 +30,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('hay 8 gimnasios, 4 del alto mando y 1 campeón', () => {
-    const run = createRun({ mode: 'generation', gen: 1, starterId: 7, seed: 99 })
+    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 7, seed: 99 })
     const types = Object.values(run.map.nodes).map((n) => n.type)
     expect(types.filter((t) => t === 'gym')).toHaveLength(8)
     expect(types.filter((t) => t === 'elite')).toHaveLength(4)
@@ -38,7 +38,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('se puede entrar a un nodo y resolver un combate', () => {
-    const run = createRun({ mode: 'generation', gen: 1, starterId: 4, seed: 555 })
+    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 555 })
     const first = availableNextNodes(run)
     expect(first.length).toBeGreaterThan(0)
     // navega hasta encontrar un nodo de combate

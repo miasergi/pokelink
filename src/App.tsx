@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useGame, type ScreenName } from '@/state/gameStore'
+import Onboarding from '@/ui/components/Onboarding'
 import HomeScreen from '@/ui/screens/HomeScreen'
 import ModeSelectScreen from '@/ui/screens/ModeSelectScreen'
 import GenSelectScreen from '@/ui/screens/GenSelectScreen'
@@ -38,8 +39,17 @@ const SCREENS: Record<ScreenName, () => JSX.Element | null> = {
   victory: VictoryScreen,
 }
 
+const ONBOARD_KEY = 'pokerogue:onboarded'
+
 export default function App() {
   const { screen, init, loaded } = useGame()
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return typeof localStorage !== 'undefined' && !localStorage.getItem(ONBOARD_KEY)
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     void init()
@@ -56,8 +66,22 @@ export default function App() {
   const Current = SCREENS[screen.name] ?? HomeScreen
   // key por pantalla -> animación de entrada al cambiar de pantalla
   return (
-    <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter">
-      <Current />
-    </div>
+    <>
+      <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter">
+        <Current />
+      </div>
+      {showIntro && (
+        <Onboarding
+          onClose={() => {
+            try {
+              localStorage.setItem(ONBOARD_KEY, '1')
+            } catch {
+              /* ignore */
+            }
+            setShowIntro(false)
+          }}
+        />
+      )}
+    </>
   )
 }

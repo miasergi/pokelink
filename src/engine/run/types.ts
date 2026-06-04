@@ -2,6 +2,8 @@ import type { ItemData, PokemonInstance, TrainerData } from '@/types'
 
 export type GameMode = 'generation' | 'all'
 
+export type Difficulty = 'normal' | 'hard' | 'nuzlocke'
+
 export type NodeType =
   | 'battle' // combate salvaje
   | 'trainer' // entrenador normal
@@ -76,6 +78,7 @@ export type RunStatus = 'active' | 'won' | 'lost'
 
 export interface RunState {
   mode: GameMode
+  difficulty: Difficulty
   gen: number
   region: string
   starterId: number

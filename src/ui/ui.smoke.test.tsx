@@ -23,7 +23,7 @@ describe('render de pantallas (smoke)', () => {
   })
 
   it('pantallas dentro de una run renderizan', () => {
-    const run = createRun({ mode: 'generation', gen: 1, starterId: 7, seed: 2024 })
+    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 7, seed: 2024 })
     useGame.setState({ run, loaded: true, screen: { name: 'map' } })
     expect(() => renderToString(createElement(MapScreen))).not.toThrow()
     expect(() => renderToString(createElement(TeamScreen))).not.toThrow()

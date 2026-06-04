@@ -6,21 +6,10 @@ const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
 const itemSprite = (slug: string) => `${SPRITES}/items/${slug}.png`
 export const badgeSprite = (n: number) => `${SPRITES}/badges/${n}.png`
 
-/** Pokémon estrella (mayor nivel) del equipo de un entrenador. */
-function aceSpeciesId(node: MapNode): number | null {
-  const c = node.content
-  if (c.kind === 'trainer' && c.team.length) {
-    const ace = c.team.reduce((a, b) => (b.level >= a.level ? b : a))
-    return ace.speciesId
-  }
-  return null
-}
-
 export interface NodeImage {
   url: string
   /** sprite pixelado (Pokémon/objeto/medalla) -> render nítido escalado. */
   pixel: boolean
-  round?: boolean
 }
 
 /** Imagen real que representa una casilla, estilo pokelike. */
@@ -34,7 +23,10 @@ export function nodeImage(node: MapNode): NodeImage {
     case 'elite':
     case 'champion':
     case 'gym': {
-      const ace = aceSpeciesId(node)
+      // Retrato del entrenador/líder/rival
+      const sprite = c.kind === 'trainer' ? c.trainer.sprite : undefined
+      if (sprite) return { url: sprite, pixel: true }
+      const ace = c.kind === 'trainer' && c.team.length ? c.team[c.team.length - 1].speciesId : null
       return { url: ace ? pokemonSprite(ace) : itemSprite('poke-ball'), pixel: true }
     }
     case 'catch':

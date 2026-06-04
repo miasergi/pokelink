@@ -12,7 +12,7 @@ import { STAT_ES, typeGradient } from '@/ui/theme/types'
 const CAT_ES: Record<string, string> = { physical: 'Físico', special: 'Especial', status: 'Estado' }
 
 export default function TeamScreen() {
-  const { run, back, useItem, useEvolutionItem, evoFx, clearEvoFx, setPartyOrder } = useGame()
+  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   if (!run) return null
 
@@ -20,7 +20,7 @@ export default function TeamScreen() {
   const selSpecies = selMon ? getSpecies(selMon.speciesId) : null
   const usableItems = Object.entries(run.inventory).filter(([id]) => {
     const c = getItem(id).category
-    return c === 'heal' || c === 'revive' || c === 'battle' || c === 'evolution'
+    return c === 'heal' || c === 'revive' || c === 'battle' || c === 'evolution' || c === 'held'
   })
   const hasMegaStone = (run.inventory['mega-stone'] || 0) > 0
 
@@ -79,16 +79,35 @@ export default function TeamScreen() {
               })}
             </div>
 
+            {/* Objeto equipado */}
+            <div className="flex items-center gap-2 rounded-lg bg-slate-900/60 px-2.5 py-1.5 mb-2">
+              {selMon.heldItemId ? (
+                <>
+                  <img src={getItem(selMon.heldItemId).sprite} alt="" className="w-6 h-6" style={{ imageRendering: 'pixelated' }} />
+                  <span className="text-xs flex-1 truncate">{getItem(selMon.heldItemId).name}</span>
+                  <button className="text-[11px] text-rose-300 font-bold" onClick={() => unequipHeld(selMon.uid)}>Quitar</button>
+                </>
+              ) : (
+                <span className="text-xs text-slate-500">Sin objeto equipado</span>
+              )}
+            </div>
+
             {hasMega(selMon.speciesId) && (
-              <Button
-                variant={hasMegaStone ? 'primary' : 'secondary'}
-                full
-                disabled={!hasMegaStone}
-                className="!py-2"
-                onClick={() => useEvolutionItem('mega-stone', selMon.uid)}
-              >
-                {hasMegaStone ? '💠 ¡Megaevolucionar!' : '💠 Necesitas una Mega Piedra'}
-              </Button>
+              selMon.heldItemId === 'mega-stone' ? (
+                <div className="text-center text-xs font-bold text-fuchsia-300 py-1.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30">
+                  💠 Megaevolucionará al entrar en combate
+                </div>
+              ) : (
+                <Button
+                  variant={hasMegaStone ? 'primary' : 'secondary'}
+                  full
+                  disabled={!hasMegaStone}
+                  className="!py-2"
+                  onClick={() => equipItem('mega-stone', selMon.uid)}
+                >
+                  {hasMegaStone ? '💠 Equipar Mega Piedra' : '💠 Necesitas una Mega Piedra'}
+                </Button>
+              )
             )}
           </Card>
         )}
@@ -105,7 +124,8 @@ export default function TeamScreen() {
                   key={id}
                   onClick={() => {
                     if (!selMon) return
-                    if (item.category === 'evolution') useEvolutionItem(id, selMon.uid)
+                    if (item.category === 'held') equipItem(id, selMon.uid)
+                    else if (item.category === 'evolution') useEvolutionItem(id, selMon.uid)
                     else useItem(id, selMon.uid)
                   }}
                   disabled={!selMon}

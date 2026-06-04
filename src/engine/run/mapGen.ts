@@ -2,14 +2,38 @@ import type { PokemonInstance, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
 import { encounterPool } from '@/data'
 import { createInstance } from '@/engine/team/instance'
-import { counterStarterId, buildKantoChampion, buildKantoRival, KANTO_ELITE_FOUR, KANTO_GYM_LEADERS } from '@/data/trainers/gen1'
+import { counterStarterId } from '@/data/trainers/gen1'
+import { getRegion, buildRival } from '@/data/trainers/regions'
 import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
 import {
   buildTrainerTeam, makeWild, tierPool, itemChoices, shopStock, EVENT_IDS,
 } from './nodes'
 import type { GameMode, MapNode, NodeType, RunMap } from './types'
 
-const TRAINER_NAMES = ['Joven', 'Veterana', 'Domador', 'Bióloga', 'Montañista', 'Pescador', 'Ojito', 'Cooltrainer', 'Cazador', 'Mística']
+// Clases de entrenador genéricas con retrato real (Pokémon Showdown).
+const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
+const GENERIC_CLASSES: { slug: string; name: string }[] = [
+  { slug: 'youngster', name: 'Joven' },
+  { slug: 'lass', name: 'Chica' },
+  { slug: 'bugcatcher', name: 'Cazabichos' },
+  { slug: 'hiker', name: 'Montañero' },
+  { slug: 'beauty', name: 'Modelo' },
+  { slug: 'acetrainer', name: 'Entrenador Guay' },
+  { slug: 'acetrainerf', name: 'Entrenadora Guay' },
+  { slug: 'blackbelt', name: 'Karateka' },
+  { slug: 'sailor', name: 'Marinero' },
+  { slug: 'pokemaniac', name: 'Pokémano' },
+  { slug: 'gambler', name: 'Apostador' },
+  { slug: 'juggler', name: 'Malabarista' },
+  { slug: 'scientist', name: 'Científico' },
+  { slug: 'burglar', name: 'Ladrón' },
+  { slug: 'fisherman', name: 'Pescador' },
+  { slug: 'biker', name: 'Motorista' },
+  { slug: 'gentleman', name: 'Caballero' },
+  { slug: 'supernerd', name: 'Empollón' },
+  { slug: 'camper', name: 'Excursionista' },
+  { slug: 'picnicker', name: 'Senderista' },
+]
 
 interface LayerPlan {
   kind: 'route' | 'boss' | 'heal'
@@ -32,10 +56,12 @@ export function generateMap(
   const pool: SpeciesData[] = encounterPool(mode === 'all' ? 'all' : gen)
   const rivalStarterId = counterStarterId(starterId)
   const rivalFinalId = getFinalEvolution(rivalStarterId)
+  const region = getRegion(gen)
 
-  // --- Plan de capas (secuencia de Kanto) ---
+  // --- Plan de capas (secuencia de la región) ---
   const plan: LayerPlan[] = []
-  const gyms = KANTO_GYM_LEADERS
+  const gyms = region.gymLeaders
+  let rivalStage = 0
   // Rutas anchas (3-4 nodos) y largas: la mayor parte del recorrido roguelike
   // transcurre entre líderes (capturas, objetos, entrenadores, eventos...).
   const routeWidth = () => rng.int(3, 4)
@@ -45,30 +71,33 @@ export function generateMap(
   }
   const heal = () => plan.push({ kind: 'heal' })
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i] })
-  const pushRival = (level: number, extras: number[]) => {
+  const pushRival = (level: number) => {
+    const extras = region.rivalExtras[Math.min(rivalStage, region.rivalExtras.length - 1)]
+    rivalStage++
     const ridMid = evolutionAtLevel(rivalStarterId, level)
-    plan.push({ kind: 'boss', type: 'rival', trainer: buildKantoRival(ridMid, level, extras) })
+    plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras) })
   }
+  const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i] })
 
-  // --- Recorrido de Kanto (largo, estilo roguelike) ---
+  // Nivel del último gimnasio -> escala el tramo de Liga según la región.
+  const lastGymLvl = Math.max(...gyms[7].team.map((s) => s.level))
+
+  // --- Recorrido de la región (largo, estilo roguelike) ---
   pushRoute(6); gym(0)
-  pushRoute(5); pushRival(18, [16, 19]); heal(); gym(1)
+  pushRoute(5); pushRival(Math.round(lastGymLvl * 0.45)); heal(); gym(1)
   pushRoute(5); gym(2)
   pushRoute(6); heal(); gym(3)
   pushRoute(5); gym(4)
-  pushRoute(6); pushRival(42, [18, 64]); heal(); gym(5)
+  pushRoute(6); pushRival(Math.round(lastGymLvl * 0.85)); heal(); gym(5)
   pushRoute(5); gym(6)
   pushRoute(6); heal(); gym(7)
   // Calle Victoria + Liga Pokémon
   pushRoute(5)
-  pushRival(56, [18, 65, 112])
+  pushRival(lastGymLvl + 6)
   pushRoute(2); heal()
-  plan.push({ kind: 'boss', type: 'elite', bossIndex: 0, trainer: KANTO_ELITE_FOUR[0] })
-  plan.push({ kind: 'boss', type: 'elite', bossIndex: 1, trainer: KANTO_ELITE_FOUR[1] })
-  plan.push({ kind: 'boss', type: 'elite', bossIndex: 2, trainer: KANTO_ELITE_FOUR[2] })
-  plan.push({ kind: 'boss', type: 'elite', bossIndex: 3, trainer: KANTO_ELITE_FOUR[3] })
+  elite(0); elite(1); elite(2); elite(3)
   heal()
-  plan.push({ kind: 'boss', type: 'champion', trainer: buildKantoChampion(rivalFinalId) })
+  plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId) })
 
   // --- Niveles ancla (interpolación de niveles de ruta) ---
   const anchors: (number | null)[] = plan.map((p) => {
@@ -197,11 +226,12 @@ function synthTeam(pool: SpeciesData[], level: number, rng: RNG): PokemonInstanc
 }
 
 function synthTrainer(_pool: SpeciesData[], level: number, rng: RNG): TrainerData {
-  const name = rng.pick(TRAINER_NAMES)
+  const cls = rng.pick(GENERIC_CLASSES)
   return {
     id: `trainer-${level}-${rng.int(0, 9999)}`,
-    name,
+    name: cls.name,
     trainerClass: 'trainer',
+    sprite: SHOWDOWN_TRAINER(cls.slug),
     reward: { money: 200 + level * 25 },
     team: [], // el equipo real va en TrainerContent.team
   }

@@ -31,7 +31,17 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'pokeapi-sprites',
-              expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              expiration: { maxEntries: 3000, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Retratos de entrenador (Pokémon Showdown) -> cache-first
+            urlPattern: /^https:\/\/play\.pokemonshowdown\.com\/sprites\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'showdown-trainers',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 90 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

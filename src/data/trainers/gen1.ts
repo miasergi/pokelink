@@ -7,8 +7,9 @@ import { STARTERS_BY_GEN } from '@/data/starters'
 // Los movesets se derivan del learnset al nivel (no hace falta moveIds).
 // ============================================================================
 
+// Retratos de entrenador desde Pokémon Showdown (PokeAPI no tiene entrenadores).
 const TRAINER_SPRITE = (slug: string) =>
-  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/${slug}.png`
+  `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
 
 export const KANTO_GYM_LEADERS: TrainerData[] = [
   {
@@ -31,7 +32,7 @@ export const KANTO_GYM_LEADERS: TrainerData[] = [
   },
   {
     id: 'surge', name: 'Tte. Surge', trainerClass: 'gym', specialtyType: 'electric',
-    sprite: TRAINER_SPRITE('lt-surge'), reward: { money: 2400 },
+    sprite: TRAINER_SPRITE('ltsurge'), reward: { money: 2400 },
     quote: '¡Mis Pokémon eléctricos te dejarán frito!',
     team: [
       { speciesId: 100, level: 21 }, // Voltorb
@@ -99,7 +100,7 @@ export const KANTO_GYM_LEADERS: TrainerData[] = [
 export const KANTO_ELITE_FOUR: TrainerData[] = [
   {
     id: 'lorelei', name: 'Lorelei', trainerClass: 'elite', specialtyType: 'ice',
-    sprite: TRAINER_SPRITE('lorelei'), reward: { money: 6000 },
+    sprite: TRAINER_SPRITE('lorelei-gen1rb'), reward: { money: 6000 },
     quote: 'Nadie puede vencer a mis Pokémon de hielo. ¡Te congelarás!',
     team: [
       { speciesId: 87, level: 52 }, // Dewgong
@@ -123,7 +124,7 @@ export const KANTO_ELITE_FOUR: TrainerData[] = [
   },
   {
     id: 'agatha', name: 'Agatha', trainerClass: 'elite', specialtyType: 'ghost',
-    sprite: TRAINER_SPRITE('agatha'), reward: { money: 6000 },
+    sprite: TRAINER_SPRITE('agatha-gen1rb'), reward: { money: 6000 },
     quote: 'Oak no es más que un crío para mí. ¡Te enseñaré el miedo!',
     team: [
       { speciesId: 94, level: 56 }, // Gengar

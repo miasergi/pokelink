@@ -5,9 +5,11 @@ import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
 import { IconCrown, IconTrophy } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
 import PartyBar from '@/ui/components/PartyBar'
+import BossPreview from '@/ui/components/BossPreview'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
+import type { MapNode } from '@/engine/run/types'
 import { Button, money, TopBar } from '@/ui/components/kit'
-import { KANTO_GYM_LEADERS, KANTO_ELITE_FOUR } from '@/data/trainers/gen1'
+import { getRegion } from '@/data/trainers/regions'
 
 const ROW_H = 124
 const NODE = 60
@@ -18,6 +20,7 @@ export default function MapScreen() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(360)
   const [toast, setToast] = useState<string | null>(null)
+  const [preview, setPreview] = useState<MapNode | null>(null)
 
   useLayoutEffect(() => {
     const el = wrapRef.current
@@ -74,10 +77,10 @@ export default function MapScreen() {
 
       {/* progreso de medallas */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border-b border-slate-800 overflow-x-auto no-scrollbar">
-        {KANTO_GYM_LEADERS.map((g, i) => (
+        {getRegion(run.gen).gymLeaders.map((g, i) => (
           <img
             key={g.id}
-            src={badgeSprite(i + 1)}
+            src={badgeSprite(getRegion(run.gen).badgeBase + i + 1)}
             title={g.name}
             alt={g.name}
             className={`w-5 h-5 object-contain ${i < run.stats.gymsDefeated ? '' : 'grayscale opacity-30'}`}
@@ -85,7 +88,7 @@ export default function MapScreen() {
           />
         ))}
         <span className="mx-0.5 text-slate-600">·</span>
-        {KANTO_ELITE_FOUR.map((g, i) => (
+        {getRegion(run.gen).eliteFour.map((g, i) => (
           <span key={g.id} style={{ color: i < run.stats.eliteDefeated ? '#c084fc' : '#475569' }}>
             <IconCrown size={18} />
           </span>
@@ -133,7 +136,11 @@ export default function MapScreen() {
                 <button
                   key={id}
                   disabled={!isReach}
-                  onClick={() => isReach && chooseNode(id)}
+                  onClick={() => {
+                    if (!isReach) return
+                    if (['gym', 'elite', 'champion', 'rival'].includes(node.type)) setPreview(node)
+                    else chooseNode(id)
+                  }}
                   className="absolute flex flex-col items-center"
                   style={{
                     left: xOf(node.col, layerIds.length) - NODE / 2,
@@ -179,6 +186,22 @@ export default function MapScreen() {
       <div className="p-2.5 safe-bottom">
         <PartyBar party={run.party} onClick={() => navigate('team')} />
       </div>
+
+      {preview && (
+        <BossPreview
+          node={preview}
+          onFight={() => {
+            const id = preview.id
+            setPreview(null)
+            chooseNode(id)
+          }}
+          onPrepare={() => {
+            setPreview(null)
+            navigate('team')
+          }}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   )
 }

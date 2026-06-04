@@ -27,8 +27,8 @@ export default function SettingsScreen() {
 
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <div className="font-bold">Sonido</div>
-            <div className="text-xs text-slate-400">Efectos de sonido (próximamente)</div>
+            <div className="font-bold">Sonido y vibración</div>
+            <div className="text-xs text-slate-400">Efectos de combate y feedback táctil</div>
           </div>
           <Toggle on={s.sound} onClick={s.toggleSound} />
         </Card>

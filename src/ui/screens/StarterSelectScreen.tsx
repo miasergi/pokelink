@@ -6,7 +6,13 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { typeGradient } from '@/ui/theme/types'
-import type { GameMode } from '@/engine/run/types'
+import type { Difficulty, GameMode } from '@/engine/run/types'
+
+const DIFFS: { id: Difficulty; label: string; desc: string }[] = [
+  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Cura antes de cada jefe.' },
+  { id: 'hard', label: 'Difícil', desc: 'Enemigos más fuertes y sin cura previa.' },
+  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Si un Pokémon se debilita, lo pierdes para siempre.' },
+]
 
 export default function StarterSelectScreen() {
   const { back, screen, startRun } = useGame()
@@ -14,6 +20,7 @@ export default function StarterSelectScreen() {
   const gen = (screen.params?.gen as number) ?? 1
   const starters = STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
   const [selected, setSelected] = useState<number | null>(null)
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
   return (
     <div className="flex flex-col flex-1">
@@ -53,13 +60,31 @@ export default function StarterSelectScreen() {
             </div>
           )
         })}
+        {/* Dificultad */}
+        <div className="mt-1">
+          <div className="text-xs font-bold text-slate-400 mb-1.5">Dificultad</div>
+          <div className="grid grid-cols-3 gap-2">
+            {DIFFS.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => setDifficulty(d.id)}
+                className={`rounded-xl py-2 text-sm font-bold transition ${
+                  difficulty === d.id ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1.5">{DIFFS.find((d) => d.id === difficulty)?.desc}</p>
+        </div>
       </div>
       <div className="p-4 safe-bottom">
         <Button
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun({ mode, gen, starterId: selected })}
+          onClick={() => selected !== null && startRun({ mode, gen, starterId: selected, difficulty })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>

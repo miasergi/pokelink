@@ -12,10 +12,11 @@ import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
 import { fullHeal } from '@/engine/team/instance'
 import { getGeneration } from '@/data/generations'
-import type { GameMode, MapNode, RunState } from './types'
+import type { Difficulty, GameMode, MapNode, RunState } from './types'
 
 export interface NewRunConfig {
   mode: GameMode
+  difficulty: Difficulty
   gen: number
   starterId: number
   seed: number
@@ -29,6 +30,7 @@ export function createRun(config: NewRunConfig): RunState {
 
   return {
     mode: config.mode,
+    difficulty: config.difficulty,
     gen: config.gen,
     region,
     starterId: config.starterId,
@@ -89,13 +91,20 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
     throw new Error('Nodo sin combate')
   }
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
+  const hard = run.difficulty === 'hard'
+
+  // Difícil: enemigos más fuertes.
+  if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
+
   // Suelo de nivel: el equipo nunca va muy por debajo del área (sin grindeo).
   // Ante jefes el equipo iguala su nivel (la ventaja del jugador es el nº de
   // Pokémon y la composición de tipos); en rutas va ligeramente por debajo.
-  const floor = Math.max(5, node.enemyLevel - (isBoss ? 0 : 2))
+  // En Difícil, el jugador va algo por debajo del jefe.
+  const bossFloor = hard ? node.enemyLevel - 3 : node.enemyLevel
+  const floor = Math.max(5, isBoss ? bossFloor : node.enemyLevel - 2)
   for (const mon of run.party) enforceMinLevel(mon, floor)
-  // Ante un jefe llegas preparado: equipo curado al completo (PS, estado y PP).
-  if (isBoss) for (const mon of run.party) fullHeal(mon)
+  // Ante un jefe llegas preparado: equipo curado (salvo en Difícil).
+  if (isBoss && !hard) for (const mon of run.party) fullHeal(mon)
 
   const seed = withRng(run, (rng) => rng.int(1, 2 ** 30))
   return runBattle({ playerTeam: run.party, enemyTeam, seed, isBoss, enemyName })
@@ -106,6 +115,8 @@ export interface BattleOutcomeSummary {
   moneyGained: number
   itemGained?: string
   evolutions: { uid: string; fromId: number; toId: number }[]
+  /** Nuzlocke: nombres de los Pokémon perdidos para siempre en este combate. */
+  lost: string[]
   runEnded: boolean
   runWon: boolean
 }
@@ -122,11 +133,27 @@ export function applyBattleOutcome(
     won: result.winner === 'player',
     moneyGained: 0,
     evolutions: [],
+    lost: [],
     runEnded: false,
     runWon: false,
   }
 
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
+
+  // Nuzlocke: los Pokémon debilitados se pierden para siempre.
+  if (run.difficulty === 'nuzlocke') {
+    const dead = run.party.filter((p) => p.currentHp <= 0)
+    summary.lost = dead.map((p) => getSpecies(p.speciesId).displayName)
+    run.party = run.party.filter((p) => p.currentHp > 0)
+  }
+
+  // Sin Pokémon = fin de la run.
+  if (run.party.length === 0) {
+    run.status = 'lost'
+    summary.won = false
+    summary.runEnded = true
+    return summary
+  }
 
   if (result.winner !== 'player') {
     if (isBoss) {

@@ -18,6 +18,7 @@ export type BattleEvent =
   | { kind: 'wokeUp'; side: Side; uid: string }
   | { kind: 'thawed'; side: Side; uid: string }
   | { kind: 'faint'; side: Side; uid: string; name: string }
+  | { kind: 'mega'; side: Side; uid: string; toSpeciesId: number; name: string }
   | { kind: 'message'; text: string }
   | { kind: 'end'; winner: Side }
 

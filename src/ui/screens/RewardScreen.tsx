@@ -33,6 +33,13 @@ export default function RewardScreen() {
           </Card>
         )}
 
+        {lastSummary.lost.length > 0 && (
+          <Card className="p-3" style={{ borderColor: '#f43f5e55' }}>
+            <div className="text-rose-300 font-bold text-sm">☠ Perdidos para siempre</div>
+            <div className="text-xs text-slate-300 mt-0.5">{lastSummary.lost.join(', ')}</div>
+          </Card>
+        )}
+
         {lastSummary.evolutions.map((evo) => (
           <Card key={evo.uid} className="p-3 flex items-center justify-center gap-3 animate-pop-in">
             <Sprite speciesId={evo.fromId} variant="front" className="w-12 h-12 object-contain opacity-70" />

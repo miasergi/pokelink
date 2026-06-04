@@ -18,7 +18,7 @@ export const GENERATIONS: GenerationMeta[] = [
     gymTypes: ['rock', 'water', 'electric', 'grass', 'poison', 'psychic', 'fire', 'ground'],
     accent: '#ef4444',
   },
-  { gen: 2, region: 'Johto', rostersReady: false, gymTypes: ['flying', 'bug', 'normal', 'ghost', 'fighting', 'steel', 'ice', 'dragon'], accent: '#f59e0b' },
+  { gen: 2, region: 'Johto', rostersReady: true, gymTypes: ['flying', 'bug', 'normal', 'ghost', 'fighting', 'steel', 'ice', 'dragon'], accent: '#f59e0b' },
   { gen: 3, region: 'Hoenn', rostersReady: false, gymTypes: ['rock', 'fighting', 'electric', 'fire', 'normal', 'flying', 'psychic', 'water'], accent: '#10b981' },
   { gen: 4, region: 'Sinnoh', rostersReady: false, gymTypes: ['rock', 'grass', 'fighting', 'water', 'ground', 'ghost', 'steel', 'ice'], accent: '#3b82f6' },
   { gen: 5, region: 'Teselia', rostersReady: false, gymTypes: ['normal', 'poison', 'bug', 'electric', 'fire', 'water', 'ground', 'flying'], accent: '#6366f1' },

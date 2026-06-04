@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { play } from '@/utils/sfx'
 
 export function Button({
   children, onClick, variant = 'primary', disabled, className = '', full,
@@ -10,6 +11,12 @@ export function Button({
   className?: string
   full?: boolean
 }) {
+  const handle = onClick
+    ? () => {
+        play('select')
+        onClick()
+      }
+    : undefined
   const base =
     'select-none rounded-xl font-bold px-4 py-3 text-sm transition active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100'
   const variants: Record<string, string> = {
@@ -21,7 +28,7 @@ export function Button({
   }
   return (
     <button
-      onClick={onClick}
+      onClick={handle}
       disabled={disabled}
       className={`${base} ${variants[variant]} ${full ? 'w-full' : ''} ${className}`}
     >

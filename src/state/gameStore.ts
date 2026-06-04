@@ -3,7 +3,7 @@ import type { RunState } from '@/engine/run/types'
 import type { BattleResult } from '@/engine/battle/types'
 import {
   createRun, enterNode, startNodeBattle, applyBattleOutcome, isNodeBattle,
-  resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, removeItem,
+  resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, removeItem, addItem,
   type BattleOutcomeSummary, type NewRunConfig,
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
@@ -64,6 +64,8 @@ interface GameState {
   clearEvoFx: () => void
   setLead: (monUid: string) => void
   setPartyOrder: (uids: string[]) => void
+  equipItem: (itemId: string, monUid: string) => void
+  unequipHeld: (monUid: string) => void
 }
 
 function persist(run: RunState | null) {
@@ -100,7 +102,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ mode: config.mode, gen: config.gen, starterId: config.starterId, seed })
+    const run = createRun({ mode: config.mode, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed })
     run.startedAt = Date.now()
     void clearRun()
     saveRun(run)
@@ -273,6 +275,31 @@ export const useGame = create<GameState>((set, get) => ({
       const [mon] = run.party.splice(idx, 1)
       run.party.unshift(mon)
     }
+    persist(run)
+    set({ run })
+  },
+
+  equipItem: (itemId, monUid) => {
+    const cur = get().run
+    if (!cur) return
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === monUid)
+    if (!mon) return
+    if (!removeItem(run, itemId, 1)) return
+    if (mon.heldItemId) addItem(run, mon.heldItemId, 1) // devuelve el anterior
+    mon.heldItemId = itemId
+    persist(run)
+    set({ run })
+  },
+
+  unequipHeld: (monUid) => {
+    const cur = get().run
+    if (!cur) return
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === monUid)
+    if (!mon || !mon.heldItemId) return
+    addItem(run, mon.heldItemId, 1)
+    mon.heldItemId = null
     persist(run)
     set({ run })
   },

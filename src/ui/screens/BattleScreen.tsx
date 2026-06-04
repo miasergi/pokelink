@@ -9,6 +9,7 @@ import HpBar from '@/ui/components/HpBar'
 import { Button } from '@/ui/components/kit'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
+import { play, type Sfx } from '@/utils/sfx'
 
 interface SideView {
   uid: string
@@ -39,12 +40,13 @@ interface Frame {
   acting?: { side: Side; moveType: PokemonType; moveName: string }
   fx?: Fx
   flash?: { color: string }
+  sound?: Sfx
 }
 
 const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
   start: 500, sendOut: 500, move: 560, damage: 600, heal: 540, faint: 780,
   status: 660, statChange: 580, statusDamage: 640, cantMove: 640, miss: 560,
-  noEffect: 640, wokeUp: 560, thawed: 560, message: 740, end: 200,
+  noEffect: 640, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
 }
 
 export default function BattleScreen() {
@@ -78,6 +80,12 @@ export default function BattleScreen() {
     setDone(false)
   }, [pendingBattle])
 
+  // Sonido/vibración del frame actual
+  useEffect(() => {
+    const s = frames[idx]?.sound
+    if (s) play(s)
+  }, [idx, frames])
+
   useEffect(() => {
     if (idx >= frames.length - 1) {
       setDone(true)
@@ -91,7 +99,9 @@ export default function BattleScreen() {
 
   if (!run || !pendingBattle || !frames.length) return null
   const frame = frames[Math.min(idx, frames.length - 1)]
-  const isBoss = ['gym', 'elite', 'champion', 'rival'].includes(run.map.nodes[pendingBattle.nodeId].type)
+  const battleNode = run.map.nodes[pendingBattle.nodeId]
+  const isBoss = ['gym', 'elite', 'champion', 'rival'].includes(battleNode.type)
+  const trainer = battleNode.content.kind === 'trainer' ? battleNode.content.trainer : null
 
   const skip = () => {
     clearTimeout(timer.current)
@@ -113,6 +123,18 @@ export default function BattleScreen() {
       )}
 
       <div className="relative flex-1 flex flex-col px-4 pt-4 safe-top gap-1">
+        {/* Retrato del entrenador rival (combates de entrenador) */}
+        {trainer && (
+          <div className="absolute top-2 right-3 z-10 flex flex-col items-center animate-pop-in">
+            <img
+              src={trainer.sprite}
+              alt={trainer.name}
+              className="w-14 h-14 object-contain drop-shadow-lg"
+              style={{ imageRendering: 'pixelated' }}
+            />
+            <span className="text-[10px] font-bold text-slate-200 -mt-1 bg-slate-900/70 px-1.5 rounded-full">{trainer.name}</span>
+          </div>
+        )}
         {/* Enemigo */}
         <div className="flex items-start justify-between gap-2">
           <div className="mt-1">
@@ -293,7 +315,7 @@ function buildFrames(
       player: { ...player }, enemy: { ...enemy }, message,
       anim: extra.anim ?? {},
       remaining: { player: Math.max(1, remaining('player')), enemy: Math.max(0, remaining('enemy')) },
-      acting: extra.acting, fx: extra.fx, flash: extra.flash,
+      acting: extra.acting, fx: extra.fx, flash: extra.flash, sound: extra.sound,
     })
   }
 
@@ -337,6 +359,7 @@ function buildFrames(
           anim: { [e.side]: 'hit' },
           fx: { side: e.side, kind: 'damage', amount: e.amount, crit: e.crit, eff: e.effectiveness, moveType, self: isSelf },
           flash,
+          sound: isSelf ? undefined : e.crit ? 'crit' : 'hit',
         })
         break
       }
@@ -344,14 +367,14 @@ function buildFrames(
         const s = getSide(e.side)!
         const amount = Math.max(0, e.hpAfter - s.currentHp)
         s.currentHp = e.hpAfter
-        push({ anim: { [e.side]: 'heal' }, fx: { side: e.side, kind: 'heal', amount } })
+        push({ anim: { [e.side]: 'heal' }, fx: { side: e.side, kind: 'heal', amount }, sound: 'heal' })
         break
       }
       case 'miss': { const s = getSide(e.side)!; message = `¡${s.name} falló el ataque!`; push(); break }
       case 'noEffect': { const s = getSide(e.side)!; message = `No afecta a ${s.name}...`; push(); break }
       case 'status': {
         const s = getSide(e.side)!; s.status = e.status
-        message = `¡${s.name} sufre ${STATUS_LABEL[e.status]}!`; push(); break
+        message = `¡${s.name} sufre ${STATUS_LABEL[e.status]}!`; push({ sound: 'status' }); break
       }
       case 'statChange': {
         const s = getSide(e.side)!; const up = e.delta > 0
@@ -372,12 +395,23 @@ function buildFrames(
       case 'thawed': { const s = getSide(e.side)!; s.status = 'none'; message = `¡${s.name} se descongeló!`; push(); break }
       case 'faint': {
         const s = getSide(e.side)!; s.currentHp = 0; s.fainted = true; fainted[e.side].add(e.uid)
-        message = `¡${s.name} se debilitó!`; push({ anim: { [e.side]: 'faint' } }); break
+        message = `¡${s.name} se debilitó!`; push({ anim: { [e.side]: 'faint' }, sound: 'faint' }); break
       }
-      case 'message': message = e.text; push(); break
+      case 'mega': {
+        const s = getSide(e.side)!
+        s.speciesId = e.toSpeciesId
+        s.name = e.name
+        message = `¡${e.name} ha megaevolucionado!`
+        push({ flash: { color: 'rgba(217,70,239,0.5)' }, anim: { [e.side]: 'heal' }, sound: 'mega' })
+        break
+      }
+      case 'message':
+        message = e.text
+        push({ sound: e.text.includes('subió') ? 'levelup' : undefined })
+        break
       case 'end':
         message = e.winner === 'player' ? '¡Has ganado el combate!' : 'Tu equipo ha sido derrotado...'
-        push(); break
+        push({ sound: e.winner === 'player' ? 'victory' : 'defeat' }); break
     }
   }
   return frames

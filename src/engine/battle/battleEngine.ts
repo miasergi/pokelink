@@ -1,5 +1,5 @@
 import type { MoveData, PokemonInstance, StatKey, StatusCondition } from '@/types'
-import { getMove, getSpecies } from '@/data'
+import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeDamage, accuracyStageMultiplier } from './damage'
 import { chooseMove } from './ai'
@@ -56,6 +56,8 @@ export function runBattle(config: BattleConfig): BattleResult {
   })
   events.push(sendOutEvent(player))
   events.push(sendOutEvent(enemy))
+  maybeMega(player, events)
+  maybeMega(enemy, events)
 
   let winner: Side | null = null
   let turn = 0
@@ -424,9 +426,24 @@ function resolveFaints(
     s.sleepTurns = 0
     s.toxN = 1
     events.push(sendOutEvent(s))
+    maybeMega(s, events)
   }
   void rng
   return null
+}
+
+/** Megaevolución al entrar en combate si lleva equipada una Mega Piedra. */
+function maybeMega(s: SideState, events: BattleEvent[]): void {
+  const mon = active(s)
+  if (mon.heldItemId !== 'mega-stone') return
+  const forms = getMegaForms(mon.speciesId)
+  if (!forms.length) return
+  const mega = forms[0]
+  const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
+  mon.speciesId = mega.id
+  mon.stats = computeStats(mega.baseStats, mon.ivs, mon.level)
+  mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+  events.push({ kind: 'mega', side: s.side, uid: mon.uid, toSpeciesId: mega.id, name: mega.displayName })
 }
 
 function awardExp(
