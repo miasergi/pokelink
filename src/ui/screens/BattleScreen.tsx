@@ -1,0 +1,361 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useGame } from '@/state/gameStore'
+import { useSettings, type BattleSpeed } from '@/state/settingsStore'
+import { getSpecies } from '@/data'
+import type { BattleEvent, Side } from '@/engine/battle/types'
+import type { PokemonInstance } from '@/types'
+import Sprite from '@/ui/components/Sprite'
+import HpBar from '@/ui/components/HpBar'
+import { Button } from '@/ui/components/kit'
+import { STATUS_LABEL } from '@/engine/battle/status'
+import { TYPE_ES } from '@/ui/theme/types'
+
+interface SideView {
+  uid: string
+  speciesId: number
+  name: string
+  level: number
+  shiny: boolean
+  currentHp: number
+  maxHp: number
+  status: PokemonInstance['status']
+  fainted: boolean
+}
+interface Frame {
+  player: SideView
+  enemy: SideView
+  message: string
+  anim: Partial<Record<Side, 'hit' | 'heal' | 'faint'>>
+  remaining: Record<Side, number>
+}
+
+const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
+  start: 500, sendOut: 500, move: 580, damage: 560, heal: 520, faint: 760,
+  status: 640, statChange: 560, statusDamage: 620, cantMove: 620, miss: 560,
+  noEffect: 620, wokeUp: 560, thawed: 560, message: 720, end: 200,
+}
+
+export default function BattleScreen() {
+  const { run, pendingBattle, finishBattle } = useGame()
+  const settings = useSettings()
+
+  const uidMap = useMemo(() => {
+    const map = new Map<string, { speciesId: number; level: number; shiny: boolean; maxHp: number; currentHp: number; status: PokemonInstance['status'] }>()
+    if (!run || !pendingBattle) return map
+    const add = (mons: PokemonInstance[]) => {
+      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status })
+    }
+    add(run.party)
+    const content = run.map.nodes[pendingBattle.nodeId].content
+    if (content.kind === 'wild') add([content.enemy])
+    else if (content.kind === 'trainer') add(content.team)
+    return map
+  }, [run, pendingBattle])
+
+  const frames = useMemo(
+    () => (pendingBattle ? buildFrames(pendingBattle.result.events, uidMap) : []),
+    [pendingBattle, uidMap],
+  )
+
+  const [idx, setIdx] = useState(0)
+  const [done, setDone] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    setIdx(0)
+    setDone(false)
+  }, [pendingBattle])
+
+  useEffect(() => {
+    if (idx >= frames.length - 1) {
+      setDone(true)
+      return
+    }
+    const ev = pendingBattle!.result.events[idx]
+    const base = DURATION[ev.kind] ?? 500
+    timer.current = setTimeout(() => setIdx((i) => Math.min(i + 1, frames.length - 1)), base / settings.battleSpeed)
+    return () => clearTimeout(timer.current)
+  }, [idx, frames, settings.battleSpeed, pendingBattle])
+
+  if (!run || !pendingBattle || !frames.length) return null
+  const frame = frames[Math.min(idx, frames.length - 1)]
+  const enemyName = run.map.nodes[pendingBattle.nodeId].content
+  const isBoss = ['gym', 'elite', 'champion', 'rival'].includes(run.map.nodes[pendingBattle.nodeId].type)
+
+  const skip = () => {
+    clearTimeout(timer.current)
+    setIdx(frames.length - 1)
+    setDone(true)
+  }
+
+  const won = pendingBattle.result.winner === 'player'
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
+      {/* fondo */}
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-900/40 via-slate-900 to-emerald-950/40" />
+
+      <div className="relative flex-1 flex flex-col p-3 safe-top">
+        {/* Enemigo */}
+        <div className="flex items-start justify-between gap-2">
+          <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
+          <div className={`relative ${frame.anim.enemy === 'hit' ? 'animate-shake' : ''}`}>
+            <Sprite
+              speciesId={frame.enemy.speciesId}
+              shiny={frame.enemy.shiny}
+              className={`w-32 h-32 object-contain drop-shadow-2xl transition-all ${
+                frame.enemy.fainted ? 'animate-faint' : ''
+              } ${frame.anim.enemy === 'hit' ? 'brightness-150' : ''}`}
+            />
+          </div>
+        </div>
+
+        {/* Mensaje central */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-2.5 text-center min-h-[3rem] flex items-center max-w-[90%] shadow-xl">
+            <span className="text-sm font-semibold">{frame.message}</span>
+          </div>
+        </div>
+
+        {/* Jugador */}
+        <div className="flex items-end justify-between gap-2">
+          <div className={`relative ${frame.anim.player === 'hit' ? 'animate-shake' : ''}`}>
+            <Sprite
+              speciesId={frame.player.speciesId}
+              shiny={frame.player.shiny}
+              className={`w-36 h-36 object-contain drop-shadow-2xl transition-all ${
+                frame.player.fainted ? 'animate-faint' : ''
+              } ${frame.anim.player === 'hit' ? 'brightness-150' : ''}`}
+            />
+          </div>
+          <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+        </div>
+      </div>
+
+      {/* Controles */}
+      <div className="relative p-3 safe-bottom border-t border-slate-800 bg-slate-900/80 backdrop-blur">
+        {done ? (
+          <Button full variant={won ? 'success' : 'danger'} onClick={finishBattle} className="animate-pop-in">
+            {won ? '¡Victoria! Continuar ›' : 'Derrota...'}
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5 flex-1">
+              {([1, 2, 4] as BattleSpeed[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => settings.setBattleSpeed(s)}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition ${
+                    settings.battleSpeed === s ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}
+                >
+                  {s}×
+                </button>
+              ))}
+            </div>
+            <Button variant="secondary" onClick={skip}>
+              Saltar ⏭
+            </Button>
+          </div>
+        )}
+        {isBoss && !done && (
+          <div className="text-center text-[11px] text-amber-300/80 mt-1.5">
+            {typeof enemyName === 'object' && enemyName.kind === 'trainer'
+              ? `Combate de ${enemyName.trainer.trainerClass === 'champion' ? 'Campeón' : 'jefe'}`
+              : ''}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function InfoCard({ view, remaining, align }: { view: SideView; remaining: number; align: 'left' | 'right' }) {
+  return (
+    <div className={`bg-slate-900/80 border border-slate-700 rounded-xl px-2.5 py-1.5 min-w-[8.5rem] shadow-lg ${align === 'right' ? 'text-right' : ''}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold text-sm truncate">{view.name}</span>
+        <span className="text-[11px] text-slate-400">Nv.{view.level}</span>
+      </div>
+      <HpBar current={view.currentHp} max={view.maxHp} status={view.status} showNumbers />
+      <div className="flex gap-0.5 mt-0.5 justify-end">
+        {Array.from({ length: remaining }).map((_, i) => (
+          <span key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// --- Construcción de frames a partir de eventos ---
+function buildFrames(
+  events: BattleEvent[],
+  uidMap: Map<string, { speciesId: number; level: number; shiny: boolean; maxHp: number; currentHp: number; status: PokemonInstance['status'] }>,
+): Frame[] {
+  const mk = (uid: string): SideView => {
+    const d = uidMap.get(uid)!
+    return {
+      uid, speciesId: d.speciesId, name: getSpecies(d.speciesId).displayName,
+      level: d.level, shiny: d.shiny, currentHp: d.currentHp, maxHp: d.maxHp,
+      status: d.status, fainted: d.currentHp <= 0,
+    }
+  }
+
+  // contar miembros por lado a partir de uidMap es ambiguo; contamos por eventos faint
+  const teamCount: Record<Side, Set<string>> = { player: new Set(), enemy: new Set() }
+  for (const e of events) {
+    if ('side' in e && 'uid' in e) teamCount[e.side].add(e.uid)
+  }
+  const fainted: Record<Side, Set<string>> = { player: new Set(), enemy: new Set() }
+
+  let player: SideView | null = null
+  let enemy: SideView | null = null
+  let message = '¡El combate ha comenzado!'
+  const frames: Frame[] = []
+
+  const remaining = (side: Side) => teamCount[side].size - fainted[side].size
+
+  const push = (anim: Frame['anim'] = {}) => {
+    if (!player || !enemy) return
+    frames.push({
+      player: { ...player },
+      enemy: { ...enemy },
+      message,
+      anim,
+      remaining: { player: Math.max(1, remaining('player')), enemy: Math.max(0, remaining('enemy')) },
+    })
+  }
+
+  const setSide = (side: Side, v: SideView) => {
+    if (side === 'player') player = v
+    else enemy = v
+  }
+  const getSide = (side: Side) => (side === 'player' ? player : enemy)
+
+  for (const e of events) {
+    switch (e.kind) {
+      case 'start':
+        player = mk(e.playerLead)
+        enemy = mk(e.enemyLead)
+        message = `¡Un ${enemy.name} salvaje se acerca!`
+        push()
+        break
+      case 'sendOut': {
+        const v = mk(e.uid)
+        setSide(e.side, v)
+        message = e.side === 'player' ? `¡Adelante, ${v.name}!` : `El rival envía a ${v.name}.`
+        push()
+        break
+      }
+      case 'move': {
+        const s = getSide(e.side)!
+        message = `${s.name} usó ${capitalize(e.moveName)}.`
+        push()
+        break
+      }
+      case 'damage': {
+        const s = getSide(e.side)!
+        s.currentHp = e.hpAfter
+        s.maxHp = e.maxHp
+        let extra = ''
+        if (e.crit) extra = ' ¡Golpe crítico!'
+        else if (e.effectiveness >= 2) extra = ' ¡Súper eficaz!'
+        else if (e.effectiveness > 0 && e.effectiveness < 1) extra = ' Poco eficaz...'
+        if (extra) message = extra.trim()
+        push({ [e.side]: 'hit' })
+        break
+      }
+      case 'heal': {
+        const s = getSide(e.side)!
+        s.currentHp = e.hpAfter
+        push({ [e.side]: 'heal' })
+        break
+      }
+      case 'miss': {
+        const s = getSide(e.side)!
+        message = `¡${s.name} falló el ataque!`
+        push()
+        break
+      }
+      case 'noEffect': {
+        const s = getSide(e.side)!
+        message = `No afecta a ${s.name}...`
+        push()
+        break
+      }
+      case 'status': {
+        const s = getSide(e.side)!
+        s.status = e.status
+        message = `¡${s.name} sufre ${STATUS_LABEL[e.status]}!`
+        push()
+        break
+      }
+      case 'statChange': {
+        const s = getSide(e.side)!
+        const up = e.delta > 0
+        message = `${s.name} ${up ? 'aumentó' : 'redujo'} su ${statName(e.stat)}.`
+        push()
+        break
+      }
+      case 'statusDamage': {
+        const s = getSide(e.side)!
+        s.currentHp = e.hpAfter
+        message = `${s.name} sufre daño de ${STATUS_LABEL[e.status]}.`
+        push({ [e.side]: 'hit' })
+        break
+      }
+      case 'cantMove': {
+        const s = getSide(e.side)!
+        const r = e.reason === 'par' ? 'está paralizado y no puede moverse' : e.reason === 'slp' ? 'está dormido' : 'está congelado'
+        message = `¡${s.name} ${r}!`
+        push()
+        break
+      }
+      case 'wokeUp': {
+        const s = getSide(e.side)!
+        s.status = 'none'
+        message = `¡${s.name} se despertó!`
+        push()
+        break
+      }
+      case 'thawed': {
+        const s = getSide(e.side)!
+        s.status = 'none'
+        message = `¡${s.name} se descongeló!`
+        push()
+        break
+      }
+      case 'faint': {
+        const s = getSide(e.side)!
+        s.currentHp = 0
+        s.fainted = true
+        fainted[e.side].add(e.uid)
+        message = `¡${s.name} se debilitó!`
+        push({ [e.side]: 'faint' })
+        break
+      }
+      case 'message':
+        message = e.text
+        push()
+        break
+      case 'end':
+        message = e.winner === 'player' ? '¡Has ganado el combate!' : 'Tu equipo ha sido derrotado...'
+        push()
+        break
+    }
+  }
+  return frames
+}
+
+function capitalize(s: string) {
+  return s.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+function statName(stat: string) {
+  const map: Record<string, string> = {
+    atk: 'Ataque', def: 'Defensa', spa: 'At. Esp.', spd: 'Def. Esp.', spe: 'Velocidad',
+    accuracy: 'Precisión', evasion: 'Evasión', hp: 'PS',
+  }
+  return map[stat] ?? stat
+}
+
+void TYPE_ES
