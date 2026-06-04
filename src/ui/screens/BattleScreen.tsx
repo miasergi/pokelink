@@ -6,7 +6,7 @@ import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
 import HpBar from '@/ui/components/HpBar'
-import { Button } from '@/ui/components/kit'
+import { Button, ImgFallback } from '@/ui/components/kit'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { play, type Sfx } from '@/utils/sfx'
@@ -124,13 +124,14 @@ export default function BattleScreen() {
 
       <div className="relative flex-1 flex flex-col px-4 pt-4 safe-top gap-1">
         {/* Retrato del entrenador rival (combates de entrenador) */}
-        {trainer && (
+        {trainer && trainer.sprite && (
           <div className="absolute top-2 right-3 z-10 flex flex-col items-center animate-pop-in">
-            <img
+            <ImgFallback
               src={trainer.sprite}
               alt={trainer.name}
               className="w-14 h-14 object-contain drop-shadow-lg"
               style={{ imageRendering: 'pixelated' }}
+              fallback={<span />}
             />
             <span className="text-[10px] font-bold text-slate-200 -mt-1 bg-slate-900/70 px-1.5 rounded-full">{trainer.name}</span>
           </div>

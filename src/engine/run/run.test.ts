@@ -1,6 +1,27 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome } from './runEngine'
 
+describe('todas las generaciones', () => {
+  it('cada generación (1-9) crea una run válida (IDs y rosters correctos)', () => {
+    const starters: Record<number, number> = {
+      1: 1, 2: 152, 3: 252, 4: 387, 5: 495, 6: 650, 7: 722, 8: 810, 9: 906,
+    }
+    for (let gen = 1; gen <= 9; gen++) {
+      const run = createRun({ mode: 'generation', difficulty: 'normal', gen, starterId: starters[gen], seed: 1000 + gen })
+      const types = Object.values(run.map.nodes).map((n) => n.type)
+      expect(types.filter((t) => t === 'gym')).toHaveLength(8)
+      expect(types.filter((t) => t === 'elite')).toHaveLength(4)
+      expect(types.filter((t) => t === 'champion')).toHaveLength(1)
+      // todos los equipos de jefe deben tener instancias (species válidas)
+      for (const n of Object.values(run.map.nodes)) {
+        if (n.content.kind === 'trainer') {
+          expect(n.content.team.length).toBeGreaterThan(0)
+        }
+      }
+    }
+  })
+})
+
 describe('creación de run y mapa', () => {
   it('crea una run jugable de Gen 1', () => {
     const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 123 })

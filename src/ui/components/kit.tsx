@@ -1,5 +1,20 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode, type CSSProperties } from 'react'
 import { play } from '@/utils/sfx'
+
+/** Imagen que muestra un fallback si la carga falla (sprites externos opcionales). */
+export function ImgFallback({
+  src, fallback, className, style, alt = '',
+}: {
+  src: string
+  fallback: ReactNode
+  className?: string
+  style?: CSSProperties
+  alt?: string
+}) {
+  const [err, setErr] = useState(false)
+  if (err) return <>{fallback}</>
+  return <img src={src} alt={alt} className={className} style={style} draggable={false} onError={() => setErr(true)} />
+}
 
 export function Button({
   children, onClick, variant = 'primary', disabled, className = '', full,

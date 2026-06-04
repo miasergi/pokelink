@@ -2,9 +2,19 @@ import type { MapNode } from '@/engine/run/types'
 import { tryGetItem } from '@/data/items'
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites'
-const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
+export const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
 const itemSprite = (slug: string) => `${SPRITES}/items/${slug}.png`
 export const badgeSprite = (n: number) => `${SPRITES}/badges/${n}.png`
+
+/** Sprite del Pokémon estrella de un nodo de entrenador (fallback de retrato). */
+export function aceSprite(node: MapNode): string {
+  const c = node.content
+  if (c.kind === 'trainer' && c.team.length) {
+    const ace = c.team.reduce((a, b) => (b.level >= a.level ? b : a))
+    return pokemonSprite(ace.speciesId)
+  }
+  return itemSprite('poke-ball')
+}
 
 export interface NodeImage {
   url: string

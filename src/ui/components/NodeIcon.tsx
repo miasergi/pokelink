@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { MapNode, NodeType } from '@/engine/run/types'
-import { nodeImage } from './nodeImage'
+import { nodeImage, aceSprite } from './nodeImage'
 import { IconCheck } from './icons'
 
 export const NODE_META: Record<NodeType, { label: string; color: string }> = {
@@ -26,10 +26,13 @@ export default function NodeIcon({
   cleared?: boolean
   dim?: boolean
 }) {
-  const [errored, setErrored] = useState(false)
+  const [stage, setStage] = useState<0 | 1 | 2>(0)
   const meta = NODE_META[node.type]
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival'
+  const isTrainer = isBoss || node.type === 'trainer'
   const img = nodeImage(node)
+  const fallbackUrl = isTrainer ? aceSprite(node) : null
+  const src = stage === 0 ? img.url : fallbackUrl
   const imgSize = Math.round(size * (isBoss ? 1.12 : 0.94))
 
   return (
@@ -51,11 +54,11 @@ export default function NodeIcon({
             : 'none',
       }}
     >
-      {!errored ? (
+      {stage < 2 && src ? (
         <img
-          src={img.url}
+          src={src}
           alt={meta.label}
-          onError={() => setErrored(true)}
+          onError={() => setStage((s) => (s === 0 && fallbackUrl ? 1 : 2))}
           draggable={false}
           className={`object-contain ${cleared ? 'grayscale opacity-40' : 'drop-shadow'}`}
           style={{

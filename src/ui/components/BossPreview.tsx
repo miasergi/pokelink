@@ -1,9 +1,10 @@
 import type { MapNode } from '@/engine/run/types'
-import { Button } from './kit'
+import { Button, ImgFallback } from './kit'
 import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { TYPES, typeEffectiveness } from '@/data/typechart'
 import { getSpecies } from '@/data'
+import { aceSprite } from './nodeImage'
 
 const CLASS_ES: Record<string, string> = {
   gym: 'Líder de Gimnasio', elite: 'Alto Mando', champion: 'Campeón', rival: 'Rival', trainer: 'Entrenador',
@@ -31,7 +32,13 @@ export default function BossPreview({
       >
         <div className="flex items-center gap-3">
           {trainer.sprite && (
-            <img src={trainer.sprite} alt={trainer.name} className="w-20 h-20 object-contain drop-shadow-lg" style={{ imageRendering: 'pixelated' }} />
+            <ImgFallback
+              src={trainer.sprite}
+              alt={trainer.name}
+              className="w-20 h-20 object-contain drop-shadow-lg"
+              style={{ imageRendering: 'pixelated' }}
+              fallback={<img src={aceSprite(node)} alt="" className="w-16 h-16 object-contain" style={{ imageRendering: 'pixelated' }} />}
+            />
           )}
           <div className="flex-1">
             <div className="text-xs text-slate-400">{CLASS_ES[trainer.trainerClass] ?? 'Entrenador'}</div>

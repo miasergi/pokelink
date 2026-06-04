@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
 import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
-import { IconCrown, IconTrophy } from '@/ui/components/icons'
+import { IconCrown, IconTrophy, IconBadge } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
+import { ImgFallback } from '@/ui/components/kit'
 import PartyBar from '@/ui/components/PartyBar'
 import BossPreview from '@/ui/components/BossPreview'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
@@ -77,16 +78,23 @@ export default function MapScreen() {
 
       {/* progreso de medallas */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border-b border-slate-800 overflow-x-auto no-scrollbar">
-        {getRegion(run.gen).gymLeaders.map((g, i) => (
-          <img
-            key={g.id}
-            src={badgeSprite(getRegion(run.gen).badgeBase + i + 1)}
-            title={g.name}
-            alt={g.name}
-            className={`w-5 h-5 object-contain ${i < run.stats.gymsDefeated ? '' : 'grayscale opacity-30'}`}
-            style={{ imageRendering: 'pixelated' }}
-          />
-        ))}
+        {getRegion(run.gen).gymLeaders.map((g, i) => {
+          const earned = i < run.stats.gymsDefeated
+          return (
+            <ImgFallback
+              key={g.id}
+              src={badgeSprite(getRegion(run.gen).badgeBase + i + 1)}
+              alt={g.name}
+              className={`w-5 h-5 object-contain ${earned ? '' : 'grayscale opacity-30'}`}
+              style={{ imageRendering: 'pixelated' }}
+              fallback={
+                <span style={{ color: earned ? '#fcd34d' : '#475569' }}>
+                  <IconBadge size={18} />
+                </span>
+              }
+            />
+          )
+        })}
         <span className="mx-0.5 text-slate-600">·</span>
         {getRegion(run.gen).eliteFour.map((g, i) => (
           <span key={g.id} style={{ color: i < run.stats.eliteDefeated ? '#c084fc' : '#475569' }}>

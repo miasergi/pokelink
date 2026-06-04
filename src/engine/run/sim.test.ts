@@ -148,6 +148,17 @@ describe('simulación de runs completas (balance)', () => {
     void avgGyms
   })
 
+  it('cada generación (1-9) se juega de principio a fin sin errores', () => {
+    const starters: Record<number, number> = {
+      1: 4, 2: 155, 3: 255, 4: 390, 5: 498, 6: 653, 7: 725, 8: 813, 9: 909,
+    }
+    for (let gen = 1; gen <= 9; gen++) {
+      const { run } = playRun(7777 + gen, starters[gen], gen)
+      expect(run.status === 'won' || run.status === 'lost').toBe(true)
+      expect(run.stats.gymsDefeated).toBeGreaterThanOrEqual(0)
+    }
+  })
+
   it('Johto (Gen 2) es jugable y completable', () => {
     let maxGyms = 0
     let wins = 0
