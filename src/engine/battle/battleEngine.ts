@@ -1,7 +1,7 @@
 import type { MoveData, PokemonInstance, PokemonType, StatKey } from '@/types'
 import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
-import { computeDamage } from './damage'
+import { computeDamage, isPhysicalAttacker } from './damage'
 import { chooseMove } from './ai'
 import { expForLevel, expGain, levelFromExp } from '@/engine/team/leveling'
 import { computeStats } from '@/engine/team/leveling'
@@ -321,12 +321,13 @@ function performMove(
   for (let h = 0; h < hits; h++) {
     if (defender.currentHp <= 0) break
     const extraMult = offenseMult(attacker, move, ctx) * defenseMult(defender, move, baseEff)
+    const phys = isPhysicalAttacker(attacker)
     const res = computeDamage({
       attacker, attackerSpecies: species,
       defender, defenderSpecies: defSpecies,
       move,
-      atkStage: atk.stages.atk,
-      defStage: def.stages.def,
+      atkStage: phys ? atk.stages.atk : atk.stages.spa,
+      defStage: phys ? def.stages.def : def.stages.spd,
       rng, extraMult, adaptability, ignoreBurn,
     })
     effectiveness = res.effectiveness

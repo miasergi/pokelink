@@ -13,6 +13,7 @@ import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { typeGradient } from '@/ui/theme/types'
 import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
 import { TYPE_ATTACKS, tierForLevel } from '@/data/typeAttacks'
+import { attackCategory } from '@/engine/battle/damage'
 
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
@@ -143,14 +144,26 @@ export default function TeamScreen() {
 
             <div className="mb-2"><HpBar current={selMon.currentHp} max={selMon.stats.hp} status={selMon.status} showNumbers /></div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
-              {([['PS', selMon.stats.hp], ['Ataque', Math.max(selMon.stats.atk, selMon.stats.spa)], ['Defensa', Math.max(selMon.stats.def, selMon.stats.spd)], ['Velocidad', selMon.stats.spe]] as const).map(([label, val]) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-slate-400">{label}</span>
-                  <span className="font-bold tabular-nums">{val}</span>
+            {(() => {
+              const phys = attackCategory(selMon) === 'physical'
+              const rows: [string, number][] = [
+                ['PS', selMon.stats.hp],
+                [phys ? 'Ataque (Físico)' : 'Ataque (Especial)', phys ? selMon.stats.atk : selMon.stats.spa],
+                ['Defensa', selMon.stats.def],
+                ['Def. Esp.', selMon.stats.spd],
+                ['Velocidad', selMon.stats.spe],
+              ]
+              return (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
+                  {rows.map(([label, val]) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-slate-400">{label}</span>
+                      <span className="font-bold tabular-nums">{val}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )
+            })()}
 
             <div className="grid grid-cols-1 gap-1.5 mb-2">
               {selMon.moves.map((mv) => {
@@ -162,7 +175,7 @@ export default function TeamScreen() {
                       <span className="text-xs font-semibold truncate">{m.displayName}</span>
                       <PowerDots type={m.type} power={m.power} />
                     </div>
-                    <span className="text-[10px] text-slate-400 shrink-0">Ataque · {m.power}</span>
+                    <span className="text-[10px] text-slate-400 shrink-0">{attackCategory(selMon) === 'physical' ? 'Físico' : 'Especial'} · {m.power}</span>
                   </div>
                 )
               })}

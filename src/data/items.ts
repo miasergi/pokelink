@@ -53,7 +53,7 @@ export const ITEMS: ItemData[] = [
 
   // --- Mejora (consumibles de subida) ---
   { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
-  { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 7000, sprite: ITEM_SPRITE('exp-candy-l') },
+  { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 7000, sprite: ITEM_SPRITE('lucky-egg') },
   { id: 'upgrade', name: 'Mejora', category: 'battle', description: 'Sube el NIVEL de potencia del ataque de un Pokémon (40 → 80 → 120).', price: 4000, sprite: ITEM_SPRITE('ability-capsule') },
   { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes un combate, revives a 1 Pokémon y continúas la partida. Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 

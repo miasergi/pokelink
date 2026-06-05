@@ -107,7 +107,8 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
                   <div className="flex gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[8px] font-bold px-1 rounded bg-slate-700 text-slate-300">{mon.stats.atk >= mon.stats.spa ? 'Físico' : 'Especial'}</span>
                 {mon.moves.map((mv, i) => { const md = getMove(mv.moveId); return <PowerDots key={i} type={md.type} power={md.power} size={6} /> })}
               </div>
               <div className="mt-1"><HpBar current={mon.currentHp} max={mon.stats.hp} status={mon.status} showNumbers /></div>

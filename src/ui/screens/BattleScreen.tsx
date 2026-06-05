@@ -30,6 +30,7 @@ interface SideView {
   fainted: boolean
   heldItemId?: string | null
   moves: AtkView[]
+  physical: boolean
 }
 interface MonView {
   speciesId: number
@@ -40,6 +41,7 @@ interface MonView {
   status: PokemonInstance['status']
   heldItemId?: string | null
   moves: AtkView[]
+  physical: boolean
 }
 interface TeamSlot {
   uid: string
@@ -85,7 +87,7 @@ export default function BattleScreen() {
     const map = new Map<string, MonView>()
     if (!run || !pendingBattle) return map
     const add = (mons: PokemonInstance[]) => {
-      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
+      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, physical: m.stats.atk >= m.stats.spa, moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
     }
     add(run.party)
     const content = run.map.nodes[pendingBattle.nodeId].content
@@ -375,10 +377,9 @@ function InfoCard({ view, remaining, align }: { view: SideView; remaining: numbe
       </div>
       <HpBar current={view.currentHp} max={view.maxHp} status={view.status} showNumbers />
       <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        <span className="text-[9px] font-bold px-1 rounded bg-slate-700 text-slate-200">{view.physical ? 'Físico' : 'Especial'}</span>
         {view.moves.map((mv, i) => (
-          <span key={i} className="inline-flex items-center gap-1 text-[9px] text-slate-300">
-            <PowerDots type={mv.type} power={mv.power} size={6} />
-          </span>
+          <PowerDots key={i} type={mv.type} power={mv.power} size={6} />
         ))}
       </div>
       <span className="sr-only">{remaining}</span>
@@ -417,7 +418,7 @@ function buildFrames(
     return {
       uid, speciesId: d.speciesId, name: getSpecies(d.speciesId).displayName,
       level: d.level, shiny: d.shiny, currentHp: d.currentHp, maxHp: d.maxHp,
-      status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId, moves: d.moves,
+      status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId, moves: d.moves, physical: d.physical,
     }
   }
 

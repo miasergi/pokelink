@@ -2,6 +2,16 @@ import type { MoveData, PokemonInstance, SpeciesData } from '@/types'
 import { typeEffectiveness } from '@/data/typechart'
 import { RNG } from '@/utils/rng'
 
+/** Categoría de ataque del Pokémon: físico si Atk >= SpA, si no especial.
+ *  (Cada Pokémon ataca SIEMPRE con su categoría; p.ej. Hitmonlee físico,
+ *  Gengar especial.) */
+export function isPhysicalAttacker(mon: PokemonInstance): boolean {
+  return mon.stats.atk >= mon.stats.spa
+}
+export function attackCategory(mon: PokemonInstance): 'physical' | 'special' {
+  return isPhysicalAttacker(mon) ? 'physical' : 'special'
+}
+
 /** Multiplicador por cambio de stat (atk/def/spa/spd/spe). */
 export function statStageMultiplier(stage: number): number {
   const s = Math.max(-6, Math.min(6, stage))
@@ -46,11 +56,11 @@ export function computeDamage(ctx: DamageContext): DamageResult {
     return { damage: 0, effectiveness, crit: false }
   }
 
-  // Sin distinción físico/especial: cada Pokémon ataca con su MEJOR stat
-  // ofensivo y defiende con su MEJOR stat defensivo. "Ataque" = max(Atk,SpA),
-  // "Defensa" = max(Def,SpD).
-  const rawAtk = Math.max(attacker.stats.atk, attacker.stats.spa)
-  const rawDef = Math.max(defender.stats.def, defender.stats.spd)
+  // Cada Pokémon ataca con UNA categoría (la de su mejor stat ofensivo):
+  // físico (Atk vs Defensa) o especial (SpA vs Def. Especial).
+  const physical = isPhysicalAttacker(attacker)
+  const rawAtk = physical ? attacker.stats.atk : attacker.stats.spa
+  const rawDef = physical ? defender.stats.def : defender.stats.spd
 
   const atk = rawAtk * statStageMultiplier(ctx.atkStage)
   const def = rawDef * statStageMultiplier(ctx.defStage)
