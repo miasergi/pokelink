@@ -17,7 +17,7 @@ const ROW_H = 124
 const NODE = 60
 
 export default function MapScreen() {
-  const { run, chooseNode, navigate, lastEventResult } = useGame()
+  const { run, chooseNode, navigate, lastEventResult, setPartyOrder } = useGame()
   const wrapRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(360)
@@ -191,7 +191,7 @@ export default function MapScreen() {
       )}
 
       <div className="p-2.5 safe-bottom">
-        <PartyBar party={run.party} onClick={() => navigate('team')} />
+        <PartyBar party={run.party} onReorder={setPartyOrder} onOpenBag={() => navigate('team')} />
       </div>
 
       {preview && (

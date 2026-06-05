@@ -9,6 +9,7 @@ import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
 import { abilityName } from '@/engine/battle/abilities'
+import { effectiveEvoLevel } from '@/engine/team/evolution'
 
 const CAT_ES: Record<string, string> = { physical: 'Físico', special: 'Especial', status: 'Estado' }
 
@@ -83,6 +84,46 @@ export default function TeamScreen() {
                   </div>
                 )
               })}
+            </div>
+
+            {/* Progreso: evolución / megaevolución / próximas mejoras */}
+            <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 mb-2 space-y-1 text-[11px]">
+              {selSpecies.evolutions.length > 0 ? (
+                selSpecies.evolutions.map((evo) => {
+                  const req = effectiveEvoLevel(evo.trigger)
+                  const target = getSpecies(evo.toId)
+                  const left = req - selMon.level
+                  return (
+                    <div key={evo.toId} className="flex items-center gap-1.5">
+                      <span>🧬</span>
+                      <span>
+                        Evoluciona a <b>{target.displayName}</b>{' '}
+                        {left > 0
+                          ? <span className="text-slate-400">al Nv.{req} · faltan {left}</span>
+                          : <span className="text-emerald-300">¡listo! (sube de nivel)</span>}
+                      </span>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="text-slate-500 flex items-center gap-1.5"><span>🧬</span> Sin evolución (forma final)</div>
+              )}
+              {hasMega(selMon.speciesId) && (
+                <div className="flex items-center gap-1.5"><span>💠</span><span>Puede <b className="text-fuchsia-300">megaevolucionar</b> con Megapiedra (permanente).</span></div>
+              )}
+              {(() => {
+                const upcoming = selSpecies.learnset
+                  .filter((l) => l.level > selMon.level)
+                  .sort((a, b) => a.level - b.level)
+                  .slice(0, 3)
+                if (!upcoming.length) return null
+                return (
+                  <div className="flex items-start gap-1.5">
+                    <span>⚔️</span>
+                    <span className="text-slate-300">Mejoras: {upcoming.map((l) => `${getMove(l.moveId).displayName} (Nv.${l.level})`).join(' · ')}</span>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Objeto equipado */}
