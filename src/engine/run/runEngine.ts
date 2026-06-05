@@ -93,8 +93,10 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'legendary'
   const hard = run.difficulty === 'hard'
 
-  // Difícil: Pokémon rivales (salvajes, entrenadores y jefes) a ×1.5 de nivel.
-  if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.5)))
+  // Difícil y Nuzlocke: Pokémon rivales (salvajes, entrenadores y jefes) a
+  // ×1.5 de nivel.
+  const tough = hard || run.difficulty === 'nuzlocke'
+  if (tough) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.5)))
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
   // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles

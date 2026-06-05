@@ -19,6 +19,7 @@ export type BattleEvent =
   | { kind: 'thawed'; side: Side; uid: string }
   | { kind: 'faint'; side: Side; uid: string; name: string }
   | { kind: 'mega'; side: Side; uid: string; toSpeciesId: number; name: string }
+  | { kind: 'transform'; side: Side; uid: string; intoSpeciesId: number; intoName: string }
   | { kind: 'ability'; side: Side; uid: string; ability: string; text: string }
   | { kind: 'weather'; weather: 'none' | 'sun' | 'rain' | 'sand' | 'snow' }
   | { kind: 'message'; text: string }

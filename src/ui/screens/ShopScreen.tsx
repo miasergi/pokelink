@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, money, TopBar } from '@/ui/components/kit'
 import { getItem } from '@/data/items'
 
 export default function ShopScreen() {
   const { run, screen, doBuy, doLeaveShop } = useGame()
+  const [bought, setBought] = useState(false)
   const nodeId = screen.params?.nodeId as string
   if (!run) return null
   const node = run.map.nodes[nodeId]
@@ -12,6 +14,9 @@ export default function ShopScreen() {
   const canBuyMega = run.stats.gymsDefeated >= 7
   // Nuzlocke: prohibido comprar pociones/objetos de curación.
   const noHeal = run.difficulty === 'nuzlocke'
+  // Difícil y Nuzlocke: solo 1 compra por visita.
+  const oneItemOnly = run.difficulty === 'hard' || run.difficulty === 'nuzlocke'
+  const lockedOut = oneItemOnly && bought
   const stock = [...new Set(node.content.stock)].filter((id) => {
     if (id === 'mega-stone' && !canBuyMega) return false
     if (noHeal && (getItem(id).category === 'heal' || getItem(id).category === 'revive')) return false
@@ -46,12 +51,12 @@ export default function ShopScreen() {
               </div>
               <Button
                 full
-                variant={afford ? 'primary' : 'secondary'}
-                disabled={!afford}
-                onClick={() => doBuy(id, item.price)}
+                variant={afford && !lockedOut ? 'primary' : 'secondary'}
+                disabled={!afford || lockedOut}
+                onClick={() => { doBuy(id, item.price); setBought(true) }}
                 className="!py-2 mt-2"
               >
-                {afford ? 'Comprar' : 'Sin dinero suficiente'}
+                {lockedOut ? 'Solo 1 compra por visita' : afford ? 'Comprar' : 'Sin dinero suficiente'}
               </Button>
             </Card>
           )

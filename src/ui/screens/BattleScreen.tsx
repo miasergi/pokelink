@@ -538,6 +538,14 @@ function buildFrames(
         push({ flash: { color: 'rgba(217,70,239,0.5)' }, anim: { [e.side]: 'heal' }, sound: 'mega' })
         break
       }
+      case 'transform': {
+        const s = getSide(e.side)!
+        s.speciesId = e.intoSpeciesId
+        s.name = e.intoName
+        message = `¡Ditto se transformó en ${e.intoName}!`
+        push({ flash: { color: 'rgba(168,85,247,0.5)' }, anim: { [e.side]: 'heal' }, sound: 'mega' })
+        break
+      }
       case 'ability':
         message = e.text
         push({ sound: 'status' })

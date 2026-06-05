@@ -20,6 +20,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [order, setOrder] = useState<string[]>(party.map((p) => p.uid))
   const [dragUid, setDragUid] = useState<string | null>(null)
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!dragUid) setOrder(party.map((p) => p.uid))
@@ -35,6 +36,8 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
   useEffect(() => {
     if (!dragUid) return
     const move = (e: PointerEvent) => {
+      e.preventDefault()
+      setDragPos({ x: e.clientX, y: e.clientY })
       setOrder((cur) => {
         // Índice de inserción en orden de lectura (fila a fila).
         let idx = 0
@@ -51,6 +54,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
     }
     const up = () => {
       setDragUid(null)
+      setDragPos(null)
       setOrder((cur) => { onReorder(cur); return cur })
     }
     window.addEventListener('pointermove', move)
@@ -79,16 +83,22 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
               ref={(el) => { if (el) cellRefs.current.set(mon.uid, el) }}
               onPointerDown={(e) => {
                 // arrastre con pulsación larga sobre la tarjeta
-                const t = window.setTimeout(() => setDragUid(mon.uid), 220)
+                const sx = e.clientX, sy = e.clientY
+                const t = window.setTimeout(() => {
+                  setDragPos({ x: sx, y: sy })
+                  setDragUid(mon.uid)
+                  try { navigator.vibrate?.(30) } catch { /* ignore */ }
+                }, 200)
                 const cancel = () => window.clearTimeout(t)
                 e.currentTarget.addEventListener('pointerup', cancel, { once: true })
                 e.currentTarget.addEventListener('pointercancel', cancel, { once: true })
+                e.currentTarget.addEventListener('pointermove', cancel, { once: true })
               }}
               onClick={() => !dragUid && onSelect(mon.uid)}
               className={`relative rounded-2xl p-2 border transition select-none ${
                 selectedUid === mon.uid ? 'border-red-400' : 'border-slate-700/60'
-              } ${isDragging ? 'scale-[1.04] shadow-2xl shadow-black/50 ring-2 ring-red-400/60 z-50' : ''}`}
-              style={{ background: isDragging ? 'rgba(30,41,59,0.98)' : 'rgba(15,23,42,0.6)', touchAction: 'none' }}
+              } ${isDragging ? 'opacity-30 border-dashed border-red-400' : ''}`}
+              style={{ background: 'rgba(15,23,42,0.6)', touchAction: 'none' }}
             >
               <div className="flex items-center gap-2">
                 <div className={`relative shrink-0 rounded-xl p-0.5 ${fainted ? 'grayscale opacity-50' : ''}`} style={{ background: typeGradient(sp.types) }}>
@@ -119,6 +129,25 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
       <p className="text-[11px] text-slate-500 text-center mt-1.5">
         Toca para ver detalles · mantén pulsado y arrastra para reordenar (el 1º es el líder)
       </p>
+
+      {/* Fantasma que sigue al dedo mientras arrastras */}
+      {dragUid && dragPos && (() => {
+        const m = byUid.get(dragUid)
+        if (!m) return null
+        const sp = getSpecies(m.speciesId)
+        return (
+          <div
+            className="fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 rounded-2xl px-3 py-2 border-2 border-red-400 shadow-2xl shadow-black/60 scale-110"
+            style={{ left: dragPos.x, top: dragPos.y, background: typeGradient(sp.types) }}
+          >
+            <Sprite speciesId={m.speciesId} shiny={m.shiny} className="w-12 h-12 object-contain" />
+            <div className="pr-1">
+              <div className="font-bold text-sm leading-none drop-shadow">{sp.displayName}</div>
+              <div className="text-[10px] opacity-90">Nv.{m.level}</div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

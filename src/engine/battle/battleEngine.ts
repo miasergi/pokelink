@@ -4,7 +4,7 @@ import { RNG } from '@/utils/rng'
 import { computeDamage, isPhysicalAttacker } from './damage'
 import { chooseMove } from './ai'
 import { expForLevel, expGain, levelFromExp } from '@/engine/team/leveling'
-import { computeStats } from '@/engine/team/leveling'
+import { computeStats, refreshMoves } from '@/engine/team/leveling'
 import { typeEffectiveness } from '@/data/typechart'
 import { TYPE_BOOST_BY_ID } from '@/data/items'
 import {
@@ -71,6 +71,11 @@ export function runBattle(config: BattleConfig): BattleResult {
   events.push(sendOutEvent(enemy))
   maybeMega(player, events)
   maybeMega(enemy, events)
+  // Ditto: al entrar se transforma en el rival (adopta sus tipos; conserva su
+  // nivel de potencia). Reversible al final del combate.
+  const transforms: { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }[] = []
+  maybeTransform(player, enemy, events, transforms)
+  maybeTransform(enemy, player, events, transforms)
   // Habilidades de entrada (Intimidación, climas...) por orden de velocidad
   for (const s of effectiveSpeed(player, ctx) >= effectiveSpeed(enemy, ctx) ? [player, enemy] : [enemy, player]) {
     applySwitchIn(s, s === player ? enemy : player, events, ctx)
@@ -132,6 +137,15 @@ export function runBattle(config: BattleConfig): BattleResult {
 
   events.push({ kind: 'end', winner })
 
+  // Revertir transformaciones (Ditto vuelve a ser Ditto al acabar el combate).
+  for (const t of transforms) {
+    const frac = t.mon.stats.hp > 0 ? t.mon.currentHp / t.mon.stats.hp : 0
+    t.mon.speciesId = t.speciesId
+    t.mon.stats = t.stats
+    t.mon.moves = t.moves
+    t.mon.currentHp = t.mon.currentHp <= 0 ? 0 : Math.max(1, Math.round(t.mon.stats.hp * frac))
+  }
+
   return {
     events,
     winner,
@@ -139,6 +153,28 @@ export function runBattle(config: BattleConfig): BattleResult {
     expByUid,
     levelUps,
   }
+}
+
+const DITTO_ID = 132
+
+/** Ditto se transforma en el Pokémon activo rival al entrar: adopta su especie
+ *  (tipos y stats a su propio nivel) pero conserva su nivel de potencia. */
+function maybeTransform(
+  s: SideState, opp: SideState, events: BattleEvent[],
+  transforms: { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }[],
+): void {
+  const mon = active(s)
+  if (mon.speciesId !== DITTO_ID || mon.currentHp <= 0) return
+  const target = active(opp)
+  if (target.speciesId === DITTO_ID) return
+  transforms.push({ mon, speciesId: mon.speciesId, stats: mon.stats, moves: mon.moves })
+  const targetSp = getSpecies(target.speciesId)
+  const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
+  mon.speciesId = target.speciesId
+  mon.stats = computeStats(targetSp.baseStats, mon.ivs, mon.level, mon.bonus)
+  mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+  refreshMoves(mon) // ataques de los tipos del rival, al tier de Ditto
+  events.push({ kind: 'transform', side: s.side, uid: mon.uid, intoSpeciesId: target.speciesId, intoName: targetSp.displayName })
 }
 
 // ---------------------------------------------------------------------------
