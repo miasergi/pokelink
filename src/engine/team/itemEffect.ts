@@ -58,6 +58,23 @@ export function heldStatMods(mon: PokemonInstance): StatMods {
   return m
 }
 
+export interface StatRow { key: string; label: string; base: number; eff: number }
+
+/** Stats VISIBLES con el efecto del objeto equipado aplicado (para el modal y el
+ *  comparador). `off` = stat ofensiva (Ataque o At. Especial). */
+export function displayStats(mon: PokemonInstance): StatRow[] {
+  const m = heldStatMods(mon)
+  const phys = mon.stats.atk >= mon.stats.spa
+  const off = phys ? mon.stats.atk : mon.stats.spa
+  return [
+    { key: 'hp', label: 'PS', base: mon.stats.hp, eff: Math.round(mon.stats.hp * m.hp) },
+    { key: 'off', label: phys ? 'Ataque' : 'At. Esp.', base: off, eff: Math.round(off * m.off) },
+    { key: 'def', label: 'Defensa', base: mon.stats.def, eff: Math.round(mon.stats.def * m.def) },
+    { key: 'spd', label: 'Def. Esp.', base: mon.stats.spd, eff: Math.round(mon.stats.spd * m.spd) },
+    { key: 'spe', label: 'Velocidad', base: mon.stats.spe, eff: Math.round(mon.stats.spe * m.spe) },
+  ]
+}
+
 /** Motivo corto de por qué no tiene efecto (para el aviso). */
 export function noEffectReason(itemId: string, mon: PokemonInstance, cap = 100): string {
   const item = getItem(itemId)

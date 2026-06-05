@@ -15,8 +15,8 @@ import { effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evoluti
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
 import { effectiveTier } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
-import { itemHasEffect, noEffectReason, heldStatMods } from '@/engine/team/itemEffect'
-import type { PokemonInstance } from '@/types'
+import { itemHasEffect, noEffectReason, displayStats } from '@/engine/team/itemEffect'
+import CompareModal from '@/ui/components/CompareModal'
 import { levelCap } from '@/engine/run/runEngine'
 
 export default function TeamScreen() {
@@ -25,25 +25,10 @@ export default function TeamScreen() {
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [msgOk, setMsgOk] = useState(false)
-  const [compareUid, setCompareUid] = useState<string | null>(null)
-  const [comparePicker, setComparePicker] = useState(false)
-  useEffect(() => { setCompareUid(null); setComparePicker(false) }, [sel]) // reset al cambiar de Pokémon
+  const [compareOpen, setCompareOpen] = useState(false)
+  useEffect(() => { setCompareOpen(false) }, [sel]) // cerrar comparador al cambiar de Pokémon
   if (!run) return null
   const cap = levelCap(run)
-
-  // Filas de stats VISIBLES con el efecto del objeto equipado aplicado.
-  const statRowsOf = (mon: PokemonInstance) => {
-    const mods = heldStatMods(mon)
-    const phys = mon.stats.atk >= mon.stats.spa
-    const off = phys ? mon.stats.atk : mon.stats.spa
-    return [
-      { key: 'hp', label: 'PS', base: mon.stats.hp, eff: Math.round(mon.stats.hp * mods.hp) },
-      { key: 'off', label: phys ? 'Ataque' : 'At. Esp.', base: off, eff: Math.round(off * mods.off) },
-      { key: 'def', label: 'Defensa', base: mon.stats.def, eff: Math.round(mon.stats.def * mods.def) },
-      { key: 'spd', label: 'Def. Esp.', base: mon.stats.spd, eff: Math.round(mon.stats.spd * mods.spd) },
-      { key: 'spe', label: 'Velocidad', base: mon.stats.spe, eff: Math.round(mon.stats.spe * mods.spe) },
-    ]
-  }
 
   const flash = (text: string, ok: boolean) => { setMsg(text); setMsgOk(ok) }
   // El mensaje se desvanece solo.
@@ -187,63 +172,33 @@ export default function TeamScreen() {
               <div className="flex flex-col items-end gap-1">
                 <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
                 {run.party.length > 1 && (
-                  <button
-                    onClick={() => { if (compareUid) setCompareUid(null); else setComparePicker((v) => !v) }}
-                    className={`text-[11px] font-bold px-2 py-1 rounded-lg ${compareUid || comparePicker ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-200'}`}
-                  >⚖ {compareUid ? 'Quitar' : 'Comparar'}</button>
+                  <button onClick={() => setCompareOpen(true)} className="text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-slate-200 active:scale-95">⚖ Comparar</button>
                 )}
               </div>
             </div>
 
-            {/* Selector de Pokémon a comparar */}
-            {comparePicker && !compareUid && (
-              <div className="flex gap-1.5 mb-2 overflow-x-auto no-scrollbar">
-                {run.party.filter((p) => p.uid !== selMon.uid).map((p) => (
-                  <button key={p.uid} onClick={() => { setCompareUid(p.uid); setComparePicker(false) }}
-                    className="shrink-0 rounded-xl border border-slate-700 bg-slate-800 p-1 active:scale-95">
-                    <Sprite speciesId={p.speciesId} shiny={p.shiny} className="w-10 h-10 object-contain" />
-                  </button>
-                ))}
-              </div>
-            )}
-
             <div className="mb-2"><HpBar current={selMon.currentHp} max={selMon.stats.hp} status={selMon.status} showNumbers /></div>
 
             {(() => {
-              const cmp = compareUid ? run.party.find((p) => p.uid === compareUid) ?? null : null
-              const rowsA = statRowsOf(selMon)
-              const rowsB = cmp ? statRowsOf(cmp) : null
-              const cmpSp = cmp ? getSpecies(cmp.speciesId) : null
+              const rows = displayStats(selMon)
+              const anyMod = rows.some((r) => r.eff !== r.base)
               return (
-                <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 mb-2">
-                  {cmp && cmpSp && (
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-[10px] font-bold mb-1 items-end">
-                      <span className="text-slate-500">Comparativa</span>
-                      <span className="text-right text-sky-300 truncate max-w-[5rem]">{selSpecies.displayName}</span>
-                      <span className="text-right text-amber-300 truncate max-w-[5rem]">{cmpSp.displayName}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-1 text-xs">
-                    {rowsA.map((r, i) => {
-                      const b = rowsB?.[i]
-                      const colorA = cmp
-                        ? (b && r.eff > b.eff ? 'text-emerald-400' : b && r.eff < b.eff ? 'text-rose-400' : 'text-slate-100')
-                        : (r.eff > r.base ? 'text-emerald-400' : r.eff < r.base ? 'text-rose-400' : 'text-slate-100')
+                <>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-1">
+                    {rows.map((r) => {
+                      const color = r.eff > r.base ? 'text-emerald-400' : r.eff < r.base ? 'text-rose-400' : ''
                       return (
-                        <div key={r.key} className={cmp ? 'grid grid-cols-[1fr_auto_auto] gap-x-3 items-center' : 'flex justify-between items-center'}>
+                        <div key={r.key} className="flex justify-between">
                           <span className="text-slate-400">{r.label}</span>
-                          <span className={`font-bold tabular-nums text-right ${colorA}`}>
-                            {r.eff}{!cmp && r.eff !== r.base && <span className="text-[9px] text-slate-500 font-normal"> ({r.base})</span>}
+                          <span className={`font-bold tabular-nums ${color}`}>
+                            {r.eff}{r.eff !== r.base && <span className="text-[9px] text-slate-500 font-normal"> ({r.base})</span>}
                           </span>
-                          {cmp && b && (
-                            <span className={`font-bold tabular-nums text-right ${b.eff > r.eff ? 'text-emerald-400' : b.eff < r.eff ? 'text-rose-400' : 'text-slate-100'}`}>{b.eff}</span>
-                          )}
                         </div>
                       )
                     })}
                   </div>
-                  {!cmp && <div className="text-[9px] text-slate-500 mt-1">Verde = mejorado por el objeto · (valor base)</div>}
-                </div>
+                  {anyMod && <div className="text-[9px] text-slate-500 mb-2">Verde = mejorado por el objeto · rojo = empeorado · (valor base)</div>}
+                </>
               )
             })()}
 
@@ -388,6 +343,7 @@ export default function TeamScreen() {
 
       {evoFx && <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />}
       {evoChoice && <EvoChoiceModal options={evoChoice.options} onPick={chooseEvolution} onCancel={cancelEvoChoice} />}
+      {compareOpen && selMon && <CompareModal team={run.party} baseUid={selMon.uid} onClose={() => setCompareOpen(false)} />}
     </div>
   )
 }
