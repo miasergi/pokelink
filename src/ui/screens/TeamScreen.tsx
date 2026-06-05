@@ -15,6 +15,8 @@ import { effectiveEvoLevel } from '@/engine/team/evolution'
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
 import { effectiveTier } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
+import { itemHasEffect, noEffectReason } from '@/engine/team/itemEffect'
+import { levelCap } from '@/engine/run/runEngine'
 
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
@@ -22,32 +24,16 @@ export default function TeamScreen() {
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   if (!run) return null
-
-  // Motivo por el que un objeto NO tendría efecto en este Pokémon (o null).
-  const denyReason = (id: string, mon: NonNullable<typeof selMon>): string | null => {
-    const item = getItem(id)
-    const name = getSpecies(mon.speciesId).displayName
-    if (item.category === 'heal' && mon.currentHp >= mon.stats.hp && mon.status === 'none')
-      return `${name} ya está al máximo de PS.`
-    if (item.category === 'revive' && mon.currentHp > 0)
-      return `${name} no está debilitado.`
-    if ((id === 'rare-candy' || id === 'super-candy') && mon.level >= 100)
-      return `${name} ya está al nivel máximo (100).`
-    if (id === 'upgrade' && effectiveTier(mon) >= 2)
-      return `El ataque de ${name} ya está al máximo nivel de potencia (120).`
-    if (id === 'mega-stone' && !hasMega(mon.speciesId))
-      return `${name} no tiene megaevolución.`
-    if (id === 'evo-stone' && getSpecies(mon.speciesId).evolutions.length === 0)
-      return `${name} no puede evolucionar.`
-    return null
-  }
+  const cap = levelCap(run)
 
   // Aplica un objeto a un Pokémon (despacha por categoría) o explica por qué no.
   const applyItem = (id: string, uid: string) => {
     const mon = run.party.find((p) => p.uid === uid)
     if (!mon) return
-    const reason = denyReason(id, mon)
-    if (reason) { setMsg(reason); return }
+    if (!itemHasEffect(id, mon, cap)) {
+      setMsg(`${getSpecies(mon.speciesId).displayName}: ${noEffectReason(id, mon, cap)}`)
+      return
+    }
     const cat = getItem(id).category
     if (cat === 'held') equipItem(id, uid)
     else if (cat === 'evolution') useEvolutionItem(id, uid)
@@ -64,6 +50,10 @@ export default function TeamScreen() {
   const hasMegaStone = (run.inventory['mega-stone'] || 0) > 0
   const hasEvoStone = (run.inventory['evo-stone'] || 0) > 0
   const canEvolve = (selSpecies?.evolutions.length ?? 0) > 0
+  // Con un objeto seleccionado, atenúa los Pokémon en los que no tendría efecto.
+  const ineffectiveUids = selItem && getItem(selItem).category !== 'special'
+    ? new Set(run.party.filter((p) => !itemHasEffect(selItem, p, cap)).map((p) => p.uid))
+    : undefined
 
   return (
     <div className="flex flex-col flex-1 relative">
@@ -87,6 +77,8 @@ export default function TeamScreen() {
             else setSel(uid === sel ? null : uid)
           }}
           onReorder={setPartyOrder}
+          onUnequip={unequipHeld}
+          ineffectiveUids={ineffectiveUids}
         />
 
         {/* Explorador de objetos (toca para leer y luego elige Pokémon) */}
@@ -283,17 +275,20 @@ export default function TeamScreen() {
                 <div className="grid grid-cols-2 gap-2">
                   {items.map(([id, qty]) => {
                     const item = getItem(id)
+                    const eff = itemHasEffect(id, selMon, cap)
                     return (
                       <button
                         key={id}
                         onClick={() => applyItem(id, selMon.uid)}
-                        className="flex items-start gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition bg-slate-800 border-slate-700"
+                        className={`flex items-start gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition ${eff ? 'bg-slate-800 border-slate-700' : 'bg-slate-800/40 border-slate-800 opacity-50'}`}
                       >
-                        {item.sprite && <img src={item.sprite} alt="" className="w-7 h-7 shrink-0" style={{ imageRendering: 'pixelated' }} />}
+                        {item.sprite && <img src={item.sprite} alt="" className={`w-7 h-7 shrink-0 ${eff ? '' : 'grayscale'}`} style={{ imageRendering: 'pixelated' }} />}
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold truncate">{item.name} <span className="text-slate-500">×{qty}</span></div>
                           <div className="text-[10px] text-slate-400 line-clamp-2">{item.description}</div>
-                          <div className="text-[9px] text-sky-300 font-bold mt-0.5">{group.verb} ›</div>
+                          {eff
+                            ? <div className="text-[9px] text-sky-300 font-bold mt-0.5">{group.verb} ›</div>
+                            : <div className="text-[9px] text-rose-300 font-bold mt-0.5">⚠ Sin efecto aquí</div>}
                         </div>
                       </button>
                     )

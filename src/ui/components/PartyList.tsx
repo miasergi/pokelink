@@ -13,10 +13,14 @@ interface Props {
   selectedUid: string | null
   onSelect: (uid: string) => void
   onReorder: (uids: string[]) => void
+  /** Quitar objeto equipado directamente (muestra ✕ sobre la insignia). */
+  onUnequip?: (uid: string) => void
+  /** Pokémon en los que el objeto seleccionado NO tendría efecto (atenuados). */
+  ineffectiveUids?: Set<string>
 }
 
 /** Equipo en rejilla de 2 columnas, reordenable por arrastre y tap para abrir. */
-export default function PartyList({ party, selectedUid, onSelect, onReorder }: Props) {
+export default function PartyList({ party, selectedUid, onSelect, onReorder, onUnequip, ineffectiveUids }: Props) {
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [order, setOrder] = useState<string[]>(party.map((p) => p.uid))
   const [dragUid, setDragUid] = useState<string | null>(null)
@@ -77,6 +81,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
           const sp = getSpecies(mon.speciesId)
           const isDragging = dragUid === mon.uid
           const fainted = mon.currentHp <= 0
+          const ineffective = ineffectiveUids?.has(mon.uid)
           return (
             <div
               key={mon.uid}
@@ -97,16 +102,31 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
               onClick={() => !dragUid && onSelect(mon.uid)}
               className={`relative rounded-2xl p-2 border transition select-none ${
                 selectedUid === mon.uid ? 'border-red-400' : 'border-slate-700/60'
-              } ${isDragging ? 'opacity-30 border-dashed border-red-400' : ''}`}
+              } ${isDragging ? 'opacity-30 border-dashed border-red-400' : ''} ${ineffective ? 'opacity-40 grayscale' : ''}`}
               style={{ background: 'rgba(15,23,42,0.6)', touchAction: 'none' }}
             >
+              {ineffective && (
+                <span className="absolute top-1 right-1 z-10 text-[8px] font-black bg-rose-600/90 text-white px-1.5 py-0.5 rounded-full">sin efecto</span>
+              )}
               <div className="flex items-center gap-2">
                 <div className={`relative shrink-0 rounded-xl p-0.5 ${fainted ? 'grayscale opacity-50' : ''}`} style={{ background: typeGradient(sp.types) }}>
                   <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-12 h-12 object-contain pointer-events-none" />
                   {i === 0 && <span className="absolute -top-1.5 -left-1.5 text-[8px] bg-red-500 px-1 rounded-full font-black">LÍDER</span>}
                   {mon.heldItemId && tryGetItem(mon.heldItemId)?.sprite && (
-                    <img src={tryGetItem(mon.heldItemId)!.sprite} alt="" title={tryGetItem(mon.heldItemId)!.name}
-                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-800 border border-slate-600" style={{ imageRendering: 'pixelated' }} />
+                    onUnequip ? (
+                      <button
+                        title={`Quitar ${tryGetItem(mon.heldItemId)!.name}`}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); onUnequip(mon.uid) }}
+                        className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 border border-slate-600 active:scale-90"
+                      >
+                        <img src={tryGetItem(mon.heldItemId)!.sprite} alt="" className="w-full h-full rounded-full" style={{ imageRendering: 'pixelated' }} />
+                        <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center leading-none">✕</span>
+                      </button>
+                    ) : (
+                      <img src={tryGetItem(mon.heldItemId)!.sprite} alt="" title={tryGetItem(mon.heldItemId)!.name}
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-800 border border-slate-600" style={{ imageRendering: 'pixelated' }} />
+                    )
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

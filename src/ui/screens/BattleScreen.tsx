@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useSettings, type BattleSpeed } from '@/state/settingsStore'
 import { getSpecies, getMove } from '@/data'
-import { effectivenessLabel } from '@/data/typechart'
+import { effectivenessLabel, effectivenessColor } from '@/data/typechart'
 import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
@@ -196,7 +196,7 @@ export default function BattleScreen() {
                 <Tray team={teams.enemy} fainted={frame.fainted.enemy} activeUid={frame.enemy.uid} align="left" />
                 {trainer?.name && <span className="text-[10px] text-slate-400 pl-1">vs {trainer.name}</span>}
               </div>
-              <div className="relative">
+              <div className="relative mr-4 sm:mr-8">
                 <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
                 <Platform />
                 <div className={lungeEnemy}>
@@ -229,7 +229,7 @@ export default function BattleScreen() {
 
             {/* Jugador (abajo): sprite a la izquierda, barra a la derecha */}
             <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-2">
-              <div className="relative">
+              <div className="relative ml-4 sm:ml-8">
                 <SpriteFx side="player" fx={frame.fx} idx={idx} />
                 <Platform />
                 <div className={lungePlayer}>
@@ -349,8 +349,17 @@ function SpriteFx({ side, fx, idx }: { side: Side; fx?: Fx; idx: number }) {
         {isHeal ? `+${fx.amount}` : `-${fx.amount}`}
       </div>
       {fx.crit && (
-        <div key={`c-${idx}`} className="fx-dmg absolute -mt-10 text-[11px] font-black text-amber-300" style={{ textShadow: '0 1px 4px #000' }}>
-          ¡CRÍTICO!
+        <div key={`c-${idx}`} className="fx-dmg absolute -mt-12 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs font-black shadow-lg" style={{ textShadow: 'none' }}>
+          ⚡ ¡CRÍTICO!
+        </div>
+      )}
+      {!isHeal && !fx.self && fx.eff != null && fx.eff !== 1 && (
+        <div
+          key={`e-${idx}`}
+          className="fx-dmg absolute font-black text-[13px]"
+          style={{ marginTop: fx.crit ? 56 : 40, color: effectivenessColor(fx.eff), textShadow: '0 1px 4px #000' }}
+        >
+          {effectivenessLabel(fx.eff)}
         </div>
       )}
     </div>
