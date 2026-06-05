@@ -256,9 +256,15 @@ export const useGame = create<GameState>((set, get) => ({
       case 'heal':
         set({ run, screen: { name: 'heal', params: { nodeId } }, history: [] })
         break
-      case 'catch':
+      case 'catch': {
+        // Incienso Shiny: la próxima captura es shiny (se gasta).
+        if ((run.inventory['shiny-incense'] || 0) > 0 && node.content.kind === 'catch') {
+          node.content.offer.shiny = true
+          removeItem(run, 'shiny-incense', 1)
+        }
         set({ run, screen: { name: 'catch', params: { nodeId } }, history: [] })
         break
+      }
       case 'item':
         set({ run, screen: { name: 'item', params: { nodeId } }, history: [] })
         break

@@ -67,6 +67,16 @@ export const ITEMS: ItemData[] = [
   { id: 'life-orb', name: 'Vidasfera', category: 'held', description: 'Daño x1.3 a cambio de algo de PS.', price: 3000, sprite: ITEM_SPRITE('life-orb') },
   { id: 'focus-sash', name: 'Banda Focal', category: 'held', description: 'Sobrevive con 1 PS a un golpe letal (una vez).', price: 2500, sprite: ITEM_SPRITE('focus-sash') },
   { id: 'rocky-helmet', name: 'Casco Dentado', category: 'held', description: 'Daña al atacante al recibir un golpe.', price: 2000, sprite: ITEM_SPRITE('rocky-helmet') },
+  { id: 'expert-belt', name: 'Banda Experto', category: 'held', description: 'Sube un 25% el daño de tus ataques SUPEREFICACES.', price: 3000, sprite: ITEM_SPRITE('expert-belt') },
+  { id: 'quick-scarf', name: 'Pañuelo Veloz', category: 'held', description: 'Sube un 30% la Velocidad (actúa antes en el turno).', price: 3000, sprite: ITEM_SPRITE('choice-scarf') },
+  { id: 'eviolite', name: 'Mineraluz', category: 'held', description: 'Sube un 50% AMBAS defensas, pero solo si el Pokémon aún PUEDE evolucionar.', price: 3000, sprite: ITEM_SPRITE('eviolite') },
+  { id: 'super-mineral', name: 'Supermineral', category: 'held', description: 'DUPLICA todas las stats, pero solo si al Pokémon aún le quedan 2 evoluciones (1ª etapa).', price: 6500, sprite: ITEM_SPRITE('comet-shard') },
+  { id: 'razor-claw', name: 'Garra Afilada', category: 'held', description: 'Duplica la probabilidad de golpe crítico.', price: 2500, sprite: ITEM_SPRITE('razor-claw') },
+  { id: 'double-glove', name: 'Guante Doble', category: 'held', description: 'Tus ataques golpean 2 veces (cada golpe ~60% del daño). Anula la Banda Focal.', price: 3500, sprite: ITEM_SPRITE('muscle-band') },
+  { id: 'relay-charm', name: 'Amuleto Relevo', category: 'held', description: 'El Pokémon que entra por relevo lo hace con un 25% de PS extra.', price: 2500, sprite: ITEM_SPRITE('big-root') },
+  { id: 'iron-ball', name: 'Lastre de Hierro', category: 'held', description: 'Baja un 20% la Velocidad, pero sube un 50% el daño.', price: 2500, sprite: ITEM_SPRITE('iron-ball') },
+  { id: 'amulet-coin', name: 'Amuleto Moneda', category: 'held', description: 'Ganas un 50% más de dinero en los combates mientras lo lleve equipado.', price: 3000, sprite: ITEM_SPRITE('amulet-coin') },
+  { id: 'shiny-incense', name: 'Incienso Shiny', category: 'special', description: 'La PRÓXIMA casilla de captura te ofrecerá un Pokémon SHINY. Se gasta solo.', price: 8000, sprite: ITEM_SPRITE('lax-incense') },
 
   // --- Objetos de tipo: +50% al daño de ataques de ESE tipo (equipables) ---
   ...TYPE_BOOST_ITEMS,

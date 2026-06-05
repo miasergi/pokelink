@@ -40,7 +40,7 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
 const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'max-potion', 'revive', 'max-revive']
-const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet']
+const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'quick-scarf', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'relay-charm', 'iron-ball', 'amulet-coin']
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
 const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 
@@ -73,11 +73,12 @@ export function shopStock(rng: RNG, depthFrac: number): string[] {
   if (depthFrac > 0.45) potions.push('hyper-potion')
   if (depthFrac > 0.65) potions.push('max-potion')
   const base = [...potions, 'revive', 'rare-candy', 'upgrade']
-  const advanced = depthFrac > 0.4 ? ['max-revive', 'revive-charm', 'super-candy'] : []
+  const advanced = depthFrac > 0.4 ? ['max-revive', 'revive-charm', 'super-candy', 'amulet-coin'] : []
+  const rare = depthFrac > 0.5 && rng.chance(0.4) ? ['shiny-incense'] : []
   const held = rng.sample(HELD_ITEMS, 3)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []
-  return [...base, ...advanced, ...held, ...evo, ...mega]
+  return [...base, ...advanced, ...rare, ...held, ...evo, ...mega]
 }
 
 // --- Eventos aleatorios (data-driven) ---

@@ -76,6 +76,10 @@ export function runBattle(config: BattleConfig): BattleResult {
   activeTransforms = []
   maybeTransform(player, enemy, events)
   maybeTransform(enemy, player, events)
+  // Supermineral: duplica todas las stats si aún quedan 2 evoluciones. Reversible.
+  statBoosts = []
+  applyStatItems(player)
+  applyStatItems(enemy)
   // Habilidades de entrada (Intimidación, climas...) por orden de velocidad
   for (const s of effectiveSpeed(player, ctx) >= effectiveSpeed(enemy, ctx) ? [player, enemy] : [enemy, player]) {
     applySwitchIn(s, s === player ? enemy : player, events, ctx)
@@ -141,6 +145,13 @@ export function runBattle(config: BattleConfig): BattleResult {
 
   events.push({ kind: 'end', winner })
 
+  // Revertir Supermineral (stats normales fuera del combate, PS proporcional).
+  for (const b of statBoosts) {
+    const frac = b.mon.stats.hp > 0 ? b.mon.currentHp / b.mon.stats.hp : 0
+    b.mon.stats = b.stats
+    b.mon.currentHp = b.mon.currentHp <= 0 ? 0 : Math.max(1, Math.round(b.mon.stats.hp * frac))
+  }
+
   // Revertir transformaciones (Ditto vuelve a ser Ditto al acabar el combate).
   for (const t of activeTransforms) {
     const frac = t.mon.stats.hp > 0 ? t.mon.currentHp / t.mon.stats.hp : 0
@@ -160,6 +171,22 @@ export function runBattle(config: BattleConfig): BattleResult {
 }
 
 const DITTO_ID = 132
+
+// Supermineral: duplica todas las stats si al Pokémon le quedan 2 evoluciones.
+let statBoosts: { mon: PokemonInstance; stats: PokemonInstance['stats'] }[] = []
+function canEvolveTwice(speciesId: number): boolean {
+  return getSpecies(speciesId).evolutions.some((e) => getSpecies(e.toId).evolutions.length > 0)
+}
+function applyStatItems(side: SideState): void {
+  for (const mon of side.team) {
+    if (mon.heldItemId === 'super-mineral' && canEvolveTwice(mon.speciesId)) {
+      statBoosts.push({ mon, stats: { ...mon.stats } })
+      const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
+      mon.stats = { hp: mon.stats.hp * 2, atk: mon.stats.atk * 2, def: mon.stats.def * 2, spa: mon.stats.spa * 2, spd: mon.stats.spd * 2, spe: mon.stats.spe * 2 }
+      mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+    }
+  }
+}
 
 // Transformaciones activas del combate en curso (Ditto). Reversibles al final.
 type TransformRec = { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }
@@ -234,6 +261,8 @@ function effectiveSpeed(s: SideState, ctx: BattleCtx): number {
   const mon = active(s)
   let spe = mon.stats.spe * stageMul(s.stages.spe)
   if (mon.status === 'par') spe *= 0.5
+  if (mon.heldItemId === 'quick-scarf') spe *= 1.3 // Pañuelo Veloz
+  if (mon.heldItemId === 'iron-ball') spe *= 0.8 // Lastre de Hierro
   spe *= weatherSpeedMult(mon.ability, ctx.weather)
   return spe
 }
@@ -319,7 +348,9 @@ function performMove(
   }
 
   // --- Movimiento de daño ---
-  const hits = move.effect?.multiHit ? rng.int(move.effect.multiHit[0], move.effect.multiHit[1]) : 1
+  // Guante Doble: golpea 2 veces (cada golpe ~60%).
+  const hits = attacker.heldItemId === 'double-glove' ? 2
+    : move.effect?.multiHit ? rng.int(move.effect.multiHit[0], move.effect.multiHit[1]) : 1
   let total = 0
   let effectiveness = 1
   let crit = false
@@ -336,6 +367,7 @@ function performMove(
       atkStage: phys ? atk.stages.atk : atk.stages.spa,
       defStage: phys ? def.stages.def : def.stages.spd,
       rng, extraMult, adaptability, ignoreBurn,
+      critChanceMult: attacker.heldItemId === 'razor-claw' ? 2 : 1, // Garra Afilada
     })
     effectiveness = res.effectiveness
     if (res.effectiveness === 0) {
@@ -343,6 +375,8 @@ function performMove(
       return
     }
     let dmg = res.damage
+    if (attacker.heldItemId === 'double-glove') dmg = Math.floor(dmg * 0.6) // 2 golpes a ~60%
+    if (attacker.heldItemId === 'expert-belt' && res.effectiveness > 1) dmg = Math.floor(dmg * 1.25) // Banda Experto
     if (attacker.heldItemId === 'life-orb') dmg = Math.floor(dmg * 1.3)
     crit = crit || res.crit
 
@@ -424,6 +458,7 @@ function offenseMult(mon: PokemonInstance, move: MoveData, ctx: BattleCtx): numb
   // Objetos: de tipo (+50% a ese tipo) y Cinta Elección (+30% a todo).
   if (mon.heldItemId && TYPE_BOOST_BY_ID[mon.heldItemId] === move.type) m *= 1.5
   if (mon.heldItemId === 'choice-band') m *= 1.3
+  if (mon.heldItemId === 'iron-ball') m *= 1.5 // Lastre de Hierro
   m *= weatherDamageMult(ctx.weather, move.type)
   return m
 }
@@ -436,6 +471,8 @@ function defenseMult(mon: PokemonInstance, move: MoveData, baseEff: number): num
   if ((mon.ability === 'filter' || mon.ability === 'solid-rock' || mon.ability === 'prism-armor') && baseEff > 1) m *= 0.75
   // Chaleco Asalto: +50% a ambas defensas -> recibe ~33% menos daño.
   if (mon.heldItemId === 'assault-vest') m *= 1 / 1.5
+  // Mineraluz: +50% a ambas defensas, solo si aún puede evolucionar.
+  if (mon.heldItemId === 'eviolite' && getSpecies(mon.speciesId).evolutions.length > 0) m *= 1 / 1.5
   return m
 }
 
@@ -555,6 +592,12 @@ function resolveFaints(
     s.stages = zeroStages()
     s.sleepTurns = 0
     s.toxN = 1
+    // Amuleto Relevo: el Pokémon que entra por relevo lo hace con +25% PS.
+    const inc = active(s)
+    if (inc.heldItemId === 'relay-charm' && inc.currentHp < inc.stats.hp) {
+      const heal = Math.floor(inc.stats.hp * 0.25)
+      inc.currentHp = Math.min(inc.stats.hp, inc.currentHp + heal)
+    }
     events.push(sendOutEvent(s))
     maybeMega(s, events)
     maybeTransform(s, s === player ? enemy : player, events)

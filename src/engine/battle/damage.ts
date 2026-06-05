@@ -39,6 +39,8 @@ export interface DamageContext {
   adaptability?: boolean
   /** Agallas/otros: ignora la reducción de ataque por quemadura. */
   ignoreBurn?: boolean
+  /** Multiplicador de probabilidad de crítico (Garra Afilada = 2). */
+  critChanceMult?: number
 }
 
 export interface DamageResult {
@@ -67,8 +69,8 @@ export function computeDamage(ctx: DamageContext): DamageResult {
 
   // Crítico
   const highCrit = move.effect?.flags?.includes('highCrit')
-  const critChance = highCrit ? 1 / 8 : 1 / 24
-  const crit = rng.chance(critChance)
+  const critChance = (highCrit ? 1 / 8 : 1 / 24) * (ctx.critChanceMult ?? 1)
+  const crit = rng.chance(Math.min(1, critChance))
   const critMult = crit ? 1.5 : 1
 
   // STAB (Adaptable -> x2)

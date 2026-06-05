@@ -203,6 +203,10 @@ export function applyBattleOutcome(
   } else if (content.kind === 'wild') {
     summary.moneyGained = 20 + node.enemyLevel * 6
   }
+  // Amuleto Moneda: +50% si algún Pokémon del equipo lo lleva equipado.
+  if (run.party.some((p) => p.heldItemId === 'amulet-coin')) {
+    summary.moneyGained = Math.round(summary.moneyGained * 1.5)
+  }
   run.money += summary.moneyGained
 
   // Jefes: contador + drop + posible victoria final
