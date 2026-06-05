@@ -53,6 +53,14 @@ export default function SettingsScreen() {
           <Toggle on={s.music} onClick={() => { s.toggleMusic(); void import('@/utils/music').then((m) => m.syncMusicSetting(run ? 'map' : null)) }} />
         </Card>
 
+        <Card className="p-4 flex items-center justify-between">
+          <div>
+            <div className="font-bold">Omitir pantalla informativa</div>
+            <div className="text-xs text-slate-400">Al tocar una casilla accesible, entra directo (sin ver la info antes)</div>
+          </div>
+          <Toggle on={s.skipNodeInfo} onClick={s.toggleSkipNodeInfo} />
+        </Card>
+
         {/* Copia de seguridad (export/import) */}
         <Card className="p-4">
           <div className="font-bold">Copia de seguridad</div>

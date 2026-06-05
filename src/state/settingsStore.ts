@@ -8,11 +8,13 @@ interface SettingsState {
   autoAdvance: boolean
   sound: boolean
   music: boolean
+  skipNodeInfo: boolean
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
   toggleSound: () => void
   toggleMusic: () => void
+  toggleSkipNodeInfo: () => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -33,7 +35,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, theme: s.theme }),
   )
 }
 
@@ -44,6 +46,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   autoAdvance: saved.autoAdvance ?? true,
   sound: saved.sound ?? true,
   music: saved.music ?? false,
+  skipNodeInfo: saved.skipNodeInfo ?? false,
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
     set({ battleSpeed })
@@ -59,6 +62,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
   toggleMusic: () => {
     set({ music: !get().music })
+    persist(get())
+  },
+  toggleSkipNodeInfo: () => {
+    set({ skipNodeInfo: !get().skipNodeInfo })
     persist(get())
   },
   setTheme: (theme) => {

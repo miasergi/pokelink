@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
+import { useSettings } from '@/state/settingsStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
 import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
 import { IconCrown, IconTrophy, IconBadge } from '@/ui/components/icons'
@@ -22,6 +23,7 @@ const scrollMem = new Map<number, number>()
 
 export default function MapScreen() {
   const { run, chooseNode, navigate, lastEventResult, setPartyOrder } = useGame()
+  const skipNodeInfo = useSettings((s) => s.skipNodeInfo)
   const wrapRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(360)
@@ -161,7 +163,11 @@ export default function MapScreen() {
               return (
                 <button
                   key={id}
-                  onClick={() => setPreview(node)}
+                  onClick={() => {
+                    // Con "omitir info": entra directo si la casilla es accesible.
+                    if (skipNodeInfo && isReach && !node.cleared) chooseNode(id)
+                    else setPreview(node)
+                  }}
                   className="absolute flex flex-col items-center"
                   style={{
                     left: xOf(node.col, layerIds.length) - NODE / 2,

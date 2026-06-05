@@ -19,7 +19,7 @@ export default function GenSelectScreen() {
                 borderColor: `${g.accent}66`,
                 // Mapa de la región (si existe en public/regions) bajo un oscurecido
                 // con el color de la región para que el texto se lea siempre.
-                backgroundImage: `linear-gradient(180deg, ${g.accent}22, rgba(15,23,42,0.72) 60%, rgba(15,23,42,0.88)), url(${import.meta.env.BASE_URL}regions/gen${g.gen}.png)`,
+                backgroundImage: `linear-gradient(180deg, ${g.accent}22, rgba(15,23,42,0.68) 55%, rgba(15,23,42,0.9)), url(${import.meta.env.BASE_URL}regions/gen${g.gen}.webp)`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
