@@ -14,14 +14,18 @@ export default function GenSelectScreen() {
               key={g.gen}
               disabled={!g.rostersReady}
               onClick={() => navigate('modeSelect', { gen: g.gen })}
-              className={`rounded-2xl p-4 border text-center transition active:scale-[0.98] ${g.rostersReady ? '' : 'opacity-40'} flex flex-col items-center justify-center min-h-[120px]`}
+              className={`relative overflow-hidden rounded-2xl p-4 border text-center transition active:scale-[0.98] ${g.rostersReady ? '' : 'opacity-40'} flex flex-col items-center justify-center min-h-[120px]`}
               style={{
                 borderColor: `${g.accent}66`,
-                background: `radial-gradient(circle at 50% 0%, ${g.accent}22, rgba(15,23,42,0.6) 70%)`,
+                // Mapa de la región (si existe en public/regions) bajo un oscurecido
+                // con el color de la región para que el texto se lea siempre.
+                backgroundImage: `linear-gradient(180deg, ${g.accent}22, rgba(15,23,42,0.72) 60%, rgba(15,23,42,0.88)), url(${import.meta.env.BASE_URL}regions/gen${g.gen}.png)`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
               }}
             >
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">Generación {g.gen}</div>
-              <div className="text-2xl font-black mt-1" style={{ color: g.accent, textShadow: `0 2px 12px ${g.accent}55` }}>
+              <div className="text-[10px] uppercase tracking-widest text-slate-300 drop-shadow">Generación {g.gen}</div>
+              <div className="text-2xl font-black mt-1" style={{ color: g.accent, textShadow: `0 2px 14px ${g.accent}, 0 1px 4px #000` }}>
                 {g.region}
               </div>
               {!g.rostersReady && <div className="text-[10px] text-slate-500 mt-1">Próximamente</div>}

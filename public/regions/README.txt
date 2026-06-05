@@ -1,0 +1,1 @@
+Mapas de región: coloca aquí gen1.png ... gen9.png (fondos de las tarjetas de región).
