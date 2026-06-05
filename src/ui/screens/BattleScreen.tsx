@@ -185,8 +185,8 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* Banner de movimiento + mensaje central */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 px-2">
+        {/* Banner del movimiento usado (breve, centrado) */}
+        <div className="flex-1 flex items-center justify-center px-2 min-h-[2.5rem]">
           {frame.acting && (
             <div
               key={`mv-${idx}`}
@@ -202,9 +202,6 @@ export default function BattleScreen() {
               <span className="font-extrabold text-sm">{frame.acting.moveName}</span>
             </div>
           )}
-          <div className="bg-slate-900/85 border border-slate-700 rounded-2xl px-4 py-2.5 text-center min-h-[3rem] flex items-center justify-center w-full shadow-xl">
-            <span className="text-sm font-semibold">{frame.message}</span>
-          </div>
         </div>
 
         {/* Jugador */}
@@ -229,8 +226,11 @@ export default function BattleScreen() {
         </div>
       </div>
 
-      {/* Controles */}
-      <div className="relative p-3 safe-bottom border-t border-slate-800 bg-slate-900/80 backdrop-blur">
+      {/* Caja de diálogo (narración fija y legible) + controles */}
+      <div className="relative p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 backdrop-blur space-y-2">
+        <div className="bg-slate-950/70 border border-slate-700 rounded-xl px-4 min-h-[3.25rem] flex items-center shadow-inner">
+          <span className="text-base font-semibold leading-snug">{frame.message}</span>
+        </div>
         {done ? (
           <Button full variant={won ? 'success' : 'danger'} onClick={finishBattle} className="animate-pop-in">
             {won ? '¡Victoria! Continuar ›' : 'Derrota...'}
@@ -432,7 +432,7 @@ function buildFrames(
       }
       case 'statusDamage': {
         const s = getSide(e.side)!; s.currentHp = e.hpAfter
-        message = `${s.name} sufre daño de ${STATUS_LABEL[e.status]}.`
+        message = `¡${s.name} es azotado por la tormenta de arena!`
         push({ anim: { [e.side]: 'hit' }, fx: { side: e.side, kind: 'damage', amount: e.amount, self: true } })
         break
       }

@@ -38,7 +38,7 @@ function persist(s: SettingsState) {
 const saved = load()
 
 export const useSettings = create<SettingsState>((set, get) => ({
-  battleSpeed: (saved.battleSpeed as BattleSpeed) ?? 2,
+  battleSpeed: (saved.battleSpeed as BattleSpeed) ?? 1,
   autoAdvance: saved.autoAdvance ?? true,
   sound: saved.sound ?? true,
   theme: (saved.theme as ThemeName) ?? 'dark',

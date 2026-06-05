@@ -6,7 +6,7 @@ import { IconCrown, IconTrophy, IconBadge } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
 import { ImgFallback } from '@/ui/components/kit'
 import PartyBar from '@/ui/components/PartyBar'
-import BossPreview from '@/ui/components/BossPreview'
+import NodePreview from '@/ui/components/NodePreview'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import type { MapNode } from '@/engine/run/types'
 import { Button, money, TopBar } from '@/ui/components/kit'
@@ -146,8 +146,7 @@ export default function MapScreen() {
                   disabled={!isReach}
                   onClick={() => {
                     if (!isReach) return
-                    if (['gym', 'elite', 'champion', 'rival'].includes(node.type)) setPreview(node)
-                    else chooseNode(id)
+                    setPreview(node)
                   }}
                   className="absolute flex flex-col items-center"
                   style={{
@@ -196,9 +195,9 @@ export default function MapScreen() {
       </div>
 
       {preview && (
-        <BossPreview
+        <NodePreview
           node={preview}
-          onFight={() => {
+          onEnter={() => {
             const id = preview.id
             setPreview(null)
             chooseNode(id)

@@ -1,4 +1,4 @@
-import type { MoveData, PokemonInstance, StatKey, StatusCondition } from '@/types'
+import type { MoveData, PokemonInstance, StatKey } from '@/types'
 import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeDamage, accuracyStageMultiplier } from './damage'
@@ -206,31 +206,6 @@ function performMove(
   const attacker = active(atk)
   const species = getSpecies(attacker.speciesId)
 
-  // Comprobaciones de estado previas al movimiento
-  if (attacker.status === 'frz') {
-    if (rng.chance(0.2)) {
-      attacker.status = 'none'
-      events.push({ kind: 'thawed', side: atk.side, uid: attacker.uid })
-    } else {
-      events.push({ kind: 'cantMove', side: atk.side, uid: attacker.uid, reason: 'frz' })
-      return
-    }
-  }
-  if (attacker.status === 'slp') {
-    if (atk.sleepTurns <= 0) {
-      attacker.status = 'none'
-      events.push({ kind: 'wokeUp', side: atk.side, uid: attacker.uid })
-    } else {
-      atk.sleepTurns--
-      events.push({ kind: 'cantMove', side: atk.side, uid: attacker.uid, reason: 'slp' })
-      return
-    }
-  }
-  if (attacker.status === 'par' && rng.chance(0.25)) {
-    events.push({ kind: 'cantMove', side: atk.side, uid: attacker.uid, reason: 'par' })
-    return
-  }
-
   let move: MoveData
   if (moveIdx < 0) {
     move = STRUGGLE
@@ -425,7 +400,7 @@ function applySwitchIn(s: SideState, opp: SideState, events: BattleEvent[], ctx:
 
 function applyMoveEffects(
   move: MoveData, atk: SideState, def: SideState,
-  _dmg: number, rng: RNG, events: BattleEvent[], secondaryOnly = false,
+  _dmg: number, _rng: RNG, events: BattleEvent[], secondaryOnly = false,
 ): void {
   const eff = move.effect
   if (!eff) return
@@ -453,23 +428,9 @@ function applyMoveEffects(
     }
   }
 
-  if (eff.ailment) {
-    const target = active(def)
-    if (target.currentHp > 0 && target.status === 'none' && !isImmuneToStatus(target, eff.ailment)) {
-      target.status = eff.ailment
-      if (eff.ailment === 'slp') def.sleepTurns = rng.int(1, 3)
-      if (eff.ailment === 'tox') def.toxN = 1
-      events.push({ kind: 'status', side: def.side, uid: target.uid, status: eff.ailment })
-    }
-  }
-}
-
-function isImmuneToStatus(mon: PokemonInstance, status: StatusCondition): boolean {
-  const types = getSpecies(mon.speciesId).types
-  if (status === 'brn' && types.includes('fire')) return true
-  if (status === 'frz' && types.includes('ice')) return true
-  if ((status === 'psn' || status === 'tox') && (types.includes('poison') || types.includes('steel'))) return true
-  return false
+  // Los estados (quemadura, sueño, etc.) están deshabilitados en este juego:
+  // solo se aplican cambios de stat (Intimidación, etc.).
+  void eff.ailment
 }
 
 const SAND_IMMUNE = new Set(['magic-guard', 'sand-force', 'sand-rush', 'sand-veil', 'overcoat'])
@@ -478,16 +439,6 @@ function endOfTurnResidual(s: SideState, events: BattleEvent[], ctx: BattleCtx):
   const mon = active(s)
   const max = mon.stats.hp
   const magicGuard = mon.ability === 'magic-guard'
-  if (!magicGuard && (mon.status === 'brn' || mon.status === 'psn')) {
-    const dmg = mon.status === 'brn' ? Math.max(1, Math.floor(max / 16)) : Math.max(1, Math.floor(max / 8))
-    mon.currentHp = Math.max(0, mon.currentHp - dmg)
-    events.push({ kind: 'statusDamage', side: s.side, uid: mon.uid, status: mon.status, amount: dmg, hpAfter: mon.currentHp, maxHp: max })
-  } else if (!magicGuard && mon.status === 'tox') {
-    const dmg = Math.max(1, Math.floor((max / 16) * s.toxN))
-    s.toxN++
-    mon.currentHp = Math.max(0, mon.currentHp - dmg)
-    events.push({ kind: 'statusDamage', side: s.side, uid: mon.uid, status: 'tox', amount: dmg, hpAfter: mon.currentHp, maxHp: max })
-  }
 
   // Clima: daño de tormenta de arena / curación por Cura Lluvia y Gélido
   const types = getSpecies(mon.speciesId).types
