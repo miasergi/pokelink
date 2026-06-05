@@ -10,7 +10,13 @@ export default function ShopScreen() {
   if (node.content.kind !== 'shop') return null
   // La Megapiedra solo se vende a partir de la 7ª medalla.
   const canBuyMega = run.stats.gymsDefeated >= 7
-  const stock = [...new Set(node.content.stock)].filter((id) => id !== 'mega-stone' || canBuyMega)
+  // Nuzlocke: prohibido comprar pociones/objetos de curación.
+  const noHeal = run.difficulty === 'nuzlocke'
+  const stock = [...new Set(node.content.stock)].filter((id) => {
+    if (id === 'mega-stone' && !canBuyMega) return false
+    if (noHeal && (getItem(id).category === 'heal' || getItem(id).category === 'revive')) return false
+    return true
+  })
 
   return (
     <div className="flex flex-col flex-1">

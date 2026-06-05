@@ -2,7 +2,7 @@ import type { PokemonInstance } from '@/types'
 import { encounterPool, getSpecies, basePool } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
-import { computeStats, expForLevel, gainLevel } from '@/engine/team/leveling'
+import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { levelEvolutionTargets, evolve } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
@@ -93,8 +93,8 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'legendary'
   const hard = run.difficulty === 'hard'
 
-  // Difícil: enemigos más fuertes.
-  if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
+  // Difícil: Pokémon rivales (salvajes, entrenadores y jefes) a ×1.5 de nivel.
+  if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.5)))
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
   // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles
@@ -126,6 +126,19 @@ export interface BattleOutcomeSummary {
 }
 
 const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'shell-bell', 'rare-candy', 'upgrade', 'choice-band', 'assault-vest', 'evo-stone', 'mega-stone', 'revive-charm']
+
+/** Tope de nivel del equipo. En Nuzlocke, el nivel del próximo jefe sin vencer
+ *  (no puedes sobrenivelar hasta derrotarlo). En el resto, sin tope (100). */
+export function levelCap(run: RunState): number {
+  if (run.difficulty !== 'nuzlocke') return 100
+  let cap = 100
+  for (const n of Object.values(run.map.nodes)) {
+    if ((n.type === 'gym' || n.type === 'elite' || n.type === 'champion') && !n.cleared) {
+      cap = Math.min(cap, n.enemyLevel)
+    }
+  }
+  return cap
+}
 
 export function applyBattleOutcome(
   run: RunState, node: MapNode, result: BattleResult,
@@ -206,9 +219,11 @@ export function applyBattleOutcome(
 
   // Recompensa de nivel por casilla: salvaje +1; entrenadores, gimnasios, rival
   // y guardián +2; Alto Mando y Campeón +3. Solo a los que participaron.
+  // Nuzlocke: tope de nivel = nivel del próximo jefe (no puedes pasarte).
+  const cap = levelCap(run)
   const levelGain = node.type === 'battle' ? 1
     : (node.type === 'elite' || node.type === 'champion') ? 3 : 2
-  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid)) gainLevel(mon)
+  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid) && mon.level < cap) gainLevel(mon)
 
   // Niveles ganados (combate por EXP + bonus de casilla) para mostrar logros.
   for (const mon of run.party) {
@@ -297,6 +312,9 @@ export function resolveTrade(
   const traded = run.party[idx]
   const pool = basePool(run.mode === 'generation' ? run.gen : 'all')
   const newMon = withRng(run, (rng) => createInstance(rng.pick(pool).id, traded.level + 3, rng))
+  // El Pokémon recibido conserva el MISMO nivel de potencia del ataque que diste.
+  newMon.moveTier = effectiveTier(traded)
+  refreshMoves(newMon)
   run.party[idx] = newMon
   run.money -= node.content.cost
   run.stats.pokemonCaught++

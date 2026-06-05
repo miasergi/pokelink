@@ -12,7 +12,8 @@ import EvolutionModal from '@/ui/components/EvolutionModal'
 import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { typeGradient } from '@/ui/theme/types'
 import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
-import { TYPE_ATTACKS, tierForLevel } from '@/data/typeAttacks'
+import { TYPE_ATTACKS } from '@/data/typeAttacks'
+import { effectiveTier } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
 
 export default function TeamScreen() {
@@ -32,7 +33,7 @@ export default function TeamScreen() {
       return `${name} no está debilitado.`
     if ((id === 'rare-candy' || id === 'super-candy') && mon.level >= 100)
       return `${name} ya está al nivel máximo (100).`
-    if (id === 'upgrade' && Math.min(2, tierForLevel(mon.level) + (mon.moveTier ?? 0)) >= 2)
+    if (id === 'upgrade' && effectiveTier(mon) >= 2)
       return `El ataque de ${name} ya está al máximo nivel de potencia (120).`
     if (id === 'mega-stone' && !hasMega(mon.speciesId))
       return `${name} no tiene megaevolución.`
@@ -136,7 +137,7 @@ export default function TeamScreen() {
                 <Sprite speciesId={selMon.speciesId} shiny={selMon.shiny} className="w-14 h-14 object-contain" />
               </div>
               <div className="flex-1">
-                <div className="font-extrabold">{selSpecies.displayName}</div>
+                <div className="font-extrabold">{selSpecies.displayName}{selMon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</div>
                 <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
               </div>
               <span className="text-xs text-slate-400">Nv.{selMon.level}</span>

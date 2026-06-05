@@ -363,7 +363,7 @@ function InfoCard({ view, remaining, align }: { view: SideView; remaining: numbe
   return (
     <div className={`bg-slate-900/85 border border-slate-700 rounded-xl px-3 py-2 min-w-[10.5rem] shadow-lg ${align === 'right' ? 'text-right' : ''}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-bold text-base truncate">{view.name}</span>
+        <span className="font-bold text-base truncate">{view.name}{view.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</span>
         <span className="text-xs text-slate-300 font-bold">Nv.{view.level}</span>
       </div>
       <div className={`flex items-center gap-1 my-1 ${align === 'right' ? 'justify-end' : ''}`}>

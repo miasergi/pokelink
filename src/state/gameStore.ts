@@ -4,15 +4,14 @@ import type { BattleResult } from '@/engine/battle/types'
 import {
   createRun, enterNode, startNodeBattle, applyBattleOutcome, isNodeBattle,
   resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, removeItem, addItem,
-  resolveTrade, skipNode,
+  resolveTrade, skipNode, levelCap,
   type BattleOutcomeSummary, type NewRunConfig,
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
 import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
-import { gainLevel, refreshMoves } from '@/engine/team/leveling'
-import { tierForLevel } from '@/data/typeAttacks'
+import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
 export type ScreenName =
@@ -315,17 +314,18 @@ export const useGame = create<GameState>((set, get) => ({
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
     let ok: boolean
+    const cap = levelCap(run) // Nuzlocke: no pasar del próximo jefe
     if (itemId === 'rare-candy') {
       ok = false
-      for (let i = 0; i < 3; i++) if (gainLevel(mon)) ok = true // +3 niveles
+      for (let i = 0; i < 3; i++) if (mon.level < cap && gainLevel(mon)) ok = true // +3 niveles
     } else if (itemId === 'super-candy') {
       ok = false
-      for (let i = 0; i < 5; i++) if (gainLevel(mon)) ok = true // +5 niveles
+      for (let i = 0; i < 5; i++) if (mon.level < cap && gainLevel(mon)) ok = true // +5 niveles
     } else if (itemId === 'upgrade') {
-      // Sube el nivel de potencia del ataque (40 -> 80 -> 120), si no es máx.
-      const cur = Math.min(2, tierForLevel(mon.level) + (mon.moveTier ?? 0))
+      // Adelanta el nivel de potencia del ataque (40 -> 80 -> 120), si no es máx.
+      const cur = effectiveTier(mon)
       if (cur >= 2) ok = false
-      else { mon.moveTier = (mon.moveTier ?? 0) + 1; refreshMoves(mon); ok = true }
+      else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
     } else ok = applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
     persist(run)
