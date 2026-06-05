@@ -15,6 +15,7 @@ interface MetaRecord {
   pokedexSeen: number[]
   pokedexCaught: number[]
   pokedexShiny: number[]
+  alias: string
 }
 
 export interface BestRun {
@@ -65,6 +66,7 @@ const EMPTY_META: MetaRecord = {
   pokedexSeen: [],
   pokedexCaught: [],
   pokedexShiny: [],
+  alias: '',
 }
 
 export async function loadMeta(): Promise<MetaRecord> {
@@ -99,6 +101,7 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     pokedexSeen: uni(a.pokedexSeen, b.pokedexSeen),
     pokedexCaught: uni(a.pokedexCaught, b.pokedexCaught),
     pokedexShiny: uni(a.pokedexShiny, b.pokedexShiny),
+    alias: a.alias || b.alias || '',
   }
 }
 

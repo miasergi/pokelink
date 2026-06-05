@@ -117,6 +117,57 @@ export async function loadCloudMeta(): Promise<MetaRecord | null> {
   }
 }
 
+// ---- Ranking online de Glory Runs ----
+export interface GloryEntry {
+  alias: string
+  region: string
+  difficulty: string
+  mode: string
+  pools: number[]
+  random: boolean
+  duration_ms: number
+}
+export interface GloryRow extends GloryEntry {
+  id: number
+  user_id: string
+  created_at: string
+}
+
+/** Envía una Glory Run (partida ganada) al ranking. */
+export async function submitGloryRun(e: GloryEntry): Promise<boolean> {
+  if (!URL || !KEY) return false
+  const token = await validToken()
+  const user = currentUser()
+  if (!token || !user) return false
+  try {
+    const res = await fetch(`${URL}/rest/v1/glory_runs`, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...e, user_id: user.id }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/** Ranking público: mejores tiempos (lectura abierta, sin login). */
+export async function fetchLeaderboard(opts: { region?: string; difficulty?: string; limit?: number } = {}): Promise<GloryRow[] | null> {
+  if (!URL || !KEY) return null
+  const params = new URLSearchParams({ select: '*', order: 'duration_ms.asc', limit: String(opts.limit ?? 50) })
+  if (opts.region) params.set('region', `eq.${opts.region}`)
+  if (opts.difficulty) params.set('difficulty', `eq.${opts.difficulty}`)
+  try {
+    const res = await fetch(`${URL}/rest/v1/glory_runs?${params.toString()}`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+    })
+    if (!res.ok) return null
+    return (await res.json()) as GloryRow[]
+  } catch {
+    return null
+  }
+}
+
 /** Guarda (upsert) la meta del usuario en la nube. */
 export async function saveCloudMeta(meta: MetaRecord): Promise<boolean> {
   if (!URL || !KEY) return false

@@ -4,10 +4,11 @@ import { Button, Card, TopBar } from '@/ui/components/kit'
 import { cloudEnabled } from '@/persistence/supabase'
 
 export default function AccountScreen() {
-  const { back, cloudUser, cloudBusy, cloudMsg, cloudAuth, cloudLogout, cloudSync } = useGame()
+  const { back, cloudUser, cloudBusy, cloudMsg, cloudAuth, cloudLogout, cloudSync, alias, setAlias } = useGame()
   const [mode, setMode] = useState<'in' | 'up'>('in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [aliasInput, setAliasInput] = useState(alias)
   const enabled = cloudEnabled()
 
   return (
@@ -28,6 +29,14 @@ export default function AccountScreen() {
             <div>
               <div className="text-xs text-slate-400">Sesión iniciada como</div>
               <div className="font-bold">{cloudUser.email}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-400 mb-1">Tu alias en el ranking</div>
+              <div className="flex gap-2">
+                <input value={aliasInput} onChange={(e) => setAliasInput(e.target.value)} maxLength={20} placeholder="Tu nombre de jugador"
+                  className="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-red-400" />
+                <Button variant="secondary" disabled={aliasInput.trim() === alias} onClick={() => void setAlias(aliasInput)}>Guardar</Button>
+              </div>
             </div>
             <p className="text-xs text-slate-400">Tu historial (récords, Pokédex, Glory Runs) se guarda en la nube y se sincroniza al terminar cada partida.</p>
             <div className="flex gap-2">

@@ -10,7 +10,7 @@ const DEX_TOTAL = ALL_SPECIES.length
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
 
 export default function RecordsScreen() {
-  const { back } = useGame()
+  const { back, navigate } = useGame()
   const [meta, setMeta] = useState<MetaRecord | null>(null)
   useEffect(() => {
     void loadMeta().then(setMeta)
@@ -24,6 +24,14 @@ export default function RecordsScreen() {
           <div className="text-center text-slate-500 mt-10">Cargando…</div>
         ) : (
           <>
+            <Card className="p-3.5 flex items-center justify-between active:scale-[0.99] transition" style={{ borderColor: '#f59e0b66' }} onClick={() => navigate('leaderboard')}>
+              <div>
+                <div className="font-bold text-amber-300">🏆 Ranking online de Glory Runs</div>
+                <div className="text-xs text-slate-400">Mejores tiempos de todos los jugadores</div>
+              </div>
+              <span className="text-slate-500 text-2xl">›</span>
+            </Card>
+
             <Card className="p-4">
               <div className="grid grid-cols-2 gap-3 text-center">
                 <Stat label="Partidas" value={meta.totals.runs} />

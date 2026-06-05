@@ -13,12 +13,12 @@ import { getMegaForms, getSpecies } from '@/data'
 import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta } from '@/persistence/db'
-import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, type CloudUser } from '@/persistence/supabase'
+import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard'
 
 interface Screen {
   name: ScreenName
@@ -57,6 +57,8 @@ interface GameState {
   cloudUser: CloudUser | null
   cloudBusy: boolean
   cloudMsg: string | null
+  alias: string
+  setAlias: (name: string) => Promise<void>
   cloudAuth: (mode: 'in' | 'up', email: string, password: string) => Promise<boolean>
   cloudLogout: () => void
   cloudSync: () => Promise<void>
@@ -117,6 +119,16 @@ export const useGame = create<GameState>((set, get) => ({
   cloudUser: currentUser(),
   cloudBusy: false,
   cloudMsg: null,
+  alias: '',
+
+  setAlias: async (name) => {
+    const alias = name.trim().slice(0, 20)
+    set({ alias })
+    const meta = await loadMeta()
+    meta.alias = alias
+    await saveMeta(meta)
+    if (currentUser()) await saveCloudMeta(meta)
+  },
 
   cloudAuth: async (mode, email, password) => {
     if (!cloudEnabled()) { set({ cloudMsg: 'La nube no está configurada.' }); return false }
@@ -137,7 +149,7 @@ export const useGame = create<GameState>((set, get) => ({
     const merged = cloud ? mergeMeta(local, cloud) : local
     await saveMeta(merged)
     await saveCloudMeta(merged)
-    set({ cloudBusy: false })
+    set({ cloudBusy: false, alias: merged.alias || get().alias })
   },
 
   navigate: (name, params) =>
@@ -150,6 +162,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   init: async () => {
     if (get().cloudUser) void get().cloudSync()
+    void loadMeta().then((m) => { if (m.alias) set({ alias: m.alias }) })
     const saved = await loadRun()
     set({ loaded: true, hasSavedRun: !!saved })
   },
@@ -534,6 +547,19 @@ async function recordRunEnd(run: RunState) {
     const merged = cloud ? mergeMeta(meta, cloud) : meta
     await saveMeta(merged)
     await saveCloudMeta(merged)
+    // Glory Run: si GANASTE, envía tu tiempo al ranking online.
+    const durationMs = Math.max(0, Date.now() - run.startedAt)
+    if (run.status === 'won' && durationMs > 0) {
+      await submitGloryRun({
+        alias: merged.alias || currentUser()!.email.split('@')[0],
+        region: run.region,
+        difficulty: run.difficulty,
+        mode: run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
+        pools: run.pools,
+        random: run.random,
+        duration_ms: durationMs,
+      })
+    }
   }
 }
 
