@@ -7,10 +7,12 @@ interface SettingsState {
   battleSpeed: BattleSpeed
   autoAdvance: boolean
   sound: boolean
+  music: boolean
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
   toggleSound: () => void
+  toggleMusic: () => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -31,7 +33,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, theme: s.theme }),
   )
 }
 
@@ -41,6 +43,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   battleSpeed: (saved.battleSpeed as BattleSpeed) ?? 1,
   autoAdvance: saved.autoAdvance ?? true,
   sound: saved.sound ?? true,
+  music: saved.music ?? false,
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
     set({ battleSpeed })
@@ -52,6 +55,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
   toggleSound: () => {
     set({ sound: !get().sound })
+    persist(get())
+  },
+  toggleMusic: () => {
+    set({ music: !get().music })
     persist(get())
   },
   setTheme: (theme) => {

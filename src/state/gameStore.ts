@@ -466,27 +466,32 @@ async function recordRunEnd(run: RunState) {
   if (run.status === 'won') meta.totals.wins += 1
   meta.totals.gymsDefeated += run.stats.gymsDefeated
   meta.totals.pokemonCaught += run.stats.pokemonCaught
-  // pokédex
+  // pokédex (+ shinies)
   const seen = new Set(meta.pokedexSeen)
   const caught = new Set(meta.pokedexCaught)
+  const shiny = new Set(meta.pokedexShiny)
   for (const p of [...run.party, ...run.box]) {
     seen.add(p.speciesId)
     caught.add(p.speciesId)
+    if (p.shiny) shiny.add(p.speciesId)
   }
   meta.pokedexSeen = [...seen]
   meta.pokedexCaught = [...caught]
+  meta.pokedexShiny = [...shiny]
   meta.bestRuns = [
     {
       date: Date.now(),
       mode: run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
       region: run.region,
+      difficulty: run.difficulty,
+      durationMs: Math.max(0, Date.now() - run.startedAt),
       gymsDefeated: run.stats.gymsDefeated,
       eliteDefeated: run.stats.eliteDefeated,
       won: run.status === 'won',
       starterId: run.starterId,
     },
     ...meta.bestRuns,
-  ].slice(0, 20)
+  ].slice(0, 30)
   await saveMeta(meta)
 }
 

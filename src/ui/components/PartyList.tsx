@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PokemonInstance } from '@/types'
-import { getSpecies, getMove } from '@/data'
+import { getSpecies, getMove, hasMega } from '@/data'
 import Sprite from './Sprite'
 import HpBar from './HpBar'
 import TypeBadge from './TypeBadge'
@@ -111,7 +111,11 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-bold text-sm truncate">{sp.displayName}{mon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</span>
+                    <span className="font-bold text-sm truncate">
+                      {sp.displayName}
+                      {mon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}
+                      {hasMega(mon.speciesId) && <span title="Puede megaevolucionar" className="text-fuchsia-300"> 💠</span>}
+                    </span>
                     <span className="text-[10px] text-slate-400 shrink-0">Nv.{mon.level}</span>
                   </div>
                   <div className="flex gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>

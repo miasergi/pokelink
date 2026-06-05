@@ -1,28 +1,32 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useGame, type ScreenName } from '@/state/gameStore'
+import { useSettings } from '@/state/settingsStore'
+import { startMusic, stopMusic } from '@/utils/music'
 import Onboarding from '@/ui/components/Onboarding'
 import HomeScreen from '@/ui/screens/HomeScreen'
-import ModeSelectScreen from '@/ui/screens/ModeSelectScreen'
-import GenSelectScreen from '@/ui/screens/GenSelectScreen'
-import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
-import MapScreen from '@/ui/screens/MapScreen'
-import BattleScreen from '@/ui/screens/BattleScreen'
-import RewardScreen from '@/ui/screens/RewardScreen'
-import CatchScreen from '@/ui/screens/CatchScreen'
-import ItemScreen from '@/ui/screens/ItemScreen'
-import ShopScreen from '@/ui/screens/ShopScreen'
-import EventScreen from '@/ui/screens/EventScreen'
-import HealScreen from '@/ui/screens/HealScreen'
-import TeamScreen from '@/ui/screens/TeamScreen'
-import PokedexScreen from '@/ui/screens/PokedexScreen'
-import RecordsScreen from '@/ui/screens/RecordsScreen'
-import RescueScreen from '@/ui/screens/RescueScreen'
-import TradeScreen from '@/ui/screens/TradeScreen'
-import SettingsScreen from '@/ui/screens/SettingsScreen'
-import GameOverScreen from '@/ui/screens/GameOverScreen'
-import VictoryScreen from '@/ui/screens/VictoryScreen'
 
-const SCREENS: Record<ScreenName, () => JSX.Element | null> = {
+// Pantallas cargadas bajo demanda (code-splitting) para aligerar el arranque.
+const ModeSelectScreen = lazy(() => import('@/ui/screens/ModeSelectScreen'))
+const GenSelectScreen = lazy(() => import('@/ui/screens/GenSelectScreen'))
+const StarterSelectScreen = lazy(() => import('@/ui/screens/StarterSelectScreen'))
+const MapScreen = lazy(() => import('@/ui/screens/MapScreen'))
+const BattleScreen = lazy(() => import('@/ui/screens/BattleScreen'))
+const RewardScreen = lazy(() => import('@/ui/screens/RewardScreen'))
+const CatchScreen = lazy(() => import('@/ui/screens/CatchScreen'))
+const ItemScreen = lazy(() => import('@/ui/screens/ItemScreen'))
+const ShopScreen = lazy(() => import('@/ui/screens/ShopScreen'))
+const EventScreen = lazy(() => import('@/ui/screens/EventScreen'))
+const HealScreen = lazy(() => import('@/ui/screens/HealScreen'))
+const TeamScreen = lazy(() => import('@/ui/screens/TeamScreen'))
+const PokedexScreen = lazy(() => import('@/ui/screens/PokedexScreen'))
+const RecordsScreen = lazy(() => import('@/ui/screens/RecordsScreen'))
+const RescueScreen = lazy(() => import('@/ui/screens/RescueScreen'))
+const TradeScreen = lazy(() => import('@/ui/screens/TradeScreen'))
+const SettingsScreen = lazy(() => import('@/ui/screens/SettingsScreen'))
+const GameOverScreen = lazy(() => import('@/ui/screens/GameOverScreen'))
+const VictoryScreen = lazy(() => import('@/ui/screens/VictoryScreen'))
+
+const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
   modeSelect: ModeSelectScreen,
   genSelect: GenSelectScreen,
@@ -57,9 +61,18 @@ export default function App() {
     }
   })
 
+  const music = useSettings((s) => s.music)
   useEffect(() => {
     void init()
   }, [init])
+
+  // Música de fondo según la pantalla.
+  useEffect(() => {
+    if (!music) { stopMusic(); return }
+    if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records') startMusic('map')
+    else if (screen.name === 'battle') startMusic('battle')
+    else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover') stopMusic()
+  }, [screen.name, music])
 
   if (!loaded) {
     return (
@@ -87,7 +100,9 @@ export default function App() {
         }}
       />
       <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter relative">
-        <Current />
+        <Suspense fallback={<div className="flex-1 grid place-items-center"><div className="text-4xl animate-float">⚡</div></div>}>
+          <Current />
+        </Suspense>
       </div>
       {showIntro && (
         <Onboarding

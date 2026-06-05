@@ -6,6 +6,10 @@ import { ALL_SPECIES, getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
+import { TYPES } from '@/data/typechart'
+import type { PokemonType } from '@/types'
+
+const DEX_TOTAL = ALL_SPECIES.length
 
 export default function PokedexScreen() {
   const { back } = useGame()
@@ -13,8 +17,11 @@ export default function PokedexScreen() {
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<number | null>(null)
   const [caught, setCaught] = useState<Set<number>>(new Set())
+  const [shiny, setShiny] = useState<Set<number>>(new Set())
+  const [type, setType] = useState<PokemonType | 'all'>('all')
+  const [onlyCaught, setOnlyCaught] = useState(false)
   useEffect(() => {
-    void loadMeta().then((m) => setCaught(new Set(m.pokedexCaught)))
+    void loadMeta().then((m) => { setCaught(new Set(m.pokedexCaught)); setShiny(new Set(m.pokedexShiny)) })
   }, [])
 
   const list = useMemo(() => {
@@ -22,16 +29,18 @@ export default function PokedexScreen() {
     return ALL_SPECIES.filter(
       (s) =>
         (gen === 'all' || s.generation === gen) &&
+        (type === 'all' || s.types.includes(type)) &&
+        (!onlyCaught || caught.has(s.id)) &&
         (!q || s.displayName.toLowerCase().includes(q) || String(s.id) === q),
     )
-  }, [gen, query])
+  }, [gen, query, type, onlyCaught, caught])
 
   return (
     <div className="flex flex-col flex-1">
       <TopBar
         title="Pokédex"
         left={<Button variant="ghost" onClick={back}>‹</Button>}
-        right={caught.size > 0 ? <span className="text-xs text-emerald-300 font-bold pr-1">{caught.size}</span> : undefined}
+        right={<span className="text-xs font-bold pr-1"><span className="text-emerald-300">{caught.size}/{DEX_TOTAL}</span>{shiny.size > 0 && <span className="text-amber-300 ml-1.5">✨{shiny.size}</span>}</span>}
       />
 
       <div className="p-2.5 flex flex-col gap-2 border-b border-slate-800">
@@ -52,6 +61,15 @@ export default function PokedexScreen() {
             </button>
           ))}
         </div>
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar items-center">
+          <button onClick={() => setOnlyCaught((v) => !v)} className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${onlyCaught ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-300'}`}>● Capturados</button>
+          <button onClick={() => setType('all')} className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${type === 'all' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'}`}>Todos</button>
+          {TYPES.map((t) => (
+            <button key={t} onClick={() => setType(t)} className="shrink-0 rounded-full" style={{ opacity: type === t ? 1 : 0.55 }}>
+              <TypeBadge type={t} size="sm" />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2.5 no-scrollbar">
@@ -66,8 +84,9 @@ export default function PokedexScreen() {
               <span className="text-[9px] text-slate-500 self-start flex items-center gap-0.5">
                 #{String(s.id).padStart(4, '0')}
                 {caught.has(s.id) && <span className="text-emerald-400">●</span>}
+                {shiny.has(s.id) && <span className="text-amber-300">✨</span>}
               </span>
-              <Sprite speciesId={s.id} variant="front" className={`w-16 h-16 object-contain ${caught.has(s.id) ? '' : 'opacity-80'}`} />
+              <Sprite speciesId={s.id} variant="front" shiny={shiny.has(s.id)} className={`w-16 h-16 object-contain ${caught.has(s.id) ? '' : 'opacity-80'}`} />
               <span className="text-[11px] font-semibold truncate w-full text-center">{s.displayName}</span>
             </button>
           ))}

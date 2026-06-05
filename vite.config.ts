@@ -8,6 +8,19 @@ const base = process.env.GITHUB_PAGES ? '/pokelink/' : '/'
 
 export default defineConfig({
   base,
+  build: {
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Datos generados (dex/movimientos/megas) en su propio chunk.
+          if (id.includes('src/data/generated')) return 'pokedata'
+          if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react'
+          if (id.includes('node_modules')) return 'vendor'
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

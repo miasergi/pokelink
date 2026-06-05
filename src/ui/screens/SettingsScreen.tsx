@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useSettings, type BattleSpeed } from '@/state/settingsStore'
 import { Button, Card, TopBar } from '@/ui/components/kit'
+import { exportData, importData } from '@/persistence/db'
 
 export default function SettingsScreen() {
-  const { back, run, abandonRun } = useGame()
+  const { back, run, abandonRun, init } = useGame()
   const s = useSettings()
+  const [code, setCode] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
 
   return (
     <div className="flex flex-col flex-1">
@@ -31,6 +35,41 @@ export default function SettingsScreen() {
             <div className="text-xs text-slate-400">Efectos de combate y feedback táctil</div>
           </div>
           <Toggle on={s.sound} onClick={s.toggleSound} />
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between">
+          <div>
+            <div className="font-bold">Música de fondo</div>
+            <div className="text-xs text-slate-400">Melodía ligera en mapa y combates</div>
+          </div>
+          <Toggle on={s.music} onClick={() => { s.toggleMusic(); void import('@/utils/music').then((m) => m.syncMusicSetting(run ? 'map' : null)) }} />
+        </Card>
+
+        {/* Copia de seguridad (export/import) */}
+        <Card className="p-4">
+          <div className="font-bold">Copia de seguridad</div>
+          <div className="text-xs text-slate-400 mb-2">Guarda tu progreso o llévalo a otro dispositivo con un código.</div>
+          <div className="flex gap-2 mb-2">
+            <Button variant="secondary" className="flex-1 !py-2" onClick={async () => {
+              const c = await exportData()
+              setCode(c)
+              try { await navigator.clipboard.writeText(c); setMsg('📋 Código copiado al portapapeles') } catch { setMsg('Código generado abajo (cópialo)') }
+            }}>Exportar</Button>
+            <Button variant="primary" className="flex-1 !py-2" onClick={async () => {
+              if (!code.trim()) { setMsg('Pega un código primero'); return }
+              const ok = await importData(code)
+              if (ok) { await init(); setMsg('✅ Datos importados. Reinicia para verlo todo.') }
+              else setMsg('❌ Código no válido')
+            }}>Importar</Button>
+          </div>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Pega aquí tu código de copia de seguridad…"
+            className="w-full h-20 rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-[10px] outline-none focus:border-red-400 resize-none break-all"
+          />
+          {msg && <div className="text-xs text-emerald-300 mt-1">{msg}</div>}
+          <div className="text-[10px] text-slate-500 mt-1">Las cuentas en la nube con sincronización automática necesitan un servidor (futuro).</div>
         </Card>
 
         <Card className="p-4 flex items-center justify-between">

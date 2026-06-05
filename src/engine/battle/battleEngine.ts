@@ -73,9 +73,9 @@ export function runBattle(config: BattleConfig): BattleResult {
   maybeMega(enemy, events)
   // Ditto: al entrar se transforma en el rival (adopta sus tipos; conserva su
   // nivel de potencia). Reversible al final del combate.
-  const transforms: { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }[] = []
-  maybeTransform(player, enemy, events, transforms)
-  maybeTransform(enemy, player, events, transforms)
+  activeTransforms = []
+  maybeTransform(player, enemy, events)
+  maybeTransform(enemy, player, events)
   // Habilidades de entrada (Intimidación, climas...) por orden de velocidad
   for (const s of effectiveSpeed(player, ctx) >= effectiveSpeed(enemy, ctx) ? [player, enemy] : [enemy, player]) {
     applySwitchIn(s, s === player ? enemy : player, events, ctx)
@@ -138,7 +138,7 @@ export function runBattle(config: BattleConfig): BattleResult {
   events.push({ kind: 'end', winner })
 
   // Revertir transformaciones (Ditto vuelve a ser Ditto al acabar el combate).
-  for (const t of transforms) {
+  for (const t of activeTransforms) {
     const frac = t.mon.stats.hp > 0 ? t.mon.currentHp / t.mon.stats.hp : 0
     t.mon.speciesId = t.speciesId
     t.mon.stats = t.stats
@@ -157,17 +157,18 @@ export function runBattle(config: BattleConfig): BattleResult {
 
 const DITTO_ID = 132
 
-/** Ditto se transforma en el Pokémon activo rival al entrar: adopta su especie
- *  (tipos y stats a su propio nivel) pero conserva su nivel de potencia. */
-function maybeTransform(
-  s: SideState, opp: SideState, events: BattleEvent[],
-  transforms: { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }[],
-): void {
+// Transformaciones activas del combate en curso (Ditto). Reversibles al final.
+type TransformRec = { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }
+let activeTransforms: TransformRec[] = []
+
+/** Ditto se transforma en el Pokémon activo rival al entrar (también por relevo):
+ *  adopta su especie (tipos y stats a su nivel) pero conserva su nivel de potencia. */
+function maybeTransform(s: SideState, opp: SideState, events: BattleEvent[]): void {
   const mon = active(s)
   if (mon.speciesId !== DITTO_ID || mon.currentHp <= 0) return
   const target = active(opp)
   if (target.speciesId === DITTO_ID) return
-  transforms.push({ mon, speciesId: mon.speciesId, stats: mon.stats, moves: mon.moves })
+  activeTransforms.push({ mon, speciesId: mon.speciesId, stats: mon.stats, moves: mon.moves })
   const targetSp = getSpecies(target.speciesId)
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.speciesId = target.speciesId
@@ -235,6 +236,7 @@ function doSwitch(s: SideState, idx: number, opp: SideState, events: BattleEvent
   s.switches++
   events.push(sendOutEvent(s))
   maybeMega(s, events)
+  maybeTransform(s, opp, events)
   applySwitchIn(s, opp, events, ctx)
 }
 
@@ -586,6 +588,7 @@ function resolveFaints(
     s.toxN = 1
     events.push(sendOutEvent(s))
     maybeMega(s, events)
+    maybeTransform(s, s === player ? enemy : player, events)
     applySwitchIn(s, s === player ? enemy : player, events, ctx)
   }
   void rng

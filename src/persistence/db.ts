@@ -14,12 +14,15 @@ interface MetaRecord {
   }
   pokedexSeen: number[]
   pokedexCaught: number[]
+  pokedexShiny: number[]
 }
 
 export interface BestRun {
   date: number
   mode: string
   region: string
+  difficulty: string
+  durationMs: number
   gymsDefeated: number
   eliteDefeated: number
   won: boolean
@@ -61,11 +64,14 @@ const EMPTY_META: MetaRecord = {
   totals: { runs: 0, wins: 0, gymsDefeated: 0, pokemonCaught: 0 },
   pokedexSeen: [],
   pokedexCaught: [],
+  pokedexShiny: [],
 }
 
 export async function loadMeta(): Promise<MetaRecord> {
   const d = await db()
-  return (await d.get('meta', 'meta')) ?? structuredClone(EMPTY_META)
+  const m = (await d.get('meta', 'meta')) as MetaRecord | undefined
+  if (!m) return structuredClone(EMPTY_META)
+  return { ...structuredClone(EMPTY_META), ...m } // backfill de campos nuevos
 }
 
 export async function saveMeta(meta: MetaRecord): Promise<void> {
@@ -74,3 +80,27 @@ export async function saveMeta(meta: MetaRecord): Promise<void> {
 }
 
 export type { MetaRecord }
+
+// ---- Copia de seguridad (export/import) ----
+// Sin backend: serializa meta + run a un código que el usuario puede guardar o
+// llevar a otro dispositivo. (El "cloud" con cuentas reales requiere servidor.)
+export async function exportData(): Promise<string> {
+  const meta = await loadMeta()
+  const run = await loadRun()
+  const json = JSON.stringify({ v: 1, meta, run })
+  // base64 seguro para UTF-8
+  return btoa(unescape(encodeURIComponent(json)))
+}
+
+export async function importData(code: string): Promise<boolean> {
+  try {
+    const json = decodeURIComponent(escape(atob(code.trim())))
+    const data = JSON.parse(json) as { meta?: MetaRecord; run?: RunState | null }
+    if (data.meta) await saveMeta({ ...structuredClone(EMPTY_META), ...data.meta })
+    if (data.run) await saveRun(data.run)
+    else await clearRun()
+    return true
+  } catch {
+    return false
+  }
+}
