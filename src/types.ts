@@ -159,7 +159,7 @@ export interface TrainerData {
 
 // ----- Objetos -----
 
-export type ItemCategory = 'heal' | 'revive' | 'battle' | 'held' | 'evolution' | 'ball'
+export type ItemCategory = 'heal' | 'revive' | 'battle' | 'held' | 'evolution' | 'ball' | 'special'
 
 export interface ItemData {
   id: string

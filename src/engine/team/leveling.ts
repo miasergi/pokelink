@@ -32,11 +32,13 @@ export function computeStats(
   }
 }
 
-/** Recalcula stats manteniendo la fracción de PS actual. */
+/** Recalcula stats manteniendo la fracción de PS actual. Un Pokémon debilitado
+ *  (0 PS) sigue debilitado: no revive por subir de nivel/área. */
 export function recalcStats(mon: PokemonInstance, species: SpeciesData): void {
+  const fainted = mon.currentHp <= 0
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.stats = computeStats(species.baseStats, mon.ivs, mon.level, mon.bonus)
-  mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+  mon.currentHp = fainted ? 0 : Math.max(1, Math.round(mon.stats.hp * frac))
 }
 
 /** Sube 1 nivel a un Pokémon (Caramelo Raro), recalculando stats. */

@@ -70,3 +70,15 @@ export function legendaryPool(gen: number | 'all'): SpeciesData[] {
   const list = speciesByGeneration(gen).filter((s) => s.legendary && !s.mythical && s.isFinal)
   return list.length ? list : ALL_SPECIES.filter((s) => s.legendary && !s.mythical)
 }
+
+const EVOLVED_IDS = (() => {
+  const set = new Set<number>()
+  for (const s of ALL_SPECIES) for (const e of s.evolutions) set.add(e.toId)
+  return set
+})()
+
+/** Pool de formas base (primera etapa, sin pre-evolución), no legendarias. */
+export function basePool(gen: number | 'all'): SpeciesData[] {
+  const list = speciesByGeneration(gen).filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
+  return list.length ? list : ALL_SPECIES.filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
+}

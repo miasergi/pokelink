@@ -10,6 +10,7 @@ export const NODE_META: Record<NodeType, { label: string; color: string }> = {
   item: { label: 'Objeto', color: '#c084fc' },
   shop: { label: 'Tienda', color: '#34d399' },
   event: { label: 'Evento', color: '#fbbf24' },
+  trade: { label: 'Intercambio', color: '#22d3ee' },
   heal: { label: 'Centro Pokémon', color: '#f472b6' },
   rival: { label: 'Rival', color: '#fb923c' },
   legendary: { label: 'Legendario', color: '#a78bfa' },

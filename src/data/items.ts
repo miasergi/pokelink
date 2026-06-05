@@ -17,6 +17,7 @@ export const ITEMS: ItemData[] = [
   // --- Mejora ---
   { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 1 nivel a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
   { id: 'attack-boost', name: 'Refuerzo de Ataque', category: 'battle', description: 'Sube de forma permanente el Ataque y el At. Especial de un Pokémon (sus ataques pegan más fuerte).', price: 2500, sprite: ITEM_SPRITE('protein') },
+  { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes un combate, revives a 1 Pokémon y continúas la partida. Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 
   // --- Objetos de batalla (equipables, efecto pasivo en combate) ---
   { id: 'leftovers', name: 'Restos', category: 'held', description: 'Recupera 1/16 de PS cada turno.', price: 2000, sprite: ITEM_SPRITE('leftovers') },

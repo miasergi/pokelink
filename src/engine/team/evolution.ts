@@ -2,11 +2,23 @@ import type { PokemonInstance, SpeciesData } from '@/types'
 import { getSpecies } from '@/data'
 import { recalcStats } from './leveling'
 
+/** Nivel efectivo al que evoluciona un trigger. TODOS evolucionan por nivel:
+ *  los que normalmente evolucionan por intercambio/amistad/objeto reciben un
+ *  nivel razonable para que también lo hagan jugando. */
+export function effectiveEvoLevel(trigger: SpeciesData['evolutions'][number]['trigger']): number {
+  switch (trigger.kind) {
+    case 'level': return trigger.level
+    case 'trade': return 36
+    case 'friendship': return 32
+    case 'item': return 30
+  }
+}
+
 /** Evolución por nivel disponible para este Pokémon (si la hay). */
 export function pendingLevelEvolution(mon: PokemonInstance): SpeciesData | null {
   const species = getSpecies(mon.speciesId)
   for (const evo of species.evolutions) {
-    if (evo.trigger.kind === 'level' && mon.level >= evo.trigger.level) {
+    if (mon.level >= effectiveEvoLevel(evo.trigger)) {
       return getSpecies(evo.toId)
     }
   }

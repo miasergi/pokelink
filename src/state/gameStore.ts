@@ -4,6 +4,7 @@ import type { BattleResult } from '@/engine/battle/types'
 import {
   createRun, enterNode, startNodeBattle, applyBattleOutcome, isNodeBattle,
   resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, removeItem, addItem,
+  resolveTrade, skipNode,
   type BattleOutcomeSummary, type NewRunConfig,
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
@@ -16,7 +17,7 @@ import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade'
 
 interface Screen {
   name: ScreenName
@@ -36,6 +37,10 @@ interface GameState {
   lastSummary: BattleOutcomeSummary | null
   lastEventResult: string | null
   evoFx: { uid: string; fromId: number; toId: number } | null
+  rescueNodeId: string | null
+  useRescue: (monUid: string) => void
+  doTrade: (monUid: string) => void
+  skipTrade: () => void
   loaded: boolean
   hasSavedRun: boolean
 
@@ -47,6 +52,7 @@ interface GameState {
   init: () => Promise<void>
   startRun: (config: Omit<NewRunConfig, 'seed'> & { seed?: number }) => void
   resumeRun: () => Promise<void>
+  restartRun: () => void
   abandonRun: () => Promise<void>
 
   // interacción con nodos
@@ -85,6 +91,7 @@ export const useGame = create<GameState>((set, get) => ({
   lastSummary: null,
   lastEventResult: null,
   evoFx: null,
+  rescueNodeId: null,
   loaded: false,
   hasSavedRun: false,
 
@@ -113,6 +120,56 @@ export const useGame = create<GameState>((set, get) => ({
   resumeRun: async () => {
     const run = await loadRun()
     if (run) set({ run, screen: { name: 'map' }, history: [] })
+  },
+
+  restartRun: () => {
+    const run = get().run
+    if (!run) {
+      set({ screen: { name: 'home' }, history: [] })
+      return
+    }
+    get().startRun({ mode: run.mode, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
+  },
+
+  doTrade: (monUid) => {
+    const cur = get().run
+    if (!cur) return
+    const run = cloneRun(cur)
+    const nodeId = get().screen.params?.nodeId as string | undefined
+    const node = nodeId ? run.map.nodes[nodeId] : undefined
+    if (!node) return
+    const res = resolveTrade(run, node, monUid)
+    persist(run)
+    set({
+      run,
+      lastEventResult: res ? `Intercambiaste ${res.fromName} por ${res.toName} (+3 niveles).` : null,
+      screen: { name: 'map' },
+      history: [],
+    })
+  },
+
+  skipTrade: () => {
+    const cur = get().run
+    if (!cur) return
+    const run = cloneRun(cur)
+    const nodeId = get().screen.params?.nodeId as string | undefined
+    if (nodeId && run.map.nodes[nodeId]) skipNode(run.map.nodes[nodeId])
+    persist(run)
+    set({ run, screen: { name: 'map' }, history: [] })
+  },
+
+  useRescue: (monUid) => {
+    const cur = get().run
+    const nodeId = get().rescueNodeId
+    if (!cur) return
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === monUid)
+    if (mon) { mon.currentHp = mon.stats.hp; mon.status = 'none' }
+    removeItem(run, 'revive-charm', 1)
+    run.status = 'active'
+    if (nodeId && run.map.nodes[nodeId]) run.map.nodes[nodeId].cleared = true // superas la casilla
+    persist(run)
+    set({ run, rescueNodeId: null, screen: { name: 'map' }, history: [] })
   },
 
   abandonRun: async () => {
@@ -151,6 +208,9 @@ export const useGame = create<GameState>((set, get) => ({
       case 'event':
         set({ run, screen: { name: 'event', params: { nodeId } }, history: [] })
         break
+      case 'trade':
+        set({ run, screen: { name: 'trade', params: { nodeId } }, history: [] })
+        break
       default:
         set({ run, screen: { name: 'map' }, history: [] })
     }
@@ -169,6 +229,11 @@ export const useGame = create<GameState>((set, get) => ({
       void recordRunEnd(run)
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
     } else if (summary.runEnded) {
+      // Salvavidas: si tienes uno y hay debilitados, revives 1 y continúas.
+      if ((run.inventory['revive-charm'] || 0) > 0 && run.party.some((p) => p.currentHp <= 0)) {
+        set({ run, lastSummary: summary, pendingBattle: null, rescueNodeId: node.id, screen: { name: 'rescue' }, history: [] })
+        return
+      }
       void recordRunEnd(run)
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'gameover' }, history: [] })
     } else {

@@ -138,6 +138,14 @@ export function IconStar({ size = 24, className }: IconProps) {
   ), className)
 }
 
+export function IconTrade({ size = 24, className }: IconProps) {
+  return svg(size, (
+    <>
+      <path d="M5 8h11l-3-3M19 16H8l3 3" />
+    </>
+  ), className)
+}
+
 const ICONS: Record<NodeType, (p: IconProps) => JSX.Element> = {
   battle: IconWildBattle,
   trainer: IconTrainer,
@@ -145,6 +153,7 @@ const ICONS: Record<NodeType, (p: IconProps) => JSX.Element> = {
   item: IconItem,
   shop: IconShop,
   event: IconEvent,
+  trade: IconTrade,
   heal: IconHeal,
   rival: IconRival,
   legendary: IconStar,

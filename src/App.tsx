@@ -16,6 +16,8 @@ import HealScreen from '@/ui/screens/HealScreen'
 import TeamScreen from '@/ui/screens/TeamScreen'
 import PokedexScreen from '@/ui/screens/PokedexScreen'
 import RecordsScreen from '@/ui/screens/RecordsScreen'
+import RescueScreen from '@/ui/screens/RescueScreen'
+import TradeScreen from '@/ui/screens/TradeScreen'
 import SettingsScreen from '@/ui/screens/SettingsScreen'
 import GameOverScreen from '@/ui/screens/GameOverScreen'
 import VictoryScreen from '@/ui/screens/VictoryScreen'
@@ -36,6 +38,8 @@ const SCREENS: Record<ScreenName, () => JSX.Element | null> = {
   team: TeamScreen,
   pokedex: PokedexScreen,
   records: RecordsScreen,
+  rescue: RescueScreen,
+  trade: TradeScreen,
   settings: SettingsScreen,
   gameover: GameOverScreen,
   victory: VictoryScreen,

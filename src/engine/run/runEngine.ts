@@ -1,5 +1,5 @@
 import type { PokemonInstance } from '@/types'
-import { encounterPool, getSpecies } from '@/data'
+import { encounterPool, getSpecies, basePool } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
 import { computeStats, expForLevel, gainLevel } from '@/engine/team/leveling'
@@ -127,11 +127,13 @@ export interface BattleOutcomeSummary {
   runWon: boolean
 }
 
-const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'rare-candy', 'attack-boost', 'life-orb', 'evo-stone', 'mega-stone']
+const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'rare-candy', 'attack-boost', 'life-orb', 'evo-stone', 'mega-stone', 'revive-charm']
 
 export function applyBattleOutcome(
   run: RunState, node: MapNode, result: BattleResult,
 ): BattleOutcomeSummary {
+  // Quién participó = vivo ANTES del combate (para repartir niveles).
+  const participated = new Set(run.party.filter((p) => p.currentHp > 0).map((p) => p.uid))
   // Sincroniza el equipo del jugador con el estado post-combate
   run.party = result.playerTeam
 
@@ -145,6 +147,7 @@ export function applyBattleOutcome(
   }
 
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
+  const isBossLike = isBoss || node.type === 'rival' || node.type === 'legendary'
 
   // Nuzlocke: los Pokémon debilitados se pierden para siempre.
   if (run.difficulty === 'nuzlocke') {
@@ -198,9 +201,14 @@ export function applyBattleOutcome(
     summary.runEnded = true
   }
 
+  // Al ganar a un jefe, el equipo se cura por completo.
+  if (isBossLike) healParty(run.party)
+
   // Recompensa de nivel por casilla: hierba alta +1, entrenador +2.
+  // Solo a los que participaron (entrar debilitado no da nivel; debilitarse
+  // durante el combate sí lo da).
   const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : 0
-  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (mon.currentHp > 0) gainLevel(mon)
+  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid)) gainLevel(mon)
 
   // Guardián legendario: ¡lo capturas al vencerlo!
   if (node.type === 'legendary' && content.kind === 'wild') {
@@ -269,6 +277,27 @@ export function buyItem(run: RunState, itemId: string, price: number): boolean {
 }
 
 export function leaveShop(_run: RunState, node: MapNode): void {
+  node.cleared = true
+}
+
+/** Intercambio: cambias un Pokémon por otro aleatorio de primera etapa (+3 niveles). */
+export function resolveTrade(
+  run: RunState, node: MapNode, monUid: string,
+): { fromName: string; toName: string } | null {
+  if (node.content.kind !== 'trade') return null
+  const idx = run.party.findIndex((p) => p.uid === monUid)
+  if (idx < 0 || run.money < node.content.cost) return null
+  const traded = run.party[idx]
+  const pool = basePool(run.mode === 'all' ? 'all' : run.gen)
+  const newMon = withRng(run, (rng) => createInstance(rng.pick(pool).id, traded.level + 3, rng))
+  run.party[idx] = newMon
+  run.money -= node.content.cost
+  run.stats.pokemonCaught++
+  node.cleared = true
+  return { fromName: getSpecies(traded.speciesId).displayName, toName: getSpecies(newMon.speciesId).displayName }
+}
+
+export function skipNode(node: MapNode): void {
   node.cleared = true
 }
 

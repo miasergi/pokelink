@@ -202,12 +202,13 @@ function interpolateLevels(anchors: (number | null)[], startLevel: number): numb
 
 function pickRouteType(rng: RNG, frac: number): NodeType {
   const r = rng.next()
-  // pesos: battle 30, trainer 24, catch 16, item 12, shop 8, event 10
-  if (r < 0.3) return 'battle'
-  if (r < 0.54) return 'trainer'
-  if (r < 0.7) return 'catch'
-  if (r < 0.82) return 'item'
-  if (r < 0.9) return 'shop'
+  // pesos: battle 28, trainer 22, catch 15, item 11, shop 8, trade 6, event 10
+  if (r < 0.28) return 'battle'
+  if (r < 0.5) return 'trainer'
+  if (r < 0.65) return 'catch'
+  if (r < 0.76) return 'item'
+  if (r < 0.84) return 'shop'
+  if (r < 0.9) return 'trade'
   void frac
   return 'event'
 }
@@ -228,6 +229,8 @@ function buildRouteContent(
       return { kind: 'shop', stock: shopStock(rng, frac) }
     case 'event':
       return { kind: 'event', eventId: rng.pick(EVENT_IDS) }
+    case 'trade':
+      return { kind: 'trade', cost: 300 + level * 20 }
     default:
       return { kind: 'heal' }
   }

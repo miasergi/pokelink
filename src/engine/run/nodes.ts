@@ -65,7 +65,7 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
 /** Stock de tienda. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
   const base = ['potion', 'revive', 'rare-candy', 'attack-boost']
-  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive'] : []
+  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm'] : []
   const held = rng.sample(HELD_ITEMS, 2)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []

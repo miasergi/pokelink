@@ -57,6 +57,8 @@ export function nodeImage(node: MapNode): NodeImage {
     }
     case 'shop':
       return { url: POKEMART, pixel: true }
+    case 'trade':
+      return { url: itemSprite('up-grade'), pixel: true }
     case 'heal':
       return { url: POKECENTER, pixel: true }
     case 'event':

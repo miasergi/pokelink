@@ -126,6 +126,17 @@ export default function TeamScreen() {
           )}
           {usableItems.length === 0 && <p className="text-xs text-slate-500 px-1">No tienes objetos. Consíguelos en cofres y tiendas.</p>}
 
+          {/* Pasivos (se usan solos) */}
+          {Object.entries(run.inventory).filter(([id]) => getItem(id).category === 'special').map(([id, qty]) => (
+            <div key={id} className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 mb-2">
+              {getItem(id).sprite && <img src={getItem(id).sprite} alt="" className="w-7 h-7" style={{ imageRendering: 'pixelated' }} />}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold">{getItem(id).name} ×{qty}</div>
+                <div className="text-[10px] text-slate-400">{getItem(id).description}</div>
+              </div>
+            </div>
+          ))}
+
           {([
             { title: 'Curar · Revivir · Subir nivel', cats: ['heal', 'revive', 'battle'], verb: 'Usar' },
             { title: 'Objetos de batalla (equipar)', cats: ['held'], verb: 'Equipar' },

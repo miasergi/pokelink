@@ -17,6 +17,7 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   shop: { title: 'Tienda', desc: 'Compra objetos (pociones, revivir, objetos de batalla...) con tu dinero.' },
   heal: { title: 'Centro Pokémon', desc: 'Cura por completo los PS de todo tu equipo. Gratis.' },
   event: { title: 'Evento', desc: 'Un encuentro inesperado en el camino. Puede salir bien... o no.' },
+  trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
 const REWARD: Partial<Record<string, string>> = {
   battle: '+1 nivel a todo tu equipo',
@@ -25,6 +26,7 @@ const REWARD: Partial<Record<string, string>> = {
   catch: 'un Pokémon nuevo para tu equipo',
   item: '1 objeto a elegir',
   event: 'sorpresa (objeto, dinero o Pokémon)',
+  trade: 'un Pokémon nuevo (+3 niveles)',
   gym: 'medalla + objeto raro',
   elite: 'objeto raro',
   champion: '¡completar la región!',
@@ -55,6 +57,13 @@ export default function NodePreview({
   const minLvl = team.length ? Math.min(...team.map((m) => m.level)) : node.enemyLevel
   const maxLvl = team.length ? Math.max(...team.map((m) => m.level)) : node.enemyLevel
   const simple = SIMPLE[node.type]
+  const money = trainer
+    ? trainer.reward.money
+    : node.type === 'battle'
+      ? 20 + node.enemyLevel * 6
+      : node.type === 'legendary'
+        ? 2000
+        : 0
 
   return (
     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
@@ -97,7 +106,10 @@ export default function NodePreview({
             <span className="text-lg">🎁</span>
             <div>
               <div className="text-[11px] text-amber-300 font-bold">Recompensa</div>
-              <div className="text-sm">{REWARD[node.type]}</div>
+              <div className="text-sm">
+                {REWARD[node.type]}
+                {money > 0 && <span className="text-amber-300 font-bold"> · +{money.toLocaleString('es')} ₽</span>}
+              </div>
             </div>
           </div>
         )}

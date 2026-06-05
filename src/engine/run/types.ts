@@ -11,6 +11,7 @@ export type NodeType =
   | 'item' // elegir objeto
   | 'shop' // tienda
   | 'event' // evento aleatorio
+  | 'trade' // intercambio: cambias un Pokémon por otro aleatorio
   | 'heal' // centro Pokémon
   | 'rival' // combate de rival
   | 'legendary' // guardián legendario (capturable al vencerlo)
@@ -46,6 +47,10 @@ export interface EventContent {
   kind: 'event'
   eventId: string
 }
+export interface TradeContent {
+  kind: 'trade'
+  cost: number
+}
 
 export type NodeContent =
   | WildContent
@@ -55,6 +60,7 @@ export type NodeContent =
   | ShopContent
   | HealContent
   | EventContent
+  | TradeContent
 
 export interface MapNode {
   id: string

@@ -4,8 +4,9 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 
 export default function GameOverScreen() {
-  const { run, abandonRun } = useGame()
+  const { run, abandonRun, restartRun } = useGame()
   if (!run) return null
+  const starterName = getSpecies(run.starterId).displayName
   return (
     <div className="flex flex-col flex-1 items-center justify-center p-6 gap-5 text-center safe-top safe-bottom">
       <div className="text-6xl">💀</div>
@@ -30,9 +31,14 @@ export default function GameOverScreen() {
         Equipo final: {run.party.map((p) => getSpecies(p.speciesId).displayName).join(', ')}
       </div>
 
-      <Button full variant="primary" className="max-w-sm" onClick={() => void abandonRun()}>
-        Volver al menú
-      </Button>
+      <div className="w-full max-w-sm flex flex-col gap-2">
+        <Button full variant="primary" onClick={restartRun}>
+          🔄 Reiniciar ({run.region} · {starterName})
+        </Button>
+        <Button full variant="secondary" onClick={() => void abandonRun()}>
+          🏠 Volver a Inicio
+        </Button>
+      </div>
     </div>
   )
 }
