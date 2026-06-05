@@ -1,4 +1,4 @@
-import type { MoveData, PokemonInstance, PokemonType, StatKey } from '@/types'
+import type { MoveData, PokemonInstance, StatKey } from '@/types'
 import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeDamage, isPhysicalAttacker } from './damage'
@@ -87,11 +87,10 @@ export function runBattle(config: BattleConfig): BattleResult {
   while (winner === null && turn < TURN_CAP) {
     turn++
 
-    // El JUGADOR no cambia solo: tú decides el orden del equipo (líder = el
-    // primero). Solo hay relevo cuando un Pokémon se debilita. El rival (IA) sí
-    // puede cambiar para dar pelea.
+    // Nadie cambia de Pokémon a mitad de combate: solo hay relevo cuando uno se
+    // debilita (ni el jugador ni el rival cambian "solos").
     const pSw = -1
-    const eSw = decideSwitch(enemy, player)
+    const eSw = -1
     if (pSw >= 0) doSwitch(player, pSw, enemy, events, ctx)
     if (eSw >= 0) doSwitch(enemy, eSw, player, events, ctx)
 
@@ -196,41 +195,6 @@ function makeSide(side: Side, team: PokemonInstance[]): SideState {
     sashUsed: new Set(),
     switches: 0,
   }
-}
-
-/** Mejor efectividad de tipo de los ataques de `mon` contra `oppTypes`. */
-function bestEffVs(mon: PokemonInstance, oppTypes: PokemonType[]): number {
-  let best = 0
-  for (const mv of mon.moves) {
-    const m = getMove(mv.moveId)
-    if (m.power <= 0) continue
-    best = Math.max(best, typeEffectiveness(m.type, oppTypes))
-  }
-  return best
-}
-
-/** Decide si conviene cambiar a un suplente con mejor emparejamiento de tipo. */
-function decideSwitch(s: SideState, opp: SideState): number {
-  if (s.switches >= s.team.length) return -1
-  const cur = active(s)
-  const oppTypes = getSpecies(active(opp).speciesId).types
-  const curEff = bestEffVs(cur, oppTypes)
-  if (curEff >= 1) return -1 // el activo ya hace daño normal o más
-  let bestIdx = -1
-  let bestVal = curEff
-  for (let i = 0; i < s.team.length; i++) {
-    if (i === s.activeIdx) continue
-    const m = s.team[i]
-    if (m.currentHp <= 0) continue
-    const e = bestEffVs(m, oppTypes)
-    if (e > bestVal + 1e-6) { bestVal = e; bestIdx = i }
-  }
-  if (bestIdx < 0) return -1
-  // Cambia solo si: no podemos dañar (inmunidad) y el suplente sí, o el
-  // suplente es súper eficaz. Evita cambios innecesarios que pierden tempo.
-  const escapeImmunity = curEff === 0 && bestVal >= 1
-  const upgradeToSuper = bestVal >= 2
-  return escapeImmunity || upgradeToSuper ? bestIdx : -1
 }
 
 function doSwitch(s: SideState, idx: number, opp: SideState, events: BattleEvent[], ctx: BattleCtx): void {

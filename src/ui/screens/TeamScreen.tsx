@@ -11,13 +11,13 @@ import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { typeGradient } from '@/ui/theme/types'
-import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
+import { effectiveEvoLevel } from '@/engine/team/evolution'
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
 import { effectiveTier } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
 
 export default function TeamScreen() {
-  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
+  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -239,11 +239,6 @@ export default function TeamScreen() {
               )}
             </div>
 
-            {levelEvolutionTargets(selMon).length > 0 && (
-              <Button variant="success" full className="!py-2 mb-1" onClick={() => evolveByLevel(selMon.uid)}>
-                🧬 Evolucionar{levelEvolutionTargets(selMon).length > 1 ? ' (elegir)' : ''}
-              </Button>
-            )}
             {canEvolve && hasEvoStone && (
               <Button variant="success" full className="!py-2 mb-1" onClick={() => useEvolutionItem('evo-stone', selMon.uid)}>
                 🪨 Evolucionar (Piedra Evolutiva){getSpecies(selMon.speciesId).evolutions.length > 1 ? ' · elegir' : ''}
