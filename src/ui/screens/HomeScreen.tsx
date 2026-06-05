@@ -9,13 +9,13 @@ export default function HomeScreen() {
   const [account, setAccount] = useState(false)
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom relative">
-      {/* Botón de nube / cuenta (arriba a la derecha) */}
+      {/* Botón de nube / cuenta (arriba, centrado) */}
       <button
         onClick={() => setAccount(true)}
-        className={`absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold active:scale-95 transition ${cloudUser ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-slate-800/80 text-slate-300'}`}
+        className={`absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-bold active:scale-95 transition max-w-[80%] ${cloudUser ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-slate-800/80 text-slate-300'}`}
         aria-label="Cuenta en la nube"
       >
-        ☁️ {cloudUser ? <span className="max-w-[7rem] truncate">{cloudUser.email.split('@')[0]}</span> : 'Cuenta'}
+        ☁️ <span className="truncate">{cloudUser ? cloudUser.email : 'Iniciar sesión'}</span>
       </button>
 
       <div className="flex-1 flex flex-col items-center justify-center gap-2 mt-10">

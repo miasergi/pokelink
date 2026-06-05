@@ -87,16 +87,23 @@ export function signOut() {
   storeSession(null)
 }
 
-/** Devuelve un access_token válido (refrescándolo si hace falta). */
+/** Devuelve un access_token válido (refrescándolo si hace falta). NO cierra la
+ *  sesión por errores de red transitorios (solo si el refresh es rechazado). */
 async function validToken(): Promise<string | null> {
   const s = loadSession()
   if (!s) return null
   if (s.expires_at > Math.floor(Date.now() / 1000)) return s.access_token
   const r = await authFetch('token?grant_type=refresh_token', { refresh_token: s.refresh_token })
-  if (!r.ok) { storeSession(null); return null }
-  const ns = sessionFrom(r.data as never)
-  storeSession(ns)
-  return ns.access_token
+  if (r.ok) {
+    const ns = sessionFrom(r.data as never)
+    storeSession(ns)
+    return ns.access_token
+  }
+  // Sin conexión: mantenemos la sesión y reintentamos con el token actual.
+  if (r.error === 'Sin conexión') return s.access_token
+  // Refresh rechazado de verdad (token revocado/caducado): cerramos sesión.
+  storeSession(null)
+  return null
 }
 
 /** Carga la meta guardada en la nube del usuario (o null). */
