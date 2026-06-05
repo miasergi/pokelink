@@ -36,7 +36,7 @@ export default function TradeScreen() {
             return (
               <button
                 key={mon.uid}
-                disabled={!canAfford || run.party.length <= 1}
+                disabled={!canAfford}
                 onClick={() => doTrade(mon.uid)}
                 className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-800/60 p-2.5 text-left active:scale-[0.98] transition disabled:opacity-40"
               >
@@ -50,7 +50,6 @@ export default function TradeScreen() {
             )
           })}
         </div>
-        {run.party.length <= 1 && <p className="text-xs text-rose-400 text-center">No puedes intercambiar tu último Pokémon.</p>}
       </div>
 
       <div className="p-4 safe-bottom">

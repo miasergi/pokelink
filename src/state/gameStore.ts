@@ -35,6 +35,8 @@ interface GameState {
   run: RunState | null
   pendingBattle: PendingBattle | null
   lastSummary: BattleOutcomeSummary | null
+  battleSummary: BattleOutcomeSummary | null
+  closeBattle: () => void
   lastEventResult: string | null
   evoFx: { uid: string; fromId: number; toId: number } | null
   rescueNodeId: string | null
@@ -89,6 +91,7 @@ export const useGame = create<GameState>((set, get) => ({
   run: null,
   pendingBattle: null,
   lastSummary: null,
+  battleSummary: null,
   lastEventResult: null,
   evoFx: null,
   rescueNodeId: null,
@@ -237,9 +240,12 @@ export const useGame = create<GameState>((set, get) => ({
       void recordRunEnd(run)
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'gameover' }, history: [] })
     } else {
-      set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'reward' }, history: [] })
+      // Victoria normal: mostramos las recompensas EN la pantalla de batalla.
+      set({ run, lastSummary: summary, battleSummary: summary })
     }
   },
+
+  closeBattle: () => set({ pendingBattle: null, battleSummary: null, screen: { name: 'map' }, history: [] }),
 
   doHeal: (nodeId) => {
     const cur = get().run

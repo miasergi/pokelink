@@ -126,6 +126,8 @@ export interface BattleOutcomeSummary {
   caughtLegendary?: string
   /** Nombre del jefe derrotado (para celebrar / meme). */
   bossDefeated?: string
+  /** Niveles ganados por Pokémon (combate + casilla). */
+  levelGains: { name: string; levels: number }[]
   runEnded: boolean
   runWon: boolean
 }
@@ -145,6 +147,7 @@ export function applyBattleOutcome(
     moneyGained: 0,
     evolutions: [],
     lost: [],
+    levelGains: [],
     runEnded: false,
     runWon: false,
   }
@@ -168,14 +171,11 @@ export function applyBattleOutcome(
   }
 
   if (result.winner !== 'player') {
-    if (isBoss) {
-      // Perder ante un jefe = fin de la run
-      run.status = 'lost'
-      summary.runEnded = true
-    } else {
-      // Combate normal perdido: tu equipo queda debilitado, pero la run continúa.
-      node.cleared = true
-    }
+    // En un autobattler, perder = todo el equipo debilitado: fin de la run
+    // (salvo que tengas un Salvavidas, que se gestiona en finishBattle).
+    run.status = 'lost'
+    summary.runEnded = true
+    void isBoss
     return summary
   }
 
@@ -215,6 +215,12 @@ export function applyBattleOutcome(
   // durante el combate sí lo da).
   const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : 0
   for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid)) gainLevel(mon)
+
+  // Niveles ganados (combate por EXP + bonus de casilla) para mostrar logros.
+  for (const mon of run.party) {
+    const total = (result.levelUps[mon.uid] || 0) + (participated.has(mon.uid) ? levelGain : 0)
+    if (total > 0) summary.levelGains.push({ name: getSpecies(mon.speciesId).displayName, levels: total })
+  }
 
   // Guardián legendario: ¡lo capturas al vencerlo!
   if (node.type === 'legendary' && content.kind === 'wild') {

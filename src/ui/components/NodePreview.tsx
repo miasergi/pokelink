@@ -67,9 +67,9 @@ export default function NodePreview({
         : 0
 
   return (
-    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end" onClick={onClose}>
+    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full rounded-t-3xl border-t border-slate-700 p-5 animate-pop-in max-h-[88%] overflow-y-auto no-scrollbar"
+        className="w-full max-w-md rounded-3xl border border-slate-700 p-5 animate-pop-in max-h-[90%] overflow-y-auto no-scrollbar shadow-2xl"
         style={{ background: 'linear-gradient(180deg, rgba(30,41,59,0.98), rgba(15,23,42,0.99))' }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -1,4 +1,4 @@
-import type { PokemonInstance, SpeciesData, TrainerData } from '@/types'
+import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
 import { encounterPool, legendaryPool } from '@/data'
 import { createInstance } from '@/engine/team/instance'
@@ -12,27 +12,28 @@ import type { GameMode, MapNode, NodeType, RunMap } from './types'
 
 // Clases de entrenador genéricas con retrato real (Pokémon Showdown).
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
-const GENERIC_CLASSES: { slug: string; name: string }[] = [
-  { slug: 'youngster', name: 'Joven' },
-  { slug: 'lass', name: 'Chica' },
-  { slug: 'bugcatcher', name: 'Cazabichos' },
-  { slug: 'hiker', name: 'Montañero' },
-  { slug: 'beauty', name: 'Modelo' },
-  { slug: 'acetrainer', name: 'Entrenador Guay' },
-  { slug: 'acetrainerf', name: 'Entrenadora Guay' },
-  { slug: 'blackbelt', name: 'Karateka' },
-  { slug: 'sailor', name: 'Marinero' },
-  { slug: 'pokemaniac', name: 'Pokémano' },
-  { slug: 'gambler', name: 'Apostador' },
-  { slug: 'juggler', name: 'Malabarista' },
-  { slug: 'scientist', name: 'Científico' },
-  { slug: 'burglar', name: 'Ladrón' },
-  { slug: 'fisherman', name: 'Pescador' },
-  { slug: 'biker', name: 'Motorista' },
-  { slug: 'gentleman', name: 'Caballero' },
-  { slug: 'supernerd', name: 'Empollón' },
-  { slug: 'camper', name: 'Excursionista' },
-  { slug: 'picnicker', name: 'Senderista' },
+// Cada clase de entrenador tiene una temática de tipo coherente.
+const GENERIC_CLASSES: { slug: string; name: string; type: PokemonType }[] = [
+  { slug: 'youngster', name: 'Joven', type: 'normal' },
+  { slug: 'lass', name: 'Chica', type: 'normal' },
+  { slug: 'bugcatcher', name: 'Cazabichos', type: 'bug' },
+  { slug: 'hiker', name: 'Montañero', type: 'rock' },
+  { slug: 'beauty', name: 'Modelo', type: 'fairy' },
+  { slug: 'acetrainer', name: 'Entrenador Guay', type: 'flying' },
+  { slug: 'acetrainerf', name: 'Entrenadora Guay', type: 'psychic' },
+  { slug: 'blackbelt', name: 'Karateka', type: 'fighting' },
+  { slug: 'sailor', name: 'Marinero', type: 'water' },
+  { slug: 'pokemaniac', name: 'Pokémano', type: 'ground' },
+  { slug: 'gambler', name: 'Apostador', type: 'fire' },
+  { slug: 'juggler', name: 'Malabarista', type: 'psychic' },
+  { slug: 'scientist', name: 'Científico', type: 'electric' },
+  { slug: 'burglar', name: 'Ladrón', type: 'dark' },
+  { slug: 'fisherman', name: 'Pescador', type: 'water' },
+  { slug: 'biker', name: 'Motorista', type: 'poison' },
+  { slug: 'gentleman', name: 'Caballero', type: 'normal' },
+  { slug: 'supernerd', name: 'Empollón', type: 'electric' },
+  { slug: 'camper', name: 'Excursionista', type: 'grass' },
+  { slug: 'picnicker', name: 'Senderista', type: 'grass' },
 ]
 
 interface LayerPlan {
@@ -220,7 +221,7 @@ function buildRouteContent(
     case 'battle':
       return { kind: 'wild', enemy: makeWild(pool, level, rng) }
     case 'trainer':
-      return { kind: 'trainer', trainer: synthTrainer(pool, level, rng), team: synthTeam(pool, level, rng) }
+      return synthTrainerContent(pool, level, rng)
     case 'catch':
       return { kind: 'catch', offer: makeWild(pool, level, rng) }
     case 'item':
@@ -236,27 +237,29 @@ function buildRouteContent(
   }
 }
 
-function synthTeam(pool: SpeciesData[], level: number, rng: RNG): PokemonInstance[] {
-  const tier = tierPool(pool, level)
-  const size = level < 15 ? 1 : level < 35 ? 2 : 3
-  const team: PokemonInstance[] = []
-  for (let i = 0; i < size; i++) {
-    const sp = rng.pick(tier)
-    team.push(createInstance(sp.id, Math.max(2, level + rng.int(-2, 0)), rng))
-  }
-  return team
-}
-
-function synthTrainer(_pool: SpeciesData[], level: number, rng: RNG): TrainerData {
+/** Entrenador genérico con temática de tipo coherente y equipo de ese tipo. */
+function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG): MapNode['content'] {
   const cls = rng.pick(GENERIC_CLASSES)
-  return {
+  const trainer: TrainerData = {
     id: `trainer-${level}-${rng.int(0, 9999)}`,
     name: cls.name,
     trainerClass: 'trainer',
+    specialtyType: cls.type,
     sprite: SHOWDOWN_TRAINER(cls.slug),
     reward: { money: 200 + level * 25 },
-    team: [], // el equipo real va en TrainerContent.team
+    team: [],
   }
+  const tier = tierPool(pool, level)
+  const size = level < 15 ? 1 : level < 35 ? 2 : 3
+  // Filtra al tipo temático; si no hay suficientes, usa el pool general.
+  const typed = tier.filter((s) => s.types.includes(cls.type))
+  const usePool = typed.length >= size ? typed : tier
+  const team: PokemonInstance[] = []
+  for (let i = 0; i < size; i++) {
+    const sp = rng.pick(usePool)
+    team.push(createInstance(sp.id, Math.max(2, level + rng.int(-2, 0)), rng))
+  }
+  return { kind: 'trainer', trainer, team }
 }
 
 /** Conecta dos capas con aristas estilo Slay the Spire. */

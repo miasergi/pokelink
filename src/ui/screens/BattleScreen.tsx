@@ -6,7 +6,9 @@ import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
 import HpBar from '@/ui/components/HpBar'
-import { Button } from '@/ui/components/kit'
+import { Button, Card, money } from '@/ui/components/kit'
+import { getItem } from '@/data/items'
+import MemeOverlay from '@/ui/components/MemeOverlay'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { play, type Sfx } from '@/utils/sfx'
@@ -59,8 +61,9 @@ const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
 }
 
 export default function BattleScreen() {
-  const { run, pendingBattle, finishBattle } = useGame()
+  const { run, pendingBattle, finishBattle, battleSummary, closeBattle } = useGame()
   const settings = useSettings()
+  const [memeClosed, setMemeClosed] = useState(false)
 
   const uidMap = useMemo(() => {
     const map = new Map<string, { speciesId: number; level: number; shiny: boolean; maxHp: number; currentHp: number; status: PokemonInstance['status'] }>()
@@ -107,6 +110,11 @@ export default function BattleScreen() {
     if (s) play(s)
   }, [idx, frames])
 
+  // Al terminar la animación, resuelve el combate (recompensas inline / fin de run).
+  useEffect(() => {
+    if (done && !battleSummary) finishBattle()
+  }, [done, battleSummary, finishBattle])
+
   useEffect(() => {
     if (idx >= frames.length - 1) {
       setDone(true)
@@ -130,7 +138,6 @@ export default function BattleScreen() {
     setDone(true)
   }
 
-  const won = pendingBattle.result.winner === 'player'
   const lungeEnemy = frame.acting?.side === 'enemy' ? 'fx-lunge-enemy' : ''
   const lungePlayer = frame.acting?.side === 'player' ? 'fx-lunge-player' : ''
 
@@ -219,12 +226,11 @@ export default function BattleScreen() {
 
       {/* Caja de diálogo (narración fija y legible) + controles */}
       <div className="relative p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 backdrop-blur space-y-2">
-        <div className="bg-slate-950/70 border border-slate-700 rounded-xl px-4 min-h-[3.25rem] flex items-center shadow-inner">
-          <span className="text-base font-semibold leading-snug">{frame.message}</span>
-        </div>
-        {done ? (
-          <Button full variant={won ? 'success' : 'danger'} onClick={finishBattle} className="animate-pop-in">
-            {won ? '¡Victoria! Continuar ›' : 'Derrota...'}
+        {battleSummary ? (
+          <BattleRewards summary={battleSummary} onContinue={closeBattle} />
+        ) : done ? (
+          <Button full variant="success" disabled className="opacity-80">
+            ¡Victoria! Calculando recompensas…
           </Button>
         ) : (
           <div className="flex items-center gap-2">
@@ -250,6 +256,49 @@ export default function BattleScreen() {
           <div className="text-center text-[11px] text-amber-300/80 mt-1.5">Combate de jefe</div>
         )}
       </div>
+
+      {/* Meme al derrotar a un jefe */}
+      {battleSummary?.bossDefeated && !memeClosed && (
+        <MemeOverlay mood="win" speciesId={frame.player.speciesId} shiny={frame.player.shiny} onClose={() => setMemeClosed(true)} />
+      )}
+    </div>
+  )
+}
+
+/** Panel de recompensas mostrado al terminar el combate (en la misma pantalla). */
+function BattleRewards({ summary, onContinue }: { summary: import('@/engine/run/runEngine').BattleOutcomeSummary; onContinue: () => void }) {
+  return (
+    <div className="animate-pop-in space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {summary.moneyGained > 0 && (
+          <span className="text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 rounded-lg px-2 py-1">💰 +{money(summary.moneyGained)}</span>
+        )}
+        {summary.levelGains.map((lg, i) => (
+          <span key={i} className="text-xs font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-lg px-2 py-1">📈 {lg.name} +{lg.levels} Nv</span>
+        ))}
+        {summary.itemGained && (
+          <span className="text-xs font-bold bg-sky-500/15 border border-sky-500/30 text-sky-300 rounded-lg px-2 py-1">🎁 {getItem(summary.itemGained).name}</span>
+        )}
+        {summary.caughtLegendary && (
+          <span className="text-xs font-bold bg-violet-500/15 border border-violet-500/30 text-violet-300 rounded-lg px-2 py-1">⭐ {summary.caughtLegendary}</span>
+        )}
+        {summary.lost.length > 0 && (
+          <span className="text-xs font-bold bg-rose-500/15 border border-rose-500/30 text-rose-300 rounded-lg px-2 py-1">☠ {summary.lost.join(', ')}</span>
+        )}
+      </div>
+      {summary.evolutions.length > 0 && (
+        <Card className="p-2 flex items-center gap-2 justify-center">
+          {summary.evolutions.map((evo) => (
+            <div key={evo.uid} className="flex items-center gap-1 text-xs">
+              <Sprite speciesId={evo.fromId} variant="front" className="w-8 h-8 object-contain opacity-70" />
+              <span>→</span>
+              <Sprite speciesId={evo.toId} variant="front" className="w-9 h-9 object-contain" />
+              <span className="text-emerald-300 font-bold">¡Evolucionó!</span>
+            </div>
+          ))}
+        </Card>
+      )}
+      <Button full variant="primary" onClick={onContinue}>Continuar ›</Button>
     </div>
   )
 }
