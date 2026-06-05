@@ -234,7 +234,9 @@ export const useGame = create<GameState>((set, get) => ({
 
   abandonRun: async () => {
     const run = get().run
-    if (run) await recordRunEnd(run)
+    // Solo registrar si la run sigue activa (abandono real). Si ya está ganada
+    // o perdida, finishBattle ya la registró: NO duplicar.
+    if (run && run.status === 'active') await recordRunEnd(run)
     await clearRun()
     set({ run: null, hasSavedRun: false, pendingBattle: null, screen: { name: 'home' }, history: [] })
   },
@@ -569,6 +571,7 @@ async function recordRunEnd(run: RunState) {
       eliteDefeated: run.stats.eliteDefeated,
       won: run.status === 'won',
       starterId: run.starterId,
+      team: structuredClone(run.party),
     },
     ...meta.bestRuns,
   ].slice(0, 30)

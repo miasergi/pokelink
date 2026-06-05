@@ -28,6 +28,28 @@ export interface BestRun {
   eliteDefeated: number
   won: boolean
   starterId: number
+  /** Instantánea del equipo con el que se terminó (para ver el detalle). */
+  team?: import('@/engine/run/types').RunState['party']
+}
+
+/** Quita runs casi-idénticas (mismo resultado/región/inicial/avance y tiempo a
+ *  menos de 60 s) — corrige duplicados de registros antiguos. */
+export function dedupeRuns(runs: BestRun[]): BestRun[] {
+  const out: BestRun[] = []
+  for (const r of runs) {
+    const dup = out.find(
+      (o) => o.won === r.won && o.region === r.region && o.difficulty === r.difficulty &&
+        o.starterId === r.starterId && o.gymsDefeated === r.gymsDefeated &&
+        o.eliteDefeated === r.eliteDefeated && Math.abs(o.durationMs - r.durationMs) < 60000,
+    )
+    if (dup) {
+      if (!dup.team && r.team) dup.team = r.team
+      if (r.durationMs < dup.durationMs) dup.durationMs = r.durationMs
+      continue
+    }
+    out.push(r)
+  }
+  return out
 }
 
 let dbPromise: Promise<IDBPDatabase> | null = null
@@ -73,7 +95,9 @@ export async function loadMeta(): Promise<MetaRecord> {
   const d = await db()
   const m = (await d.get('meta', 'meta')) as MetaRecord | undefined
   if (!m) return structuredClone(EMPTY_META)
-  return { ...structuredClone(EMPTY_META), ...m } // backfill de campos nuevos
+  const meta = { ...structuredClone(EMPTY_META), ...m } // backfill de campos nuevos
+  meta.bestRuns = dedupeRuns(meta.bestRuns) // limpia duplicados antiguos
+  return meta
 }
 
 export async function saveMeta(meta: MetaRecord): Promise<void> {
@@ -89,7 +113,7 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
   const uni = (x: number[], y: number[]) => [...new Set([...x, ...y])]
   const runsByDate = new Map<number, BestRun>()
   for (const r of [...a.bestRuns, ...b.bestRuns]) runsByDate.set(r.date, r)
-  const bestRuns = [...runsByDate.values()].sort((x, y) => y.date - x.date).slice(0, 30)
+  const bestRuns = dedupeRuns([...runsByDate.values()].sort((x, y) => y.date - x.date)).slice(0, 30)
   return {
     bestRuns,
     totals: {

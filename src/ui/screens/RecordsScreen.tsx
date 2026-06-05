@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, TopBar } from '@/ui/components/kit'
-import { loadMeta, type MetaRecord } from '@/persistence/db'
+import { loadMeta, type MetaRecord, type BestRun } from '@/persistence/db'
 import { ALL_SPECIES } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { formatDuration } from '@/ui/components/RunTimer'
+import RunTeamModal from '@/ui/components/RunTeamModal'
 
 const DEX_TOTAL = ALL_SPECIES.length
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
@@ -12,6 +13,7 @@ const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nu
 export default function RecordsScreen() {
   const { back, navigate } = useGame()
   const [meta, setMeta] = useState<MetaRecord | null>(null)
+  const [selRun, setSelRun] = useState<BestRun | null>(null)
   useEffect(() => {
     void loadMeta().then(setMeta)
   }, [])
@@ -63,12 +65,12 @@ export default function RecordsScreen() {
                   <div className="text-sm font-bold text-amber-300 mb-1.5 px-1">🏆 Glory Runs (mejores tiempos)</div>
                   <div className="flex flex-col gap-2">
                     {glory.map((r, i) => (
-                      <Card key={i} className="p-2.5 flex items-center gap-3" style={{ borderColor: i === 0 ? '#f59e0b66' : undefined }}>
+                      <Card key={i} className="p-2.5 flex items-center gap-3 active:scale-[0.99] transition" style={{ borderColor: i === 0 ? '#f59e0b66' : undefined }} onClick={() => setSelRun(r)}>
                         <div className="text-lg font-black w-6 text-center" style={{ color: i === 0 ? '#fbbf24' : '#64748b' }}>{i + 1}</div>
                         <Sprite speciesId={r.starterId} variant="front" className="w-9 h-9 object-contain" />
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-sm">{r.region} <span className="text-[10px] text-slate-400">· {DIFF_ES[r.difficulty] ?? r.difficulty}</span></div>
-                          <div className="text-[11px] text-slate-400">{r.mode}</div>
+                          <div className="text-[11px] text-slate-400">{r.mode} {r.team && <span className="text-sky-300">· ver equipo ›</span>}</div>
                         </div>
                         <div className="text-emerald-300 font-extrabold tabular-nums">⏱ {formatDuration(r.durationMs)}</div>
                       </Card>
@@ -83,7 +85,7 @@ export default function RecordsScreen() {
               {meta.bestRuns.length === 0 && <p className="text-xs text-slate-500 px-1">Aún no has terminado ninguna partida.</p>}
               <div className="flex flex-col gap-2">
                 {meta.bestRuns.slice(0, 12).map((r, i) => (
-                  <Card key={i} className="p-2.5 flex items-center gap-3">
+                  <Card key={i} className={`p-2.5 flex items-center gap-3 ${r.team ? 'active:scale-[0.99] transition' : ''}`} onClick={r.team ? () => setSelRun(r) : undefined}>
                     <Sprite speciesId={r.starterId} variant="front" className="w-10 h-10 object-contain" />
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-sm flex items-center gap-2">
@@ -94,6 +96,7 @@ export default function RecordsScreen() {
                         {r.mode} · {DIFF_ES[r.difficulty] ?? r.difficulty} · {r.gymsDefeated}/8 gim. · {r.eliteDefeated}/4 A.M.{r.durationMs > 0 && ` · ⏱ ${formatDuration(r.durationMs)}`}
                       </div>
                     </div>
+                    {r.team && <span className="text-slate-500 text-xl shrink-0">›</span>}
                   </Card>
                 ))}
               </div>
@@ -101,6 +104,7 @@ export default function RecordsScreen() {
           </>
         )}
       </div>
+      {selRun && <RunTeamModal run={selRun} onClose={() => setSelRun(null)} />}
     </div>
   )
 }
