@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { MapNode, NodeType } from '@/engine/run/types'
 import { nodeImage, aceSprite } from './nodeImage'
-import { IconCheck } from './icons'
+import { IconCheck, NodeTypeIcon } from './icons'
 
 export const NODE_META: Record<NodeType, { label: string; color: string }> = {
   battle: { label: 'Salvaje', color: '#94a3b8' },
@@ -71,7 +71,7 @@ export default function NodeIcon({
           }}
         />
       ) : (
-        <span style={{ color: meta.color, fontWeight: 800, fontSize: size * 0.4 }}>?</span>
+        <NodeTypeIcon type={node.type} size={Math.round(size * 0.54)} className="drop-shadow" />
       )}
 
       {cleared && (

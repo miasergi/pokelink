@@ -6,6 +6,7 @@ const TILES = import.meta.env.BASE_URL + 'tiles/'
 const POKECENTER = TILES + 'pokecenter.png'
 const POKEMART = TILES + 'pokemart.png'
 const TALLGRASS = TILES + 'tallgrass.png'
+const TRADE = TILES + 'trade.png'
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites'
 export const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
@@ -58,7 +59,7 @@ export function nodeImage(node: MapNode): NodeImage {
     case 'shop':
       return { url: POKEMART, pixel: true }
     case 'trade':
-      return { url: itemSprite('up-grade'), pixel: true }
+      return { url: TRADE, pixel: true }
     case 'heal':
       return { url: POKECENTER, pixel: true }
     case 'event':
