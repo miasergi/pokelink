@@ -7,7 +7,8 @@ import { pendingLevelEvolution, evolve } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
-import { EVENTS } from './nodes'
+import { EVENTS, type EventEffect } from './nodes'
+import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
 import { fullHeal } from '@/engine/team/instance'
@@ -123,6 +124,8 @@ export interface BattleOutcomeSummary {
   lost: string[]
   /** Nombre del legendario capturado al vencer su guardián. */
   caughtLegendary?: string
+  /** Nombre del jefe derrotado (para celebrar / meme). */
+  bossDefeated?: string
   runEnded: boolean
   runWon: boolean
 }
@@ -202,7 +205,10 @@ export function applyBattleOutcome(
   }
 
   // Al ganar a un jefe, el equipo se cura por completo.
-  if (isBossLike) healParty(run.party)
+  if (isBossLike) {
+    healParty(run.party)
+    summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
+  }
 
   // Recompensa de nivel por casilla: hierba alta +1, entrenador +2.
   // Solo a los que participaron (entrar debilitado no da nivel; debilitarse
@@ -305,56 +311,54 @@ export function resolveEvent(run: RunState, node: MapNode, optionIndex: number):
   if (node.content.kind !== 'event') return ''
   const def = EVENTS[node.content.eventId]
   node.cleared = true
-  return withRng(run, (rng) => {
-    switch (def.id) {
-      case 'hiker_heal':
-        if (optionIndex === 0) {
-          healParty(run.party)
-          return '¡Tu equipo recuperó toda la salud!'
-        }
-        run.money += 500
-        return 'Recibiste 500 ₽.'
-      case 'mystery_egg':
-        if (optionIndex === 0) {
-          const mon = randomPartyLevelMon(run, rng)
-          if (run.party.length < MAX_PARTY) run.party.push(mon)
-          else run.box.push(mon)
-          return `¡El huevo eclosionó en ${getSpecies(mon.speciesId).displayName}!`
-        }
-        return 'Dejaste el huevo donde estaba.'
-      case 'wishing_well':
-        if (optionIndex === 0) {
-          if (run.money < 300) return 'No tienes suficiente dinero.'
-          run.money -= 300
-          if (rng.chance(0.5)) {
-            run.money += 600
-            return '¡La fortuna te sonríe! Recibes 600 ₽.'
-          }
-          return 'La moneda se hunde sin más...'
-        }
-        for (const p of run.party) p.status = 'none'
-        return 'El agua curó los estados de tu equipo.'
-      case 'rare_candy_cache':
-        if (optionIndex === 0) {
-          addItem(run, 'rare-candy', 2)
-          return 'Conseguiste 2 Caramelos Raros.'
-        }
-        run.money += 1200
-        return 'Conseguiste 1200 ₽.'
-      case 'risky_cave':
-        if (optionIndex === 0) {
-          for (const p of run.party) {
-            p.currentHp = Math.max(1, p.currentHp - Math.floor(p.stats.hp * 0.25))
-          }
-          const drop = rng.pick(BOSS_DROPS)
-          addItem(run, drop, 1)
-          return `¡Saliste magullado pero con un objeto raro!`
-        }
-        return 'Decidiste no arriesgarte.'
-      default:
-        return ''
+  const opt = def.options[optionIndex] ?? def.options[0]
+  return withRng(run, (rng) => applyEventEffect(run, opt.effect, rng))
+}
+
+function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
+  switch (eff.kind) {
+    case 'money':
+      run.money = Math.max(0, run.money + eff.amount)
+      return eff.amount >= 0 ? `Recibes ${eff.amount} ₽.` : `Pierdes ${-eff.amount} ₽.`
+    case 'heal':
+      healParty(run.party)
+      return '¡Tu equipo recuperó toda la salud!'
+    case 'damage':
+      for (const p of run.party) if (p.currentHp > 0) p.currentHp = Math.max(1, p.currentHp - Math.floor(p.stats.hp * eff.frac))
+      return 'Tu equipo recibió daño...'
+    case 'item':
+      addItem(run, eff.itemId, eff.qty)
+      return `Conseguiste ${eff.qty}× ${getItem(eff.itemId).name}.`
+    case 'randomItem': {
+      const d = rng.pick(BOSS_DROPS)
+      addItem(run, d, 1)
+      return `¡Conseguiste ${getItem(d).name}!`
     }
-  })
+    case 'addMon': {
+      const mon = randomPartyLevelMon(run, rng)
+      if (run.party.length < MAX_PARTY) run.party.push(mon)
+      else run.box.push(mon)
+      run.stats.pokemonCaught++
+      return `¡Se unió ${getSpecies(mon.speciesId).displayName} a tu equipo!`
+    }
+    case 'levelUp':
+      for (let i = 0; i < eff.amount; i++) for (const p of run.party) if (p.currentHp > 0) gainLevel(p)
+      return `¡Tu equipo subió ${eff.amount} nivel(es)!`
+    case 'loseMoneyFrac': {
+      const lost = Math.floor(run.money * eff.frac)
+      run.money -= lost
+      return `Pierdes ${lost} ₽.`
+    }
+    case 'gamble':
+      if (run.money < eff.cost) return 'No tienes suficiente dinero.'
+      run.money -= eff.cost
+      if (rng.chance(eff.chance)) { run.money += eff.win; return `¡Suerte! Ganas ${eff.win} ₽.` }
+      return 'No hubo suerte esta vez...'
+    case 'risky':
+      return applyEventEffect(run, rng.chance(eff.chance) ? eff.good : eff.bad, rng)
+    case 'none':
+      return 'No pasó nada.'
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ const POKECENTER = TILES + 'pokecenter.png'
 const POKEMART = TILES + 'pokemart.png'
 const TALLGRASS = TILES + 'tallgrass.png'
 const TRADE = TILES + 'trade.png'
+const EVENT = TILES + 'event.png'
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites'
 export const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
@@ -35,7 +36,7 @@ export function nodeImage(node: MapNode): NodeImage {
   switch (node.type) {
     case 'battle':
       // Salvaje: solo se ve hierba alta; el Pokémon se revela al entrar.
-      return { url: TALLGRASS, pixel: true }
+      return { url: TALLGRASS, pixel: false }
     case 'legendary':
       return { url: c.kind === 'wild' ? pokemonSprite(c.enemy.speciesId) : itemSprite('poke-ball'), pixel: true }
     case 'trainer':
@@ -59,11 +60,11 @@ export function nodeImage(node: MapNode): NodeImage {
     case 'shop':
       return { url: POKEMART, pixel: true }
     case 'trade':
-      return { url: TRADE, pixel: true }
+      return { url: TRADE, pixel: false }
     case 'heal':
       return { url: POKECENTER, pixel: true }
     case 'event':
-      return { url: itemSprite('parcel'), pixel: true }
+      return { url: EVENT, pixel: false }
     default:
       return { url: itemSprite('poke-ball'), pixel: true }
   }

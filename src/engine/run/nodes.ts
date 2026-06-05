@@ -72,64 +72,140 @@ export function shopStock(rng: RNG, depthFrac: number): string[] {
   return [...base, ...advanced, ...held, ...evo, ...mega]
 }
 
-// --- Eventos aleatorios ---
+// --- Eventos aleatorios (data-driven) ---
+export type EventEffect =
+  | { kind: 'money'; amount: number } // + o - dinero
+  | { kind: 'heal' } // cura todo el equipo
+  | { kind: 'damage'; frac: number } // daña a todo el equipo (frac de PS máx)
+  | { kind: 'item'; itemId: string; qty: number }
+  | { kind: 'randomItem' } // objeto raro aleatorio
+  | { kind: 'addMon' } // añade un Pokémon de nivel medio
+  | { kind: 'levelUp'; amount: number } // sube nivel a todo el equipo
+  | { kind: 'loseMoneyFrac'; frac: number } // pierdes % del dinero
+  | { kind: 'gamble'; cost: number; win: number; chance: number }
+  | { kind: 'risky'; chance: number; good: EventEffect; bad: EventEffect }
+  | { kind: 'none' }
+
 export interface RunEventOption {
   label: string
   description: string
+  effect: EventEffect
 }
 export interface RunEventDef {
   id: string
   title: string
   description: string
+  /** 'good' | 'bad' | 'neutral' — solo para sabor/UI. */
+  tone?: 'good' | 'bad' | 'neutral'
   options: RunEventOption[]
 }
 
 export const EVENTS: Record<string, RunEventDef> = {
-  hiker_heal: {
-    id: 'hiker_heal',
-    title: 'Un excursionista amable',
+  // --- Buenos ---
+  hiker_heal: { id: 'hiker_heal', title: 'Excursionista amable', tone: 'good',
     description: 'Un excursionista se ofrece a cuidar de tu equipo en su cabaña.',
     options: [
-      { label: 'Aceptar', description: 'Cura por completo a tu equipo.' },
-      { label: 'Seguir camino', description: 'Recibe 500 ₽ por las prisas.' },
-    ],
-  },
-  mystery_egg: {
-    id: 'mystery_egg',
-    title: 'Huevo misterioso',
+      { label: 'Aceptar', description: 'Cura por completo a tu equipo.', effect: { kind: 'heal' } },
+      { label: 'Seguir camino', description: 'Recibe 500 ₽ por las prisas.', effect: { kind: 'money', amount: 500 } },
+    ] },
+  mystery_egg: { id: 'mystery_egg', title: 'Huevo misterioso', tone: 'good',
     description: 'Encuentras un huevo abandonado. Podría eclosionar... o no.',
     options: [
-      { label: 'Incubarlo', description: 'Añade un Pokémon aleatorio a tu equipo/caja.' },
-      { label: 'Ignorarlo', description: 'No pasa nada.' },
-    ],
-  },
-  wishing_well: {
-    id: 'wishing_well',
-    title: 'Pozo de los deseos',
-    description: 'Un pozo brillante. Quizá recompense tu generosidad.',
-    options: [
-      { label: 'Tirar 300 ₽', description: '50% de duplicar, 50% de perderlo.' },
-      { label: 'Beber agua', description: 'Cura el estado de todo el equipo.' },
-    ],
-  },
-  rare_candy_cache: {
-    id: 'rare_candy_cache',
-    title: 'Alijo escondido',
+      { label: 'Incubarlo', description: 'Añade un Pokémon aleatorio a tu equipo/caja.', effect: { kind: 'addMon' } },
+      { label: 'Ignorarlo', description: 'No pasa nada.', effect: { kind: 'none' } },
+    ] },
+  rare_candy_cache: { id: 'rare_candy_cache', title: 'Alijo escondido', tone: 'good',
     description: 'Detrás de unas rocas encuentras provisiones.',
     options: [
-      { label: 'Coger Caramelos', description: 'Recibe 2 Caramelos Raros.' },
-      { label: 'Coger dinero', description: 'Recibe 1200 ₽.' },
-    ],
-  },
-  risky_cave: {
-    id: 'risky_cave',
-    title: 'Cueva peligrosa',
+      { label: 'Coger Caramelos', description: 'Recibe 2 Caramelos Raros.', effect: { kind: 'item', itemId: 'rare-candy', qty: 2 } },
+      { label: 'Coger dinero', description: 'Recibe 1200 ₽.', effect: { kind: 'money', amount: 1200 } },
+    ] },
+  berry_bush: { id: 'berry_bush', title: 'Arbusto de bayas', tone: 'good',
+    description: 'Un arbusto cargado de bayas frescas.',
+    options: [
+      { label: 'Comerlas', description: 'Cura todo tu equipo.', effect: { kind: 'heal' } },
+      { label: 'Guardarlas', description: 'Consigue unos Restos.', effect: { kind: 'item', itemId: 'leftovers', qty: 1 } },
+    ] },
+  lost_trainer: { id: 'lost_trainer', title: 'Entrenador perdido', tone: 'good',
+    description: 'Un entrenador despistado te agradece que le indiques el camino.',
+    options: [
+      { label: 'Ayudarle', description: 'Te recompensa con 800 ₽.', effect: { kind: 'money', amount: 800 } },
+      { label: 'Ignorar', description: 'No pasa nada.', effect: { kind: 'none' } },
+    ] },
+  lucky_coin: { id: 'lucky_coin', title: 'Moneda de la suerte', tone: 'good',
+    description: 'Una moneda dorada brilla en el suelo.',
+    options: [
+      { label: 'Recogerla', description: '+1500 ₽.', effect: { kind: 'money', amount: 1500 } },
+    ] },
+  combat_master: { id: 'combat_master', title: 'Maestro de combate', tone: 'good',
+    description: 'Un veterano se ofrece a entrenar a un Pokémon... o a todos un poco.',
+    options: [
+      { label: 'Reforzar ataque', description: 'Consigue un Refuerzo de Ataque.', effect: { kind: 'item', itemId: 'attack-boost', qty: 1 } },
+      { label: 'Entrenamiento exprés', description: '+1 nivel a todo el equipo.', effect: { kind: 'levelUp', amount: 1 } },
+    ] },
+  abandoned_pack: { id: 'abandoned_pack', title: 'Mochila abandonada', tone: 'good',
+    description: 'Una mochila olvidada junto al sendero.',
+    options: [
+      { label: 'Registrarla', description: 'Consigue un objeto raro.', effect: { kind: 'randomItem' } },
+      { label: 'Dejarla', description: 'No es tuya...', effect: { kind: 'none' } },
+    ] },
+
+  // --- Azar / pozo ---
+  wishing_well: { id: 'wishing_well', title: 'Pozo de los deseos', tone: 'neutral',
+    description: 'Un pozo brillante. Quizá recompense tu generosidad.',
+    options: [
+      { label: 'Tirar 300 ₽', description: '50%: duplicas. 50%: lo pierdes.', effect: { kind: 'gamble', cost: 300, win: 600, chance: 0.5 } },
+      { label: 'Seguir', description: 'No pasa nada.', effect: { kind: 'none' } },
+    ] },
+  treasure_chest: { id: 'treasure_chest', title: 'Cofre misterioso', tone: 'neutral',
+    description: 'Un cofre antiguo. ¿Tesoro o trampa?',
+    options: [
+      { label: 'Abrirlo', description: '70%: objeto raro. 30%: trampa (daño).', effect: { kind: 'risky', chance: 0.7, good: { kind: 'randomItem' }, bad: { kind: 'damage', frac: 0.3 } } },
+      { label: 'No tocarlo', description: 'Mejor no arriesgarse.', effect: { kind: 'none' } },
+    ] },
+  slot_machine: { id: 'slot_machine', title: 'Máquina tragaperras', tone: 'neutral',
+    description: 'Una vieja máquina del casino.',
+    options: [
+      { label: 'Jugar 500 ₽', description: '40%: ganas 1500 ₽.', effect: { kind: 'gamble', cost: 500, win: 2000, chance: 0.4 } },
+      { label: 'Pasar', description: 'No juegas.', effect: { kind: 'none' } },
+    ] },
+
+  // --- Malos ---
+  risky_cave: { id: 'risky_cave', title: 'Cueva peligrosa', tone: 'bad',
     description: 'Una cueva oscura emana energía. Hay tesoro... y peligro.',
     options: [
-      { label: 'Entrar', description: 'Tu equipo recibe daño, pero ganas un objeto raro.' },
-      { label: 'Evitarla', description: 'Te marchas sin más.' },
-    ],
-  },
+      { label: 'Entrar', description: 'Tu equipo recibe daño, pero ganas un objeto raro.', effect: { kind: 'risky', chance: 1, good: { kind: 'randomItem' }, bad: { kind: 'damage', frac: 0.25 } } },
+      { label: 'Evitarla', description: 'Te marchas sin más.', effect: { kind: 'none' } },
+    ] },
+  ambush: { id: 'ambush', title: '¡Emboscada!', tone: 'bad',
+    description: 'Una bandada de Pokémon salvajes os sorprende.',
+    options: [
+      { label: 'Defenderse', description: 'Recibes algo de daño.', effect: { kind: 'damage', frac: 0.2 } },
+      { label: 'Huir soltando dinero', description: 'Escapas, pero pierdes algo de dinero.', effect: { kind: 'loseMoneyFrac', frac: 0.15 } },
+    ] },
+  toxic_swamp: { id: 'toxic_swamp', title: 'Pantano tóxico', tone: 'bad',
+    description: 'El camino corto cruza un pantano que daña a los Pokémon.',
+    options: [
+      { label: 'Cruzar rápido', description: 'Daño leve a todo el equipo.', effect: { kind: 'damage', frac: 0.15 } },
+      { label: 'Rodear', description: 'Tardas más, pero a salvo.', effect: { kind: 'none' } },
+    ] },
+  thief: { id: 'thief', title: '¡Un ladrón!', tone: 'bad',
+    description: 'Un ladrón intenta robarte la cartera.',
+    options: [
+      { label: 'Perseguirlo', description: '50%: recuperas y ganas extra. 50%: nada.', effect: { kind: 'gamble', cost: 0, win: 700, chance: 0.5 } },
+      { label: 'Dejarlo ir', description: 'Pierdes parte de tu dinero.', effect: { kind: 'loseMoneyFrac', frac: 0.2 } },
+    ] },
+  cursed_idol: { id: 'cursed_idol', title: 'Ídolo maldito', tone: 'bad',
+    description: 'Un ídolo dorado tienta tu codicia.',
+    options: [
+      { label: 'Cogerlo', description: '+2000 ₽, pero tu equipo sufre daño.', effect: { kind: 'risky', chance: 1, good: { kind: 'money', amount: 2000 }, bad: { kind: 'damage', frac: 0.3 } } },
+      { label: 'Dejarlo', description: 'No te fías.', effect: { kind: 'none' } },
+    ] },
+  rockslide: { id: 'rockslide', title: 'Desprendimiento', tone: 'bad',
+    description: '¡Caen rocas por la ladera!',
+    options: [
+      { label: 'Cubrirse', description: 'Daño moderado, pero podría ser peor.', effect: { kind: 'damage', frac: 0.2 } },
+    ] },
 }
 
 export const EVENT_IDS = Object.keys(EVENTS)

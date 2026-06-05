@@ -1,37 +1,41 @@
+import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
+import MemeOverlay from '@/ui/components/MemeOverlay'
 
 export default function GameOverScreen() {
   const { run, abandonRun, restartRun } = useGame()
+  const [meme, setMeme] = useState(true)
   if (!run) return null
   const starterName = getSpecies(run.starterId).displayName
+  const memeMon = run.party.find((p) => p.currentHp <= 0) ?? run.party[0]
   return (
-    <div className="flex flex-col flex-1 items-center justify-center p-6 gap-5 text-center safe-top safe-bottom">
-      <div className="text-6xl">💀</div>
-      <h2 className="text-3xl font-extrabold text-rose-400">Fin de la partida</h2>
-      <p className="text-slate-300 text-sm">Tu aventura en {run.region} ha terminado.</p>
+    <div className="flex flex-col flex-1 min-h-0 safe-top safe-bottom">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-6 flex flex-col items-center gap-4 text-center">
+        <div className="text-6xl mt-2">💀</div>
+        <h2 className="text-3xl font-extrabold text-rose-400">Fin de la partida</h2>
+        <p className="text-slate-300 text-sm">Tu aventura en {run.region} ha terminado.</p>
 
-      <Card className="p-4 w-full max-w-sm">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Stat label="Gimnasios" value={`${run.stats.gymsDefeated}/8`} />
-          <Stat label="Alto Mando" value={`${run.stats.eliteDefeated}/4`} />
-          <Stat label="Combates ganados" value={run.stats.battlesWon} />
-          <Stat label="Pokémon capturados" value={run.stats.pokemonCaught} />
+        <Card className="p-4 w-full max-w-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Stat label="Gimnasios" value={`${run.stats.gymsDefeated}/8`} />
+            <Stat label="Alto Mando" value={`${run.stats.eliteDefeated}/4`} />
+            <Stat label="Combates ganados" value={run.stats.battlesWon} />
+            <Stat label="Pokémon capturados" value={run.stats.pokemonCaught} />
+          </div>
+        </Card>
+
+        <div className="flex gap-1.5 flex-wrap justify-center max-w-sm">
+          {run.party.map((p) => (
+            <Sprite key={p.uid} speciesId={p.speciesId} variant="front" className="w-11 h-11 object-contain grayscale opacity-70" />
+          ))}
         </div>
-      </Card>
-
-      <div className="flex gap-1.5 flex-wrap justify-center max-w-sm">
-        {run.party.map((p) => (
-          <Sprite key={p.uid} speciesId={p.speciesId} variant="front" className="w-12 h-12 object-contain grayscale opacity-70" />
-        ))}
-      </div>
-      <div className="text-xs text-slate-500">
-        Equipo final: {run.party.map((p) => getSpecies(p.speciesId).displayName).join(', ')}
       </div>
 
-      <div className="w-full max-w-sm flex flex-col gap-2">
+      {/* Botones siempre visibles abajo */}
+      <div className="p-4 flex flex-col gap-2 border-t border-slate-800 bg-slate-900/80">
         <Button full variant="primary" onClick={restartRun}>
           🔄 Reiniciar ({run.region} · {starterName})
         </Button>
@@ -39,6 +43,10 @@ export default function GameOverScreen() {
           🏠 Volver a Inicio
         </Button>
       </div>
+
+      {meme && memeMon && (
+        <MemeOverlay mood="lose" speciesId={memeMon.speciesId} shiny={memeMon.shiny} onClose={() => setMeme(false)} />
+      )}
     </div>
   )
 }

@@ -1,16 +1,27 @@
+import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, money } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import { getItem } from '@/data/items'
 import Sprite from '@/ui/components/Sprite'
+import MemeOverlay from '@/ui/components/MemeOverlay'
 
 export default function RewardScreen() {
-  const { lastSummary, navigate } = useGame()
+  const { lastSummary, run, navigate } = useGame()
+  const [meme, setMeme] = useState<'win' | 'lose' | null>(() => {
+    if (!lastSummary) return null
+    if (lastSummary.bossDefeated) return 'win'
+    if (!lastSummary.won) return 'lose'
+    return null
+  })
   if (!lastSummary) {
     navigate('map')
     return null
   }
   const won = lastSummary.won
+  const memeMon = run
+    ? (meme === 'lose' ? (run.party.find((p) => p.currentHp <= 0) ?? run.party[0]) : run.party[0])
+    : null
   return (
     <div className="flex flex-col flex-1 p-5 safe-top safe-bottom items-center justify-center gap-5">
       <div className="text-5xl animate-pop-in">{won ? '🎉' : '💢'}</div>
@@ -70,6 +81,10 @@ export default function RewardScreen() {
       <Button full variant="primary" className="max-w-sm" onClick={() => navigate('map')}>
         Continuar ›
       </Button>
+
+      {meme && memeMon && (
+        <MemeOverlay mood={meme} speciesId={memeMon.speciesId} shiny={memeMon.shiny} onClose={() => setMeme(null)} />
+      )}
     </div>
   )
 }
