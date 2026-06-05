@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'node:path'
 
+// En GitHub Pages el sitio vive bajo /pokelink/. En local, en la raíz.
+const base = process.env.GITHUB_PAGES ? '/pokelink/' : '/'
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -17,7 +21,9 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        // Relativos para que funcionen tanto en raíz como bajo /pokelink/
+        start_url: '.',
+        scope: '.',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
