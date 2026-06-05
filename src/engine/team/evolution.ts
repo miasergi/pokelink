@@ -1,6 +1,6 @@
 import type { PokemonInstance, SpeciesData } from '@/types'
 import { getSpecies } from '@/data'
-import { recalcStats } from './leveling'
+import { recalcStats, refreshMoves } from './leveling'
 
 /** Nivel efectivo al que evoluciona un trigger. TODOS evolucionan por nivel:
  *  los que normalmente evolucionan por intercambio/amistad/objeto reciben un
@@ -52,6 +52,7 @@ export function evolutionByItem(
 export function evolve(mon: PokemonInstance, toSpecies: SpeciesData): void {
   mon.speciesId = toSpecies.id
   recalcStats(mon, toSpecies)
+  refreshMoves(mon) // el nuevo tipo puede cambiar el ataque
   // Si la habilidad actual no existe en la nueva especie, hereda la primera.
   if (toSpecies.abilities.length && !toSpecies.abilities.includes(mon.ability)) {
     mon.ability = toSpecies.abilities[0]

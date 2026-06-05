@@ -11,10 +11,12 @@ import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
 import { abilityName } from '@/engine/battle/abilities'
 import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
+import { TYPE_ATTACKS } from '@/data/typeAttacks'
 
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
+  const [selItem, setSelItem] = useState<string | null>(null)
   if (!run) return null
 
   // Aplica un objeto a un Pokémon (despacha por categoría).
@@ -46,9 +48,49 @@ export default function TeamScreen() {
         <PartyList
           party={run.party}
           selectedUid={sel}
-          onSelect={(uid) => setSel(uid === sel ? null : uid)}
+          onSelect={(uid) => {
+            // Modo objeto-primero: si hay un objeto elegido, aplícalo al tocar el Pokémon.
+            if (selItem) { applyItem(selItem, uid); setSelItem(null) }
+            else setSel(uid === sel ? null : uid)
+          }}
           onReorder={setPartyOrder}
         />
+
+        {/* Explorador de objetos (toca para leer y luego elige Pokémon) */}
+        <div>
+          <div className="text-sm font-bold text-slate-300 mb-1.5 px-1">🎒 Mochila</div>
+          {selItem && (
+            <div className="text-xs bg-sky-500/15 border border-sky-500/40 text-sky-100 rounded-xl px-3 py-2 mb-2">
+              <div className="font-bold flex items-center gap-1.5">
+                {getItem(selItem).sprite && <img src={getItem(selItem).sprite} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} />}
+                {getItem(selItem).name}
+              </div>
+              <div className="text-[11px] text-sky-200/90 mt-0.5">{getItem(selItem).description}</div>
+              <div className="text-[11px] font-bold mt-1">👆 Toca el Pokémon al que dárselo. <button className="underline" onClick={() => setSelItem(null)}>cancelar</button></div>
+            </div>
+          )}
+          {usableItems.length === 0 && Object.keys(run.inventory).length === 0 && (
+            <p className="text-xs text-slate-500 px-1">No tienes objetos. Consíguelos en cofres y tiendas.</p>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            {usableItems.map(([id, qty]) => {
+              const item = getItem(id)
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSelItem(selItem === id ? null : id)}
+                  className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition ${selItem === id ? 'bg-sky-600/30 border-sky-400' : 'bg-slate-800 border-slate-700'}`}
+                >
+                  {item.sprite && <img src={item.sprite} alt="" className="w-7 h-7 shrink-0" style={{ imageRendering: 'pixelated' }} />}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold truncate">{item.name} <span className="text-slate-500">×{qty}</span></div>
+                    <div className="text-[10px] text-slate-400">{item.category === 'held' ? 'equipar' : 'usar'}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Modal de detalle / objetos del Pokémon seleccionado */}
@@ -123,15 +165,18 @@ export default function TeamScreen() {
                 <div className="flex items-center gap-1.5"><span>💠</span><span>Puede <b className="text-fuchsia-300">megaevolucionar</b> con Megapiedra (permanente).</span></div>
               )}
               {(() => {
-                const upcoming = selSpecies.learnset
-                  .filter((l) => l.level > selMon.level)
-                  .sort((a, b) => a.level - b.level)
-                  .slice(0, 3)
-                if (!upcoming.length) return null
+                const types = [...new Set(selSpecies.types)].slice(0, 2)
+                const ups: string[] = []
+                for (const t of types) {
+                  for (const tier of TYPE_ATTACKS[t]) {
+                    if (tier.level > selMon.level) ups.push(`${tier.name} (Pot. ${tier.power}) a Nv.${tier.level}`)
+                  }
+                }
+                if (!ups.length) return null
                 return (
                   <div className="flex items-start gap-1.5">
                     <span>⚔️</span>
-                    <span className="text-slate-300">Mejoras: {upcoming.map((l) => `${getMove(l.moveId).displayName} (Nv.${l.level})`).join(' · ')}</span>
+                    <span className="text-slate-300">Mejora de ataque: {ups.join(' · ')}</span>
                   </div>
                 )
               })()}

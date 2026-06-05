@@ -1,7 +1,7 @@
 import type { PokemonInstance, SpeciesData, TrainerData } from '@/types'
 import { createInstance } from '@/engine/team/instance'
 import { RNG } from '@/utils/rng'
-import { ITEMS } from '@/data/items'
+import { ITEMS, TYPE_BOOST_BY_ID } from '@/data/items'
 
 /** Suma de stats base (para escalar encuentros por "tier"). */
 export function bst(s: SpeciesData): number {
@@ -38,15 +38,17 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
 }
 
 // --- Pools de objetos por contexto (catálogo ágil) ---
+const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
 const HEAL_ITEMS = ['potion', 'max-potion', 'revive', 'max-revive']
-const HELD_ITEMS = ['leftovers', 'life-orb', 'focus-sash', 'choice-band', 'choice-specs', 'assault-vest', 'rocky-helmet']
-const BATTLE_ITEMS = ['rare-candy', 'attack-boost', 'defense-boost', 'hp-boost', 'speed-boost', 'super-candy']
+const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet']
+const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
+const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []
-  // 1) SIEMPRE una mejora permanente (refuerzo de stat o caramelo).
-  pool.push(rng.pick(['attack-boost', 'defense-boost', 'hp-boost', 'speed-boost', 'rare-candy']))
+  // 1) SIEMPRE una mejora (caramelo, supercaramelo o Mejora de ataque).
+  pool.push(rng.pick(['rare-candy', 'upgrade', 'super-candy']))
   // 2) Soporte (curación/revivir).
   pool.push(rng.pick([...HEAL_ITEMS, 'revive-charm']))
   // 3) Objeto equipable / piedra (Megapiedra a partir de media run).
@@ -54,7 +56,7 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
     ? ['mega-stone']
     : depthFrac > 0.3
       ? ['evo-stone', ...HELD_ITEMS]
-      : [...HELD_ITEMS, 'attack-boost']
+      : [...HELD_ITEMS, 'upgrade']
   pool.push(rng.pick(lastPool))
   const set = [...new Set(pool)]
   while (set.length < 3) {
@@ -66,9 +68,9 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
 
 /** Stock de tienda. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
-  const base = ['potion', 'revive', 'rare-candy', 'attack-boost', 'defense-boost']
-  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm', 'hp-boost', 'super-candy'] : []
-  const held = rng.sample(HELD_ITEMS, 2)
+  const base = ['potion', 'revive', 'rare-candy', 'upgrade']
+  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm', 'super-candy'] : []
+  const held = rng.sample(HELD_ITEMS, 3)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []
   return [...base, ...advanced, ...held, ...evo, ...mega]
@@ -142,7 +144,7 @@ export const EVENTS: Record<string, RunEventDef> = {
   combat_master: { id: 'combat_master', title: 'Maestro de combate', tone: 'good',
     description: 'Un veterano se ofrece a entrenar a un Pokémon... o a todos un poco.',
     options: [
-      { label: 'Reforzar ataque', description: 'Consigue un Refuerzo de Ataque.', effect: { kind: 'item', itemId: 'attack-boost', qty: 1 } },
+      { label: 'Mejorar ataque', description: 'Consigue una Mejora (sube el nivel de potencia del ataque).', effect: { kind: 'item', itemId: 'upgrade', qty: 1 } },
       { label: 'Entrenamiento exprés', description: '+1 nivel a todo el equipo.', effect: { kind: 'levelUp', amount: 1 } },
     ] },
   abandoned_pack: { id: 'abandoned_pack', title: 'Mochila abandonada', tone: 'good',

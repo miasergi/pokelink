@@ -126,6 +126,8 @@ export interface PokemonInstance {
   ability: string
   /** bonus permanentes de stat (objetos tipo vitamina). */
   bonus?: Partial<BaseStats>
+  /** niveles de potencia de ataque extra por objeto "Mejora" (0..2). */
+  moveTier?: number
   /** mote opcional. */
   nickname?: string
   shiny: boolean

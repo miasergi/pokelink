@@ -2,6 +2,7 @@ import type { MoveData, SpeciesData } from '@/types'
 import pokemonJson from './generated/pokemon.json'
 import movesJson from './generated/moves.json'
 import megasJson from './generated/megas.json'
+import { buildTypeMoves } from './typeAttacks'
 
 // Cast único de los JSON generados a tipos del dominio.
 export const ALL_SPECIES = pokemonJson as unknown as SpeciesData[]
@@ -33,6 +34,8 @@ export function hasMega(baseId: number): boolean {
 
 const moveById = new Map<number, MoveData>()
 for (const m of ALL_MOVES) moveById.set(m.id, m)
+// Ataques estándar por tipo (40/80/120) sintéticos.
+for (const m of buildTypeMoves()) moveById.set(m.id, m)
 
 export function getSpecies(id: number): SpeciesData {
   const s = speciesById.get(id)

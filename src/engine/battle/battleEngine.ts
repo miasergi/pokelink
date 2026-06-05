@@ -6,6 +6,7 @@ import { chooseMove } from './ai'
 import { expForLevel, expGain, levelFromExp } from '@/engine/team/leveling'
 import { computeStats } from '@/engine/team/leveling'
 import { typeEffectiveness } from '@/data/typechart'
+import { TYPE_BOOST_BY_ID } from '@/data/items'
 import {
   type Weather, WEATHER_ABILITY, ABSORB, PINCH, abilityName,
   weatherSpeedMult, weatherDamageMult,
@@ -390,6 +391,13 @@ function performMove(
     })
   }
 
+  // Campana Concha: cura al atacante un 15% del daño infligido.
+  if (attacker.heldItemId === 'shell-bell' && total > 0 && attacker.currentHp > 0 && attacker.currentHp < attacker.stats.hp) {
+    const heal = Math.max(1, Math.floor(total * 0.15))
+    attacker.currentHp = Math.min(attacker.stats.hp, attacker.currentHp + heal)
+    events.push({ kind: 'heal', side: atk.side, uid: attacker.uid, amount: heal, hpAfter: attacker.currentHp, maxHp: attacker.stats.hp })
+  }
+
   // Sin efectos secundarios: los ataques SOLO quitan vida (estandarización).
   void effectiveness
 }
@@ -405,6 +413,9 @@ function offenseMult(mon: PokemonInstance, move: MoveData, ctx: BattleCtx): numb
   if (mon.ability === 'technician' && move.power > 0 && move.power <= 60) m *= 1.5
   if (mon.ability === 'tough-claws') m *= 1.3
   if (mon.ability === 'solar-power' && ctx.weather === 'sun' && move.category === 'special') m *= 1.5
+  // Objetos: de tipo (+50% a ese tipo) y Cinta Elección (+30% a todo).
+  if (mon.heldItemId && TYPE_BOOST_BY_ID[mon.heldItemId] === move.type) m *= 1.5
+  if (mon.heldItemId === 'choice-band') m *= 1.3
   m *= weatherDamageMult(ctx.weather, move.type)
   return m
 }
@@ -415,6 +426,8 @@ function defenseMult(mon: PokemonInstance, move: MoveData, baseEff: number): num
   if (mon.ability === 'thick-fat' && (move.type === 'fire' || move.type === 'ice')) m *= 0.5
   if (mon.ability === 'multiscale' && mon.currentHp === mon.stats.hp) m *= 0.5
   if ((mon.ability === 'filter' || mon.ability === 'solid-rock' || mon.ability === 'prism-armor') && baseEff > 1) m *= 0.75
+  // Chaleco Asalto: +50% a ambas defensas -> recibe ~33% menos daño.
+  if (mon.heldItemId === 'assault-vest') m *= 1 / 1.5
   return m
 }
 
@@ -496,9 +509,9 @@ function endOfTurnResidual(s: SideState, events: BattleEvent[], ctx: BattleCtx):
     events.push({ kind: 'heal', side: s.side, uid: mon.uid, amount: heal, hpAfter: mon.currentHp, maxHp: max })
   }
 
-  // Restos
+  // Restos: 10% de los PS por turno.
   if (mon.currentHp > 0 && mon.currentHp < max && mon.heldItemId === 'leftovers') {
-    const heal = Math.max(1, Math.floor(max / 16))
+    const heal = Math.max(1, Math.floor(max / 10))
     mon.currentHp = Math.min(max, mon.currentHp + heal)
     events.push({ kind: 'heal', side: s.side, uid: mon.uid, amount: heal, hpAfter: mon.currentHp, maxHp: max })
   }
@@ -522,10 +535,9 @@ function resolveFaints(
     if (mon.currentHp > 0) continue
     events.push({ kind: 'faint', side: s.side, uid: mon.uid, name: getSpecies(mon.speciesId).displayName })
 
-    // EXP si cae un enemigo
-    if (s.side === 'enemy') {
-      awardExp(player, mon, expByUid, levelUps, events)
-    }
+    // (Sin EXP: los niveles suben SOLO por el bonus de casilla fijo
+    //  +1/+2/+3, para que la subida sea EXACTAMENTE la establecida.)
+    void expByUid; void levelUps; void awardExp
 
     const nextIdx = s.team.findIndex((m) => m.currentHp > 0)
     if (nextIdx < 0) {

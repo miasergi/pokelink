@@ -1,5 +1,18 @@
 import type { BaseStats, PokemonInstance, SpeciesData } from '@/types'
-import { getSpecies } from '@/data'
+import { getSpecies, getMove } from '@/data'
+import { typeAttackId, tierForLevel } from '@/data/typeAttacks'
+
+/** Reasigna el moveset estándar (ataque por tipo) al nivel de potencia actual. */
+export function refreshMoves(mon: PokemonInstance): void {
+  const sp = getSpecies(mon.speciesId)
+  const tier = Math.min(2, tierForLevel(mon.level) + (mon.moveTier ?? 0))
+  const types = [...new Set(sp.types)].slice(0, 2)
+  mon.moves = types.map((type) => {
+    const id = typeAttackId(type, tier)
+    const m = getMove(id)
+    return { moveId: id, pp: m.pp, maxPp: m.pp }
+  })
+}
 
 // Modelo de experiencia "medium-fast": exp = nivel^3.
 export function expForLevel(level: number): number {
@@ -47,6 +60,7 @@ export function gainLevel(mon: PokemonInstance): boolean {
   mon.level += 1
   mon.exp = expForLevel(mon.level)
   recalcStats(mon, getSpecies(mon.speciesId))
+  refreshMoves(mon)
   return true
 }
 

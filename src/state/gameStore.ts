@@ -11,7 +11,8 @@ import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
 import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
-import { gainLevel, recalcStats } from '@/engine/team/leveling'
+import { gainLevel, refreshMoves } from '@/engine/team/leveling'
+import { tierForLevel } from '@/data/typeAttacks'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
 export type ScreenName =
@@ -314,26 +315,17 @@ export const useGame = create<GameState>((set, get) => ({
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
     let ok: boolean
-    const boost = (stats: Partial<Record<'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe', number>>) => {
-      const b = { ...mon.bonus }
-      for (const [k, v] of Object.entries(stats)) (b as Record<string, number>)[k] = ((b as Record<string, number>)[k] ?? 0) + v
-      mon.bonus = b
-      recalcStats(mon, getSpecies(mon.speciesId))
-    }
     if (itemId === 'rare-candy') {
       ok = false
       for (let i = 0; i < 3; i++) if (gainLevel(mon)) ok = true // +3 niveles
     } else if (itemId === 'super-candy') {
       ok = false
       for (let i = 0; i < 5; i++) if (gainLevel(mon)) ok = true // +5 niveles
-    } else if (itemId === 'attack-boost') {
-      boost({ atk: 18, spa: 18 }); ok = true
-    } else if (itemId === 'defense-boost') {
-      boost({ def: 18, spd: 18 }); ok = true
-    } else if (itemId === 'hp-boost') {
-      boost({ hp: 24 }); ok = true
-    } else if (itemId === 'speed-boost') {
-      boost({ spe: 18 }); ok = true
+    } else if (itemId === 'upgrade') {
+      // Sube el nivel de potencia del ataque (40 -> 80 -> 120), si no es máx.
+      const cur = Math.min(2, tierForLevel(mon.level) + (mon.moveTier ?? 0))
+      if (cur >= 2) ok = false
+      else { mon.moveTier = (mon.moveTier ?? 0) + 1; refreshMoves(mon); ok = true }
     } else ok = applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
     persist(run)
