@@ -12,7 +12,7 @@ import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
 import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
-import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta } from '@/persistence/db'
+import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
@@ -39,6 +39,7 @@ interface GameState {
   battleSummary: BattleOutcomeSummary | null
   closeBattle: () => void
   lastEventResult: string | null
+  clearEventResult: () => void
   evoFx: { uid: string; fromId: number; toId: number } | null
   evoChoice: { uid: string; itemId: string | null; options: number[] } | null
   evolveByLevel: (monUid: string) => boolean
@@ -150,6 +151,7 @@ export const useGame = create<GameState>((set, get) => ({
     const local = await loadMeta()
     const cloud = await loadCloudMeta()
     const merged = cloud ? mergeMeta(local, cloud) : local
+    recomputeTotals(merged) // corrige contadores inflados por el antiguo bug
     await saveMeta(merged)
     await saveCloudMeta(merged)
     set({ cloudBusy: false, alias: merged.alias || get().alias })
@@ -165,7 +167,10 @@ export const useGame = create<GameState>((set, get) => ({
 
   init: async () => {
     if (get().cloudUser) void get().cloudSync()
-    void loadMeta().then((m) => { if (m.alias) set({ alias: m.alias }) })
+    void loadMeta().then(async (m) => {
+      if (m.alias) set({ alias: m.alias })
+      if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
+    })
     const saved = await loadRun()
     set({ loaded: true, hasSavedRun: !!saved })
   },
@@ -316,6 +321,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeBattle: () => set({ pendingBattle: null, battleSummary: null, screen: { name: 'map' }, history: [] }),
+
+  clearEventResult: () => set({ lastEventResult: null }),
 
   legendaryOffer: null,
   addLegendary: (replaceUid) => {

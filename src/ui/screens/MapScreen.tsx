@@ -22,7 +22,7 @@ const NODE = 60
 const scrollMem = new Map<number, number>()
 
 export default function MapScreen() {
-  const { run, chooseNode, navigate, lastEventResult, setPartyOrder } = useGame()
+  const { run, chooseNode, navigate, lastEventResult, clearEventResult, setPartyOrder } = useGame()
   const skipNodeInfo = useSettings((s) => s.skipNodeInfo)
   const wrapRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -40,13 +40,20 @@ export default function MapScreen() {
     return () => ro.disconnect()
   }, [])
 
+  // Consume el mensaje de evento (lo limpia para que no reaparezca al volver).
   useEffect(() => {
     if (lastEventResult) {
       setToast(lastEventResult)
-      const t = setTimeout(() => setToast(null), 3000)
-      return () => clearTimeout(t)
+      clearEventResult()
     }
-  }, [lastEventResult])
+  }, [lastEventResult, clearEventResult])
+
+  // Auto-cierre del toast a los 3,5 s (independiente del store).
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // Restaura la posición de scroll guardada (o, la primera vez, centra la capa
   // actual) — al instante, sin animación que maree.
@@ -205,7 +212,7 @@ export default function MapScreen() {
       </div>
 
       {toast && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-slate-800 border border-slate-600 px-4 py-2 rounded-xl text-sm shadow-xl animate-pop-in">
+        <div onClick={() => setToast(null)} className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-[90%] text-center bg-slate-800 border border-slate-600 px-4 py-2 rounded-xl text-sm shadow-xl animate-pop-in cursor-pointer">
           {toast}
         </div>
       )}

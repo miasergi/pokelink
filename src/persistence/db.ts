@@ -52,6 +52,22 @@ export function dedupeRuns(runs: BestRun[]): BestRun[] {
   return out
 }
 
+/** Recalcula los contadores a partir del historial deduplicado (corrige el
+ *  inflado por el antiguo bug de doble registro). Solo si el historial completo
+ *  cabe en bestRuns (<30 runs); si está truncado, respeta el acumulado. Devuelve
+ *  true si cambió algo. */
+export function recomputeTotals(meta: MetaRecord): boolean {
+  if (meta.bestRuns.length >= 30) return false
+  const runs = meta.bestRuns.length
+  const wins = meta.bestRuns.filter((r) => r.won).length
+  const gyms = meta.bestRuns.reduce((a, r) => a + r.gymsDefeated, 0)
+  if (meta.totals.runs === runs && meta.totals.wins === wins && meta.totals.gymsDefeated === gyms) return false
+  meta.totals.runs = runs
+  meta.totals.wins = wins
+  meta.totals.gymsDefeated = gyms
+  return true
+}
+
 let dbPromise: Promise<IDBPDatabase> | null = null
 function db(): Promise<IDBPDatabase> {
   if (!dbPromise) {

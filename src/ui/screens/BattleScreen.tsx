@@ -113,6 +113,13 @@ export default function BattleScreen() {
     return { player, enemy }
   }, [run, pendingBattle])
 
+  // Pokémon ya debilitados ANTES del combate (no participan): la bandeja debe
+  // mostrarlos apagados desde el inicio, no solo los que caen en el combate.
+  const preFainted = useMemo(() => {
+    const dead = (slots: TeamSlot[]) => slots.filter((m) => (uidMap.get(m.uid)?.currentHp ?? 1) <= 0).map((m) => m.uid)
+    return { player: dead(teams.player), enemy: dead(teams.enemy) }
+  }, [teams, uidMap])
+
   const [idx, setIdx] = useState(0)
   const [done, setDone] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
@@ -193,10 +200,10 @@ export default function BattleScreen() {
             <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2">
               <div className="flex flex-col gap-1">
                 <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
-                <Tray team={teams.enemy} fainted={frame.fainted.enemy} activeUid={frame.enemy.uid} align="left" />
+                <Tray team={teams.enemy} fainted={[...frame.fainted.enemy, ...preFainted.enemy]} activeUid={frame.enemy.uid} align="left" />
                 {trainer?.name && <span className="text-[10px] text-slate-400 pl-1">vs {trainer.name}</span>}
               </div>
-              <div className="relative mr-4 sm:mr-8">
+              <div className="relative mr-10 sm:mr-20">
                 <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
                 <Platform />
                 <div className={lungeEnemy}>
@@ -229,7 +236,7 @@ export default function BattleScreen() {
 
             {/* Jugador (abajo): sprite a la izquierda, barra a la derecha */}
             <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-2">
-              <div className="relative ml-4 sm:ml-8">
+              <div className="relative ml-10 sm:ml-20">
                 <SpriteFx side="player" fx={frame.fx} idx={idx} />
                 <Platform />
                 <div className={lungePlayer}>
@@ -243,7 +250,7 @@ export default function BattleScreen() {
                 </div>
               </div>
               <div className="flex flex-col gap-1 items-end">
-                <Tray team={teams.player} fainted={frame.fainted.player} activeUid={frame.player.uid} align="right" />
+                <Tray team={teams.player} fainted={[...frame.fainted.player, ...preFainted.player]} activeUid={frame.player.uid} align="right" />
                 <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
               </div>
             </div>
