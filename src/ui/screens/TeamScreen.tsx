@@ -180,7 +180,8 @@ export default function TeamScreen() {
             <div className="mb-2"><HpBar current={selMon.currentHp} max={selMon.stats.hp} status={selMon.status} showNumbers /></div>
 
             {(() => {
-              const rows = displayStats(selMon)
+              // PS no se muestra aquí (ya está la barra de vida con la cantidad).
+              const rows = displayStats(selMon).filter((r) => r.key !== 'hp')
               const anyMod = rows.some((r) => r.eff !== r.base)
               return (
                 <>
