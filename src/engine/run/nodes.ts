@@ -24,18 +24,32 @@ export function buildTrainerTeam(trainer: TrainerData, rng: RNG): PokemonInstanc
  * Filtra el pool a especies de "tier" apropiado para el nivel,
  * para que los encuentros salvajes escalen de forma natural.
  */
-export function tierPool(pool: SpeciesData[], level: number): SpeciesData[] {
-  const maxBst = 320 + level * 6 // BST máximo permitido
-  // Suelo de BST que sube con el nivel: a partir de cierto punto dejan de salir
-  // Pokémon débiles/sin evolucionar (p.ej. nada de Tyrogue cerca de la Liga).
-  const minBst = level >= 16 ? Math.round(level * 7) : 0
-  let filtered = pool.filter((s) => { const b = bst(s); return b >= minBst && b <= maxBst })
-  if (filtered.length < 6) filtered = pool.filter((s) => bst(s) <= maxBst) // sin suelo si quedan pocos
-  return filtered.length > 6 ? filtered : pool
+/** Multiplicador de "potencia esperada" por dificultad: en difícil/nuzlocke
+ *  aparecen Pokémon más fuertes (y evolucionados) antes. */
+const DIFF_POWER: Record<string, number> = { normal: 1, hard: 1.18, nuzlocke: 1.18 }
+
+/**
+ * Pool de especies con potencia (BST) acorde al nivel y a la dificultad:
+ * una "ventana" de BST que sube con el nivel. Techo bajo al principio (nada de
+ * evolucionados al empezar) y suelo que sube al final (nada de débiles cerca de
+ * la Liga).
+ */
+export function tierPool(pool: SpeciesData[], level: number, difficulty: string = 'normal'): SpeciesData[] {
+  const lvl = level * (DIFF_POWER[difficulty] ?? 1)
+  const maxBst = 250 + lvl * 6.5 // techo de potencia
+  const minBst = lvl >= 16 ? Math.round(lvl * 7) : 0 // suelo (fuera débiles a alto nivel)
+  let f = pool.filter((s) => { const b = bst(s); return b >= minBst && b <= maxBst })
+  if (f.length < 6) {
+    // Pocos en la ventana: elige los más cercanos al objetivo de potencia
+    // (NO los más fuertes), para no sacar evolucionados fuera de tiempo.
+    const target = maxBst * 0.85
+    f = [...pool].sort((a, b) => Math.abs(bst(a) - target) - Math.abs(bst(b) - target)).slice(0, 12)
+  }
+  return f.length ? f : pool
 }
 
-export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonInstance {
-  const tier = tierPool(pool, level)
+export function makeWild(pool: SpeciesData[], level: number, rng: RNG, difficulty: string = 'normal'): PokemonInstance {
+  const tier = tierPool(pool, level, difficulty)
   const species = rng.pick(tier)
   const lv = Math.max(2, level + rng.int(-2, 1))
   return createInstance(species.id, lv, rng)

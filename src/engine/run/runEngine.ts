@@ -27,7 +27,7 @@ export interface NewRunConfig {
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
   const pools = config.pools.length ? config.pools : [config.gen]
-  const { map, rivalStarterId } = generateMap(pools, config.random, config.gen, config.starterId, rng)
+  const { map, rivalStarterId } = generateMap(pools, config.random, config.gen, config.starterId, rng, config.difficulty)
   const starter = createInstance(config.starterId, 5, rng)
   const region = getGeneration(config.gen).region
 

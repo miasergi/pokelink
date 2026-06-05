@@ -55,6 +55,7 @@ export function generateMap(
   gen: number,
   starterId: number,
   rng: RNG,
+  difficulty: string = 'normal',
 ): { map: RunMap; rivalStarterId: number } {
   const pool: SpeciesData[] = encounterPoolFor(pools)
   const rivalStarterId = counterStarterId(starterId)
@@ -138,7 +139,7 @@ export function generateMap(
         const id = newId()
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: level,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng, usedEvents),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng, usedEvents, difficulty),
           cleared: false,
         }
         ids.push(id)
@@ -240,15 +241,15 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
 }
 
 function buildRouteContent(
-  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>,
+  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string,
 ): MapNode['content'] {
   switch (type) {
     case 'battle':
-      return { kind: 'wild', enemy: makeWild(pool, level, rng) }
+      return { kind: 'wild', enemy: makeWild(pool, level, rng, difficulty) }
     case 'trainer':
-      return synthTrainerContent(pool, level, rng)
+      return synthTrainerContent(pool, level, rng, difficulty)
     case 'catch':
-      return { kind: 'catch', offer: makeWild(pool, level, rng) }
+      return { kind: 'catch', offer: makeWild(pool, level, rng, difficulty) }
     case 'item':
       return { kind: 'item', choices: itemChoices(rng, frac) }
     case 'shop':
@@ -269,7 +270,7 @@ function buildRouteContent(
 }
 
 /** Entrenador genérico con temática de tipo coherente y equipo de ese tipo. */
-function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG): MapNode['content'] {
+function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG, difficulty: string = 'normal'): MapNode['content'] {
   const cls = rng.pick(GENERIC_CLASSES)
   const trainer: TrainerData = {
     id: `trainer-${level}-${rng.int(0, 9999)}`,
@@ -280,7 +281,7 @@ function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG): MapN
     reward: { money: 200 + level * 25 },
     team: [],
   }
-  const tier = tierPool(pool, level)
+  const tier = tierPool(pool, level, difficulty)
   const size = level < 15 ? 1 : level < 35 ? 2 : 3
   // Filtra al tipo temático; si no hay suficientes, usa el pool general.
   const typed = tier.filter((s) => s.types.includes(cls.type))
