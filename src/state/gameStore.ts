@@ -12,12 +12,13 @@ import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
 import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
-import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
+import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta } from '@/persistence/db'
+import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account'
 
 interface Screen {
   name: ScreenName
@@ -51,6 +52,14 @@ interface GameState {
   closeTradeReveal: () => void
   loaded: boolean
   hasSavedRun: boolean
+
+  // cuentas en la nube (Supabase)
+  cloudUser: CloudUser | null
+  cloudBusy: boolean
+  cloudMsg: string | null
+  cloudAuth: (mode: 'in' | 'up', email: string, password: string) => Promise<boolean>
+  cloudLogout: () => void
+  cloudSync: () => Promise<void>
 
   // navegación
   navigate: (name: ScreenName, params?: Record<string, unknown>) => void
@@ -105,6 +114,31 @@ export const useGame = create<GameState>((set, get) => ({
   tradeReveal: null,
   loaded: false,
   hasSavedRun: false,
+  cloudUser: currentUser(),
+  cloudBusy: false,
+  cloudMsg: null,
+
+  cloudAuth: async (mode, email, password) => {
+    if (!cloudEnabled()) { set({ cloudMsg: 'La nube no está configurada.' }); return false }
+    set({ cloudBusy: true, cloudMsg: null })
+    const r = mode === 'in' ? await signIn(email, password) : await signUp(email, password)
+    if (!r.ok) { set({ cloudBusy: false, cloudMsg: r.error ?? 'Error' }); return false }
+    set({ cloudUser: currentUser() })
+    await get().cloudSync()
+    set({ cloudBusy: false, cloudMsg: '✅ Sesión iniciada y sincronizada' })
+    return true
+  },
+  cloudLogout: () => { signOut(); set({ cloudUser: null, cloudMsg: 'Sesión cerrada' }) },
+  cloudSync: async () => {
+    if (!get().cloudUser) return
+    set({ cloudBusy: true })
+    const local = await loadMeta()
+    const cloud = await loadCloudMeta()
+    const merged = cloud ? mergeMeta(local, cloud) : local
+    await saveMeta(merged)
+    await saveCloudMeta(merged)
+    set({ cloudBusy: false })
+  },
 
   navigate: (name, params) =>
     set((s) => ({ screen: { name, params }, history: [...s.history, s.screen] })),
@@ -115,6 +149,7 @@ export const useGame = create<GameState>((set, get) => ({
     }),
 
   init: async () => {
+    if (get().cloudUser) void get().cloudSync()
     const saved = await loadRun()
     set({ loaded: true, hasSavedRun: !!saved })
   },
@@ -493,6 +528,13 @@ async function recordRunEnd(run: RunState) {
     ...meta.bestRuns,
   ].slice(0, 30)
   await saveMeta(meta)
+  // Sincroniza con la nube si hay sesión (fusiona por si hay datos de otro disp.).
+  if (currentUser()) {
+    const cloud = await loadCloudMeta()
+    const merged = cloud ? mergeMeta(meta, cloud) : meta
+    await saveMeta(merged)
+    await saveCloudMeta(merged)
+  }
 }
 
 export { Party }

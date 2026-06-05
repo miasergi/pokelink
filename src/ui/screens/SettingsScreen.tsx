@@ -5,7 +5,7 @@ import { Button, Card, TopBar } from '@/ui/components/kit'
 import { exportData, importData } from '@/persistence/db'
 
 export default function SettingsScreen() {
-  const { back, run, abandonRun, init } = useGame()
+  const { back, run, abandonRun, init, navigate, cloudUser } = useGame()
   const s = useSettings()
   const [code, setCode] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
@@ -14,6 +14,14 @@ export default function SettingsScreen() {
     <div className="flex flex-col flex-1">
       <TopBar title="Ajustes" left={<Button variant="ghost" onClick={back}>‹</Button>} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
+        <Card className="p-4 flex items-center justify-between active:scale-[0.99] transition" onClick={() => navigate('account')}>
+          <div>
+            <div className="font-bold">☁️ Cuenta</div>
+            <div className="text-xs text-slate-400">{cloudUser ? cloudUser.email : 'Inicia sesión para guardar tu progreso en la nube'}</div>
+          </div>
+          <span className="text-slate-500 text-2xl">›</span>
+        </Card>
+
         <Card className="p-4">
           <div className="font-bold mb-2">Velocidad de combate por defecto</div>
           <div className="flex gap-2">

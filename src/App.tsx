@@ -25,6 +25,7 @@ const TradeScreen = lazy(() => import('@/ui/screens/TradeScreen'))
 const SettingsScreen = lazy(() => import('@/ui/screens/SettingsScreen'))
 const GameOverScreen = lazy(() => import('@/ui/screens/GameOverScreen'))
 const VictoryScreen = lazy(() => import('@/ui/screens/VictoryScreen'))
+const AccountScreen = lazy(() => import('@/ui/screens/AccountScreen'))
 
 const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
@@ -47,6 +48,7 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   settings: SettingsScreen,
   gameover: GameOverScreen,
   victory: VictoryScreen,
+  account: AccountScreen,
 }
 
 const ONBOARD_KEY = 'pokerogue:onboarded'

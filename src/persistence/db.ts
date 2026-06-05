@@ -81,6 +81,27 @@ export async function saveMeta(meta: MetaRecord): Promise<void> {
 
 export type { MetaRecord }
 
+/** Combina dos metas (local + nube): unión de Pokédex, máximos de totales y
+ *  mejores partidas unidas (sin duplicar por fecha). */
+export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
+  const uni = (x: number[], y: number[]) => [...new Set([...x, ...y])]
+  const runsByDate = new Map<number, BestRun>()
+  for (const r of [...a.bestRuns, ...b.bestRuns]) runsByDate.set(r.date, r)
+  const bestRuns = [...runsByDate.values()].sort((x, y) => y.date - x.date).slice(0, 30)
+  return {
+    bestRuns,
+    totals: {
+      runs: Math.max(a.totals.runs, b.totals.runs),
+      wins: Math.max(a.totals.wins, b.totals.wins),
+      gymsDefeated: Math.max(a.totals.gymsDefeated, b.totals.gymsDefeated),
+      pokemonCaught: Math.max(a.totals.pokemonCaught, b.totals.pokemonCaught),
+    },
+    pokedexSeen: uni(a.pokedexSeen, b.pokedexSeen),
+    pokedexCaught: uni(a.pokedexCaught, b.pokedexCaught),
+    pokedexShiny: uni(a.pokedexShiny, b.pokedexShiny),
+  }
+}
+
 // ---- Copia de seguridad (export/import) ----
 // Sin backend: serializa meta + run a un código que el usuario puede guardar o
 // llevar a otro dispositivo. (El "cloud" con cuentas reales requiere servidor.)

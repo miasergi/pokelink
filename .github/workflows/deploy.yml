@@ -29,6 +29,10 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          # Cuentas en la nube (opcional). Configura estos secrets/vars en el repo
+          # para activar Supabase. Si están vacíos, el juego funciona en local.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
