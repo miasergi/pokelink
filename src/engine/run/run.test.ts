@@ -7,7 +7,7 @@ describe('todas las generaciones', () => {
       1: 1, 2: 152, 3: 252, 4: 387, 5: 495, 6: 650, 7: 722, 8: 810, 9: 906,
     }
     for (let gen = 1; gen <= 9; gen++) {
-      const run = createRun({ mode: 'generation', difficulty: 'normal', gen, starterId: starters[gen], seed: 1000 + gen })
+      const run = createRun({ pools: [gen], random: false, difficulty: 'normal', gen, starterId: starters[gen], seed: 1000 + gen })
       const types = Object.values(run.map.nodes).map((n) => n.type)
       expect(types.filter((t) => t === 'gym')).toHaveLength(8)
       expect(types.filter((t) => t === 'elite')).toHaveLength(4)
@@ -24,8 +24,8 @@ describe('todas las generaciones', () => {
 
 describe('Modo Random', () => {
   it('randomiza especies pero mantiene la estructura/niveles', () => {
-    const real = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
-    const rand = createRun({ mode: 'random', difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
+    const real = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
+    const rand = createRun({ pools: [1], random: true, difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
     // misma estructura
     expect(Object.keys(rand.map.nodes).length).toBe(Object.keys(real.map.nodes).length)
     // los equipos de jefe tienen las mismas posiciones/niveles pero (casi siempre)
@@ -43,7 +43,7 @@ describe('Modo Random', () => {
 
 describe('creación de run y mapa', () => {
   it('crea una run jugable de Gen 1', () => {
-    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 123 })
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 4, seed: 123 })
     expect(run.party).toHaveLength(1)
     expect(run.party[0].speciesId).toBe(4)
     expect(run.party[0].level).toBe(5)
@@ -53,7 +53,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('el mapa es totalmente conexo (cada nodo no final tiene salida)', () => {
-    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 1, seed: 7 })
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 7 })
     const { layers, nodes } = run.map
     for (let i = 0; i < layers.length - 1; i++) {
       for (const id of layers[i]) {
@@ -70,7 +70,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('hay 8 gimnasios, 4 del alto mando y 1 campeón', () => {
-    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 7, seed: 99 })
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 7, seed: 99 })
     const types = Object.values(run.map.nodes).map((n) => n.type)
     expect(types.filter((t) => t === 'gym')).toHaveLength(8)
     expect(types.filter((t) => t === 'elite')).toHaveLength(4)
@@ -78,7 +78,7 @@ describe('creación de run y mapa', () => {
   })
 
   it('se puede entrar a un nodo y resolver un combate', () => {
-    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 555 })
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 4, seed: 555 })
     const first = availableNextNodes(run)
     expect(first.length).toBeGreaterThan(0)
     // navega hasta encontrar un nodo de combate

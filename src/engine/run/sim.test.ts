@@ -99,7 +99,7 @@ function chooseNext(run: RunState, nodes: MapNode[]): MapNode {
 }
 
 function playRun(seed: number, starterId: number, gen = 1): { run: RunState; steps: number } {
-  const run = createRun({ mode: 'generation', difficulty: 'normal', gen, starterId, seed })
+  const run = createRun({ pools: [gen], random: false, difficulty: 'normal', gen, starterId, seed })
   let steps = 0
   while (run.status === 'active' && steps < 200) {
     steps++

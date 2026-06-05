@@ -1,6 +1,6 @@
 import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
-import { encounterPool, legendaryPool, ALL_SPECIES } from '@/data'
+import { encounterPoolFor, legendaryPoolFor, ALL_SPECIES } from '@/data'
 import { createInstance } from '@/engine/team/instance'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
@@ -8,7 +8,7 @@ import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
 import {
   makeWild, tierPool, itemChoices, shopStock, EVENT_IDS,
 } from './nodes'
-import type { GameMode, MapNode, NodeType, RunMap } from './types'
+import type { MapNode, NodeType, RunMap } from './types'
 
 // Clases de entrenador genéricas con retrato real (Pokémon Showdown).
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
@@ -50,12 +50,13 @@ interface LayerPlan {
 
 
 export function generateMap(
-  mode: GameMode,
+  pools: number[],
+  random: boolean,
   gen: number,
   starterId: number,
   rng: RNG,
 ): { map: RunMap; rivalStarterId: number } {
-  const pool: SpeciesData[] = encounterPool(mode === 'generation' ? gen : 'all')
+  const pool: SpeciesData[] = encounterPoolFor(pools)
   const rivalStarterId = counterStarterId(starterId)
   const rivalFinalId = getFinalEvolution(rivalStarterId)
   const region = getRegion(gen)
@@ -92,7 +93,7 @@ export function generateMap(
     plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras), level })
   }
   const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i], level: ELITE_LEVELS[i] })
-  const legends = legendaryPool(mode === 'generation' ? gen : 'all')
+  const legends = legendaryPoolFor(pools)
   const legendary = () => {
     const sp = rng.pick(legends)
     plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level: LEGENDARY_LEVEL })
@@ -187,7 +188,7 @@ export function generateMap(
 
   // --- Modo Random: randomiza TODAS las especies (salvajes, entrenadores,
   //     jefes) manteniendo los NIVELES para conservar la coherencia. ---
-  if (mode === 'random') {
+  if (random) {
     const randPool = ALL_SPECIES.filter((s) => !s.legendary && !s.isMega)
     const reroll = (mon: PokemonInstance, isLegendary: boolean): PokemonInstance =>
       createInstance(rng.pick(isLegendary ? legends : randPool).id, mon.level, rng)

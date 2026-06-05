@@ -17,13 +17,13 @@ describe('render de pantallas (smoke)', () => {
   })
 
   it('Home y selección de inicial renderizan', () => {
-    useGame.setState({ loaded: true, screen: { name: 'starterSelect', params: { mode: 'generation', gen: 1 } } })
+    useGame.setState({ loaded: true, screen: { name: 'starterSelect', params: { pools: [1], random: false, gen: 1 } } })
     expect(() => renderToString(createElement(HomeScreen))).not.toThrow()
     expect(() => renderToString(createElement(StarterSelectScreen))).not.toThrow()
   })
 
   it('pantallas dentro de una run renderizan', () => {
-    const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 7, seed: 2024 })
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 7, seed: 2024 })
     useGame.setState({ run, loaded: true, screen: { name: 'map' } })
     expect(() => renderToString(createElement(MapScreen))).not.toThrow()
     expect(() => renderToString(createElement(TeamScreen))).not.toThrow()

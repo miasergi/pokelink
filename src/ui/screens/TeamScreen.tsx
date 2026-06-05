@@ -148,7 +148,6 @@ export default function TeamScreen() {
             {(() => {
               const phys = attackCategory(selMon) === 'physical'
               const rows: [string, number][] = [
-                ['PS', selMon.stats.hp],
                 [phys ? 'Ataque (Físico)' : 'Ataque (Especial)', phys ? selMon.stats.atk : selMon.stats.spa],
                 ['Defensa', selMon.stats.def],
                 ['Def. Esp.', selMon.stats.spd],
@@ -188,16 +187,10 @@ export default function TeamScreen() {
                 selSpecies.evolutions.map((evo) => {
                   const req = effectiveEvoLevel(evo.trigger)
                   const target = getSpecies(evo.toId)
-                  const left = req - selMon.level
                   return (
                     <div key={evo.toId} className="flex items-center gap-1.5">
                       <span>🧬</span>
-                      <span>
-                        Evoluciona a <b>{target.displayName}</b>{' '}
-                        {left > 0
-                          ? <span className="text-slate-400">al Nv.{req} · faltan {left}</span>
-                          : <span className="text-emerald-300">¡listo! (sube de nivel)</span>}
-                      </span>
+                      <span>Evoluciona a <b>{target.displayName}</b> <span className="text-slate-400">al Nv.{req}</span></span>
                     </div>
                   )
                 })
@@ -208,12 +201,14 @@ export default function TeamScreen() {
                 <div className="flex items-center gap-1.5"><span>💠</span><span>Puede <b className="text-fuchsia-300">megaevolucionar</b> con Megapiedra (permanente).</span></div>
               )}
               {(() => {
+                // Solo mejoras de potencia POR ENCIMA del tier efectivo actual.
+                const curTier = effectiveTier(selMon)
                 const types = [...new Set(selSpecies.types)].slice(0, 2)
                 const ups: string[] = []
                 for (const t of types) {
-                  for (const tier of TYPE_ATTACKS[t]) {
-                    if (tier.level > selMon.level) ups.push(`${tier.name} (Pot. ${tier.power}) a Nv.${tier.level}`)
-                  }
+                  TYPE_ATTACKS[t].forEach((tier, idx) => {
+                    if (idx > curTier) ups.push(`${tier.name} (Pot. ${tier.power}) a Nv.${tier.level}`)
+                  })
                 }
                 if (!ups.length) return null
                 return (

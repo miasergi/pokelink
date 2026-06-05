@@ -1,5 +1,5 @@
 import type { PokemonInstance } from '@/types'
-import { encounterPool, getSpecies, basePool } from '@/data'
+import { encounterPoolFor, getSpecies, basePoolFor } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
 import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
@@ -12,10 +12,12 @@ import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
 import { getGeneration } from '@/data/generations'
-import type { Difficulty, GameMode, MapNode, RunState } from './types'
+import type { Difficulty, MapNode, RunState } from './types'
 
 export interface NewRunConfig {
-  mode: GameMode
+  /** Generaciones cuyos Pokémon aparecen. Por defecto, [gen]. */
+  pools: number[]
+  random: boolean
   difficulty: Difficulty
   gen: number
   starterId: number
@@ -24,12 +26,14 @@ export interface NewRunConfig {
 
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
-  const { map, rivalStarterId } = generateMap(config.mode, config.gen, config.starterId, rng)
+  const pools = config.pools.length ? config.pools : [config.gen]
+  const { map, rivalStarterId } = generateMap(pools, config.random, config.gen, config.starterId, rng)
   const starter = createInstance(config.starterId, 5, rng)
   const region = getGeneration(config.gen).region
 
   return {
-    mode: config.mode,
+    pools,
+    random: config.random,
     difficulty: config.difficulty,
     gen: config.gen,
     region,
@@ -312,7 +316,7 @@ export function resolveTrade(
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
   const traded = run.party[idx]
-  const pool = basePool(run.mode === 'generation' ? run.gen : 'all')
+  const pool = basePoolFor(run.pools)
   const newMon = withRng(run, (rng) => createInstance(rng.pick(pool).id, traded.level + 3, rng))
   // El Pokémon recibido conserva el MISMO nivel de potencia del ataque que diste.
   newMon.moveTier = effectiveTier(traded)
@@ -400,7 +404,7 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
   const avg = Math.round(
     run.party.reduce((a, p) => a + p.level, 0) / Math.max(1, run.party.length),
   )
-  const pool = encounterPool(run.mode === 'generation' ? run.gen : 'all')
+  const pool = encounterPoolFor(run.pools)
   const tier = tierPool(pool, avg)
   const sp = rng.pick(tier)
   return createInstance(sp.id, Math.max(2, avg), rng)

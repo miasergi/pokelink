@@ -6,21 +6,22 @@ import { getSpecies, threeStageStarterPool } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { typeGradient } from '@/ui/theme/types'
-import type { Difficulty, GameMode } from '@/engine/run/types'
+import type { Difficulty } from '@/engine/run/types'
 
 const DIFFS: { id: Difficulty; label: string; desc: string }[] = [
-  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Cura antes de cada jefe.' },
-  { id: 'hard', label: 'Difícil', desc: 'Enemigos más fuertes y sin cura previa.' },
-  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Si un Pokémon se debilita, lo pierdes para siempre.' },
+  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Los Pokémon suben de nivel por casilla (+1 salvaje, +2 entrenador/gimnasio, +3 Liga). Perder un combate = fin de la partida.' },
+  { id: 'hard', label: 'Difícil', desc: 'Pokémon rivales (salvajes, entrenadores y jefes) a ×1.5 de nivel. En la tienda solo puedes comprar 1 objeto por visita.' },
+  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Lo más difícil: enemigos a ×1.5; si un Pokémon se debilita lo PIERDES para siempre; no puedes subir de nivel más allá del próximo jefe; no puedes comprar pociones; 1 compra por tienda.' },
 ]
 
 export default function StarterSelectScreen() {
   const { back, screen, startRun } = useGame()
-  const mode = (screen.params?.mode as GameMode) ?? 'generation'
   const gen = (screen.params?.gen as number) ?? 1
+  const pools = (screen.params?.pools as number[] | undefined) ?? [gen]
+  const random = (screen.params?.random as boolean | undefined) ?? false
   // En Modo Random, 3 iniciales aleatorios con cadena de 3 etapas.
   const starters = useMemo(() => {
-    if (mode !== 'random') return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
+    if (!random) return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
     const pool = threeStageStarterPool()
     const picks: number[] = []
     const used = new Set<number>()
@@ -31,7 +32,7 @@ export default function StarterSelectScreen() {
       picks.push(sp.id)
     }
     return picks
-  }, [mode, gen])
+  }, [random, gen])
   const [selected, setSelected] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
@@ -97,7 +98,7 @@ export default function StarterSelectScreen() {
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun({ mode, gen, starterId: selected, difficulty })}
+          onClick={() => selected !== null && startRun({ gen, pools, random, starterId: selected, difficulty })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>

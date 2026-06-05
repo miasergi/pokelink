@@ -43,9 +43,11 @@ const TYPE_BOOST_ITEMS: ItemData[] = TYPE_BOOST_DEFS.map((d) => {
 
 // Catálogo ÁGIL pensado para roguelike: pocas categorías, decisiones rápidas.
 export const ITEMS: ItemData[] = [
-  // --- Pociones ---
-  { id: 'potion', name: 'Poción', category: 'heal', description: 'Cura el 50% de los PS de un Pokémon.', price: 400, sprite: ITEM_SPRITE('hyper-potion') },
-  { id: 'max-potion', name: 'Poción Máxima', category: 'heal', description: 'Restaura todos los PS y cura el estado.', price: 1500, sprite: ITEM_SPRITE('max-potion') },
+  // --- Pociones (escalonadas) ---
+  { id: 'potion', name: 'Poción', category: 'heal', description: 'Cura el 25% de los PS de un Pokémon.', price: 400, sprite: ITEM_SPRITE('potion') },
+  { id: 'super-potion', name: 'Superpoción', category: 'heal', description: 'Cura el 50% de los PS de un Pokémon.', price: 800, sprite: ITEM_SPRITE('super-potion') },
+  { id: 'hyper-potion', name: 'Hiperpoción', category: 'heal', description: 'Cura el 75% de los PS de un Pokémon.', price: 1400, sprite: ITEM_SPRITE('hyper-potion') },
+  { id: 'max-potion', name: 'Poción Máxima', category: 'heal', description: 'Restaura el 100% de los PS de un Pokémon.', price: 2200, sprite: ITEM_SPRITE('max-potion') },
 
   // --- Revivir ---
   { id: 'revive', name: 'Revivir', category: 'revive', description: 'Revive con el 50% de los PS.', price: 1500, sprite: ITEM_SPRITE('revive') },

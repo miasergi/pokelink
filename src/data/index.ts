@@ -86,6 +86,25 @@ export function basePool(gen: number | 'all'): SpeciesData[] {
   return list.length ? list : ALL_SPECIES.filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
 }
 
+// --- Pools por CONJUNTO de regiones (varias generaciones a la vez) ---
+export function speciesByGens(pools: number[]): SpeciesData[] {
+  if (!pools.length) return ALL_SPECIES
+  const set = new Set(pools)
+  const list = ALL_SPECIES.filter((s) => set.has(s.generation))
+  return list.length ? list : ALL_SPECIES
+}
+export function encounterPoolFor(pools: number[]): SpeciesData[] {
+  return speciesByGens(pools).filter((s) => !s.legendary)
+}
+export function legendaryPoolFor(pools: number[]): SpeciesData[] {
+  const list = speciesByGens(pools).filter((s) => s.legendary && !s.mythical && s.isFinal)
+  return list.length ? list : ALL_SPECIES.filter((s) => s.legendary && !s.mythical)
+}
+export function basePoolFor(pools: number[]): SpeciesData[] {
+  const list = speciesByGens(pools).filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
+  return list.length ? list : ALL_SPECIES.filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
+}
+
 /** Iniciales válidos para Modo Random: formas base con cadena de 3 etapas. */
 export function threeStageStarterPool(): SpeciesData[] {
   return ALL_SPECIES.filter((s) => {

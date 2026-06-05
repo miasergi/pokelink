@@ -121,7 +121,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ mode: config.mode, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed })
+    const run = createRun({ pools: config.pools, random: config.random, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed })
     run.startedAt = Date.now()
     void clearRun()
     saveRun(run)
@@ -139,7 +139,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ screen: { name: 'home' }, history: [] })
       return
     }
-    get().startRun({ mode: run.mode, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
+    get().startRun({ pools: run.pools, random: run.random, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
   },
 
   doTrade: (monUid) => {
@@ -328,8 +328,19 @@ export const useGame = create<GameState>((set, get) => ({
       else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
     } else ok = applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
+    // Tras subir de nivel (caramelos), evoluciona si alcanzó su nivel (rama
+    // única; las múltiples las elige el jugador).
+    let evoFx: { uid: string; fromId: number; toId: number } | null = null
+    if (ok && (itemId === 'rare-candy' || itemId === 'super-candy')) {
+      const targets = levelEvolutionTargets(mon)
+      if (targets.length === 1) {
+        const fromId = mon.speciesId
+        evolve(mon, targets[0])
+        evoFx = { uid: mon.uid, fromId, toId: targets[0].id }
+      }
+    }
     persist(run)
-    set({ run })
+    set({ run, ...(evoFx ? { evoFx } : {}) })
     return ok
   },
 
@@ -467,7 +478,7 @@ async function recordRunEnd(run: RunState) {
   meta.bestRuns = [
     {
       date: Date.now(),
-      mode: run.mode,
+      mode: run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
       region: run.region,
       gymsDefeated: run.stats.gymsDefeated,
       eliteDefeated: run.stats.eliteDefeated,

@@ -39,7 +39,7 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
 
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
-const HEAL_ITEMS = ['potion', 'max-potion', 'revive', 'max-revive']
+const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'max-potion', 'revive', 'max-revive']
 const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet']
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
 const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
@@ -66,10 +66,14 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
   return set.slice(0, 3)
 }
 
-/** Stock de tienda. */
+/** Stock de tienda. Pociones escalonadas según el momento de la run. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
-  const base = ['potion', 'revive', 'rare-candy', 'upgrade']
-  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm', 'super-candy'] : []
+  const potions = ['potion']
+  if (depthFrac > 0.2) potions.push('super-potion')
+  if (depthFrac > 0.45) potions.push('hyper-potion')
+  if (depthFrac > 0.65) potions.push('max-potion')
+  const base = [...potions, 'revive', 'rare-candy', 'upgrade']
+  const advanced = depthFrac > 0.4 ? ['max-revive', 'revive-charm', 'super-candy'] : []
   const held = rng.sample(HELD_ITEMS, 3)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []

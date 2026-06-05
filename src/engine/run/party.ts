@@ -20,7 +20,11 @@ export function healParty(party: PokemonInstance[]): void {
 export function applyHealItem(mon: PokemonInstance, itemId: string): boolean {
   switch (itemId) {
     case 'potion':
+      return healHp(mon, Math.ceil(mon.stats.hp * 0.25))
+    case 'super-potion':
       return healHp(mon, Math.ceil(mon.stats.hp * 0.5))
+    case 'hyper-potion':
+      return healHp(mon, Math.ceil(mon.stats.hp * 0.75))
     case 'max-potion':
       if (isFainted(mon)) return false
       if (mon.currentHp >= mon.stats.hp && mon.status === 'none') return false

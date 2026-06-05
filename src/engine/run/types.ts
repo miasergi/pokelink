@@ -84,7 +84,10 @@ export interface RunMap {
 export type RunStatus = 'active' | 'won' | 'lost'
 
 export interface RunState {
-  mode: GameMode
+  /** Generaciones cuyos Pokémon pueden aparecer (salvajes, capturas, etc.). */
+  pools: number[]
+  /** Modo aleatorio: randomiza por completo las especies. */
+  random: boolean
   difficulty: Difficulty
   gen: number
   region: string
