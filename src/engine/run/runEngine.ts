@@ -98,9 +98,9 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   const hard = run.difficulty === 'hard'
 
   // Difícil y Nuzlocke: Pokémon rivales (salvajes, entrenadores y jefes) a
-  // ×1.5 de nivel.
+  // ×1.4 de nivel (con la nueva curva ya alta, ×1.5 saturaba todo a 100).
   const tough = hard || run.difficulty === 'nuzlocke'
-  if (tough) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.5)))
+  if (tough) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.4)))
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
   // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles
@@ -123,6 +123,8 @@ export interface BattleOutcomeSummary {
   lost: string[]
   /** Nombre del legendario capturado al vencer su guardián. */
   caughtLegendary?: string
+  /** Legendario que te ofrece unirse tras vencerlo (tú decides). */
+  legendaryOffer?: PokemonInstance
   /** Nombre del jefe derrotado (para celebrar / meme). */
   bossDefeated?: string
   /** Niveles ganados por Pokémon (combate + casilla). */
@@ -237,14 +239,10 @@ export function applyBattleOutcome(
     if (total > 0) summary.levelGains.push({ name: getSpecies(mon.speciesId).displayName, levels: total })
   }
 
-  // Guardián legendario: ¡lo capturas al vencerlo!
+  // Guardián legendario: al vencerlo te ofrece unirse (tú decides en pantalla).
   if (node.type === 'legendary' && content.kind === 'wild') {
-    const mon = content.enemy
-    run.stats.pokemonCaught++
     run.money += 2000
-    if (run.party.length < MAX_PARTY) run.party.push(mon)
-    else run.box.push(mon)
-    summary.caughtLegendary = getSpecies(mon.speciesId).displayName
+    summary.legendaryOffer = content.enemy
   }
 
   // Evoluciones por nivel: solo se auto-evoluciona si hay UNA opción. Si hay
@@ -274,21 +272,22 @@ export function catchPokemon(
   node.cleared = true
   if (!accept || node.content.kind !== 'catch') return { caught: false, toBox: false }
   const mon = node.content.offer
-  run.stats.pokemonCaught++
+  // Reemplazo: el Pokémon del equipo elegido se LIBERA (no hay caja).
   if (replaceUid) {
     const idx = run.party.findIndex((p) => p.uid === replaceUid)
     if (idx >= 0) {
-      run.box.push(run.party[idx])
       run.party[idx] = mon
+      run.stats.pokemonCaught++
       return { caught: true, toBox: false }
     }
   }
   if (run.party.length < MAX_PARTY) {
     run.party.push(mon)
+    run.stats.pokemonCaught++
     return { caught: true, toBox: false }
   }
-  run.box.push(mon)
-  return { caught: true, toBox: true }
+  // Equipo lleno y sin liberar: no se puede capturar.
+  return { caught: false, toBox: false }
 }
 
 export function pickItem(run: RunState, node: MapNode, itemId: string): void {

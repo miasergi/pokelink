@@ -18,7 +18,7 @@ import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, save
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary'
 
 interface Screen {
   name: ScreenName
@@ -45,6 +45,9 @@ interface GameState {
   chooseEvolution: (targetId: number) => void
   cancelEvoChoice: () => void
   rescueNodeId: string | null
+  legendaryOffer: import('@/types').PokemonInstance | null
+  addLegendary: (replaceUid?: string) => void
+  skipLegendary: () => void
   useRescue: (monUid: string) => void
   doTrade: (monUid: string) => void
   skipTrade: () => void
@@ -286,13 +289,18 @@ export const useGame = create<GameState>((set, get) => ({
       void recordRunEnd(run)
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
     } else if (summary.runEnded) {
-      // Salvavidas: si tienes uno y hay debilitados, revives 1 y continúas.
-      if ((run.inventory['revive-charm'] || 0) > 0 && run.party.some((p) => p.currentHp <= 0)) {
+      // Salvavidas: revive 1 y continúa, SOLO al perder vs salvajes o entrenadores
+      // normales (NUNCA contra jefes, rival, guardián ni Liga Pokémon).
+      const rescuable = node.type === 'battle' || node.type === 'trainer'
+      if (rescuable && (run.inventory['revive-charm'] || 0) > 0 && run.party.some((p) => p.currentHp <= 0)) {
         set({ run, lastSummary: summary, pendingBattle: null, rescueNodeId: node.id, screen: { name: 'rescue' }, history: [] })
         return
       }
       void recordRunEnd(run)
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'gameover' }, history: [] })
+    } else if (summary.legendaryOffer) {
+      // Venciste a un legendario: pantalla para decidir si se une al equipo.
+      set({ run, lastSummary: summary, pendingBattle: null, battleSummary: null, legendaryOffer: summary.legendaryOffer, screen: { name: 'legendary' }, history: [] })
     } else {
       // Victoria normal: mostramos las recompensas EN la pantalla de batalla.
       set({ run, lastSummary: summary, battleSummary: summary })
@@ -300,6 +308,24 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeBattle: () => set({ pendingBattle: null, battleSummary: null, screen: { name: 'map' }, history: [] }),
+
+  legendaryOffer: null,
+  addLegendary: (replaceUid) => {
+    const cur = get().run
+    const offer = get().legendaryOffer
+    if (!cur || !offer) return
+    const run = cloneRun(cur)
+    if (replaceUid) {
+      const idx = run.party.findIndex((p) => p.uid === replaceUid)
+      if (idx >= 0) run.party[idx] = offer
+    } else if (run.party.length < 6) {
+      run.party.push(offer)
+    } else return // lleno y sin reemplazo: no hacer nada
+    run.stats.pokemonCaught++
+    persist(run)
+    set({ run, legendaryOffer: null, screen: { name: 'map' }, history: [] })
+  },
+  skipLegendary: () => set({ legendaryOffer: null, screen: { name: 'map' }, history: [] }),
 
   doHeal: (nodeId) => {
     const cur = get().run

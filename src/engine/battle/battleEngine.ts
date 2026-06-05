@@ -104,11 +104,16 @@ export function runBattle(config: BattleConfig): BattleResult {
     else if (eSw < 0) order = [{ side: enemy, moveIdx: eMove }]
     else order = []
 
+    // Pokémon que iba a actuar este turno por cada lado. Si entra un relevo
+    // (su activo cambia), ese relevo NO actúa hasta el turno siguiente.
+    const turnActor: Record<Side, string> = { player: active(player).uid, enemy: active(enemy).uid }
+
     for (const step of order) {
       const atk = step.side
       const def = atk === player ? enemy : player
       if (active(atk).currentHp <= 0) continue
-      // Re-elige para el Pokémon activo actual (puede haber cambiado tras un debilitamiento)
+      if (active(atk).uid !== turnActor[atk.side]) continue // relevo: espera al próximo turno
+      // Re-elige para el Pokémon activo actual.
       const moveIdx = decide(atk, def, rng)
       performMove(atk, def, moveIdx, rng, events, ctx)
 

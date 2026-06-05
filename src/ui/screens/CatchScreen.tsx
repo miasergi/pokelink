@@ -40,12 +40,9 @@ export default function CatchScreen() {
               </Button>
             ) : (
               <>
-                <p className="text-center text-sm text-slate-400">Tu equipo está completo (6).</p>
+                <p className="text-center text-sm text-slate-400">Tu equipo está completo (6). Para capturarlo tienes que <b>liberar</b> a uno de tu equipo.</p>
                 <Button full variant="success" onClick={() => setReplacing(true)}>
-                  Cambiar por uno del equipo
-                </Button>
-                <Button full variant="secondary" onClick={() => doCatch(nodeId, true)}>
-                  Capturar y enviar a la caja
+                  Liberar uno y capturar
                 </Button>
               </>
             )}
@@ -55,7 +52,7 @@ export default function CatchScreen() {
           </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col gap-2">
-            <p className="text-center text-sm text-slate-400">¿A quién mandas a la caja?</p>
+            <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para hacer sitio? (desaparece para siempre)</p>
             {run.party.map((p) => (
               <PokemonCard key={p.uid} mon={p} onClick={() => doCatch(nodeId, true, p.uid)} />
             ))}

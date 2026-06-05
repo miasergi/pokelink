@@ -74,15 +74,14 @@ export function generateMap(
       plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
     }
   }
-  // Curva de niveles de jefes COHERENTE (no copia exacta de los juegos):
-  // gimnasios 10→66, guardián legendario 70, Alto Mando 75/80/85/90, Campeón 100.
-  // Curva ajustada a la subida fija (+1 salvaje / +2 entrenador-gimnasio / +3 liga).
-  const GYM_LEVELS = [8, 14, 21, 28, 35, 43, 51, 58]
-  const ELITE_LEVELS = [75, 80, 85, 90]
-  const CHAMPION_LEVEL = 100
+  // Curva de niveles de jefes: rampa más firme en el medio-juego (no demasiado
+  // fácil) y ENTRADA SUAVE a la Liga (sin salto enorme): gym8=72 -> AM1=78.
+  const GYM_LEVELS = [8, 14, 21, 28, 36, 45, 53, 60]
+  const ELITE_LEVELS = [64, 70, 76, 82]
+  const CHAMPION_LEVEL = 88
   // Rivales situados ENTRE gimnasios -> nivel acorde a su posición en el mapa.
-  const RIVAL_LEVELS = [12, 40, 64]
-  const LEGENDARY_LEVEL = 54 // guardián entre gym6 y gym7
+  const RIVAL_LEVELS = [13, 46, 62]
+  const LEGENDARY_LEVEL = 57 // guardián entre gym6 y gym7
 
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
   const pushRival = () => {
