@@ -56,25 +56,32 @@ export default function StarterSelectScreen() {
               }`}
               style={{ background: isSel ? typeGradient(sp.types) : 'rgba(15,23,42,0.6)' }}
             >
-              <div className="flex items-center gap-3">
-                <Sprite speciesId={id} className="w-24 h-24 object-contain drop-shadow-lg" />
-                <div className="flex-1">
-                  <div className="font-extrabold text-xl">{sp.displayName}</div>
-                  <div className="flex gap-1 mt-1">
-                    {sp.types.map((t) => (
-                      <TypeBadge key={t} type={t} />
-                    ))}
+              {(() => {
+                const phys = sp.baseStats.atk >= sp.baseStats.spa
+                return (
+                  <div className="flex items-center gap-3">
+                    <Sprite speciesId={id} className="w-24 h-24 object-contain drop-shadow-lg" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="font-extrabold text-xl">{sp.displayName}</div>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-700 text-slate-200">{phys ? 'Físico' : 'Especial'}</span>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {sp.types.map((t) => (
+                          <TypeBadge key={t} type={t} />
+                        ))}
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                        <Stat label="PS" v={sp.baseStats.hp} />
+                        <Stat label={phys ? 'Ataque (Físico)' : 'Ataque (Especial)'} v={phys ? sp.baseStats.atk : sp.baseStats.spa} />
+                        <Stat label="Defensa" v={sp.baseStats.def} />
+                        <Stat label="Def. Esp." v={sp.baseStats.spd} />
+                        <Stat label="Velocidad" v={sp.baseStats.spe} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-x-2 gap-y-0.5 text-[11px]">
-                    <Stat label="PS" v={sp.baseStats.hp} />
-                    <Stat label="Atq" v={sp.baseStats.atk} />
-                    <Stat label="Def" v={sp.baseStats.def} />
-                    <Stat label="AtE" v={sp.baseStats.spa} />
-                    <Stat label="DeE" v={sp.baseStats.spd} />
-                    <Stat label="Vel" v={sp.baseStats.spe} />
-                  </div>
-                </div>
-              </div>
+                )
+              })()}
             </div>
           )
         })}
