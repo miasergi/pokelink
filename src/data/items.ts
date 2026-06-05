@@ -3,6 +3,8 @@ import type { ItemData } from '@/types'
 // Catálogo de objetos. Sprites desde el repo de PokeAPI (items).
 const ITEM_SPRITE = (slug: string) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}.png`
+// Sprites propios servidos desde public/.
+const LOCAL_ITEM = (file: string) => `${import.meta.env.BASE_URL}items/${file}`
 
 // Catálogo ÁGIL pensado para roguelike: pocas categorías, decisiones rápidas.
 export const ITEMS: ItemData[] = [
@@ -15,7 +17,7 @@ export const ITEMS: ItemData[] = [
   { id: 'max-revive', name: 'Revivir Máx', category: 'revive', description: 'Revive con todos los PS.', price: 4000, sprite: ITEM_SPRITE('max-revive') },
 
   // --- Mejora ---
-  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 1 nivel a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
+  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
   { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 7000, sprite: ITEM_SPRITE('exp-candy-l') },
   { id: 'attack-boost', name: 'Refuerzo de Ataque', category: 'battle', description: 'Sube de forma permanente el Ataque de un Pokémon (sus ataques pegan más fuerte).', price: 2500, sprite: ITEM_SPRITE('protein') },
   { id: 'defense-boost', name: 'Refuerzo de Defensa', category: 'battle', description: 'Sube de forma permanente la Defensa de un Pokémon (aguanta más golpes).', price: 2500, sprite: ITEM_SPRITE('iron') },
@@ -34,7 +36,7 @@ export const ITEMS: ItemData[] = [
 
   // --- Evolución (universales) ---
   { id: 'evo-stone', name: 'Piedra Evolutiva', category: 'evolution', description: 'Evoluciona al instante a cualquier Pokémon que pueda evolucionar.', price: 3000, sprite: ITEM_SPRITE('shiny-stone') },
-  { id: 'mega-stone', name: 'Megapiedra', category: 'evolution', description: 'Megaevoluciona al instante a cualquier Pokémon compatible.', price: 6000, sprite: ITEM_SPRITE('mega-ring') },
+  { id: 'mega-stone', name: 'Megapiedra', category: 'evolution', description: 'Megaevoluciona al instante (y de forma permanente) a cualquier Pokémon compatible.', price: 6000, sprite: LOCAL_ITEM('mega-stone.png') },
 ]
 
 const itemById = new Map<string, ItemData>()

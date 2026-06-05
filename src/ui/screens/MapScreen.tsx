@@ -217,10 +217,6 @@ export default function MapScreen() {
             setPreview(null)
             chooseNode(id)
           }}
-          onPrepare={() => {
-            setPreview(null)
-            navigate('team')
-          }}
           onClose={() => setPreview(null)}
         />
       )}

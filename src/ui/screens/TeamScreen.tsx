@@ -15,7 +15,6 @@ import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolutio
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
-  const [selItem, setSelItem] = useState<string | null>(null)
   if (!run) return null
 
   // Aplica un objeto a un Pokémon (despacha por categoría).
@@ -37,7 +36,7 @@ export default function TeamScreen() {
   const canEvolve = (selSpecies?.evolutions.length ?? 0) > 0
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 relative">
       <TopBar
         title="Tu equipo"
         left={<Button variant="ghost" onClick={back}>‹</Button>}
@@ -47,16 +46,17 @@ export default function TeamScreen() {
         <PartyList
           party={run.party}
           selectedUid={sel}
-          onSelect={(uid) => {
-            if (selItem) { applyItem(selItem, uid); setSelItem(null); setSel(uid) }
-            else setSel(uid === sel ? null : uid)
-          }}
+          onSelect={(uid) => setSel(uid === sel ? null : uid)}
           onReorder={setPartyOrder}
         />
+      </div>
 
-        {/* Detalle del Pokémon seleccionado */}
-        {selMon && selSpecies && (
-          <Card className="p-3 animate-pop-in" style={{ borderColor: '#f8717155' }}>
+      {/* Modal de detalle / objetos del Pokémon seleccionado */}
+      {selMon && selSpecies && (
+        <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={() => setSel(null)}>
+          <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-end -mb-2 -mt-1"><button aria-label="Cerrar" className="text-slate-400 text-2xl leading-none px-2 active:scale-90" onClick={() => setSel(null)}>✕</button></div>
+            <Card className="p-3" style={{ borderColor: '#f8717155' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="rounded-xl p-0.5" style={{ background: typeGradient(selSpecies.types) }}>
                 <Sprite speciesId={selMon.speciesId} shiny={selMon.shiny} className="w-14 h-14 object-contain" />
@@ -165,32 +165,14 @@ export default function TeamScreen() {
                 💠 Megaevolucionar
               </Button>
             )}
-          </Card>
-        )}
+            </Card>
 
-        {/* Mochila */}
-        <div>
+            {/* Mochila — objetos aplicables a este Pokémon */}
+            <div>
           <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="text-sm font-bold text-slate-300">🎒 Mochila</span>
-            <span className="text-[11px] text-slate-400">
-              {selMon ? `para ${selSpecies?.displayName}` : 'toca un objeto para ver qué hace'}
-            </span>
+            <span className="text-sm font-bold text-slate-300">🎒 Usar / equipar objeto</span>
+            <span className="text-[11px] text-slate-400">a {selSpecies.displayName}</span>
           </div>
-          {selItem && (
-            <div className="text-xs bg-sky-500/15 border border-sky-500/40 text-sky-100 rounded-xl px-3 py-2 mb-2">
-              <div className="font-bold flex items-center gap-1.5">
-                {getItem(selItem).sprite && <img src={getItem(selItem).sprite} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} />}
-                {getItem(selItem).name}
-              </div>
-              <div className="text-[11px] text-sky-200/90 mt-0.5">{getItem(selItem).description}</div>
-              <div className="text-[11px] font-bold mt-1">👇 Ahora toca el Pokémon al que aplicárselo. <button className="underline" onClick={() => setSelItem(null)}>cancelar</button></div>
-            </div>
-          )}
-          {!selMon && !selItem && (
-            <div className="text-xs text-slate-400 bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2 text-center mb-2">
-              👆 Toca un Pokémon para ver su info, o toca un objeto para leer qué hace y usarlo.
-            </div>
-          )}
           {usableItems.length === 0 && <p className="text-xs text-slate-500 px-1">No tienes objetos. Consíguelos en cofres y tiendas.</p>}
 
           {/* Pasivos (se usan solos) */}
@@ -220,18 +202,14 @@ export default function TeamScreen() {
                     return (
                       <button
                         key={id}
-                        onClick={() => {
-                          // Si ya hay un Pokémon elegido, aplica directo; si no,
-                          // selecciona el objeto (modo objeto-primero) y muestra qué hace.
-                          if (selMon) applyItem(id, selMon.uid)
-                          else setSelItem(selItem === id ? null : id)
-                        }}
-                        className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition ${selItem === id ? 'bg-sky-600/30 border-sky-400' : 'bg-slate-800 border-slate-700'}`}
+                        onClick={() => applyItem(id, selMon.uid)}
+                        className="flex items-start gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition bg-slate-800 border-slate-700"
                       >
                         {item.sprite && <img src={item.sprite} alt="" className="w-7 h-7 shrink-0" style={{ imageRendering: 'pixelated' }} />}
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold truncate">{item.name}</div>
-                          <div className="text-[10px] text-slate-400">{selMon ? group.verb : 'ver/usar'} · ×{qty}</div>
+                          <div className="text-xs font-semibold truncate">{item.name} <span className="text-slate-500">×{qty}</span></div>
+                          <div className="text-[10px] text-slate-400 line-clamp-2">{item.description}</div>
+                          <div className="text-[9px] text-sky-300 font-bold mt-0.5">{group.verb} ›</div>
                         </div>
                       </button>
                     )
@@ -240,8 +218,10 @@ export default function TeamScreen() {
               </div>
             )
           })}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {evoFx && <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />}
       {evoChoice && <EvoChoiceModal options={evoChoice.options} onPick={chooseEvolution} onCancel={cancelEvoChoice} />}

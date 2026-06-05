@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useSettings, type BattleSpeed } from '@/state/settingsStore'
 import { getSpecies } from '@/data'
+import { effectivenessLabel } from '@/data/typechart'
 import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
@@ -468,8 +469,7 @@ function buildFrames(
         const moveType = lastMoveType[isSelf ? e.side : (e.side === 'player' ? 'enemy' : 'player')]
         let extra = ''
         if (e.crit) extra = '¡Golpe crítico!'
-        else if (e.effectiveness >= 2) extra = '¡Súper eficaz!'
-        else if (e.effectiveness > 0 && e.effectiveness < 1) extra = 'Poco eficaz...'
+        else if (e.effectiveness !== 1) extra = effectivenessLabel(e.effectiveness)
         if (extra) message = extra
         const flash = e.crit
           ? { color: 'rgba(251,146,60,0.6)' }

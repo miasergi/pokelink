@@ -10,6 +10,18 @@ const WIN = [
   'Nadie puede conmigo 💪',
   'Otro más para la colección 📿',
   'Esto es arte 🎨',
+  'Calvo y con dos medallas 🧢',
+  'Le he ganado con los ojos cerrados 🙈',
+  'Estaba en modo difícil... para él 😏',
+  '+1 al ego, gracias 📈',
+  'Mete eso en la Pokédex 📕',
+  'Sin despeinarme 💇',
+  'El profesor Oak estaría orgulloso 👴',
+  'Speedrun activado ⏩',
+  'GGEZ, manden al siguiente ➡️',
+  '¿Pikachu? No, Pika-CHAD ⚡',
+  'Eso ha sido bullying legal 🚓',
+  'Llamad a una ambulancia... pero no para mí 🚑',
 ]
 const LOSE = [
   'Skill issue 💀',
@@ -20,6 +32,18 @@ const LOSE = [
   'Era buen equipo... era 🥀',
   'La próxima es la buena (mentira) 🙃',
   'Mis Pokémon dijeron "hoy no" 😴',
+  'Lag, ha sido lag 📶',
+  'El sol me dio en los ojos ☀️',
+  'Reinicia, nadie ha visto nada 🔄',
+  'Me ha ganado un NPC 🤖',
+  'Tenía el equipo de prueba, lo juro 🙏',
+  'Era una estrategia... no muy buena 🧠',
+  'Plot twist: era el malo de la historia 🎭',
+  'Borra la partida, borra el dolor 🗑️',
+  'El Rattata ese venía dopado 💊',
+  'Respeto perdido: 100% 📉',
+  'Me han hecho a mí el speedrun ⏩',
+  'Esto lo arregla un café ☕',
 ]
 
 /** Mini "shitpost": un sprite + una frase tipo meme. Toca para continuar. */

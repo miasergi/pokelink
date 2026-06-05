@@ -96,13 +96,9 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // Difícil: enemigos más fuertes.
   if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
 
-  // Red de seguridad MUY profunda (área-9): en juego normal NUNCA se activa —
-  // los Pokémon suben peleando (EXP) + bonus de casilla (+1/+2/+3) y se quedan
-  // a nivel solos. Solo rescata a un Pokémon catastróficamente atrasado (>9 por
-  // debajo de la zona) y aun así lo deja MUY por debajo del rival. Nada de
-  // "igualarse al rival" de golpe.
-  const floor = Math.max(5, node.enemyLevel - (hard ? 12 : 9))
-  for (const mon of run.party) enforceMinLevel(mon, floor)
+  // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
+  // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles
+  // niveles para "igualar" la zona ni al rival.
   // El Alto Mando / Campeón NO curan (gauntlet real): tu HP se arrastra entre
   // los 5 combates de la Liga. Ante los gimnasios decides tú si pasar por el
   // Centro Pokémon de la ruta previa.

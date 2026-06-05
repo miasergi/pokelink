@@ -2,7 +2,6 @@ import type { MapNode } from '@/engine/run/types'
 import { Button, ImgFallback } from './kit'
 import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
-import { TYPES, typeEffectiveness } from '@/data/typechart'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
 import type { PokemonType } from '@/types'
@@ -34,12 +33,11 @@ const REWARD: Partial<Record<string, string>> = {
 }
 
 export default function NodePreview({
-  node, canEnter = true, onEnter, onPrepare, onClose,
+  node, canEnter = true, onEnter, onClose,
 }: {
   node: MapNode
   canEnter?: boolean
   onEnter: () => void
-  onPrepare: () => void
   onClose: () => void
 }) {
   const content = node.content
@@ -51,7 +49,6 @@ export default function NodePreview({
 
   // Debilidades (gimnasios/Alto Mando con tipo especialidad)
   const specialty = trainer?.specialtyType
-  const weakTo = specialty ? TYPES.filter((t) => typeEffectiveness(t, [specialty]) > 1) : []
 
   // Tipos presentes en el equipo del entrenador (para planificar)
   const teamTypes = [...new Set(team.flatMap((m) => getSpecies(m.speciesId).types))] as PokemonType[]
@@ -138,15 +135,6 @@ export default function NodePreview({
           </div>
         )}
 
-        {/* Debilidades */}
-        {weakTo.length > 0 && (
-          <div className="mt-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3">
-            <div className="text-xs font-bold text-emerald-300 mb-1.5">💡 Débil ante</div>
-            <div className="flex flex-wrap gap-1">{weakTo.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
-            <p className="text-[11px] text-slate-400 mt-1.5">Lleva al frente un Pokémon de estos tipos.</p>
-          </div>
-        )}
-
         {/* Acciones */}
         <div className="flex flex-col gap-2 mt-5">
           {canEnter ? (
@@ -158,10 +146,8 @@ export default function NodePreview({
               🔒 {node.cleared ? 'Ya has pasado por aquí.' : 'No conectada a tu posición. Solo puedes entrar por un camino enlazado.'}
             </div>
           )}
-          <Button full variant="secondary" onClick={onPrepare}>👥 Ver / preparar equipo</Button>
           <Button full variant="ghost" onClick={onClose}>Cerrar</Button>
         </div>
-        {isBoss && <p className="text-[11px] text-slate-500 text-center mt-2">El Alto Mando y el Campeón curan tu equipo al entrar.</p>}
       </div>
     </div>
   )

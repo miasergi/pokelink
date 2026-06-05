@@ -47,10 +47,22 @@ export function typeEffectiveness(
   return mult
 }
 
-/** Texto para la UI según multiplicador combinado. */
+/** Texto para la UI según multiplicador combinado (6 niveles). */
 export function effectivenessLabel(mult: number): string {
-  if (mult === 0) return 'Sin efecto'
-  if (mult >= 2) return '¡Súper eficaz!'
-  if (mult > 0 && mult < 1) return 'Poco eficaz...'
-  return ''
+  if (mult === 0) return 'No afecta'
+  if (mult >= 4) return '¡Megaeficaz!'
+  if (mult >= 2) return '¡Supereficaz!'
+  if (mult <= 0.25) return 'Muy poco eficaz'
+  if (mult < 1) return 'Poco eficaz'
+  return 'Eficaz'
+}
+
+/** Color asociado a cada nivel de eficacia (para la UI). */
+export function effectivenessColor(mult: number): string {
+  if (mult === 0) return '#64748b'
+  if (mult >= 4) return '#a855f7'
+  if (mult >= 2) return '#22c55e'
+  if (mult <= 0.25) return '#b91c1c'
+  if (mult < 1) return '#f97316'
+  return '#94a3b8'
 }
