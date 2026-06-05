@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PokemonInstance } from '@/types'
 import Sprite from './Sprite'
+import { tryGetItem } from '@/data/items'
 
 /** Barra de equipo con reordenado por arrastre (drag&drop) + botón mochila. */
 export default function PartyBar({
@@ -75,6 +76,11 @@ export default function PartyBar({
             >
               <div className={`relative ${fainted ? 'opacity-40 grayscale' : ''}`}>
                 <Sprite speciesId={mon.speciesId} variant="front" shiny={mon.shiny} className="w-9 h-9 object-contain pointer-events-none" />
+                {mon.heldItemId && tryGetItem(mon.heldItemId)?.sprite && (
+                  <img src={tryGetItem(mon.heldItemId)!.sprite} alt="" title={tryGetItem(mon.heldItemId)!.name}
+                    className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-600 pointer-events-none"
+                    style={{ imageRendering: 'pixelated' }} />
+                )}
               </div>
               <div className="w-8 h-1 rounded-full bg-slate-700 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${frac * 100}%`, backgroundColor: color }} />

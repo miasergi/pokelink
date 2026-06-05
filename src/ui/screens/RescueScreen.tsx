@@ -24,7 +24,7 @@ export default function RescueScreen() {
               className="p-2.5 flex items-center gap-3 active:scale-[0.98] transition cursor-pointer"
               onClick={() => useRescue(mon.uid)}
             >
-              <Sprite speciesId={mon.speciesId} variant="front" className={`w-12 h-12 object-contain ${mon.currentHp <= 0 ? 'grayscale opacity-70' : ''}`} />
+              <Sprite speciesId={mon.speciesId} shiny={mon.shiny} variant="front" className={`w-12 h-12 object-contain ${mon.currentHp <= 0 ? 'grayscale opacity-70' : ''}`} />
               <div className="flex-1 text-left">
                 <div className="font-bold">{sp.displayName} <span className="text-xs text-slate-400">Nv.{mon.level}</span></div>
                 <HpBar current={mon.currentHp} max={mon.stats.hp} status={mon.status} showNumbers />

@@ -314,13 +314,26 @@ export const useGame = create<GameState>((set, get) => ({
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
     let ok: boolean
+    const boost = (stats: Partial<Record<'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe', number>>) => {
+      const b = { ...mon.bonus }
+      for (const [k, v] of Object.entries(stats)) (b as Record<string, number>)[k] = ((b as Record<string, number>)[k] ?? 0) + v
+      mon.bonus = b
+      recalcStats(mon, getSpecies(mon.speciesId))
+    }
     if (itemId === 'rare-candy') {
       ok = false
       for (let i = 0; i < 3; i++) if (gainLevel(mon)) ok = true // +3 niveles
+    } else if (itemId === 'super-candy') {
+      ok = false
+      for (let i = 0; i < 5; i++) if (gainLevel(mon)) ok = true // +5 niveles
     } else if (itemId === 'attack-boost') {
-      mon.bonus = { ...mon.bonus, atk: (mon.bonus?.atk ?? 0) + 18, spa: (mon.bonus?.spa ?? 0) + 18 }
-      recalcStats(mon, getSpecies(mon.speciesId))
-      ok = true
+      boost({ atk: 18, spa: 18 }); ok = true
+    } else if (itemId === 'defense-boost') {
+      boost({ def: 18, spd: 18 }); ok = true
+    } else if (itemId === 'hp-boost') {
+      boost({ hp: 24 }); ok = true
+    } else if (itemId === 'speed-boost') {
+      boost({ spe: 18 }); ok = true
     } else ok = applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
     persist(run)

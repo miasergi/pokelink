@@ -16,6 +16,10 @@ import { getRegion } from '@/data/trainers/regions'
 const ROW_H = 124
 const NODE = 60
 
+// Recuerda el scroll del mapa por run (seed) para reaparecer en el mismo sitio
+// al volver de un combate/nodo, sin auto-scroll que maree.
+const scrollMem = new Map<number, number>()
+
 export default function MapScreen() {
   const { run, chooseNode, navigate, lastEventResult, setPartyOrder } = useGame()
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -42,11 +46,17 @@ export default function MapScreen() {
     }
   }, [lastEventResult])
 
-  // auto-scroll a la capa actual
-  useEffect(() => {
-    const target = !run || run.currentLayer < 0 ? 0 : run.currentLayer
-    scrollRef.current?.scrollTo({ top: Math.max(0, target * ROW_H - 200), behavior: 'smooth' })
-  }, [run?.currentNodeId])
+  // Restaura la posición de scroll guardada (o, la primera vez, centra la capa
+  // actual) — al instante, sin animación que maree.
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el || !run) return
+    const saved = scrollMem.get(run.seed)
+    el.scrollTop = saved != null
+      ? saved
+      : Math.max(0, (run.currentLayer < 0 ? 0 : run.currentLayer) * ROW_H - 200)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!run) return null
   const { map } = run
@@ -110,7 +120,11 @@ export default function MapScreen() {
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar">
+      <div
+        ref={scrollRef}
+        onScroll={(e) => scrollMem.set(run.seed, e.currentTarget.scrollTop)}
+        className="flex-1 overflow-y-auto no-scrollbar"
+      >
         <div ref={wrapRef} className="relative mx-auto" style={{ height: totalHeight, width: '100%' }}>
           {/* líneas de conexión */}
           <svg className="absolute inset-0 pointer-events-none" width={width} height={totalHeight}>

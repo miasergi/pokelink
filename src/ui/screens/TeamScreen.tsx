@@ -12,12 +12,19 @@ import { STAT_ES, typeGradient } from '@/ui/theme/types'
 import { abilityName } from '@/engine/battle/abilities'
 import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
 
-const CAT_ES: Record<string, string> = { physical: 'Físico', special: 'Especial', status: 'Estado' }
-
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
+  const [selItem, setSelItem] = useState<string | null>(null)
   if (!run) return null
+
+  // Aplica un objeto a un Pokémon (despacha por categoría).
+  const applyItem = (id: string, uid: string) => {
+    const cat = getItem(id).category
+    if (cat === 'held') equipItem(id, uid)
+    else if (cat === 'evolution') useEvolutionItem(id, uid)
+    else useItem(id, uid)
+  }
 
   const selMon = run.party.find((p) => p.uid === sel) ?? null
   const selSpecies = selMon ? getSpecies(selMon.speciesId) : null
@@ -40,7 +47,10 @@ export default function TeamScreen() {
         <PartyList
           party={run.party}
           selectedUid={sel}
-          onSelect={(uid) => setSel(uid === sel ? null : uid)}
+          onSelect={(uid) => {
+            if (selItem) { applyItem(selItem, uid); setSelItem(null); setSel(uid) }
+            else setSel(uid === sel ? null : uid)
+          }}
           onReorder={setPartyOrder}
         />
 
@@ -80,7 +90,7 @@ export default function TeamScreen() {
                       <span className="text-xs font-semibold truncate">{m.displayName}</span>
                     </div>
                     <span className="text-[10px] text-slate-400 shrink-0">
-                      {CAT_ES[m.category]}{m.power ? ` · ${m.power}` : ''}
+                      Ataque{m.power ? ` · ${m.power}` : ''}
                     </span>
                   </div>
                 )
@@ -163,12 +173,22 @@ export default function TeamScreen() {
           <div className="flex items-center justify-between mb-1.5 px-1">
             <span className="text-sm font-bold text-slate-300">🎒 Mochila</span>
             <span className="text-[11px] text-slate-400">
-              {selMon ? `para ${selSpecies?.displayName}` : 'elige un Pokémon ↑'}
+              {selMon ? `para ${selSpecies?.displayName}` : 'toca un objeto para ver qué hace'}
             </span>
           </div>
-          {!selMon && (
+          {selItem && (
+            <div className="text-xs bg-sky-500/15 border border-sky-500/40 text-sky-100 rounded-xl px-3 py-2 mb-2">
+              <div className="font-bold flex items-center gap-1.5">
+                {getItem(selItem).sprite && <img src={getItem(selItem).sprite} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} />}
+                {getItem(selItem).name}
+              </div>
+              <div className="text-[11px] text-sky-200/90 mt-0.5">{getItem(selItem).description}</div>
+              <div className="text-[11px] font-bold mt-1">👇 Ahora toca el Pokémon al que aplicárselo. <button className="underline" onClick={() => setSelItem(null)}>cancelar</button></div>
+            </div>
+          )}
+          {!selMon && !selItem && (
             <div className="text-xs text-slate-400 bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2 text-center mb-2">
-              👆 Toca un Pokémon de arriba para curarlo, equiparle un objeto o evolucionarlo.
+              👆 Toca un Pokémon para ver su info, o toca un objeto para leer qué hace y usarlo.
             </div>
           )}
           {usableItems.length === 0 && <p className="text-xs text-slate-500 px-1">No tienes objetos. Consíguelos en cofres y tiendas.</p>}
@@ -201,18 +221,17 @@ export default function TeamScreen() {
                       <button
                         key={id}
                         onClick={() => {
-                          if (!selMon) return
-                          if (item.category === 'held') equipItem(id, selMon.uid)
-                          else if (item.category === 'evolution') useEvolutionItem(id, selMon.uid)
-                          else useItem(id, selMon.uid)
+                          // Si ya hay un Pokémon elegido, aplica directo; si no,
+                          // selecciona el objeto (modo objeto-primero) y muestra qué hace.
+                          if (selMon) applyItem(id, selMon.uid)
+                          else setSelItem(selItem === id ? null : id)
                         }}
-                        disabled={!selMon}
-                        className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-2.5 py-2 text-left disabled:opacity-40 active:scale-[0.97] transition"
+                        className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left active:scale-[0.97] transition ${selItem === id ? 'bg-sky-600/30 border-sky-400' : 'bg-slate-800 border-slate-700'}`}
                       >
                         {item.sprite && <img src={item.sprite} alt="" className="w-7 h-7 shrink-0" style={{ imageRendering: 'pixelated' }} />}
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold truncate">{item.name}</div>
-                          <div className="text-[10px] text-slate-400">{group.verb} · ×{qty}</div>
+                          <div className="text-[10px] text-slate-400">{selMon ? group.verb : 'ver/usar'} · ×{qty}</div>
                         </div>
                       </button>
                     )

@@ -31,7 +31,7 @@ export default function GameOverScreen() {
 
         <div className="flex gap-1.5 flex-wrap justify-center max-w-sm">
           {run.party.map((p) => (
-            <Sprite key={p.uid} speciesId={p.speciesId} variant="front" className="w-11 h-11 object-contain grayscale opacity-70" />
+            <Sprite key={p.uid} speciesId={p.speciesId} shiny={p.shiny} variant="front" className="w-11 h-11 object-contain grayscale opacity-70" />
           ))}
         </div>
       </div>

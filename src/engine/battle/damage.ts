@@ -46,15 +46,14 @@ export function computeDamage(ctx: DamageContext): DamageResult {
     return { damage: 0, effectiveness, crit: false }
   }
 
-  const isPhysical = move.category === 'physical'
-  const rawAtk = isPhysical ? attacker.stats.atk : attacker.stats.spa
-  const rawDef = isPhysical ? defender.stats.def : defender.stats.spd
+  // Sin distinción físico/especial: cada Pokémon ataca con su MEJOR stat
+  // ofensivo y defiende con su MEJOR stat defensivo. "Ataque" = max(Atk,SpA),
+  // "Defensa" = max(Def,SpD).
+  const rawAtk = Math.max(attacker.stats.atk, attacker.stats.spa)
+  const rawDef = Math.max(defender.stats.def, defender.stats.spd)
 
-  let atk = rawAtk * statStageMultiplier(ctx.atkStage)
+  const atk = rawAtk * statStageMultiplier(ctx.atkStage)
   const def = rawDef * statStageMultiplier(ctx.defStage)
-
-  // Quemadura reduce el ataque físico a la mitad (salvo Agallas, etc.)
-  if (isPhysical && attacker.status === 'brn' && !ctx.ignoreBurn) atk *= 0.5
 
   // Crítico
   const highCrit = move.effect?.flags?.includes('highCrit')

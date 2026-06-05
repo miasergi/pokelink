@@ -5,6 +5,7 @@ import Sprite from './Sprite'
 import HpBar from './HpBar'
 import TypeBadge from './TypeBadge'
 import { typeGradient } from '@/ui/theme/types'
+import { tryGetItem } from '@/data/items'
 
 interface Props {
   party: PokemonInstance[]
@@ -88,6 +89,11 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
               <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-12 h-12 object-contain" />
               {i === 0 && (
                 <span className="absolute -top-1.5 -left-1.5 text-[8px] bg-red-500 px-1 rounded-full font-black">LÍDER</span>
+              )}
+              {mon.heldItemId && tryGetItem(mon.heldItemId)?.sprite && (
+                <img src={tryGetItem(mon.heldItemId)!.sprite} alt="" title={tryGetItem(mon.heldItemId)!.name}
+                  className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-800 border border-slate-600"
+                  style={{ imageRendering: 'pixelated' }} />
               )}
             </div>
             <div className="flex-1 min-w-0">

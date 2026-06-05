@@ -41,7 +41,7 @@ export default function TradeScreen() {
                 onClick={() => doTrade(mon.uid)}
                 className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-800/60 p-2.5 text-left active:scale-[0.98] transition disabled:opacity-40"
               >
-                <Sprite speciesId={mon.speciesId} variant="front" className="w-12 h-12 object-contain" />
+                <Sprite speciesId={mon.speciesId} shiny={mon.shiny} variant="front" className="w-12 h-12 object-contain" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold">{sp.displayName} <span className="text-xs text-slate-400">Nv.{mon.level}</span></div>
                   <div className="flex gap-1 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>

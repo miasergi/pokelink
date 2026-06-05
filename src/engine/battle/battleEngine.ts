@@ -1,7 +1,7 @@
 import type { MoveData, PokemonInstance, PokemonType, StatKey } from '@/types'
 import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
-import { computeDamage, accuracyStageMultiplier } from './damage'
+import { computeDamage } from './damage'
 import { chooseMove } from './ai'
 import { expForLevel, expGain, levelFromExp } from '@/engine/team/leveling'
 import { computeStats } from '@/engine/team/leveling'
@@ -81,8 +81,10 @@ export function runBattle(config: BattleConfig): BattleResult {
   while (winner === null && turn < TURN_CAP) {
     turn++
 
-    // Cambio automático a un Pokémon con ventaja de tipo (consume el turno).
-    const pSw = decideSwitch(player, enemy)
+    // El JUGADOR no cambia solo: tú decides el orden del equipo (líder = el
+    // primero). Solo hay relevo cuando un Pokémon se debilita. El rival (IA) sí
+    // puede cambiar para dar pelea.
+    const pSw = -1
     const eSw = decideSwitch(enemy, player)
     if (pSw >= 0) doSwitch(player, pSw, enemy, events, ctx)
     if (eSw >= 0) doSwitch(enemy, eSw, player, events, ctx)
@@ -273,17 +275,7 @@ function performMove(
 
   events.push({ kind: 'move', side: atk.side, uid: attacker.uid, moveName: move.displayName, moveType: move.type })
 
-  // Precisión
-  if (move.accuracy > 0) {
-    const acc =
-      (move.accuracy / 100) *
-      (accuracyStageMultiplier(atk.stages.accuracy) / accuracyStageMultiplier(def.stages.evasion))
-    if (!rng.chance(Math.min(1, acc))) {
-      events.push({ kind: 'miss', side: atk.side, uid: attacker.uid })
-      return
-    }
-  }
-
+  // Los ataques SIEMPRE aciertan (sin % de fallo). Estandarización del rogue.
   const defender = active(def)
   const defSpecies = getSpecies(defender.speciesId)
 
@@ -327,14 +319,13 @@ function performMove(
   const ignoreBurn = attacker.ability === 'guts'
   for (let h = 0; h < hits; h++) {
     if (defender.currentHp <= 0) break
-    const isPhys = move.category === 'physical'
     const extraMult = offenseMult(attacker, move, ctx) * defenseMult(defender, move, baseEff)
     const res = computeDamage({
       attacker, attackerSpecies: species,
       defender, defenderSpecies: defSpecies,
       move,
-      atkStage: isPhys ? atk.stages.atk : atk.stages.spa,
-      defStage: isPhys ? def.stages.def : def.stages.spd,
+      atkStage: atk.stages.atk,
+      defStage: def.stages.def,
       rng, extraMult, adaptability, ignoreBurn,
     })
     effectiveness = res.effectiveness
@@ -399,13 +390,7 @@ function performMove(
     })
   }
 
-  // Efectos secundarios (estado / cambios de stat)
-  if (move.effect && (move.effect.ailment || move.effect.statChanges)) {
-    const chance = move.effect.chance ?? 1
-    if (defender.currentHp > 0 && rng.chance(chance)) {
-      applyMoveEffects(move, atk, def, total, rng, events, true)
-    }
-  }
+  // Sin efectos secundarios: los ataques SOLO quitan vida (estandarización).
   void effectiveness
 }
 

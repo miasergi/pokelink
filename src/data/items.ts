@@ -16,7 +16,11 @@ export const ITEMS: ItemData[] = [
 
   // --- Mejora ---
   { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 1 nivel a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
-  { id: 'attack-boost', name: 'Refuerzo de Ataque', category: 'battle', description: 'Sube de forma permanente el Ataque y el At. Especial de un Pokémon (sus ataques pegan más fuerte).', price: 2500, sprite: ITEM_SPRITE('protein') },
+  { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 7000, sprite: ITEM_SPRITE('exp-candy-l') },
+  { id: 'attack-boost', name: 'Refuerzo de Ataque', category: 'battle', description: 'Sube de forma permanente el Ataque de un Pokémon (sus ataques pegan más fuerte).', price: 2500, sprite: ITEM_SPRITE('protein') },
+  { id: 'defense-boost', name: 'Refuerzo de Defensa', category: 'battle', description: 'Sube de forma permanente la Defensa de un Pokémon (aguanta más golpes).', price: 2500, sprite: ITEM_SPRITE('iron') },
+  { id: 'hp-boost', name: 'Refuerzo de PS', category: 'battle', description: 'Sube de forma permanente los PS máximos de un Pokémon.', price: 2500, sprite: ITEM_SPRITE('hp-up') },
+  { id: 'speed-boost', name: 'Refuerzo de Velocidad', category: 'battle', description: 'Sube de forma permanente la Velocidad de un Pokémon (ataca antes).', price: 2000, sprite: ITEM_SPRITE('carbos') },
   { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes un combate, revives a 1 Pokémon y continúas la partida. Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 
   // --- Objetos de batalla (equipables, efecto pasivo en combate) ---

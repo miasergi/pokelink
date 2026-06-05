@@ -7,7 +7,8 @@ import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
 import HpBar from '@/ui/components/HpBar'
 import { Button, Card, money } from '@/ui/components/kit'
-import { getItem } from '@/data/items'
+import { getItem, tryGetItem } from '@/data/items'
+import TypeBadge from '@/ui/components/TypeBadge'
 import MemeOverlay from '@/ui/components/MemeOverlay'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
@@ -24,6 +25,16 @@ interface SideView {
   maxHp: number
   status: PokemonInstance['status']
   fainted: boolean
+  heldItemId?: string | null
+}
+interface MonView {
+  speciesId: number
+  level: number
+  shiny: boolean
+  maxHp: number
+  currentHp: number
+  status: PokemonInstance['status']
+  heldItemId?: string | null
 }
 interface TeamSlot {
   uid: string
@@ -66,10 +77,10 @@ export default function BattleScreen() {
   const [memeClosed, setMemeClosed] = useState(false)
 
   const uidMap = useMemo(() => {
-    const map = new Map<string, { speciesId: number; level: number; shiny: boolean; maxHp: number; currentHp: number; status: PokemonInstance['status'] }>()
+    const map = new Map<string, MonView>()
     if (!run || !pendingBattle) return map
     const add = (mons: PokemonInstance[]) => {
-      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status })
+      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId })
     }
     add(run.party)
     const content = run.map.nodes[pendingBattle.nodeId].content
@@ -340,11 +351,22 @@ function SpriteFx({ side, fx, idx }: { side: Side; fx?: Fx; idx: number }) {
 }
 
 function InfoCard({ view, remaining, align }: { view: SideView; remaining: number; align: 'left' | 'right' }) {
+  const sp = getSpecies(view.speciesId)
+  const held = view.heldItemId ? tryGetItem(view.heldItemId) : null
   return (
-    <div className={`bg-slate-900/80 border border-slate-700 rounded-xl px-2.5 py-1.5 min-w-[8.5rem] shadow-lg ${align === 'right' ? 'text-right' : ''}`}>
+    <div className={`bg-slate-900/85 border border-slate-700 rounded-xl px-3 py-2 min-w-[10.5rem] shadow-lg ${align === 'right' ? 'text-right' : ''}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-bold text-sm truncate">{view.name}</span>
-        <span className="text-[11px] text-slate-400">Nv.{view.level}</span>
+        <span className="font-bold text-base truncate">{view.name}</span>
+        <span className="text-xs text-slate-300 font-bold">Nv.{view.level}</span>
+      </div>
+      <div className={`flex items-center gap-1 my-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        {sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+        {held && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded px-1 py-0.5">
+            {held.sprite && <img src={held.sprite} alt="" className="w-3.5 h-3.5" style={{ imageRendering: 'pixelated' }} />}
+            <span className="truncate max-w-[4.5rem]">{held.name}</span>
+          </span>
+        )}
       </div>
       <HpBar current={view.currentHp} max={view.maxHp} status={view.status} showNumbers />
       <span className="sr-only">{remaining}</span>
@@ -376,14 +398,14 @@ function Tray({ team, fainted, activeUid, align }: { team: TeamSlot[]; fainted: 
 // --- Construcción de frames a partir de eventos ---
 function buildFrames(
   events: BattleEvent[],
-  uidMap: Map<string, { speciesId: number; level: number; shiny: boolean; maxHp: number; currentHp: number; status: PokemonInstance['status'] }>,
+  uidMap: Map<string, MonView>,
 ): Frame[] {
   const mk = (uid: string): SideView => {
     const d = uidMap.get(uid)!
     return {
       uid, speciesId: d.speciesId, name: getSpecies(d.speciesId).displayName,
       level: d.level, shiny: d.shiny, currentHp: d.currentHp, maxHp: d.maxHp,
-      status: d.status, fainted: d.currentHp <= 0,
+      status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId,
     }
   }
 

@@ -40,13 +40,13 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const HEAL_ITEMS = ['potion', 'max-potion', 'revive', 'max-revive']
 const HELD_ITEMS = ['leftovers', 'life-orb', 'focus-sash', 'choice-band', 'choice-specs', 'assault-vest', 'rocky-helmet']
-const BATTLE_ITEMS = ['rare-candy', 'attack-boost']
+const BATTLE_ITEMS = ['rare-candy', 'attack-boost', 'defense-boost', 'hp-boost', 'speed-boost', 'super-candy']
 
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []
-  // 1) SIEMPRE una mejora permanente (Refuerzo de Ataque o Caramelo Raro).
-  pool.push(rng.pick(['attack-boost', 'rare-candy']))
+  // 1) SIEMPRE una mejora permanente (refuerzo de stat o caramelo).
+  pool.push(rng.pick(['attack-boost', 'defense-boost', 'hp-boost', 'speed-boost', 'rare-candy']))
   // 2) Soporte (curación/revivir).
   pool.push(rng.pick([...HEAL_ITEMS, 'revive-charm']))
   // 3) Objeto equipable / piedra (Megapiedra a partir de media run).
@@ -66,8 +66,8 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
 
 /** Stock de tienda. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
-  const base = ['potion', 'revive', 'rare-candy', 'attack-boost']
-  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm'] : []
+  const base = ['potion', 'revive', 'rare-candy', 'attack-boost', 'defense-boost']
+  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive', 'revive-charm', 'hp-boost', 'super-candy'] : []
   const held = rng.sample(HELD_ITEMS, 2)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []

@@ -11,7 +11,6 @@ import { EVENTS, type EventEffect } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
-import { fullHeal } from '@/engine/team/instance'
 import { getGeneration } from '@/data/generations'
 import type { Difficulty, GameMode, MapNode, RunState } from './types'
 
@@ -104,10 +103,9 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // "igualarse al rival" de golpe.
   const floor = Math.max(5, node.enemyLevel - (hard ? 12 : 9))
   for (const mon of run.party) enforceMinLevel(mon, floor)
-  // El Alto Mando y el Campeón curan al entrar (es un gauntlet). Ante los
-  // gimnasios decides tú si pasar por el Centro Pokémon de la ruta previa.
-  const autoHeal = (node.type === 'elite' || node.type === 'champion') && !hard
-  if (autoHeal) for (const mon of run.party) fullHeal(mon)
+  // El Alto Mando / Campeón NO curan (gauntlet real): tu HP se arrastra entre
+  // los 5 combates de la Liga. Ante los gimnasios decides tú si pasar por el
+  // Centro Pokémon de la ruta previa.
   void isBoss
 
   const seed = withRng(run, (rng) => rng.int(1, 2 ** 30))
@@ -203,9 +201,10 @@ export function applyBattleOutcome(
     summary.runEnded = true
   }
 
-  // Al ganar a un jefe, el equipo se cura por completo.
+  // Al ganar a un jefe se celebra (meme), pero SOLO curan gimnasios, rival y
+  // guardián. El Alto Mando / Campeón NO curan: la Liga es un gauntlet.
   if (isBossLike) {
-    healParty(run.party)
+    if (node.type !== 'elite' && node.type !== 'champion') healParty(run.party)
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
