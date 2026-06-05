@@ -65,6 +65,9 @@ export function createInstance(
     moves,
     heldItemId: opts.heldItemId ?? null,
     ability,
+    // Nivel de potencia FIJO al crear (según el nivel de captura/creación). NO
+    // sube por subir de nivel: solo con el objeto "Mejora".
+    moveTier: tierForLevel(level),
     shiny: rng.chance(opts.shinyChance ?? 0.01), // 1% shiny (iniciales, capturas, encuentros)
   }
 }

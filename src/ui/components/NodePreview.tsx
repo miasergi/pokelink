@@ -112,6 +112,14 @@ export default function NodePreview({
           </div>
         )}
 
+        {/* Coste del intercambio */}
+        {content.kind === 'trade' && (
+          <div className="mt-2 flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/30 px-3 py-2">
+            <span className="text-lg">💸</span>
+            <div className="text-sm">Cuesta <b className="text-rose-300">{content.cost.toLocaleString('es')} ₽</b></div>
+          </div>
+        )}
+
         {/* Equipo del entrenador */}
         {isTrainer && (
           <div className="mt-4">

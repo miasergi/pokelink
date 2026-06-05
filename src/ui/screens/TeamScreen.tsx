@@ -201,20 +201,15 @@ export default function TeamScreen() {
                 <div className="flex items-center gap-1.5"><span>💠</span><span>Puede <b className="text-fuchsia-300">megaevolucionar</b> con Megapiedra (permanente).</span></div>
               )}
               {(() => {
-                // Solo mejoras de potencia POR ENCIMA del tier efectivo actual.
+                // El nivel de potencia solo sube con el objeto "Mejora" (no por nivel).
                 const curTier = effectiveTier(selMon)
+                if (curTier >= 2) return null
                 const types = [...new Set(selSpecies.types)].slice(0, 2)
-                const ups: string[] = []
-                for (const t of types) {
-                  TYPE_ATTACKS[t].forEach((tier, idx) => {
-                    if (idx > curTier) ups.push(`${tier.name} (Pot. ${tier.power}) a Nv.${tier.level}`)
-                  })
-                }
-                if (!ups.length) return null
+                const ups = types.map((t) => { const tier = TYPE_ATTACKS[t][curTier + 1]; return `${tier.name} (Pot. ${tier.power})` })
                 return (
                   <div className="flex items-start gap-1.5">
                     <span>⚔️</span>
-                    <span className="text-slate-300">Mejora de ataque: {ups.join(' · ')}</span>
+                    <span className="text-slate-300">Con una <b className="text-sky-300">Mejora</b>: {ups.join(' · ')}</span>
                   </div>
                 )
               })()}
