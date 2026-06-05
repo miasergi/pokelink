@@ -10,7 +10,7 @@ import {
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
-import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
+import { evolve, levelEvolutionTargets, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
@@ -439,6 +439,8 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
+    // Mineraluz/Supermineral bloquean la evolución (no la megaevolución).
+    if (itemId === 'evo-stone' && evolutionBlockedByItem(mon)) return false
     // Opciones según el objeto.
     const options =
       itemId === 'mega-stone'

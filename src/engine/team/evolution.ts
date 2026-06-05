@@ -25,9 +25,16 @@ export function pendingLevelEvolution(mon: PokemonInstance): SpeciesData | null 
   return null
 }
 
+/** Mineraluz (eviolite) y Supermineral IMPIDEN evolucionar mientras se llevan
+ *  equipados (su bonus es justo por seguir sin evolucionar). */
+export function evolutionBlockedByItem(mon: PokemonInstance): boolean {
+  return mon.heldItemId === 'eviolite' || mon.heldItemId === 'super-mineral'
+}
+
 /** Todas las evoluciones por nivel ya disponibles (para ramas múltiples: Eevee,
  *  Tyrogue, Wurmple...). Si hay >1, el jugador elige. */
 export function levelEvolutionTargets(mon: PokemonInstance): SpeciesData[] {
+  if (evolutionBlockedByItem(mon)) return []
   const species = getSpecies(mon.speciesId)
   return species.evolutions
     .filter((evo) => mon.level >= effectiveEvoLevel(evo.trigger))

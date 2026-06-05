@@ -11,11 +11,12 @@ import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { typeGradient } from '@/ui/theme/types'
-import { effectiveEvoLevel } from '@/engine/team/evolution'
+import { effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
 import { effectiveTier } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
-import { itemHasEffect, noEffectReason } from '@/engine/team/itemEffect'
+import { itemHasEffect, noEffectReason, heldStatMods } from '@/engine/team/itemEffect'
+import type { PokemonInstance } from '@/types'
 import { levelCap } from '@/engine/run/runEngine'
 
 export default function TeamScreen() {
@@ -24,8 +25,25 @@ export default function TeamScreen() {
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [msgOk, setMsgOk] = useState(false)
+  const [compareUid, setCompareUid] = useState<string | null>(null)
+  const [comparePicker, setComparePicker] = useState(false)
+  useEffect(() => { setCompareUid(null); setComparePicker(false) }, [sel]) // reset al cambiar de Pokémon
   if (!run) return null
   const cap = levelCap(run)
+
+  // Filas de stats VISIBLES con el efecto del objeto equipado aplicado.
+  const statRowsOf = (mon: PokemonInstance) => {
+    const mods = heldStatMods(mon)
+    const phys = mon.stats.atk >= mon.stats.spa
+    const off = phys ? mon.stats.atk : mon.stats.spa
+    return [
+      { key: 'hp', label: 'PS', base: mon.stats.hp, eff: Math.round(mon.stats.hp * mods.hp) },
+      { key: 'off', label: phys ? 'Ataque' : 'At. Esp.', base: off, eff: Math.round(off * mods.off) },
+      { key: 'def', label: 'Defensa', base: mon.stats.def, eff: Math.round(mon.stats.def * mods.def) },
+      { key: 'spd', label: 'Def. Esp.', base: mon.stats.spd, eff: Math.round(mon.stats.spd * mods.spd) },
+      { key: 'spe', label: 'Velocidad', base: mon.stats.spe, eff: Math.round(mon.stats.spe * mods.spe) },
+    ]
+  }
 
   const flash = (text: string, ok: boolean) => { setMsg(text); setMsgOk(ok) }
   // El mensaje se desvanece solo.
@@ -36,19 +54,20 @@ export default function TeamScreen() {
   }, [msg])
 
   // Aplica un objeto a un Pokémon (despacha por categoría) o explica por qué no.
-  const applyItem = (id: string, uid: string) => {
+  /** Devuelve true si el objeto se consumió/aplicó (false si no tuvo efecto). */
+  const applyItem = (id: string, uid: string): boolean => {
     const mon = run.party.find((p) => p.uid === uid)
-    if (!mon) return
+    if (!mon) return false
     const name = getSpecies(mon.speciesId).displayName
     if (!itemHasEffect(id, mon, cap)) {
       flash(`${name}: ${noEffectReason(id, mon, cap)}`, false)
-      return
+      return false
     }
     const item = getItem(id)
-    if (item.category === 'held') { equipItem(id, uid); flash(`Equipaste ${item.name} a ${name}.`, true); return }
-    if (item.category === 'evolution') { useEvolutionItem(id, uid); return }
+    if (item.category === 'held') { equipItem(id, uid); flash(`Equipaste ${item.name} a ${name}.`, true); return true }
+    if (item.category === 'evolution') { useEvolutionItem(id, uid); return true }
     // Consumible: aplica y avisa de lo que hizo.
-    const before = { hp: mon.currentHp, lvl: mon.level }
+    const before = { lvl: mon.level }
     useItem(id, uid)
     let did = `Usaste ${item.name} en ${name}.`
     if (id === 'rare-candy' || id === 'super-candy') did = `¡${name} subió de nivel! (era Nv.${before.lvl})`
@@ -56,6 +75,7 @@ export default function TeamScreen() {
     else if (item.category === 'revive') did = `¡${name} revivió!`
     else if (item.category === 'heal') did = `${name} recuperó PS.`
     flash(did, true)
+    return true
   }
 
   const selMon = run.party.find((p) => p.uid === sel) ?? null
@@ -84,14 +104,18 @@ export default function TeamScreen() {
         left={<Button variant="ghost" onClick={back}>‹</Button>}
         right={<span className="text-amber-300 font-bold text-sm pr-1">{money(run.money)}</span>}
       />
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 no-scrollbar" onClick={(e) => { if (e.target === e.currentTarget) setSelItem(null) }}>
         <PartyList
           party={run.party}
           selectedUid={sel}
           onSelect={(uid) => {
             // Modo objeto-primero: si hay un objeto elegido, aplícalo al tocar el Pokémon.
-            if (selItem) { applyItem(selItem, uid); setSelItem(null) }
-            else setSel(uid === sel ? null : uid)
+            if (selItem) {
+              const consumed = applyItem(selItem, uid)
+              // Mantén el objeto seleccionado si quedan más unidades.
+              const left = (run.inventory[selItem] || 0) - (consumed ? 1 : 0)
+              if (left <= 0) setSelItem(null)
+            } else setSel(uid === sel ? null : uid)
           }}
           onReorder={setPartyOrder}
           onUnequip={unequipHeld}
@@ -156,31 +180,69 @@ export default function TeamScreen() {
               <div className="rounded-xl p-0.5" style={{ background: typeGradient(selSpecies.types) }}>
                 <Sprite speciesId={selMon.speciesId} shiny={selMon.shiny} className="w-14 h-14 object-contain" />
               </div>
-              <div className="flex-1">
-                <div className="font-extrabold">{selSpecies.displayName}{selMon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-extrabold truncate">{selSpecies.displayName}{selMon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</div>
                 <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
               </div>
-              <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
+                {run.party.length > 1 && (
+                  <button
+                    onClick={() => { if (compareUid) setCompareUid(null); else setComparePicker((v) => !v) }}
+                    className={`text-[11px] font-bold px-2 py-1 rounded-lg ${compareUid || comparePicker ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-200'}`}
+                  >⚖ {compareUid ? 'Quitar' : 'Comparar'}</button>
+                )}
+              </div>
             </div>
+
+            {/* Selector de Pokémon a comparar */}
+            {comparePicker && !compareUid && (
+              <div className="flex gap-1.5 mb-2 overflow-x-auto no-scrollbar">
+                {run.party.filter((p) => p.uid !== selMon.uid).map((p) => (
+                  <button key={p.uid} onClick={() => { setCompareUid(p.uid); setComparePicker(false) }}
+                    className="shrink-0 rounded-xl border border-slate-700 bg-slate-800 p-1 active:scale-95">
+                    <Sprite speciesId={p.speciesId} shiny={p.shiny} className="w-10 h-10 object-contain" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="mb-2"><HpBar current={selMon.currentHp} max={selMon.stats.hp} status={selMon.status} showNumbers /></div>
 
             {(() => {
-              const phys = attackCategory(selMon) === 'physical'
-              const rows: [string, number][] = [
-                [phys ? 'Ataque (Físico)' : 'Ataque (Especial)', phys ? selMon.stats.atk : selMon.stats.spa],
-                ['Defensa', selMon.stats.def],
-                ['Def. Esp.', selMon.stats.spd],
-                ['Velocidad', selMon.stats.spe],
-              ]
+              const cmp = compareUid ? run.party.find((p) => p.uid === compareUid) ?? null : null
+              const rowsA = statRowsOf(selMon)
+              const rowsB = cmp ? statRowsOf(cmp) : null
+              const cmpSp = cmp ? getSpecies(cmp.speciesId) : null
               return (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
-                  {rows.map(([label, val]) => (
-                    <div key={label} className="flex justify-between">
-                      <span className="text-slate-400">{label}</span>
-                      <span className="font-bold tabular-nums">{val}</span>
+                <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 mb-2">
+                  {cmp && cmpSp && (
+                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-[10px] font-bold mb-1 items-end">
+                      <span className="text-slate-500">Comparativa</span>
+                      <span className="text-right text-sky-300 truncate max-w-[5rem]">{selSpecies.displayName}</span>
+                      <span className="text-right text-amber-300 truncate max-w-[5rem]">{cmpSp.displayName}</span>
                     </div>
-                  ))}
+                  )}
+                  <div className="flex flex-col gap-1 text-xs">
+                    {rowsA.map((r, i) => {
+                      const b = rowsB?.[i]
+                      const colorA = cmp
+                        ? (b && r.eff > b.eff ? 'text-emerald-400' : b && r.eff < b.eff ? 'text-rose-400' : 'text-slate-100')
+                        : (r.eff > r.base ? 'text-emerald-400' : r.eff < r.base ? 'text-rose-400' : 'text-slate-100')
+                      return (
+                        <div key={r.key} className={cmp ? 'grid grid-cols-[1fr_auto_auto] gap-x-3 items-center' : 'flex justify-between items-center'}>
+                          <span className="text-slate-400">{r.label}</span>
+                          <span className={`font-bold tabular-nums text-right ${colorA}`}>
+                            {r.eff}{!cmp && r.eff !== r.base && <span className="text-[9px] text-slate-500 font-normal"> ({r.base})</span>}
+                          </span>
+                          {cmp && b && (
+                            <span className={`font-bold tabular-nums text-right ${b.eff > r.eff ? 'text-emerald-400' : b.eff < r.eff ? 'text-rose-400' : 'text-slate-100'}`}>{b.eff}</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {!cmp && <div className="text-[9px] text-slate-500 mt-1">Verde = mejorado por el objeto · (valor base)</div>}
                 </div>
               )
             })()}
@@ -204,16 +266,21 @@ export default function TeamScreen() {
             {/* Progreso: evolución / megaevolución / próximas mejoras */}
             <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 mb-2 space-y-1 text-[11px]">
               {selSpecies.evolutions.length > 0 ? (
-                selSpecies.evolutions.map((evo) => {
-                  const req = effectiveEvoLevel(evo.trigger)
-                  const target = getSpecies(evo.toId)
-                  return (
-                    <div key={evo.toId} className="flex items-center gap-1.5">
-                      <span>🧬</span>
-                      <span>Evoluciona a <b>{target.displayName}</b> <span className="text-slate-400">al Nv.{req}</span></span>
-                    </div>
-                  )
-                })
+                <>
+                  {selSpecies.evolutions.map((evo) => {
+                    const req = effectiveEvoLevel(evo.trigger)
+                    const target = getSpecies(evo.toId)
+                    return (
+                      <div key={evo.toId} className="flex items-center gap-1.5">
+                        <span>🧬</span>
+                        <span>Evoluciona a <b>{target.displayName}</b> <span className="text-slate-400">al Nv.{req}</span></span>
+                      </div>
+                    )
+                  })}
+                  {evolutionBlockedByItem(selMon) && (
+                    <div className="flex items-center gap-1.5 text-amber-300"><span>🔒</span><span>No evolucionará mientras lleve {getItem(selMon.heldItemId!).name}.</span></div>
+                  )}
+                </>
               ) : (
                 <div className="text-slate-500 flex items-center gap-1.5"><span>🧬</span> Sin evolución (forma final)</div>
               )}
@@ -248,7 +315,7 @@ export default function TeamScreen() {
               )}
             </div>
 
-            {canEvolve && hasEvoStone && (
+            {canEvolve && hasEvoStone && !evolutionBlockedByItem(selMon) && (
               <Button variant="success" full className="!py-2 mb-1" onClick={() => useEvolutionItem('evo-stone', selMon.uid)}>
                 🪨 Evolucionar (Piedra Evolutiva){getSpecies(selMon.speciesId).evolutions.length > 1 ? ' · elegir' : ''}
               </Button>
