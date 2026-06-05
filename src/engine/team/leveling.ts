@@ -11,29 +11,31 @@ export function levelFromExp(exp: number): number {
   return Math.max(1, Math.min(100, lv))
 }
 
-/** Stats a nivel dado (sin EVs, naturaleza neutra). */
+/** Stats a nivel dado (sin EVs, naturaleza neutra) + bonus de objetos. */
 export function computeStats(
   base: BaseStats,
   ivs: BaseStats,
   level: number,
+  bonus?: Partial<BaseStats>,
 ): BaseStats {
   const calc = (b: number, iv: number) =>
     Math.floor(((2 * b + iv) * level) / 100) + 5
   const hp = Math.floor(((2 * base.hp + ivs.hp) * level) / 100) + level + 10
+  const b = bonus ?? {}
   return {
-    hp,
-    atk: calc(base.atk, ivs.atk),
-    def: calc(base.def, ivs.def),
-    spa: calc(base.spa, ivs.spa),
-    spd: calc(base.spd, ivs.spd),
-    spe: calc(base.spe, ivs.spe),
+    hp: hp + (b.hp ?? 0),
+    atk: calc(base.atk, ivs.atk) + (b.atk ?? 0),
+    def: calc(base.def, ivs.def) + (b.def ?? 0),
+    spa: calc(base.spa, ivs.spa) + (b.spa ?? 0),
+    spd: calc(base.spd, ivs.spd) + (b.spd ?? 0),
+    spe: calc(base.spe, ivs.spe) + (b.spe ?? 0),
   }
 }
 
 /** Recalcula stats manteniendo la fracción de PS actual. */
 export function recalcStats(mon: PokemonInstance, species: SpeciesData): void {
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
-  mon.stats = computeStats(species.baseStats, mon.ivs, mon.level)
+  mon.stats = computeStats(species.baseStats, mon.ivs, mon.level, mon.bonus)
   mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
 }
 

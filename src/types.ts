@@ -124,6 +124,8 @@ export interface PokemonInstance {
   heldItemId: string | null
   /** habilidad activa (slug). */
   ability: string
+  /** bonus permanentes de stat (objetos tipo vitamina). */
+  bonus?: Partial<BaseStats>
   /** mote opcional. */
   nickname?: string
   shiny: boolean

@@ -1,4 +1,4 @@
-import type { MoveData, PokemonInstance, StatKey } from '@/types'
+import type { MoveData, PokemonInstance, PokemonType, StatKey } from '@/types'
 import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeDamage, accuracyStageMultiplier } from './damage'
@@ -33,6 +33,7 @@ interface SideState {
   sleepTurns: number
   toxN: number
   sashUsed: Set<string>
+  switches: number
 }
 
 const STRUGGLE: MoveData = {
@@ -80,12 +81,20 @@ export function runBattle(config: BattleConfig): BattleResult {
   while (winner === null && turn < TURN_CAP) {
     turn++
 
-    // Elegir acciones (índice de movimiento) para ambos activos
-    const pMove = decide(player, enemy, rng)
-    const eMove = decide(enemy, player, rng)
+    // Cambio automático a un Pokémon con ventaja de tipo (consume el turno).
+    const pSw = decideSwitch(player, enemy)
+    const eSw = decideSwitch(enemy, player)
+    if (pSw >= 0) doSwitch(player, pSw, enemy, events, ctx)
+    if (eSw >= 0) doSwitch(enemy, eSw, player, events, ctx)
 
-    // Orden por prioridad y velocidad efectiva
-    const order = decideOrder(player, pMove, enemy, eMove, rng, ctx)
+    // Acciones de quien NO cambió, en orden de prioridad/velocidad.
+    const pMove = pSw < 0 ? decide(player, enemy, rng) : -1
+    const eMove = eSw < 0 ? decide(enemy, player, rng) : -1
+    let order: Step[]
+    if (pSw < 0 && eSw < 0) order = decideOrder(player, pMove, enemy, eMove, rng, ctx)
+    else if (pSw < 0) order = [{ side: player, moveIdx: pMove }]
+    else if (eSw < 0) order = [{ side: enemy, moveIdx: eMove }]
+    else order = []
 
     for (const step of order) {
       const atk = step.side
@@ -140,7 +149,54 @@ function makeSide(side: Side, team: PokemonInstance[]): SideState {
     sleepTurns: 0,
     toxN: 1,
     sashUsed: new Set(),
+    switches: 0,
   }
+}
+
+/** Mejor efectividad de tipo de los ataques de `mon` contra `oppTypes`. */
+function bestEffVs(mon: PokemonInstance, oppTypes: PokemonType[]): number {
+  let best = 0
+  for (const mv of mon.moves) {
+    const m = getMove(mv.moveId)
+    if (m.power <= 0) continue
+    best = Math.max(best, typeEffectiveness(m.type, oppTypes))
+  }
+  return best
+}
+
+/** Decide si conviene cambiar a un suplente con mejor emparejamiento de tipo. */
+function decideSwitch(s: SideState, opp: SideState): number {
+  if (s.switches >= s.team.length) return -1
+  const cur = active(s)
+  const oppTypes = getSpecies(active(opp).speciesId).types
+  const curEff = bestEffVs(cur, oppTypes)
+  if (curEff >= 1) return -1 // el activo ya hace daño normal o más
+  let bestIdx = -1
+  let bestVal = curEff
+  for (let i = 0; i < s.team.length; i++) {
+    if (i === s.activeIdx) continue
+    const m = s.team[i]
+    if (m.currentHp <= 0) continue
+    const e = bestEffVs(m, oppTypes)
+    if (e > bestVal + 1e-6) { bestVal = e; bestIdx = i }
+  }
+  if (bestIdx < 0) return -1
+  // Cambia solo si: no podemos dañar (inmunidad) y el suplente sí, o el
+  // suplente es súper eficaz. Evita cambios innecesarios que pierden tempo.
+  const escapeImmunity = curEff === 0 && bestVal >= 1
+  const upgradeToSuper = bestVal >= 2
+  return escapeImmunity || upgradeToSuper ? bestIdx : -1
+}
+
+function doSwitch(s: SideState, idx: number, opp: SideState, events: BattleEvent[], ctx: BattleCtx): void {
+  s.activeIdx = idx
+  s.stages = zeroStages()
+  s.sleepTurns = 0
+  s.toxN = 1
+  s.switches++
+  events.push(sendOutEvent(s))
+  maybeMega(s, events)
+  applySwitchIn(s, opp, events, ctx)
 }
 
 function active(s: SideState): PokemonInstance {
@@ -511,7 +567,7 @@ function maybeMega(s: SideState, events: BattleEvent[]): void {
   const mega = forms[0]
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.speciesId = mega.id
-  mon.stats = computeStats(mega.baseStats, mon.ivs, mon.level)
+  mon.stats = computeStats(mega.baseStats, mon.ivs, mon.level, mon.bonus)
   mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
   if (mega.abilities.length) mon.ability = mega.abilities[0]
   events.push({ kind: 'mega', side: s.side, uid: mon.uid, toSpeciesId: mega.id, name: mega.displayName })

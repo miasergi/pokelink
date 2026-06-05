@@ -51,7 +51,9 @@ export default function MapScreen() {
   const { map } = run
   const reachable = new Set(availableNextNodes(run).map((n) => n.id))
 
-  const xOf = (col: number, len: number) => ((col + 0.5) / len) * width
+  // Margen lateral para que los nodos queden más centrados (no pegados al borde).
+  const PAD = Math.min(48, width * 0.13)
+  const xOf = (col: number, len: number) => PAD + ((col + 0.5) / len) * (width - 2 * PAD)
   const yOf = (layer: number) => layer * ROW_H + ROW_H / 2
 
   const totalHeight = map.layers.length * ROW_H + 40

@@ -14,8 +14,9 @@ export const ITEMS: ItemData[] = [
   { id: 'revive', name: 'Revivir', category: 'revive', description: 'Revive con el 50% de los PS.', price: 1500, sprite: ITEM_SPRITE('revive') },
   { id: 'max-revive', name: 'Revivir Máx', category: 'revive', description: 'Revive con todos los PS.', price: 4000, sprite: ITEM_SPRITE('max-revive') },
 
-  // --- Caramelo ---
-  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 1 nivel a un Pokémon.', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
+  // --- Mejora ---
+  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 1 nivel a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
+  { id: 'attack-boost', name: 'Refuerzo de Ataque', category: 'battle', description: 'Sube de forma permanente el Ataque y el At. Especial de un Pokémon (sus ataques pegan más fuerte).', price: 2500, sprite: ITEM_SPRITE('protein') },
 
   // --- Objetos de batalla (equipables, efecto pasivo en combate) ---
   { id: 'leftovers', name: 'Restos', category: 'held', description: 'Recupera 1/16 de PS cada turno.', price: 2000, sprite: ITEM_SPRITE('leftovers') },

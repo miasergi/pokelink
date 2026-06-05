@@ -11,12 +11,24 @@ const CLASS_ES: Record<string, string> = {
   gym: 'Líder de Gimnasio', elite: 'Alto Mando', champion: 'Campeón', rival: 'Rival', trainer: 'Entrenador',
 }
 const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
-  battle: { title: 'Hierba alta', desc: 'Aparecerá un Pokémon salvaje. Si lo vences, tu equipo gana experiencia.' },
+  battle: { title: 'Hierba alta', desc: 'Aparecerá un Pokémon salvaje. El Pokémon no se ve hasta que entras.' },
   catch: { title: 'Captura', desc: 'Un Pokémon salvaje quiere unirse a tu equipo. Podrás añadirlo o cambiarlo por otro.' },
   item: { title: 'Objeto', desc: 'Elige 1 de 3 objetos para tu mochila.' },
   shop: { title: 'Tienda', desc: 'Compra objetos (pociones, revivir, objetos de batalla...) con tu dinero.' },
   heal: { title: 'Centro Pokémon', desc: 'Cura por completo los PS de todo tu equipo. Gratis.' },
   event: { title: 'Evento', desc: 'Un encuentro inesperado en el camino. Puede salir bien... o no.' },
+}
+const REWARD: Partial<Record<string, string>> = {
+  battle: '+1 nivel a todo tu equipo',
+  trainer: '+2 niveles a tu equipo + dinero',
+  rival: '+2 niveles + dinero',
+  catch: 'un Pokémon nuevo para tu equipo',
+  item: '1 objeto a elegir',
+  event: 'sorpresa (objeto, dinero o Pokémon)',
+  gym: 'medalla + objeto raro',
+  elite: 'objeto raro',
+  champion: '¡completar la región!',
+  legendary: '¡capturas al legendario!',
 }
 
 export default function NodePreview({
@@ -78,6 +90,17 @@ export default function NodePreview({
 
         {trainer?.quote && <p className="text-sm text-slate-300 italic mt-3">“{trainer.quote}”</p>}
         {simple && <p className="text-sm text-slate-300 mt-3">{simple.desc}</p>}
+
+        {/* Recompensa */}
+        {REWARD[node.type] && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2">
+            <span className="text-lg">🎁</span>
+            <div>
+              <div className="text-[11px] text-amber-300 font-bold">Recompensa</div>
+              <div className="text-sm">{REWARD[node.type]}</div>
+            </div>
+          </div>
+        )}
 
         {/* Equipo del entrenador */}
         {isTrainer && (

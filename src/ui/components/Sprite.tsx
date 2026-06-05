@@ -17,8 +17,10 @@ export default function Sprite({ speciesId, variant = 'artwork', shiny, classNam
   const [errored, setErrored] = useState(false)
   const species = getSpecies(speciesId)
   let src = variant === 'artwork' ? species.spriteArtwork : species.spriteFront
-  if (shiny && variant === 'front') {
-    src = src.replace('/pokemon/', '/pokemon/shiny/')
+  if (shiny) {
+    src = variant === 'artwork'
+      ? src.replace('/official-artwork/', '/official-artwork/shiny/')
+      : src.replace('/pokemon/', '/pokemon/shiny/')
   }
   return (
     <img

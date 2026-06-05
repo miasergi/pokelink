@@ -6,7 +6,7 @@ import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
 import Sprite from '@/ui/components/Sprite'
 import HpBar from '@/ui/components/HpBar'
-import { Button, ImgFallback } from '@/ui/components/kit'
+import { Button } from '@/ui/components/kit'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { play, type Sfx } from '@/utils/sfx'
@@ -143,85 +143,76 @@ export default function BattleScreen() {
         <div key={`flash-${idx}`} className="absolute inset-0 z-10 pointer-events-none fx-flash" style={{ background: frame.flash.color }} />
       )}
 
-      <div className="relative flex-1 flex flex-col px-4 pt-4 safe-top gap-1">
+      <div className="relative flex-1 flex flex-col px-3 pt-2 safe-top">
         {/* Indicador de clima */}
         {frame.weather !== 'none' && (
-          <div className="absolute top-2 left-3 z-10 flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-full px-2 py-0.5 animate-pop-in">
+          <div className="z-10 self-center flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-full px-2 py-0.5 animate-pop-in mb-1">
             <span className="text-sm">{WEATHER_ICON[frame.weather]}</span>
             <span className="text-[10px] font-bold">{WEATHER_ES[frame.weather]}</span>
           </div>
         )}
-        {/* Retrato del entrenador rival (combates de entrenador) */}
-        {trainer && trainer.sprite && (
-          <div className="absolute top-2 right-3 z-10 flex flex-col items-center animate-pop-in">
-            <ImgFallback
-              src={trainer.sprite}
-              alt={trainer.name}
-              className="w-14 h-14 object-contain drop-shadow-lg"
-              style={{ imageRendering: 'pixelated' }}
-              fallback={<span />}
-            />
-            <span className="text-[10px] font-bold text-slate-200 -mt-1 bg-slate-900/70 px-1.5 rounded-full">{trainer.name}</span>
-          </div>
-        )}
-        {/* Enemigo */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="mt-1 flex flex-col gap-1">
-            <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
-            <Tray team={teams.enemy} fainted={frame.fainted.enemy} activeUid={frame.enemy.uid} align="left" />
-          </div>
-          <div className="relative mr-1">
-            <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
-            <Platform />
-            <div className={lungeEnemy}>
-              <Sprite
-                speciesId={frame.enemy.speciesId}
-                shiny={frame.enemy.shiny}
-                className={`relative w-28 h-28 object-contain drop-shadow-2xl transition-all ${
-                  frame.enemy.fainted ? 'animate-faint' : ''
-                } ${frame.anim.enemy === 'hit' ? 'animate-shake brightness-150' : ''}`}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Banner del movimiento usado (breve, centrado) */}
-        <div className="flex-1 flex items-center justify-center px-2 min-h-[2.5rem]">
-          {frame.acting && (
-            <div
-              key={`mv-${idx}`}
-              className="fx-banner flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg border"
-              style={{ background: `${TYPE_HEX[frame.acting.moveType]}22`, borderColor: TYPE_HEX[frame.acting.moveType] }}
-            >
-              <span
-                className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full"
-                style={{ background: TYPE_HEX[frame.acting.moveType] }}
-              >
-                {TYPE_ES[frame.acting.moveType]}
-              </span>
-              <span className="font-extrabold text-sm">{frame.acting.moveName}</span>
+        {/* Arena compacta y centrada: cada barra pegada a su Pokémon */}
+        <div className="flex-1 grid place-items-center">
+          <div className="relative w-full max-w-md" style={{ height: 'min(46vh, 340px)' }}>
+            {/* Enemigo (arriba): barra a la izquierda, sprite a la derecha */}
+            <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
+                <Tray team={teams.enemy} fainted={frame.fainted.enemy} activeUid={frame.enemy.uid} align="left" />
+                {trainer?.name && <span className="text-[10px] text-slate-400 pl-1">vs {trainer.name}</span>}
+              </div>
+              <div className="relative">
+                <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
+                <Platform />
+                <div className={lungeEnemy}>
+                  <Sprite
+                    speciesId={frame.enemy.speciesId}
+                    shiny={frame.enemy.shiny}
+                    className={`relative w-28 h-28 object-contain drop-shadow-2xl transition-all ${
+                      frame.enemy.fainted ? 'animate-faint' : ''
+                    } ${frame.anim.enemy === 'hit' ? 'animate-shake brightness-150' : ''}`}
+                  />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Jugador */}
-        <div className="flex items-end justify-between gap-2 mb-1">
-          <div className="relative ml-1">
-            <SpriteFx side="player" fx={frame.fx} idx={idx} />
-            <Platform />
-            <div className={lungePlayer}>
-              <Sprite
-                speciesId={frame.player.speciesId}
-                shiny={frame.player.shiny}
-                className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all ${
-                  frame.player.fainted ? 'animate-faint' : ''
-                } ${frame.anim.player === 'hit' ? 'animate-shake brightness-150' : ''}`}
-              />
+            {/* Banner del movimiento (centro de la arena) */}
+            <div className="absolute inset-0 grid place-items-center pointer-events-none">
+              {frame.acting && (
+                <div
+                  key={`mv-${idx}`}
+                  className="fx-banner flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg border"
+                  style={{ background: `${TYPE_HEX[frame.acting.moveType]}ee`, borderColor: '#fff3' }}
+                >
+                  <span className="text-[10px] font-bold text-white/90 px-1.5 py-0.5 rounded-full bg-black/25">
+                    {TYPE_ES[frame.acting.moveType]}
+                  </span>
+                  <span className="font-extrabold text-sm text-white">{frame.acting.moveName}</span>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="mb-1 flex flex-col gap-1 items-end">
-            <Tray team={teams.player} fainted={frame.fainted.player} activeUid={frame.player.uid} align="right" />
-            <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+
+            {/* Jugador (abajo): sprite a la izquierda, barra a la derecha */}
+            <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-2">
+              <div className="relative">
+                <SpriteFx side="player" fx={frame.fx} idx={idx} />
+                <Platform />
+                <div className={lungePlayer}>
+                  <Sprite
+                    speciesId={frame.player.speciesId}
+                    shiny={frame.player.shiny}
+                    className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all ${
+                      frame.player.fainted ? 'animate-faint' : ''
+                    } ${frame.anim.player === 'hit' ? 'animate-shake brightness-150' : ''}`}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 items-end">
+                <Tray team={teams.player} fainted={frame.fainted.player} activeUid={frame.player.uid} align="right" />
+                <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

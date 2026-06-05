@@ -10,7 +10,7 @@ import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
 import { evolve } from '@/engine/team/evolution'
-import { gainLevel } from '@/engine/team/leveling'
+import { gainLevel, recalcStats } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
 export type ScreenName =
@@ -236,7 +236,13 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
-    const ok = itemId === 'rare-candy' ? gainLevel(mon) : applyHealItem(mon, itemId)
+    let ok: boolean
+    if (itemId === 'rare-candy') ok = gainLevel(mon)
+    else if (itemId === 'attack-boost') {
+      mon.bonus = { ...mon.bonus, atk: (mon.bonus?.atk ?? 0) + 18, spa: (mon.bonus?.spa ?? 0) + 18 }
+      recalcStats(mon, getSpecies(mon.speciesId))
+      ok = true
+    } else ok = applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
     persist(run)
     set({ run })

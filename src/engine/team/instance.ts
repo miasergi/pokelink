@@ -100,7 +100,7 @@ export function createInstance(
     moves,
     heldItemId: opts.heldItemId ?? null,
     ability,
-    shiny: rng.chance(opts.shinyChance ?? 1 / 512),
+    shiny: rng.chance(opts.shinyChance ?? 0.01), // 1% shiny (iniciales, capturas, encuentros)
   }
 }
 

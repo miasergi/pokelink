@@ -40,7 +40,7 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const HEAL_ITEMS = ['potion', 'max-potion', 'revive', 'max-revive']
 const HELD_ITEMS = ['leftovers', 'life-orb', 'focus-sash', 'choice-band', 'choice-specs', 'assault-vest', 'rocky-helmet']
-const BATTLE_ITEMS = ['rare-candy']
+const BATTLE_ITEMS = ['rare-candy', 'attack-boost']
 
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
@@ -64,7 +64,7 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
 
 /** Stock de tienda. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
-  const base = ['potion', 'revive', 'rare-candy']
+  const base = ['potion', 'revive', 'rare-candy', 'attack-boost']
   const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive'] : []
   const held = rng.sample(HELD_ITEMS, 2)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []

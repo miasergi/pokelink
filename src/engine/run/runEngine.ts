@@ -2,7 +2,7 @@ import type { PokemonInstance } from '@/types'
 import { encounterPool, getSpecies } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
-import { computeStats, expForLevel } from '@/engine/team/leveling'
+import { computeStats, expForLevel, gainLevel } from '@/engine/team/leveling'
 import { pendingLevelEvolution, evolve } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
@@ -101,9 +101,9 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // jugador va un par de niveles por encima para compensar la falta de cobertura.
   // El Alto Mando/Campeón curan al entrar, así que ahí va igualado.
   let bossFloor = node.enemyLevel
-  if (node.type === 'gym') bossFloor = hard ? node.enemyLevel - 1 : node.enemyLevel + 2
+  if (node.type === 'gym') bossFloor = hard ? node.enemyLevel : node.enemyLevel + 3
   else if (hard) bossFloor = node.enemyLevel - 2
-  const floor = Math.max(5, isBoss ? bossFloor : node.enemyLevel - 2)
+  const floor = Math.max(5, isBoss ? bossFloor : node.enemyLevel - 1)
   for (const mon of run.party) enforceMinLevel(mon, floor)
   // El Alto Mando y el Campeón curan al entrar (es un gauntlet). Ante los
   // gimnasios decides tú si pasar por el Centro Pokémon de la ruta previa.
@@ -127,7 +127,7 @@ export interface BattleOutcomeSummary {
   runWon: boolean
 }
 
-const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'rare-candy', 'life-orb', 'evo-stone', 'mega-stone']
+const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'rare-candy', 'attack-boost', 'life-orb', 'evo-stone', 'mega-stone']
 
 export function applyBattleOutcome(
   run: RunState, node: MapNode, result: BattleResult,
@@ -197,6 +197,10 @@ export function applyBattleOutcome(
     summary.runWon = true
     summary.runEnded = true
   }
+
+  // Recompensa de nivel por casilla: hierba alta +1, entrenador +2.
+  const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : 0
+  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (mon.currentHp > 0) gainLevel(mon)
 
   // Guardián legendario: ¡lo capturas al vencerlo!
   if (node.type === 'legendary' && content.kind === 'wild') {
