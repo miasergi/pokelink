@@ -1,7 +1,17 @@
 import type { PokemonInstance, SpeciesData } from '@/types'
 import { getMove } from '@/data'
 import { typeEffectiveness } from '@/data/typechart'
+import { ABSORB } from './abilities'
 import { RNG } from '@/utils/rng'
+
+/** ¿La habilidad del defensor anula por completo este tipo de movimiento? */
+function abilityImmune(defenderAbility: string, moveType: string, eff: number): boolean {
+  if (ABSORB[defenderAbility]?.type === moveType) return true
+  if (defenderAbility === 'levitate' && moveType === 'ground') return true
+  if (defenderAbility === 'flash-fire' && moveType === 'fire') return true
+  if (defenderAbility === 'wonder-guard' && eff <= 1) return true
+  return false
+}
 
 /**
  * Heurística de selección de movimiento para el autobattler.
@@ -44,6 +54,7 @@ export function chooseMove(
           : attacker.stats.spa / Math.max(1, defender.stats.spd)
       score = move.power * eff * stab * (0.5 + statRatio * 0.5)
       if (eff === 0) score = -10
+      if (abilityImmune(defender.ability, move.type, eff)) score = -20
       score *= rng.float(0.92, 1.08)
     }
 

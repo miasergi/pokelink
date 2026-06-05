@@ -274,6 +274,8 @@ async function main() {
       evolutions: evoSteps.get(id) || [],
       isFinal: !evolvesFrom.has(id),
       legendary: !!(sp.is_legendary || sp.is_mythical),
+      mythical: !!sp.is_mythical,
+      abilities: abilitiesOf(p),
       spriteArtwork: ARTWORK(id),
       spriteFront: FRONT(id),
       catchRate: sp.capture_rate ?? 45,
@@ -328,6 +330,8 @@ async function main() {
       evolutions: [],
       isFinal: true,
       legendary: base.legendary,
+      mythical: base.mythical,
+      abilities: abilitiesOf(d),
       spriteArtwork: ARTWORK(d.id),
       spriteFront: FRONT(d.id),
       catchRate: base.catchRate,
@@ -340,6 +344,13 @@ async function main() {
   console.log(`✓ ${megas.length} megaevoluciones -> megas.json`)
 
   console.log('Hecho.')
+}
+
+function abilitiesOf(p) {
+  if (!p.abilities) return []
+  const normal = p.abilities.filter((a) => !a.is_hidden).map((a) => a.ability.name)
+  const all = p.abilities.map((a) => a.ability.name)
+  return (normal.length ? normal : all)
 }
 
 function mapStat(name) {

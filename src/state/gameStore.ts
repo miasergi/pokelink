@@ -15,7 +15,7 @@ import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'settings' | 'gameover' | 'victory'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory'
 
 interface Screen {
   name: ScreenName

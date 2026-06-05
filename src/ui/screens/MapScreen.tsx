@@ -163,7 +163,7 @@ export default function MapScreen() {
                     cleared={node.cleared && !isCurrent}
                     dim={!isReach && !node.cleared}
                   />
-                  {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival') && (
+                  {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'legendary') && (
                     <div className="flex flex-col items-center mt-0.5 leading-tight">
                       <span className="text-[8px] font-bold whitespace-nowrap" style={{ color: meta.color }}>
                         Nv.{node.enemyLevel}

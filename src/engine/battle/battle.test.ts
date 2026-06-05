@@ -71,6 +71,17 @@ describe('motor de combate', () => {
     expect(r1.events.length).toBe(r2.events.length)
   })
 
+  it('las habilidades de entrada se activan (Intimidación de Gyarados)', () => {
+    const rng = new RNG(3)
+    const r = runBattle({
+      playerTeam: [createInstance(6, 40, rng)], // Charizard
+      enemyTeam: [createInstance(130, 40, rng)], // Gyarados (Intimidación)
+      seed: 21,
+    })
+    const intimidate = r.events.find((e) => e.kind === 'ability' && (e as { ability: string }).ability === 'intimidate')
+    expect(intimidate).toBeTruthy()
+  })
+
   it('no entra en bucle infinito (termina antes del cap)', () => {
     const rng = new RNG(1)
     const r = runBattle({

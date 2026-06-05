@@ -27,10 +27,14 @@ export function evolutionByItem(
   return null
 }
 
-/** Aplica una evolución a una instancia (muta especie y recalcula stats). */
+/** Aplica una evolución a una instancia (muta especie, stats y habilidad). */
 export function evolve(mon: PokemonInstance, toSpecies: SpeciesData): void {
   mon.speciesId = toSpecies.id
   recalcStats(mon, toSpecies)
+  // Si la habilidad actual no existe en la nueva especie, hereda la primera.
+  if (toSpecies.abilities.length && !toSpecies.abilities.includes(mon.ability)) {
+    mon.ability = toSpecies.abilities[0]
+  }
 }
 
 /** Evolución final por cadena de niveles (usado para rivales/campeón). */

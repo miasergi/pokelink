@@ -27,6 +27,7 @@ export function nodeImage(node: MapNode): NodeImage {
   const c = node.content
   switch (node.type) {
     case 'battle':
+    case 'legendary':
       return { url: c.kind === 'wild' ? pokemonSprite(c.enemy.speciesId) : itemSprite('poke-ball'), pixel: true }
     case 'trainer':
     case 'rival':

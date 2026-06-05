@@ -25,9 +25,12 @@ export default function HomeScreen() {
         <Button variant="primary" full onClick={() => navigate('modeSelect')}>
           {hasSavedRun ? 'Nueva partida' : '⚔ Jugar'}
         </Button>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Button variant="secondary" onClick={() => navigate('pokedex')}>
             📕 Pokédex
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('records')}>
+            🏆 Récords
           </Button>
           <Button variant="secondary" onClick={() => navigate('settings')}>
             ⚙ Ajustes

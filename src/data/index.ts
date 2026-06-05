@@ -64,3 +64,9 @@ export function speciesByGeneration(gen: number | 'all'): SpeciesData[] {
 export function encounterPool(gen: number | 'all'): SpeciesData[] {
   return speciesByGeneration(gen).filter((s) => !s.legendary)
 }
+
+/** Pool de legendarios (no míticos) de una generación, para guardianes. */
+export function legendaryPool(gen: number | 'all'): SpeciesData[] {
+  const list = speciesByGeneration(gen).filter((s) => s.legendary && !s.mythical && s.isFinal)
+  return list.length ? list : ALL_SPECIES.filter((s) => s.legendary && !s.mythical)
+}

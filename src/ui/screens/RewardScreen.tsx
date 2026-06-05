@@ -33,6 +33,16 @@ export default function RewardScreen() {
           </Card>
         )}
 
+        {lastSummary.caughtLegendary && (
+          <Card className="p-3 flex items-center gap-3 animate-pop-in" style={{ borderColor: '#a78bfa66' }}>
+            <span className="text-2xl">⭐</span>
+            <div>
+              <div className="text-xs text-violet-300">¡Legendario capturado!</div>
+              <div className="font-bold">{lastSummary.caughtLegendary}</div>
+            </div>
+          </Card>
+        )}
+
         {lastSummary.lost.length > 0 && (
           <Card className="p-3" style={{ borderColor: '#f43f5e55' }}>
             <div className="text-rose-300 font-bold text-sm">☠ Perdidos para siempre</div>

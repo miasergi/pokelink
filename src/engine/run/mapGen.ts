@@ -1,6 +1,6 @@
 import type { PokemonInstance, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
-import { encounterPool } from '@/data'
+import { encounterPool, legendaryPool } from '@/data'
 import { createInstance } from '@/engine/team/instance'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
@@ -36,11 +36,13 @@ const GENERIC_CLASSES: { slug: string; name: string }[] = [
 ]
 
 interface LayerPlan {
-  kind: 'route' | 'boss' | 'heal'
+  kind: 'route' | 'boss' | 'heal' | 'legendary'
   width?: number
   type?: NodeType
   bossIndex?: number
   trainer?: TrainerData
+  legendarySpeciesId?: number
+  level?: number
 }
 
 function trainerMaxLevel(t: TrainerData): number {
@@ -78,6 +80,11 @@ export function generateMap(
     plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras) })
   }
   const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i] })
+  const legends = legendaryPool(mode === 'all' ? 'all' : gen)
+  const legendary = (level: number) => {
+    const sp = rng.pick(legends)
+    plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level })
+  }
 
   // Nivel del último gimnasio -> escala el tramo de Liga según la región.
   const lastGymLvl = Math.max(...gyms[7].team.map((s) => s.level))
@@ -90,7 +97,7 @@ export function generateMap(
   pushRoute(5); gym(4)
   pushRoute(6); pushRival(Math.round(lastGymLvl * 0.85)); heal(); gym(5)
   pushRoute(5); gym(6)
-  pushRoute(6); heal(); gym(7)
+  pushRoute(3); legendary(Math.round(lastGymLvl * 0.9)); pushRoute(2); heal(); gym(7)
   // Calle Victoria + Liga Pokémon
   pushRoute(5)
   pushRival(lastGymLvl + 6)
@@ -102,6 +109,7 @@ export function generateMap(
   // --- Niveles ancla (interpolación de niveles de ruta) ---
   const anchors: (number | null)[] = plan.map((p) => {
     if (p.kind === 'boss' && p.trainer) return trainerMaxLevel(p.trainer)
+    if (p.kind === 'legendary') return p.level ?? null
     return null
   })
   const levels = interpolateLevels(anchors, 5)
@@ -132,6 +140,14 @@ export function generateMap(
       nodes[id] = {
         id, layer: layerIdx, col: 0, type: 'heal', next: [], enemyLevel: level,
         content: { kind: 'heal' }, cleared: false,
+      }
+      ids.push(id)
+    } else if (p.kind === 'legendary') {
+      const id = newId()
+      const enemy = createInstance(p.legendarySpeciesId!, p.level ?? level, rng)
+      nodes[id] = {
+        id, layer: layerIdx, col: 0, type: 'legendary', next: [], enemyLevel: p.level ?? level,
+        content: { kind: 'wild', enemy }, cleared: false,
       }
       ids.push(id)
     } else {

@@ -10,6 +10,7 @@ import { Button, ImgFallback } from '@/ui/components/kit'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { play, type Sfx } from '@/utils/sfx'
+import { type Weather, WEATHER_ICON, WEATHER_ES } from '@/engine/battle/abilities'
 
 interface SideView {
   uid: string
@@ -41,12 +42,14 @@ interface Frame {
   fx?: Fx
   flash?: { color: string }
   sound?: Sfx
+  weather: Weather
 }
 
 const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
   start: 500, sendOut: 500, move: 560, damage: 600, heal: 540, faint: 780,
   status: 660, statChange: 580, statusDamage: 640, cantMove: 640, miss: 560,
   noEffect: 640, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
+  ability: 820, weather: 820,
 }
 
 export default function BattleScreen() {
@@ -123,6 +126,13 @@ export default function BattleScreen() {
       )}
 
       <div className="relative flex-1 flex flex-col px-4 pt-4 safe-top gap-1">
+        {/* Indicador de clima */}
+        {frame.weather !== 'none' && (
+          <div className="absolute top-2 left-3 z-10 flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-full px-2 py-0.5 animate-pop-in">
+            <span className="text-sm">{WEATHER_ICON[frame.weather]}</span>
+            <span className="text-[10px] font-bold">{WEATHER_ES[frame.weather]}</span>
+          </div>
+        )}
         {/* Retrato del entrenador rival (combates de entrenador) */}
         {trainer && trainer.sprite && (
           <div className="absolute top-2 right-3 z-10 flex flex-col items-center animate-pop-in">
@@ -300,6 +310,7 @@ function buildFrames(
   let player: SideView | null = null
   let enemy: SideView | null = null
   let message = '¡El combate ha comenzado!'
+  let weather: Weather = 'none'
   const frames: Frame[] = []
 
   // estado de movimiento en curso
@@ -316,7 +327,7 @@ function buildFrames(
       player: { ...player }, enemy: { ...enemy }, message,
       anim: extra.anim ?? {},
       remaining: { player: Math.max(1, remaining('player')), enemy: Math.max(0, remaining('enemy')) },
-      acting: extra.acting, fx: extra.fx, flash: extra.flash, sound: extra.sound,
+      acting: extra.acting, fx: extra.fx, flash: extra.flash, sound: extra.sound, weather,
     })
   }
 
@@ -406,6 +417,15 @@ function buildFrames(
         push({ flash: { color: 'rgba(217,70,239,0.5)' }, anim: { [e.side]: 'heal' }, sound: 'mega' })
         break
       }
+      case 'ability':
+        message = e.text
+        push({ sound: 'status' })
+        break
+      case 'weather':
+        weather = e.weather
+        message = e.weather === 'none' ? 'El clima se calmó.' : `¡${WEATHER_ES[e.weather]}!`
+        push()
+        break
       case 'message':
         message = e.text
         push({ sound: e.text.includes('subió') ? 'levelup' : undefined })

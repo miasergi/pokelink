@@ -90,7 +90,7 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   } else {
     throw new Error('Nodo sin combate')
   }
-  const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
+  const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'legendary'
   const hard = run.difficulty === 'hard'
 
   // Difícil: enemigos más fuertes.
@@ -117,6 +117,8 @@ export interface BattleOutcomeSummary {
   evolutions: { uid: string; fromId: number; toId: number }[]
   /** Nuzlocke: nombres de los Pokémon perdidos para siempre en este combate. */
   lost: string[]
+  /** Nombre del legendario capturado al vencer su guardián. */
+  caughtLegendary?: string
   runEnded: boolean
   runWon: boolean
 }
@@ -190,6 +192,16 @@ export function applyBattleOutcome(
     run.status = 'won'
     summary.runWon = true
     summary.runEnded = true
+  }
+
+  // Guardián legendario: ¡lo capturas al vencerlo!
+  if (node.type === 'legendary' && content.kind === 'wild') {
+    const mon = content.enemy
+    run.stats.pokemonCaught++
+    run.money += 2000
+    if (run.party.length < MAX_PARTY) run.party.push(mon)
+    else run.box.push(mon)
+    summary.caughtLegendary = getSpecies(mon.speciesId).displayName
   }
 
   // Evoluciones por nivel
@@ -349,6 +361,7 @@ function enforceMinLevel(mon: PokemonInstance, minLevel: number): void {
 export function isNodeBattle(node: MapNode): boolean {
   return (
     node.type === 'battle' || node.type === 'trainer' || node.type === 'rival' ||
-    node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
+    node.type === 'gym' || node.type === 'elite' || node.type === 'champion' ||
+    node.type === 'legendary'
   )
 }

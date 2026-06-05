@@ -12,6 +12,7 @@ export const NODE_META: Record<NodeType, { label: string; color: string }> = {
   event: { label: 'Evento', color: '#fbbf24' },
   heal: { label: 'Centro Pokémon', color: '#f472b6' },
   rival: { label: 'Rival', color: '#fb923c' },
+  legendary: { label: 'Legendario', color: '#a78bfa' },
   gym: { label: 'Gimnasio', color: '#fcd34d' },
   elite: { label: 'Alto Mando', color: '#c084fc' },
   champion: { label: 'Campeón', color: '#fde047' },
@@ -28,8 +29,8 @@ export default function NodeIcon({
 }) {
   const [stage, setStage] = useState<0 | 1 | 2>(0)
   const meta = NODE_META[node.type]
-  const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival'
-  const isTrainer = isBoss || node.type === 'trainer'
+  const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'legendary'
+  const isTrainer = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'trainer'
   const img = nodeImage(node)
   const fallbackUrl = isTrainer ? aceSprite(node) : null
   const src = stage === 0 ? img.url : fallbackUrl

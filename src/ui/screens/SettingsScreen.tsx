@@ -33,8 +33,24 @@ export default function SettingsScreen() {
           <Toggle on={s.sound} onClick={s.toggleSound} />
         </Card>
 
+        <Card className="p-4 flex items-center justify-between">
+          <div>
+            <div className="font-bold">Repetir tutorial</div>
+            <div className="text-xs text-slate-400">Vuelve a mostrar la introducción</div>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              try { localStorage.removeItem('pokerogue:onboarded') } catch { /* */ }
+              location.reload()
+            }}
+          >
+            Ver
+          </Button>
+        </Card>
+
         <div className="text-xs text-slate-500 text-center mt-2">
-          PokéRogue · v0.1 — uso personal
+          PokéRogue · v0.2 — uso personal
         </div>
 
         {run && (

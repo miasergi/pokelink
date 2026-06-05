@@ -132,6 +132,12 @@ export function IconTrophy({ size = 24, className }: IconProps) {
   ), className)
 }
 
+export function IconStar({ size = 24, className }: IconProps) {
+  return svg(size, (
+    <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3Z" fill="currentColor" stroke="currentColor" />
+  ), className)
+}
+
 const ICONS: Record<NodeType, (p: IconProps) => JSX.Element> = {
   battle: IconWildBattle,
   trainer: IconTrainer,
@@ -141,6 +147,7 @@ const ICONS: Record<NodeType, (p: IconProps) => JSX.Element> = {
   event: IconEvent,
   heal: IconHeal,
   rival: IconRival,
+  legendary: IconStar,
   gym: IconBadge,
   elite: IconCrown,
   champion: IconTrophy,

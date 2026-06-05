@@ -87,6 +87,8 @@ export function createInstance(
       })
     : selectMoveset(species, level)
 
+  const ability = species.abilities.length ? rng.pick(species.abilities) : 'none'
+
   return {
     uid: nextUid(),
     speciesId,
@@ -98,6 +100,7 @@ export function createInstance(
     status: 'none',
     moves,
     heldItemId: opts.heldItemId ?? null,
+    ability,
     shiny: rng.chance(opts.shinyChance ?? 1 / 512),
   }
 }

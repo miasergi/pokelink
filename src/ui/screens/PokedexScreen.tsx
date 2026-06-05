@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
+import { loadMeta } from '@/persistence/db'
 import { ALL_SPECIES, getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
@@ -11,6 +12,10 @@ export default function PokedexScreen() {
   const [gen, setGen] = useState<number | 'all'>(1)
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<number | null>(null)
+  const [caught, setCaught] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    void loadMeta().then((m) => setCaught(new Set(m.pokedexCaught)))
+  }, [])
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -23,7 +28,11 @@ export default function PokedexScreen() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="Pokédex" left={<Button variant="ghost" onClick={back}>‹</Button>} />
+      <TopBar
+        title="Pokédex"
+        left={<Button variant="ghost" onClick={back}>‹</Button>}
+        right={caught.size > 0 ? <span className="text-xs text-emerald-300 font-bold pr-1">{caught.size}</span> : undefined}
+      />
 
       <div className="p-2.5 flex flex-col gap-2 border-b border-slate-800">
         <input
@@ -54,8 +63,11 @@ export default function PokedexScreen() {
               className="rounded-2xl p-2 flex flex-col items-center border border-slate-700/60 active:scale-[0.97] transition"
               style={{ background: 'rgba(15,23,42,0.6)' }}
             >
-              <span className="text-[9px] text-slate-500 self-start">#{String(s.id).padStart(4, '0')}</span>
-              <Sprite speciesId={s.id} variant="front" className="w-16 h-16 object-contain" />
+              <span className="text-[9px] text-slate-500 self-start flex items-center gap-0.5">
+                #{String(s.id).padStart(4, '0')}
+                {caught.has(s.id) && <span className="text-emerald-400">●</span>}
+              </span>
+              <Sprite speciesId={s.id} variant="front" className={`w-16 h-16 object-contain ${caught.has(s.id) ? '' : 'opacity-80'}`} />
               <span className="text-[11px] font-semibold truncate w-full text-center">{s.displayName}</span>
             </button>
           ))}

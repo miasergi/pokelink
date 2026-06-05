@@ -88,6 +88,9 @@ export interface SpeciesData {
   isFinal: boolean
   /** Es legendario/mítico — se excluye de encuentros normales. */
   legendary: boolean
+  mythical?: boolean
+  /** Habilidades posibles (slugs de PokeAPI). */
+  abilities: string[]
   spriteArtwork: string
   spriteFront: string
   catchRate: number // 0..255
@@ -119,6 +122,8 @@ export interface PokemonInstance {
   status: StatusCondition
   moves: MoveInstance[]
   heldItemId: string | null
+  /** habilidad activa (slug). */
+  ability: string
   /** mote opcional. */
   nickname?: string
   shiny: boolean

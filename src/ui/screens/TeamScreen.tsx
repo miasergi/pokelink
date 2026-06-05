@@ -8,6 +8,7 @@ import TypeBadge from '@/ui/components/TypeBadge'
 import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
+import { abilityName } from '@/engine/battle/abilities'
 
 const CAT_ES: Record<string, string> = { physical: 'Físico', special: 'Especial', status: 'Estado' }
 
@@ -49,6 +50,9 @@ export default function TeamScreen() {
               <div className="flex-1">
                 <div className="font-extrabold">{selSpecies.displayName}</div>
                 <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+                {selMon.ability && selMon.ability !== 'none' && (
+                  <div className="text-[11px] text-sky-300 mt-0.5">✦ {abilityName(selMon.ability)}</div>
+                )}
               </div>
               <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
             </div>

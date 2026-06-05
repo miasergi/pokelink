@@ -13,6 +13,7 @@ export type NodeType =
   | 'event' // evento aleatorio
   | 'heal' // centro Pokémon
   | 'rival' // combate de rival
+  | 'legendary' // guardián legendario (capturable al vencerlo)
   | 'gym' // líder de gimnasio
   | 'elite' // Alto Mando
   | 'champion' // Campeón
