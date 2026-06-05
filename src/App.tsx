@@ -73,7 +73,20 @@ export default function App() {
   // key por pantalla -> animación de entrada al cambiar de pantalla
   return (
     <>
-      <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter">
+      {/* Fondo: patrón de Pokémon sutil (debajo de todo) */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          zIndex: -10,
+          backgroundImage: `url(${import.meta.env.BASE_URL}bg-menu.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'invert(1) brightness(1.2)',
+          opacity: 0.05,
+        }}
+      />
+      <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter relative">
         <Current />
       </div>
       {showIntro && (

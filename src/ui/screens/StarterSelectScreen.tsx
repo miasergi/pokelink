@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { STARTERS_BY_GEN } from '@/data/starters'
-import { getSpecies } from '@/data'
+import { getSpecies, threeStageStarterPool } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { typeGradient } from '@/ui/theme/types'
@@ -18,7 +18,20 @@ export default function StarterSelectScreen() {
   const { back, screen, startRun } = useGame()
   const mode = (screen.params?.mode as GameMode) ?? 'generation'
   const gen = (screen.params?.gen as number) ?? 1
-  const starters = STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
+  // En Modo Random, 3 iniciales aleatorios con cadena de 3 etapas.
+  const starters = useMemo(() => {
+    if (mode !== 'random') return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
+    const pool = threeStageStarterPool()
+    const picks: number[] = []
+    const used = new Set<number>()
+    while (picks.length < 3 && used.size < pool.length) {
+      const sp = pool[Math.floor(Math.random() * pool.length)]
+      if (used.has(sp.id)) continue
+      used.add(sp.id)
+      picks.push(sp.id)
+    }
+    return picks
+  }, [mode, gen])
   const [selected, setSelected] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 

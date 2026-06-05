@@ -97,19 +97,16 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // Difícil: enemigos más fuertes.
   if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
 
-  // Suelo de nivel: el equipo nunca va muy por debajo del área (sin grindeo).
-  // Como cada Pokémon solo lleva 1-2 ataques (de su tipo), ante un GIMNASIO el
-  // jugador va un par de niveles por encima para compensar la falta de cobertura.
-  // El Alto Mando/Campeón curan al entrar, así que ahí va igualado.
-  let bossFloor = node.enemyLevel
-  if (node.type === 'gym') bossFloor = hard ? node.enemyLevel : node.enemyLevel + 3
-  else if (hard) bossFloor = node.enemyLevel - 2
-  const floor = Math.max(5, isBoss ? bossFloor : node.enemyLevel - 1)
+  // Suelo de nivel = nivel del área (sin grindeo). El equipo se mantiene al nivel
+  // de la zona, pero NUNCA por encima del rival (antes subía +3 y lo superaba,
+  // que es lo que se veía raro). En Difícil va un par por debajo.
+  const floor = Math.max(5, node.enemyLevel - (hard ? 2 : 0))
   for (const mon of run.party) enforceMinLevel(mon, floor)
   // El Alto Mando y el Campeón curan al entrar (es un gauntlet). Ante los
   // gimnasios decides tú si pasar por el Centro Pokémon de la ruta previa.
   const autoHeal = (node.type === 'elite' || node.type === 'champion') && !hard
   if (autoHeal) for (const mon of run.party) fullHeal(mon)
+  void isBoss
 
   const seed = withRng(run, (rng) => rng.int(1, 2 ** 30))
   return runBattle({ playerTeam: run.party, enemyTeam, seed, isBoss, enemyName })
@@ -300,7 +297,7 @@ export function resolveTrade(
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
   const traded = run.party[idx]
-  const pool = basePool(run.mode === 'all' ? 'all' : run.gen)
+  const pool = basePool(run.mode === 'generation' ? run.gen : 'all')
   const newMon = withRng(run, (rng) => createInstance(rng.pick(pool).id, traded.level + 3, rng))
   run.party[idx] = newMon
   run.money -= node.content.cost
@@ -385,7 +382,7 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
   const avg = Math.round(
     run.party.reduce((a, p) => a + p.level, 0) / Math.max(1, run.party.length),
   )
-  const pool = encounterPool(run.mode === 'all' ? 'all' : run.gen)
+  const pool = encounterPool(run.mode === 'generation' ? run.gen : 'all')
   const tier = tierPool(pool, avg)
   const sp = rng.pick(tier)
   return createInstance(sp.id, Math.max(2, avg), rng)
@@ -394,12 +391,13 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
 /** Sube un Pokémon a un nivel mínimo (mantiene fracción de PS y aprende movimientos del nivel). */
 function enforceMinLevel(mon: PokemonInstance, minLevel: number): void {
   if (mon.level >= minLevel) return
+  const fainted = mon.currentHp <= 0
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.level = minLevel
   mon.exp = expForLevel(minLevel)
   const sp = getSpecies(mon.speciesId)
-  mon.stats = computeStats(sp.baseStats, mon.ivs, minLevel)
-  mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+  mon.stats = computeStats(sp.baseStats, mon.ivs, minLevel, mon.bonus)
+  mon.currentHp = fainted ? 0 : Math.max(1, Math.round(mon.stats.hp * frac))
   // Refresca el moveset al nivel actual para no pelear con ataques flojos.
   const fresh = selectMoveset(sp, minLevel)
   if (fresh.length) mon.moves = fresh

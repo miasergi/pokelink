@@ -22,6 +22,25 @@ describe('todas las generaciones', () => {
   })
 })
 
+describe('Modo Random', () => {
+  it('randomiza especies pero mantiene la estructura/niveles', () => {
+    const real = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
+    const rand = createRun({ mode: 'random', difficulty: 'normal', gen: 1, starterId: 4, seed: 42 })
+    // misma estructura
+    expect(Object.keys(rand.map.nodes).length).toBe(Object.keys(real.map.nodes).length)
+    // los equipos de jefe tienen las mismas posiciones/niveles pero (casi siempre)
+    // especies distintas
+    const realGym = Object.values(real.map.nodes).find((n) => n.type === 'gym')!
+    const randGym = Object.values(rand.map.nodes).find((n) => n.type === 'gym')!
+    if (realGym.content.kind === 'trainer' && randGym.content.kind === 'trainer') {
+      expect(randGym.content.team.length).toBe(realGym.content.team.length)
+      expect(randGym.content.team.map((m) => m.level)).toEqual(realGym.content.team.map((m) => m.level))
+      const sameSpecies = randGym.content.team.every((m, i) => m.speciesId === (realGym.content as { team: typeof randGym.content.team }).team[i].speciesId)
+      expect(sameSpecies).toBe(false)
+    }
+  })
+})
+
 describe('creación de run y mapa', () => {
   it('crea una run jugable de Gen 1', () => {
     const run = createRun({ mode: 'generation', difficulty: 'normal', gen: 1, starterId: 4, seed: 123 })

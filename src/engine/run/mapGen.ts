@@ -1,6 +1,6 @@
 import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
-import { encounterPool, legendaryPool } from '@/data'
+import { encounterPool, legendaryPool, ALL_SPECIES } from '@/data'
 import { createInstance } from '@/engine/team/instance'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
@@ -58,7 +58,7 @@ export function generateMap(
   starterId: number,
   rng: RNG,
 ): { map: RunMap; rivalStarterId: number } {
-  const pool: SpeciesData[] = encounterPool(mode === 'all' ? 'all' : gen)
+  const pool: SpeciesData[] = encounterPool(mode === 'generation' ? gen : 'all')
   const rivalStarterId = counterStarterId(starterId)
   const rivalFinalId = getFinalEvolution(rivalStarterId)
   const region = getRegion(gen)
@@ -84,7 +84,7 @@ export function generateMap(
     plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras) })
   }
   const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i] })
-  const legends = legendaryPool(mode === 'all' ? 'all' : gen)
+  const legends = legendaryPool(mode === 'generation' ? gen : 'all')
   const legendary = (level: number) => {
     const sp = rng.pick(legends)
     plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level })
@@ -172,6 +172,19 @@ export function generateMap(
   // --- Conectividad entre capas ---
   for (let i = 0; i < layers.length - 1; i++) {
     connect(layers[i].map((id) => nodes[id]), layers[i + 1].map((id) => nodes[id]), rng)
+  }
+
+  // --- Modo Random: randomiza TODAS las especies (salvajes, entrenadores,
+  //     jefes) manteniendo los NIVELES para conservar la coherencia. ---
+  if (mode === 'random') {
+    const randPool = ALL_SPECIES.filter((s) => !s.legendary && !s.isMega)
+    const reroll = (mon: PokemonInstance, isLegendary: boolean): PokemonInstance =>
+      createInstance(rng.pick(isLegendary ? legends : randPool).id, mon.level, rng)
+    for (const node of Object.values(nodes)) {
+      const c = node.content
+      if (c.kind === 'wild') c.enemy = reroll(c.enemy, node.type === 'legendary')
+      else if (c.kind === 'trainer') c.team = c.team.map((m) => reroll(m, false))
+    }
   }
 
   return {

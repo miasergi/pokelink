@@ -13,11 +13,7 @@ export default function GenSelectScreen() {
           <Card
             key={g.gen}
             className={`p-3.5 ${g.rostersReady ? '' : 'opacity-60'}`}
-            onClick={
-              g.rostersReady
-                ? () => navigate('starterSelect', { mode: 'generation', gen: g.gen })
-                : undefined
-            }
+            onClick={g.rostersReady ? () => navigate('modeSelect', { gen: g.gen }) : undefined}
             style={{ borderColor: g.rostersReady ? `${g.accent}55` : undefined }}
           >
             <div className="flex items-center justify-between">

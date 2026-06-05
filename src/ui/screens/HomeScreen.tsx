@@ -23,7 +23,7 @@ export default function HomeScreen() {
             ▶ Continuar partida
           </Button>
         )}
-        <Button variant="primary" full onClick={() => navigate('modeSelect')}>
+        <Button variant="primary" full onClick={() => navigate('genSelect')}>
           {hasSavedRun ? 'Nueva partida' : '⚔ Jugar'}
         </Button>
         <div className="grid grid-cols-3 gap-3">

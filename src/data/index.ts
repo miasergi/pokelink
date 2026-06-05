@@ -82,3 +82,14 @@ export function basePool(gen: number | 'all'): SpeciesData[] {
   const list = speciesByGeneration(gen).filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
   return list.length ? list : ALL_SPECIES.filter((s) => !EVOLVED_IDS.has(s.id) && !s.legendary)
 }
+
+/** Iniciales válidos para Modo Random: formas base con cadena de 3 etapas. */
+export function threeStageStarterPool(): SpeciesData[] {
+  return ALL_SPECIES.filter((s) => {
+    if (EVOLVED_IDS.has(s.id) || s.legendary || s.isMega) return false
+    const mid = s.evolutions[0]
+    if (!mid) return false
+    const midSp = speciesById.get(mid.toId)
+    return !!midSp && midSp.evolutions.length > 0
+  })
+}

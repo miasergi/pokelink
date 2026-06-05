@@ -1,6 +1,6 @@
 import type { ItemData, PokemonInstance, TrainerData } from '@/types'
 
-export type GameMode = 'generation' | 'all'
+export type GameMode = 'generation' | 'all' | 'random'
 
 export type Difficulty = 'normal' | 'hard' | 'nuzlocke'
 

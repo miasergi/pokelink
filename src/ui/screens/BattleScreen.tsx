@@ -141,9 +141,18 @@ export default function BattleScreen() {
   const lungeEnemy = frame.acting?.side === 'enemy' ? 'fx-lunge-enemy' : ''
   const lungePlayer = frame.acting?.side === 'player' ? 'fx-lunge-player' : ''
 
+  const battleBg = isBoss
+    ? 'from-rose-950/70 via-slate-950 to-fuchsia-950/60'
+    : trainer
+      ? 'from-sky-900/55 via-slate-900 to-indigo-950/60'
+      : 'from-emerald-800/55 via-slate-900 to-green-950/70'
+
   return (
     <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-900/40 via-slate-900 to-emerald-950/40" />
+      <div className={`absolute inset-0 bg-gradient-to-b ${battleBg}`} />
+      {/* suelo/escena */}
+      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: isBoss ? 'radial-gradient(ellipse at 50% 120%, rgba(244,63,94,0.18), transparent 60%)' : trainer ? 'radial-gradient(ellipse at 50% 120%, rgba(56,189,248,0.15), transparent 60%)' : 'radial-gradient(ellipse at 50% 120%, rgba(34,197,94,0.18), transparent 60%)' }} />
+      {isBoss && <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(217,70,239,0.12), transparent 55%)' }} />}
 
       {/* destello de pantalla en crítico / súper eficaz */}
       {frame.flash && (
