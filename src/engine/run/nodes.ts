@@ -37,23 +37,23 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG): PokemonI
   return createInstance(species.id, lv, rng)
 }
 
-// --- Pools de objetos por contexto ---
-const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'full-heal', 'revive']
-const HELD_ITEMS = ['leftovers', 'choice-band', 'choice-specs', 'life-orb', 'focus-sash', 'assault-vest', 'rocky-helmet']
-const STONE_ITEMS = ['fire-stone', 'water-stone', 'thunder-stone', 'leaf-stone', 'moon-stone', 'sun-stone', 'ice-stone', 'dusk-stone', 'shiny-stone']
-const BATTLE_ITEMS = ['rare-candy', 'pp-up', 'great-ball', 'ultra-ball']
+// --- Pools de objetos por contexto (catálogo ágil) ---
+const HEAL_ITEMS = ['potion', 'max-potion', 'revive', 'max-revive']
+const HELD_ITEMS = ['leftovers', 'life-orb', 'focus-sash', 'choice-band', 'choice-specs', 'assault-vest', 'rocky-helmet']
+const BATTLE_ITEMS = ['rare-candy']
 
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []
-  pool.push(rng.pick(HEAL_ITEMS))
+  pool.push(rng.pick(['potion', 'revive', 'rare-candy']))
   pool.push(rng.pick(depthFrac > 0.3 ? HELD_ITEMS : [...HEAL_ITEMS, ...BATTLE_ITEMS]))
-  // A partir de media run puede aparecer una Mega Piedra (rara y poderosa).
-  const lastPool = depthFrac > 0.45 && rng.chance(0.25)
+  // A partir de media run pueden aparecer piedras de evolución / Megapiedra.
+  const lastPool = depthFrac > 0.45 && rng.chance(0.2)
     ? ['mega-stone']
-    : [...BATTLE_ITEMS, ...STONE_ITEMS]
+    : depthFrac > 0.3
+      ? ['evo-stone', 'rare-candy', ...HELD_ITEMS]
+      : [...BATTLE_ITEMS, ...HELD_ITEMS]
   pool.push(rng.pick(lastPool))
-  // de-dup
   const set = [...new Set(pool)]
   while (set.length < 3) {
     const extra = rng.pick([...HEAL_ITEMS, ...HELD_ITEMS, ...BATTLE_ITEMS])
@@ -64,11 +64,12 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
 
 /** Stock de tienda. */
 export function shopStock(rng: RNG, depthFrac: number): string[] {
-  const base = ['potion', 'super-potion', 'revive', 'full-heal', 'poke-ball', 'great-ball']
-  const advanced = depthFrac > 0.4 ? ['hyper-potion', 'max-potion', 'ultra-ball', 'max-revive'] : []
+  const base = ['potion', 'revive', 'rare-candy']
+  const advanced = depthFrac > 0.4 ? ['max-potion', 'max-revive'] : []
   const held = rng.sample(HELD_ITEMS, 2)
+  const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []
-  return [...base, ...advanced, ...held, ...mega]
+  return [...base, ...advanced, ...held, ...evo, ...mega]
 }
 
 // --- Eventos aleatorios ---

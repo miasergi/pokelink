@@ -43,6 +43,8 @@ interface LayerPlan {
   trainer?: TrainerData
   legendarySpeciesId?: number
   level?: number
+  /** Fuerza que uno de los nodos de la capa sea un Centro Pokémon (opción de cura). */
+  withHeal?: boolean
 }
 
 function trainerMaxLevel(t: TrainerData): number {
@@ -68,10 +70,11 @@ export function generateMap(
   // transcurre entre líderes (capturas, objetos, entrenadores, eventos...).
   const routeWidth = () => rng.int(3, 4)
 
-  const pushRoute = (n: number) => {
-    for (let i = 0; i < n; i++) plan.push({ kind: 'route', width: routeWidth() })
+  const pushRoute = (n: number, healLast = false) => {
+    for (let i = 0; i < n; i++) {
+      plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
+    }
   }
-  const heal = () => plan.push({ kind: 'heal' })
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i] })
   const pushRival = (level: number) => {
     const extras = region.rivalExtras[Math.min(rivalStage, region.rivalExtras.length - 1)]
@@ -89,21 +92,19 @@ export function generateMap(
   // Nivel del último gimnasio -> escala el tramo de Liga según la región.
   const lastGymLvl = Math.max(...gyms[7].team.map((s) => s.level))
 
-  // --- Recorrido de la región (largo, estilo roguelike) ---
-  pushRoute(6); gym(0)
-  pushRoute(5); pushRival(Math.round(lastGymLvl * 0.45)); heal(); gym(1)
-  pushRoute(5); gym(2)
-  pushRoute(6); heal(); gym(3)
-  pushRoute(5); gym(4)
-  pushRoute(6); pushRival(Math.round(lastGymLvl * 0.85)); heal(); gym(5)
-  pushRoute(5); gym(6)
-  pushRoute(3); legendary(Math.round(lastGymLvl * 0.9)); pushRoute(2); heal(); gym(7)
-  // Calle Victoria + Liga Pokémon
-  pushRoute(5)
-  pushRival(lastGymLvl + 6)
-  pushRoute(2); heal()
+  // --- Recorrido de la región (con un Centro Pokémon como OPCIÓN antes de cada
+  //     gimnasio: el último nodo de ruta antes del jefe ofrece curarse) ---
+  pushRoute(6, true); gym(0)
+  pushRoute(4); pushRival(Math.round(lastGymLvl * 0.45)); pushRoute(2, true); gym(1)
+  pushRoute(5, true); gym(2)
+  pushRoute(6, true); gym(3)
+  pushRoute(5, true); gym(4)
+  pushRoute(4); pushRival(Math.round(lastGymLvl * 0.85)); pushRoute(2, true); gym(5)
+  pushRoute(5, true); gym(6)
+  pushRoute(3); legendary(Math.round(lastGymLvl * 0.9)); pushRoute(2, true); gym(7)
+  // Calle Victoria + Liga Pokémon (el Alto Mando y el Campeón curan al entrar)
+  pushRoute(4); pushRival(lastGymLvl + 6); pushRoute(2, true)
   elite(0); elite(1); elite(2); elite(3)
-  heal()
   plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId) })
 
   // --- Niveles ancla (interpolación de niveles de ruta) ---
@@ -125,12 +126,14 @@ export function generateMap(
     const ids: string[] = []
     if (p.kind === 'route') {
       const w = p.width ?? 3
+      // Si la capa garantiza cura, uno de los nodos será un Centro Pokémon.
+      const healCol = p.withHeal ? rng.int(0, w - 1) : -1
       for (let c = 0; c < w; c++) {
-        const type = pickRouteType(rng, layerIdx / plan.length)
+        const type = c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length)
         const id = newId()
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: level,
-          content: buildRouteContent(type, pool, level, layerIdx / plan.length, rng),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng),
           cleared: false,
         }
         ids.push(id)

@@ -1,7 +1,29 @@
-import type { BaseStats, MoveInstance, PokemonInstance, SpeciesData } from '@/types'
+import type { BaseStats, MoveData, MoveInstance, PokemonInstance, PokemonType, SpeciesData } from '@/types'
 import { getMove, getSpecies, tryGetMove } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeStats, expForLevel } from './leveling'
+
+// Movimiento de daño básico por tipo (respaldo si el learnset no tiene uno).
+const TYPE_DEFAULT_MOVE: Record<PokemonType, number> = {
+  normal: 33, // Placaje
+  fire: 52, // Ascuas
+  water: 55, // Pistola Agua
+  electric: 84, // Impactrueno
+  grass: 22, // Látigo Cepa
+  ice: 181, // Nieve Polvo
+  fighting: 2, // Golpe Karate
+  poison: 40, // Picotazo Veneno
+  ground: 189, // Bofetón Lodo
+  flying: 16, // Tornado
+  psychic: 93, // Confusión
+  bug: 450, // Picadura
+  rock: 88, // Lanzarrocas
+  ghost: 425, // Sombra Vil
+  dragon: 239, // Ciclón
+  dark: 44, // Mordisco
+  steel: 232, // Garra Metal
+  fairy: 584, // Viento Feérico
+}
 
 let uidCounter = 0
 function nextUid(): string {
@@ -15,53 +37,30 @@ function randomIvs(rng: RNG): BaseStats {
 }
 
 /**
- * Elige hasta 4 movimientos del learnset disponibles a `level`.
- * Prioriza variedad de tipo y potencia; garantiza al menos un movimiento de daño.
+ * Moveset simplificado (roguelike ágil): UN movimiento de daño por cada tipo del
+ * Pokémon (1 si es monotipo, 2 si es doble). En combate, la IA usa el más eficaz.
+ * Para cada tipo elige el mejor movimiento de daño de ese tipo en su learnset;
+ * si no tiene ninguno, usa el movimiento básico de ese tipo.
  */
 export function selectMoveset(species: SpeciesData, level: number): MoveInstance[] {
-  const available = species.learnset
-    .filter((e) => e.level <= level)
-    .map((e) => e.moveId)
-  // De-dup conservando el último aprendido (suele ser el mejor)
-  const unique = [...new Set(available)]
-
-  const scored = unique
+  const learned = [...new Set(species.learnset.filter((e) => e.level <= level).map((e) => e.moveId))]
     .map((id) => tryGetMove(id))
-    .filter((m): m is NonNullable<typeof m> => !!m)
-    .map((m) => {
-      // Puntuación: potencia + bonus STAB + leve bonus a status útiles
-      let score = m.power
-      if (m.category !== 'status' && species.types.includes(m.type)) score += 25
-      if (m.category === 'status') score += 15
-      return { m, score }
-    })
-    .sort((a, b) => b.score - a.score)
+    .filter((m): m is MoveData => !!m && m.category !== 'status' && m.power > 0)
 
-  const chosen: typeof scored = []
-  const seenTypes = new Set<string>()
-  // 1ª pasada: maximiza variedad de tipo entre los movimientos de daño
-  for (const s of scored) {
-    if (chosen.length >= 4) break
-    if (s.m.category === 'status') continue
-    if (seenTypes.has(s.m.type) && chosen.length >= 2) continue
-    chosen.push(s)
-    seenTypes.add(s.m.type)
-  }
-  // 2ª pasada: rellena con lo mejor que quede
-  for (const s of scored) {
-    if (chosen.length >= 4) break
-    if (chosen.includes(s)) continue
-    chosen.push(s)
+  const moves: MoveData[] = []
+  for (const type of species.types) {
+    const best = learned
+      .filter((m) => m.type === type)
+      .sort((a, b) => b.power - a.power)[0]
+    moves.push(best ?? getMove(TYPE_DEFAULT_MOVE[type]))
   }
 
-  let picks = chosen.slice(0, 4)
-  // Garantiza al menos un movimiento de daño
-  if (!picks.some((p) => p.m.category !== 'status')) {
-    picks = [{ m: getMove(33), score: 0 }, ...picks].slice(0, 4) // Placaje
-  }
-  if (picks.length === 0) picks = [{ m: getMove(33), score: 0 }] // fallback Placaje
+  // De-dup por id y garantiza al menos un movimiento.
+  const seen = new Set<number>()
+  const final = moves.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
+  if (final.length === 0) final.push(getMove(TYPE_DEFAULT_MOVE.normal))
 
-  return picks.map(({ m }) => ({ moveId: m.id, pp: m.pp, maxPp: m.pp }))
+  return final.map((m) => ({ moveId: m.id, pp: m.pp, maxPp: m.pp }))
 }
 
 export interface CreateOptions {

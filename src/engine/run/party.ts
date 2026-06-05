@@ -16,20 +16,17 @@ export function healParty(party: PokemonInstance[]): void {
   for (const p of party) fullHeal(p)
 }
 
-/** Aplica un objeto de curación/revivir/caramelo a un Pokémon. Devuelve true si surtió efecto. */
+/** Aplica un objeto de curación/revivir a un Pokémon. Devuelve true si surtió efecto. */
 export function applyHealItem(mon: PokemonInstance, itemId: string): boolean {
   switch (itemId) {
     case 'potion':
-      return healHp(mon, 20)
-    case 'super-potion':
-      return healHp(mon, 60)
-    case 'hyper-potion':
-      return healHp(mon, 120)
+      return healHp(mon, Math.ceil(mon.stats.hp * 0.5))
     case 'max-potion':
-      return healHp(mon, mon.stats.hp)
-    case 'full-heal':
-      if (mon.status === 'none') return false
+      if (isFainted(mon)) return false
+      if (mon.currentHp >= mon.stats.hp && mon.status === 'none') return false
+      mon.currentHp = mon.stats.hp
       mon.status = 'none'
+      for (const mv of mon.moves) mv.pp = mv.maxPp
       return true
     case 'revive':
       if (!isFainted(mon)) return false
@@ -40,9 +37,6 @@ export function applyHealItem(mon: PokemonInstance, itemId: string): boolean {
       if (!isFainted(mon)) return false
       mon.currentHp = mon.stats.hp
       mon.status = 'none'
-      return true
-    case 'pp-up':
-      for (const mv of mon.moves) mv.pp = mv.maxPp
       return true
     default:
       return false

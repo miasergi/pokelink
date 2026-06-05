@@ -23,6 +23,11 @@ interface SideView {
   status: PokemonInstance['status']
   fainted: boolean
 }
+interface TeamSlot {
+  uid: string
+  speciesId: number
+  shiny: boolean
+}
 interface Fx {
   side: Side // objetivo del efecto
   kind: 'damage' | 'heal'
@@ -43,10 +48,11 @@ interface Frame {
   flash?: { color: string }
   sound?: Sfx
   weather: Weather
+  fainted: { player: string[]; enemy: string[] }
 }
 
 const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
-  start: 500, sendOut: 500, move: 560, damage: 600, heal: 540, faint: 780,
+  start: 500, sendOut: 520, move: 560, damage: 780, heal: 620, faint: 820,
   status: 660, statChange: 580, statusDamage: 640, cantMove: 640, miss: 560,
   noEffect: 640, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
   ability: 820, weather: 820,
@@ -73,6 +79,18 @@ export default function BattleScreen() {
     () => (pendingBattle ? buildFrames(pendingBattle.result.events, uidMap) : []),
     [pendingBattle, uidMap],
   )
+
+  // Orden de los equipos para las bandejas (ambos lados).
+  const teams = useMemo(() => {
+    const empty = { player: [] as TeamSlot[], enemy: [] as TeamSlot[] }
+    if (!run || !pendingBattle) return empty
+    const player = run.party.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny }))
+    let enemy: TeamSlot[] = []
+    const content = run.map.nodes[pendingBattle.nodeId].content
+    if (content.kind === 'wild') enemy = [{ uid: content.enemy.uid, speciesId: content.enemy.speciesId, shiny: content.enemy.shiny }]
+    else if (content.kind === 'trainer') enemy = content.team.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny }))
+    return { player, enemy }
+  }, [run, pendingBattle])
 
   const [idx, setIdx] = useState(0)
   const [done, setDone] = useState(false)
@@ -148,8 +166,9 @@ export default function BattleScreen() {
         )}
         {/* Enemigo */}
         <div className="flex items-start justify-between gap-2">
-          <div className="mt-1">
+          <div className="mt-1 flex flex-col gap-1">
             <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
+            <Tray team={teams.enemy} fainted={frame.fainted.enemy} activeUid={frame.enemy.uid} align="left" />
           </div>
           <div className="relative mr-1">
             <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
@@ -203,7 +222,8 @@ export default function BattleScreen() {
               />
             </div>
           </div>
-          <div className="mb-1">
+          <div className="mb-1 flex flex-col gap-1 items-end">
+            <Tray team={teams.player} fainted={frame.fainted.player} activeUid={frame.player.uid} align="right" />
             <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
           </div>
         </div>
@@ -278,11 +298,28 @@ function InfoCard({ view, remaining, align }: { view: SideView; remaining: numbe
         <span className="text-[11px] text-slate-400">Nv.{view.level}</span>
       </div>
       <HpBar current={view.currentHp} max={view.maxHp} status={view.status} showNumbers />
-      <div className="flex gap-0.5 mt-0.5 justify-end">
-        {Array.from({ length: remaining }).map((_, i) => (
-          <span key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
-        ))}
-      </div>
+      <span className="sr-only">{remaining}</span>
+    </div>
+  )
+}
+
+/** Bandeja con el equipo en orden (atenuado si está debilitado, resaltado el activo). */
+function Tray({ team, fainted, activeUid, align }: { team: TeamSlot[]; fainted: string[]; activeUid: string; align: 'left' | 'right' }) {
+  if (team.length <= 1) return null
+  return (
+    <div className={`flex gap-0.5 ${align === 'right' ? 'justify-end' : ''}`}>
+      {team.map((m) => {
+        const dead = fainted.includes(m.uid)
+        return (
+          <div
+            key={m.uid}
+            className={`rounded-full bg-slate-900/70 border ${m.uid === activeUid ? 'border-amber-300' : 'border-slate-700'}`}
+            style={{ padding: 1 }}
+          >
+            <Sprite speciesId={m.speciesId} variant="front" className={`w-6 h-6 object-contain ${dead ? 'grayscale opacity-30' : ''}`} />
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -328,6 +365,7 @@ function buildFrames(
       anim: extra.anim ?? {},
       remaining: { player: Math.max(1, remaining('player')), enemy: Math.max(0, remaining('enemy')) },
       acting: extra.acting, fx: extra.fx, flash: extra.flash, sound: extra.sound, weather,
+      fainted: { player: [...fainted.player], enemy: [...fainted.enemy] },
     })
   }
 

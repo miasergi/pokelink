@@ -42,7 +42,7 @@ export function createRun(config: NewRunConfig): RunState {
     currentLayer: -1,
     party: [starter],
     box: [],
-    inventory: { potion: 3, 'super-potion': 1, 'poke-ball': 5, revive: 1 },
+    inventory: { potion: 3, revive: 1 },
     money: 1000,
     status: 'active',
     stats: { battlesWon: 0, pokemonCaught: 0, gymsDefeated: 0, eliteDefeated: 0, turnsPlayed: 0 },
@@ -97,14 +97,18 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
 
   // Suelo de nivel: el equipo nunca va muy por debajo del área (sin grindeo).
-  // Ante jefes el equipo iguala su nivel (la ventaja del jugador es el nº de
-  // Pokémon y la composición de tipos); en rutas va ligeramente por debajo.
-  // En Difícil, el jugador va algo por debajo del jefe.
-  const bossFloor = hard ? node.enemyLevel - 3 : node.enemyLevel
+  // Como cada Pokémon solo lleva 1-2 ataques (de su tipo), ante un GIMNASIO el
+  // jugador va un par de niveles por encima para compensar la falta de cobertura.
+  // El Alto Mando/Campeón curan al entrar, así que ahí va igualado.
+  let bossFloor = node.enemyLevel
+  if (node.type === 'gym') bossFloor = hard ? node.enemyLevel - 1 : node.enemyLevel + 2
+  else if (hard) bossFloor = node.enemyLevel - 2
   const floor = Math.max(5, isBoss ? bossFloor : node.enemyLevel - 2)
   for (const mon of run.party) enforceMinLevel(mon, floor)
-  // Ante un jefe llegas preparado: equipo curado (salvo en Difícil).
-  if (isBoss && !hard) for (const mon of run.party) fullHeal(mon)
+  // El Alto Mando y el Campeón curan al entrar (es un gauntlet). Ante los
+  // gimnasios decides tú si pasar por el Centro Pokémon de la ruta previa.
+  const autoHeal = (node.type === 'elite' || node.type === 'champion') && !hard
+  if (autoHeal) for (const mon of run.party) fullHeal(mon)
 
   const seed = withRng(run, (rng) => rng.int(1, 2 ** 30))
   return runBattle({ playerTeam: run.party, enemyTeam, seed, isBoss, enemyName })
@@ -123,7 +127,7 @@ export interface BattleOutcomeSummary {
   runWon: boolean
 }
 
-const BOSS_DROPS = ['hyper-potion', 'max-revive', 'leftovers', 'rare-candy', 'ultra-ball', 'life-orb', 'mega-stone']
+const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'rare-candy', 'life-orb', 'evo-stone', 'mega-stone']
 
 export function applyBattleOutcome(
   run: RunState, node: MapNode, result: BattleResult,

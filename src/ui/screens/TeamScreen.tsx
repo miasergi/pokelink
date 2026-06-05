@@ -24,6 +24,8 @@ export default function TeamScreen() {
     return c === 'heal' || c === 'revive' || c === 'battle' || c === 'evolution' || c === 'held'
   })
   const hasMegaStone = (run.inventory['mega-stone'] || 0) > 0
+  const hasEvoStone = (run.inventory['evo-stone'] || 0) > 0
+  const canEvolve = (selSpecies?.evolutions.length ?? 0) > 0
 
   return (
     <div className="flex flex-col flex-1">
@@ -96,22 +98,15 @@ export default function TeamScreen() {
               )}
             </div>
 
-            {hasMega(selMon.speciesId) && (
-              selMon.heldItemId === 'mega-stone' ? (
-                <div className="text-center text-xs font-bold text-fuchsia-300 py-1.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30">
-                  💠 Megaevolucionará al entrar en combate
-                </div>
-              ) : (
-                <Button
-                  variant={hasMegaStone ? 'primary' : 'secondary'}
-                  full
-                  disabled={!hasMegaStone}
-                  className="!py-2"
-                  onClick={() => equipItem('mega-stone', selMon.uid)}
-                >
-                  {hasMegaStone ? '💠 Equipar Mega Piedra' : '💠 Necesitas una Mega Piedra'}
-                </Button>
-              )
+            {canEvolve && hasEvoStone && (
+              <Button variant="success" full className="!py-2 mb-1" onClick={() => useEvolutionItem('evo-stone', selMon.uid)}>
+                🪨 Evolucionar (Piedra Evolutiva)
+              </Button>
+            )}
+            {hasMega(selMon.speciesId) && hasMegaStone && (
+              <Button variant="primary" full className="!py-2" onClick={() => useEvolutionItem('mega-stone', selMon.uid)}>
+                💠 Megaevolucionar
+              </Button>
             )}
           </Card>
         )}

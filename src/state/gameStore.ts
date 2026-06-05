@@ -8,8 +8,9 @@ import {
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
-import { getMegaForms } from '@/data'
-import { evolutionByItem, evolve } from '@/engine/team/evolution'
+import { getMegaForms, getSpecies } from '@/data'
+import { evolve } from '@/engine/team/evolution'
+import { gainLevel } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
 export type ScreenName =
@@ -235,7 +236,7 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
-    const ok = applyHealItem(mon, itemId)
+    const ok = itemId === 'rare-candy' ? gainLevel(mon) : applyHealItem(mon, itemId)
     if (ok) removeItem(run, itemId, 1)
     persist(run)
     set({ run })
@@ -253,8 +254,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (itemId === 'mega-stone') {
       const forms = getMegaForms(mon.speciesId)
       target = forms[0] ?? null
-    } else {
-      target = evolutionByItem(mon, itemId)
+    } else if (itemId === 'evo-stone') {
+      const evos = getSpecies(mon.speciesId).evolutions
+      target = evos.length ? getSpecies(evos[0].toId) : null
     }
     if (!target) return false
     evolve(mon, target)

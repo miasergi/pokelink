@@ -10,10 +10,14 @@ export default function RewardScreen() {
     navigate('map')
     return null
   }
+  const won = lastSummary.won
   return (
     <div className="flex flex-col flex-1 p-5 safe-top safe-bottom items-center justify-center gap-5">
-      <div className="text-5xl animate-pop-in">🎉</div>
-      <h2 className="text-2xl font-extrabold">¡Victoria!</h2>
+      <div className="text-5xl animate-pop-in">{won ? '🎉' : '💢'}</div>
+      <h2 className="text-2xl font-extrabold">{won ? '¡Victoria!' : 'Derrota...'}</h2>
+      {!won && (
+        <p className="text-sm text-slate-400 text-center -mt-3">Tu equipo se debilitó, pero la aventura continúa.</p>
+      )}
 
       <div className="w-full max-w-sm flex flex-col gap-3">
         {lastSummary.moneyGained > 0 && (

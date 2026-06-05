@@ -1,4 +1,5 @@
 import type { BaseStats, PokemonInstance, SpeciesData } from '@/types'
+import { getSpecies } from '@/data'
 
 // Modelo de experiencia "medium-fast": exp = nivel^3.
 export function expForLevel(level: number): number {
@@ -34,6 +35,15 @@ export function recalcStats(mon: PokemonInstance, species: SpeciesData): void {
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.stats = computeStats(species.baseStats, mon.ivs, mon.level)
   mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
+}
+
+/** Sube 1 nivel a un Pokémon (Caramelo Raro), recalculando stats. */
+export function gainLevel(mon: PokemonInstance): boolean {
+  if (mon.level >= 100) return false
+  mon.level += 1
+  mon.exp = expForLevel(mon.level)
+  recalcStats(mon, getSpecies(mon.speciesId))
+  return true
 }
 
 /** EXP que otorga derrotar a un enemigo (generosa: las runs roguelike son cortas). */
