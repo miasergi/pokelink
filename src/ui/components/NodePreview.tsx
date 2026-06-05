@@ -34,9 +34,10 @@ const REWARD: Partial<Record<string, string>> = {
 }
 
 export default function NodePreview({
-  node, onEnter, onPrepare, onClose,
+  node, canEnter = true, onEnter, onPrepare, onClose,
 }: {
   node: MapNode
+  canEnter?: boolean
   onEnter: () => void
   onPrepare: () => void
   onClose: () => void
@@ -148,11 +149,17 @@ export default function NodePreview({
 
         {/* Acciones */}
         <div className="flex flex-col gap-2 mt-5">
-          <Button full variant="primary" onClick={onEnter}>
-            {isTrainer ? '⚔ ¡Combatir!' : node.type === 'heal' ? '➕ Curar equipo' : 'Entrar ›'}
-          </Button>
+          {canEnter ? (
+            <Button full variant="primary" onClick={onEnter}>
+              {isTrainer ? '⚔ ¡Combatir!' : node.type === 'heal' ? '➕ Curar equipo' : 'Entrar ›'}
+            </Button>
+          ) : (
+            <div className="text-center text-xs text-slate-400 bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2">
+              🔒 {node.cleared ? 'Ya has pasado por aquí.' : 'No conectada a tu posición. Solo puedes entrar por un camino enlazado.'}
+            </div>
+          )}
           <Button full variant="secondary" onClick={onPrepare}>👥 Ver / preparar equipo</Button>
-          <Button full variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button full variant="ghost" onClick={onClose}>Cerrar</Button>
         </div>
         {isBoss && <p className="text-[11px] text-slate-500 text-center mt-2">El Alto Mando y el Campeón curan tu equipo al entrar.</p>}
       </div>

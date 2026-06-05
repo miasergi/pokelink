@@ -145,11 +145,7 @@ export default function MapScreen() {
               return (
                 <button
                   key={id}
-                  disabled={!isReach}
-                  onClick={() => {
-                    if (!isReach) return
-                    setPreview(node)
-                  }}
+                  onClick={() => setPreview(node)}
                   className="absolute flex flex-col items-center"
                   style={{
                     left: xOf(node.col, layerIds.length) - NODE / 2,
@@ -199,6 +195,7 @@ export default function MapScreen() {
       {preview && (
         <NodePreview
           node={preview}
+          canEnter={reachable.has(preview.id) && !preview.cleared}
           onEnter={() => {
             const id = preview.id
             setPreview(null)
