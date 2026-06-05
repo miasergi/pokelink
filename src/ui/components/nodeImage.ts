@@ -1,5 +1,4 @@
 import type { MapNode } from '@/engine/run/types'
-import { tryGetItem } from '@/data/items'
 
 // Imágenes pixel-art propias (generadas en public/tiles), respetan el base URL.
 const TILES = import.meta.env.BASE_URL + 'tiles/'
@@ -8,6 +7,7 @@ const POKEMART = TILES + 'pokemart.png'
 const TALLGRASS = TILES + 'tallgrass.png'
 const TRADE = TILES + 'trade.png'
 const EVENT = TILES + 'event.png'
+const ITEM = TILES + 'item.png'
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites'
 export const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
@@ -52,11 +52,9 @@ export function nodeImage(node: MapNode): NodeImage {
     }
     case 'catch':
       return { url: itemSprite('poke-ball'), pixel: true }
-    case 'item': {
-      const id = c.kind === 'item' ? c.choices[0] : undefined
-      const sprite = id ? tryGetItem(id)?.sprite : undefined
-      return { url: sprite ?? itemSprite('parcel'), pixel: true }
-    }
+    case 'item':
+      // Casilla de objeto: Chapa Dorada (imagen propia).
+      return { url: ITEM, pixel: false }
     case 'shop':
       return { url: POKEMART, pixel: true }
     case 'trade':

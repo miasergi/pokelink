@@ -45,18 +45,20 @@ const BATTLE_ITEMS = ['rare-candy', 'attack-boost']
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []
-  pool.push(rng.pick(['potion', 'revive', 'rare-candy']))
-  pool.push(rng.pick(depthFrac > 0.3 ? HELD_ITEMS : [...HEAL_ITEMS, ...BATTLE_ITEMS]))
-  // A partir de media run pueden aparecer piedras de evolución / Megapiedra.
-  const lastPool = depthFrac > 0.45 && rng.chance(0.2)
+  // 1) SIEMPRE una mejora permanente (Refuerzo de Ataque o Caramelo Raro).
+  pool.push(rng.pick(['attack-boost', 'rare-candy']))
+  // 2) Soporte (curación/revivir).
+  pool.push(rng.pick([...HEAL_ITEMS, 'revive-charm']))
+  // 3) Objeto equipable / piedra (Megapiedra a partir de media run).
+  const lastPool = depthFrac > 0.45 && rng.chance(0.25)
     ? ['mega-stone']
     : depthFrac > 0.3
-      ? ['evo-stone', 'rare-candy', ...HELD_ITEMS]
-      : [...BATTLE_ITEMS, ...HELD_ITEMS]
+      ? ['evo-stone', ...HELD_ITEMS]
+      : [...HELD_ITEMS, 'attack-boost']
   pool.push(rng.pick(lastPool))
   const set = [...new Set(pool)]
   while (set.length < 3) {
-    const extra = rng.pick([...HEAL_ITEMS, ...HELD_ITEMS, ...BATTLE_ITEMS])
+    const extra = rng.pick([...BATTLE_ITEMS, ...HELD_ITEMS, ...HEAL_ITEMS])
     if (!set.includes(extra)) set.push(extra)
   }
   return set.slice(0, 3)

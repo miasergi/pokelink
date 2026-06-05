@@ -7,6 +7,23 @@ import { applyHealItem } from './party'
 import type { RunState, MapNode } from './types'
 import { getItem } from '@/data/items'
 import { getSpecies } from '@/data'
+import { typeEffectiveness } from '@/data/typechart'
+
+/** Ordena el equipo para liderar con el mejor contador por tipo (como un humano). */
+function orderForBattle(run: RunState, node: MapNode) {
+  const enemyLead = node.content.kind === 'wild' ? node.content.enemy
+    : node.content.kind === 'trainer' ? node.content.team[0] : null
+  if (!enemyLead) return
+  const eTypes = getSpecies(enemyLead.speciesId).types
+  const score = (mon: RunState['party'][number]) => {
+    if (mon.currentHp <= 0) return -1000
+    const tps = getSpecies(mon.speciesId).types
+    const off = Math.max(...tps.map((t) => typeEffectiveness(t, eTypes)))
+    const def = Math.max(...eTypes.map((t) => typeEffectiveness(t, tps)))
+    return off * 2 - def + mon.level * 0.02
+  }
+  run.party.sort((a, b) => score(b) - score(a))
+}
 
 function bstOf(speciesId: number): number {
   const b = getSpecies(speciesId).baseStats
@@ -94,6 +111,7 @@ function playRun(seed: number, starterId: number, gen = 1): { run: RunState; ste
     if (isNodeBattle(node)) {
       const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion'
       if (isBoss) smartHeal(run)
+      orderForBattle(run, node)
       const result = startNodeBattle(run, node)
       applyBattleOutcome(run, node, result)
     } else if (node.type === 'heal') {

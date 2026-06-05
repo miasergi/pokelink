@@ -97,10 +97,12 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // Difícil: enemigos más fuertes.
   if (hard) for (const m of enemyTeam) enforceMinLevel(m, Math.round(m.level * 1.12))
 
-  // Suelo de nivel = nivel del área (sin grindeo). El equipo se mantiene al nivel
-  // de la zona, pero NUNCA por encima del rival (antes subía +3 y lo superaba,
-  // que es lo que se veía raro). En Difícil va un par por debajo.
-  const floor = Math.max(5, node.enemyLevel - (hard ? 2 : 0))
+  // Red de seguridad MUY profunda (área-9): en juego normal NUNCA se activa —
+  // los Pokémon suben peleando (EXP) + bonus de casilla (+1/+2/+3) y se quedan
+  // a nivel solos. Solo rescata a un Pokémon catastróficamente atrasado (>9 por
+  // debajo de la zona) y aun así lo deja MUY por debajo del rival. Nada de
+  // "igualarse al rival" de golpe.
+  const floor = Math.max(5, node.enemyLevel - (hard ? 12 : 9))
   for (const mon of run.party) enforceMinLevel(mon, floor)
   // El Alto Mando y el Campeón curan al entrar (es un gauntlet). Ante los
   // gimnasios decides tú si pasar por el Centro Pokémon de la ruta previa.
@@ -207,10 +209,10 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: hierba alta +1, entrenador +2.
+  // Recompensa de nivel por casilla: salvaje +1, entrenador +2, JEFE +3.
   // Solo a los que participaron (entrar debilitado no da nivel; debilitarse
   // durante el combate sí lo da).
-  const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : 0
+  const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : isBossLike ? 3 : 0
   for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid)) gainLevel(mon)
 
   // Niveles ganados (combate por EXP + bonus de casilla) para mostrar logros.

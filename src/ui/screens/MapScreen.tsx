@@ -10,6 +10,7 @@ import NodePreview from '@/ui/components/NodePreview'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import type { MapNode } from '@/engine/run/types'
 import { Button, money, TopBar } from '@/ui/components/kit'
+import RunTimer from '@/ui/components/RunTimer'
 import { getRegion } from '@/data/trainers/regions'
 
 const ROW_H = 124
@@ -62,8 +63,9 @@ export default function MapScreen() {
     <div className="flex flex-col flex-1 min-h-0">
       <TopBar
         title={
-          <span>
+          <span className="text-sm">
             {run.region} · <span className="text-amber-300">{money(run.money)}</span>
+            {' · '}<RunTimer startedAt={run.startedAt} className="text-slate-400" />
           </span>
         }
         left={

@@ -8,7 +8,9 @@ export default function ShopScreen() {
   if (!run) return null
   const node = run.map.nodes[nodeId]
   if (node.content.kind !== 'shop') return null
-  const stock = [...new Set(node.content.stock)]
+  // La Megapiedra solo se vende a partir de la 7ª medalla.
+  const canBuyMega = run.stats.gymsDefeated >= 7
+  const stock = [...new Set(node.content.stock)].filter((id) => id !== 'mega-stone' || canBuyMega)
 
   return (
     <div className="flex flex-col flex-1">

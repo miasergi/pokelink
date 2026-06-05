@@ -6,7 +6,7 @@ import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
 import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
 import {
-  buildTrainerTeam, makeWild, tierPool, itemChoices, shopStock, EVENT_IDS,
+  makeWild, tierPool, itemChoices, shopStock, EVENT_IDS,
 } from './nodes'
 import type { GameMode, MapNode, NodeType, RunMap } from './types'
 
@@ -48,9 +48,6 @@ interface LayerPlan {
   withHeal?: boolean
 }
 
-function trainerMaxLevel(t: TrainerData): number {
-  return Math.max(...t.team.map((s) => s.level))
-}
 
 export function generateMap(
   mode: GameMode,
@@ -76,44 +73,50 @@ export function generateMap(
       plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
     }
   }
-  const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i] })
-  const pushRival = (level: number) => {
+  // Curva de niveles de jefes COHERENTE (no copia exacta de los juegos):
+  // gimnasios 10→66, guardián legendario 70, Alto Mando 75/80/85/90, Campeón 100.
+  const GYM_LEVELS = [10, 18, 26, 34, 42, 50, 58, 66]
+  const ELITE_LEVELS = [75, 80, 85, 90]
+  const CHAMPION_LEVEL = 100
+  // Rivales situados ENTRE gimnasios -> nivel acorde a su posición en el mapa
+  // (rival 1 entre gym0-1, rival 2 entre gym4-5, rival 3 tras gym7).
+  const RIVAL_LEVELS = [14, 46, 70]
+  const LEGENDARY_LEVEL = 62 // guardián entre gym6 y gym7
+
+  const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
+  const pushRival = () => {
+    const level = RIVAL_LEVELS[Math.min(rivalStage, RIVAL_LEVELS.length - 1)]
     const extras = region.rivalExtras[Math.min(rivalStage, region.rivalExtras.length - 1)]
     rivalStage++
     const ridMid = evolutionAtLevel(rivalStarterId, level)
-    plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras) })
+    plan.push({ kind: 'boss', type: 'rival', trainer: buildRival(region, ridMid, level, extras), level })
   }
-  const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i] })
+  const elite = (i: number) => plan.push({ kind: 'boss', type: 'elite', bossIndex: i, trainer: region.eliteFour[i], level: ELITE_LEVELS[i] })
   const legends = legendaryPool(mode === 'generation' ? gen : 'all')
-  const legendary = (level: number) => {
+  const legendary = () => {
     const sp = rng.pick(legends)
-    plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level })
+    plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level: LEGENDARY_LEVEL })
   }
-
-  // Nivel del último gimnasio -> escala el tramo de Liga según la región.
-  const lastGymLvl = Math.max(...gyms[7].team.map((s) => s.level))
 
   // --- Recorrido de la región (con un Centro Pokémon como OPCIÓN antes de cada
   //     gimnasio: el último nodo de ruta antes del jefe ofrece curarse) ---
   pushRoute(6, true); gym(0)
-  pushRoute(4); pushRival(Math.round(lastGymLvl * 0.45)); pushRoute(2, true); gym(1)
+  pushRoute(4); pushRival(); pushRoute(2, true); gym(1)
   pushRoute(5, true); gym(2)
   pushRoute(6, true); gym(3)
   pushRoute(5, true); gym(4)
-  pushRoute(4); pushRival(Math.round(lastGymLvl * 0.85)); pushRoute(2, true); gym(5)
+  pushRoute(4); pushRival(); pushRoute(2, true); gym(5)
   pushRoute(5, true); gym(6)
-  pushRoute(3); legendary(Math.round(lastGymLvl * 0.9)); pushRoute(2, true); gym(7)
+  pushRoute(3); legendary(); pushRoute(2, true); gym(7)
   // Calle Victoria + Liga Pokémon (el Alto Mando y el Campeón curan al entrar)
-  pushRoute(4); pushRival(lastGymLvl + 6); pushRoute(2, true)
+  pushRoute(4); pushRival(); pushRoute(2, true)
   elite(0); elite(1); elite(2); elite(3)
-  plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId) })
+  plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId), level: CHAMPION_LEVEL })
 
-  // --- Niveles ancla (interpolación de niveles de ruta) ---
-  const anchors: (number | null)[] = plan.map((p) => {
-    if (p.kind === 'boss' && p.trainer) return trainerMaxLevel(p.trainer)
-    if (p.kind === 'legendary') return p.level ?? null
-    return null
-  })
+  // --- Niveles ancla (interpolación de niveles de ruta) usando la curva ---
+  const anchors: (number | null)[] = plan.map((p) =>
+    (p.kind === 'boss' || p.kind === 'legendary') ? p.level ?? null : null,
+  )
   const levels = interpolateLevels(anchors, 5)
 
   // --- Construcción de nodos por capa ---
@@ -155,11 +158,19 @@ export function generateMap(
       }
       ids.push(id)
     } else {
-      // boss
+      // boss: re-nivela el equipo a la curva (el ace queda en p.level)
       const id = newId()
-      const team = buildTrainerTeam(p.trainer!, rng)
+      const ace = p.level ?? level
+      const specs = p.trainer!.team
+      const n = specs.length
+      const team = specs.map((spec, i) =>
+        createInstance(spec.speciesId, Math.max(5, ace - (n - 1 - i) * 2), rng, {
+          moveIds: spec.moveIds,
+          heldItemId: spec.heldItemId ?? null,
+        }),
+      )
       nodes[id] = {
-        id, layer: layerIdx, col: 0, type: p.type!, next: [], enemyLevel: level,
+        id, layer: layerIdx, col: 0, type: p.type!, next: [], enemyLevel: ace,
         bossIndex: p.bossIndex,
         content: { kind: 'trainer', trainer: p.trainer!, team },
         cleared: false,

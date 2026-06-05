@@ -4,6 +4,7 @@ import { Button, Card } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { typeGradient } from '@/ui/theme/types'
+import RunTimer from '@/ui/components/RunTimer'
 
 export default function VictoryScreen() {
   const { run, abandonRun } = useGame()
@@ -31,6 +32,7 @@ export default function VictoryScreen() {
       )}
       <div className="text-7xl animate-float">🏆</div>
       <h2 className="text-3xl font-extrabold text-amber-300">¡CAMPEÓN!</h2>
+      <div className="text-lg font-extrabold text-emerald-300"><RunTimer startedAt={run.startedAt} frozen /></div>
       <p className="text-slate-200 text-sm max-w-xs">
         Has derrotado al Alto Mando y al Campeón de {run.region}. ¡Eres el nuevo
         Maestro Pokémon!

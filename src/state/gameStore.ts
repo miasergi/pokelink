@@ -309,8 +309,10 @@ export const useGame = create<GameState>((set, get) => ({
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
     let ok: boolean
-    if (itemId === 'rare-candy') ok = gainLevel(mon)
-    else if (itemId === 'attack-boost') {
+    if (itemId === 'rare-candy') {
+      ok = false
+      for (let i = 0; i < 3; i++) if (gainLevel(mon)) ok = true // +3 niveles
+    } else if (itemId === 'attack-boost') {
       mon.bonus = { ...mon.bonus, atk: (mon.bonus?.atk ?? 0) + 18, spa: (mon.bonus?.spa ?? 0) + 18 }
       recalcStats(mon, getSpecies(mon.speciesId))
       ok = true
