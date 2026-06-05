@@ -204,10 +204,10 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: salvaje +1, entrenador +2, JEFE +3.
-  // Solo a los que participaron (entrar debilitado no da nivel; debilitarse
-  // durante el combate sí lo da).
-  const levelGain = node.type === 'battle' ? 1 : node.type === 'trainer' ? 2 : isBossLike ? 3 : 0
+  // Recompensa de nivel por casilla: salvaje +1; entrenadores, gimnasios, rival
+  // y guardián +2; Alto Mando y Campeón +3. Solo a los que participaron.
+  const levelGain = node.type === 'battle' ? 1
+    : (node.type === 'elite' || node.type === 'champion') ? 3 : 2
   for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid)) gainLevel(mon)
 
   // Niveles ganados (combate por EXP + bonus de casilla) para mostrar logros.

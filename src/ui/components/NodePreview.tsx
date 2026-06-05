@@ -26,10 +26,10 @@ const REWARD: Partial<Record<string, string>> = {
   item: '1 objeto a elegir',
   event: 'sorpresa (objeto, dinero o Pokémon)',
   trade: 'un Pokémon nuevo (+3 niveles)',
-  gym: 'medalla + objeto raro',
-  elite: 'objeto raro',
-  champion: '¡completar la región!',
-  legendary: '¡capturas al legendario!',
+  gym: '+2 niveles + medalla + objeto raro + dinero',
+  elite: '+3 niveles + objeto raro',
+  champion: '+3 niveles · ¡completar la región!',
+  legendary: '+2 niveles · ¡capturas al legendario!',
 }
 
 export default function NodePreview({

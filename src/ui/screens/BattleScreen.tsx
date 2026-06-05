@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useSettings, type BattleSpeed } from '@/state/settingsStore'
-import { getSpecies } from '@/data'
+import { getSpecies, getMove } from '@/data'
 import { effectivenessLabel } from '@/data/typechart'
 import type { BattleEvent, Side } from '@/engine/battle/types'
 import type { PokemonInstance, PokemonType } from '@/types'
@@ -10,12 +10,14 @@ import HpBar from '@/ui/components/HpBar'
 import { Button, Card, money } from '@/ui/components/kit'
 import { getItem, tryGetItem } from '@/data/items'
 import TypeBadge from '@/ui/components/TypeBadge'
+import PowerDots from '@/ui/components/PowerDots'
 import MemeOverlay from '@/ui/components/MemeOverlay'
 import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import { play, type Sfx } from '@/utils/sfx'
 import { type Weather, WEATHER_ICON, WEATHER_ES } from '@/engine/battle/abilities'
 
+interface AtkView { type: PokemonType; power: number }
 interface SideView {
   uid: string
   speciesId: number
@@ -27,6 +29,7 @@ interface SideView {
   status: PokemonInstance['status']
   fainted: boolean
   heldItemId?: string | null
+  moves: AtkView[]
 }
 interface MonView {
   speciesId: number
@@ -36,6 +39,7 @@ interface MonView {
   currentHp: number
   status: PokemonInstance['status']
   heldItemId?: string | null
+  moves: AtkView[]
 }
 interface TeamSlot {
   uid: string
@@ -81,7 +85,7 @@ export default function BattleScreen() {
     const map = new Map<string, MonView>()
     if (!run || !pendingBattle) return map
     const add = (mons: PokemonInstance[]) => {
-      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId })
+      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
     }
     add(run.party)
     const content = run.map.nodes[pendingBattle.nodeId].content
@@ -370,6 +374,13 @@ function InfoCard({ view, remaining, align }: { view: SideView; remaining: numbe
         )}
       </div>
       <HpBar current={view.currentHp} max={view.maxHp} status={view.status} showNumbers />
+      <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        {view.moves.map((mv, i) => (
+          <span key={i} className="inline-flex items-center gap-1 text-[9px] text-slate-300">
+            <PowerDots type={mv.type} power={mv.power} size={6} />
+          </span>
+        ))}
+      </div>
       <span className="sr-only">{remaining}</span>
     </div>
   )
@@ -406,7 +417,7 @@ function buildFrames(
     return {
       uid, speciesId: d.speciesId, name: getSpecies(d.speciesId).displayName,
       level: d.level, shiny: d.shiny, currentHp: d.currentHp, maxHp: d.maxHp,
-      status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId,
+      status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId, moves: d.moves,
     }
   }
 

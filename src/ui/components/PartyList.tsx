@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PokemonInstance } from '@/types'
-import { getSpecies } from '@/data'
+import { getSpecies, getMove } from '@/data'
 import Sprite from './Sprite'
 import HpBar from './HpBar'
 import TypeBadge from './TypeBadge'
+import PowerDots from './PowerDots'
 import { typeGradient } from '@/ui/theme/types'
 import { tryGetItem } from '@/data/items'
 
@@ -106,7 +107,10 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder }: P
                   <div className="flex gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
                 </div>
               </div>
-              <div className="mt-1.5"><HpBar current={mon.currentHp} max={mon.stats.hp} status={mon.status} showNumbers /></div>
+              <div className="flex items-center gap-2 mt-1">
+                {mon.moves.map((mv, i) => { const md = getMove(mv.moveId); return <PowerDots key={i} type={md.type} power={md.power} size={6} /> })}
+              </div>
+              <div className="mt-1"><HpBar current={mon.currentHp} max={mon.stats.hp} status={mon.status} showNumbers /></div>
             </div>
           )
         })}

@@ -1,30 +1,56 @@
 import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
-import { Button, Card, TopBar, money } from '@/ui/components/kit'
+import { Button, TopBar, money } from '@/ui/components/kit'
 import { getSpecies, getMove, hasMega } from '@/data'
 import { getItem } from '@/data/items'
 import Sprite from '@/ui/components/Sprite'
+import HpBar from '@/ui/components/HpBar'
 import TypeBadge from '@/ui/components/TypeBadge'
+import PowerDots from '@/ui/components/PowerDots'
 import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
-import { STAT_ES, typeGradient } from '@/ui/theme/types'
-import { abilityName } from '@/engine/battle/abilities'
+import { typeGradient } from '@/ui/theme/types'
 import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
-import { TYPE_ATTACKS } from '@/data/typeAttacks'
+import { TYPE_ATTACKS, tierForLevel } from '@/data/typeAttacks'
 
 export default function TeamScreen() {
   const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   const [selItem, setSelItem] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
   if (!run) return null
 
-  // Aplica un objeto a un Pokémon (despacha por categoría).
+  // Motivo por el que un objeto NO tendría efecto en este Pokémon (o null).
+  const denyReason = (id: string, mon: NonNullable<typeof selMon>): string | null => {
+    const item = getItem(id)
+    const name = getSpecies(mon.speciesId).displayName
+    if (item.category === 'heal' && mon.currentHp >= mon.stats.hp && mon.status === 'none')
+      return `${name} ya está al máximo de PS.`
+    if (item.category === 'revive' && mon.currentHp > 0)
+      return `${name} no está debilitado.`
+    if ((id === 'rare-candy' || id === 'super-candy') && mon.level >= 100)
+      return `${name} ya está al nivel máximo (100).`
+    if (id === 'upgrade' && Math.min(2, tierForLevel(mon.level) + (mon.moveTier ?? 0)) >= 2)
+      return `El ataque de ${name} ya está al máximo nivel de potencia (120).`
+    if (id === 'mega-stone' && !hasMega(mon.speciesId))
+      return `${name} no tiene megaevolución.`
+    if (id === 'evo-stone' && getSpecies(mon.speciesId).evolutions.length === 0)
+      return `${name} no puede evolucionar.`
+    return null
+  }
+
+  // Aplica un objeto a un Pokémon (despacha por categoría) o explica por qué no.
   const applyItem = (id: string, uid: string) => {
+    const mon = run.party.find((p) => p.uid === uid)
+    if (!mon) return
+    const reason = denyReason(id, mon)
+    if (reason) { setMsg(reason); return }
     const cat = getItem(id).category
     if (cat === 'held') equipItem(id, uid)
     else if (cat === 'evolution') useEvolutionItem(id, uid)
     else useItem(id, uid)
+    setMsg(null)
   }
 
   const selMon = run.party.find((p) => p.uid === sel) ?? null
@@ -39,6 +65,11 @@ export default function TeamScreen() {
 
   return (
     <div className="flex flex-col flex-1 relative">
+      {msg && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] bg-rose-600/95 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xl animate-pop-in text-center" onClick={() => setMsg(null)}>
+          🚫 {msg}
+        </div>
+      )}
       <TopBar
         title="Tu equipo"
         left={<Button variant="ghost" onClick={back}>‹</Button>}
@@ -98,7 +129,7 @@ export default function TeamScreen() {
         <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={() => setSel(null)}>
           <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end -mb-2 -mt-1"><button aria-label="Cerrar" className="text-slate-400 text-2xl leading-none px-2 active:scale-90" onClick={() => setSel(null)}>✕</button></div>
-            <Card className="p-3" style={{ borderColor: '#f8717155' }}>
+            <div className="px-0.5">
             <div className="flex items-center gap-3 mb-2">
               <div className="rounded-xl p-0.5" style={{ background: typeGradient(selSpecies.types) }}>
                 <Sprite speciesId={selMon.speciesId} shiny={selMon.shiny} className="w-14 h-14 object-contain" />
@@ -106,18 +137,17 @@ export default function TeamScreen() {
               <div className="flex-1">
                 <div className="font-extrabold">{selSpecies.displayName}</div>
                 <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
-                {selMon.ability && selMon.ability !== 'none' && (
-                  <div className="text-[11px] text-sky-300 mt-0.5">✦ {abilityName(selMon.ability)}</div>
-                )}
               </div>
               <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] mb-2">
-              {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map((k) => (
-                <div key={k} className="flex justify-between">
-                  <span className="text-slate-400">{STAT_ES[k]}</span>
-                  <span className="font-bold tabular-nums">{selMon.stats[k]}</span>
+            <div className="mb-2"><HpBar current={selMon.currentHp} max={selMon.stats.hp} status={selMon.status} showNumbers /></div>
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
+              {([['PS', selMon.stats.hp], ['Ataque', Math.max(selMon.stats.atk, selMon.stats.spa)], ['Defensa', Math.max(selMon.stats.def, selMon.stats.spd)], ['Velocidad', selMon.stats.spe]] as const).map(([label, val]) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-slate-400">{label}</span>
+                  <span className="font-bold tabular-nums">{val}</span>
                 </div>
               ))}
             </div>
@@ -130,10 +160,9 @@ export default function TeamScreen() {
                     <div className="flex items-center gap-2 min-w-0">
                       <TypeBadge type={m.type} size="sm" />
                       <span className="text-xs font-semibold truncate">{m.displayName}</span>
+                      <PowerDots type={m.type} power={m.power} />
                     </div>
-                    <span className="text-[10px] text-slate-400 shrink-0">
-                      Ataque{m.power ? ` · ${m.power}` : ''}
-                    </span>
+                    <span className="text-[10px] text-slate-400 shrink-0">Ataque · {m.power}</span>
                   </div>
                 )
               })}
@@ -210,7 +239,7 @@ export default function TeamScreen() {
                 💠 Megaevolucionar
               </Button>
             )}
-            </Card>
+            </div>
 
             {/* Mochila — objetos aplicables a este Pokémon */}
             <div>

@@ -50,7 +50,8 @@ export function createInstance(
   void opts.moveIds
   const moves: MoveInstance[] = selectMoveset(species, level)
 
-  const ability = species.abilities.length ? rng.pick(species.abilities) : 'none'
+  // Sin habilidades: el rogue es más simple (no influyen en combate).
+  const ability = 'none'
 
   return {
     uid: nextUid(),
