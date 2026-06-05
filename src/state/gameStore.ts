@@ -43,6 +43,8 @@ interface GameState {
   useRescue: (monUid: string) => void
   doTrade: (monUid: string) => void
   skipTrade: () => void
+  tradeReveal: { fromId: number; toId: number; level: number } | null
+  closeTradeReveal: () => void
   loaded: boolean
   hasSavedRun: boolean
 
@@ -95,6 +97,7 @@ export const useGame = create<GameState>((set, get) => ({
   lastEventResult: null,
   evoFx: null,
   rescueNodeId: null,
+  tradeReveal: null,
   loaded: false,
   hasSavedRun: false,
 
@@ -143,13 +146,11 @@ export const useGame = create<GameState>((set, get) => ({
     if (!node) return
     const res = resolveTrade(run, node, monUid)
     persist(run)
-    set({
-      run,
-      lastEventResult: res ? `Intercambiaste ${res.fromName} por ${res.toName} (+3 niveles).` : null,
-      screen: { name: 'map' },
-      history: [],
-    })
+    if (res) set({ run, tradeReveal: res }) // se queda en la pantalla mostrando la animación
+    else set({ run, screen: { name: 'map' }, history: [] })
   },
+
+  closeTradeReveal: () => set({ tradeReveal: null, screen: { name: 'map' }, history: [] }),
 
   skipTrade: () => {
     const cur = get().run

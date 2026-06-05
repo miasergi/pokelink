@@ -292,7 +292,7 @@ export function leaveShop(_run: RunState, node: MapNode): void {
 /** Intercambio: cambias un Pokémon por otro aleatorio de primera etapa (+3 niveles). */
 export function resolveTrade(
   run: RunState, node: MapNode, monUid: string,
-): { fromName: string; toName: string } | null {
+): { fromId: number; toId: number; level: number } | null {
   if (node.content.kind !== 'trade') return null
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
@@ -303,7 +303,7 @@ export function resolveTrade(
   run.money -= node.content.cost
   run.stats.pokemonCaught++
   node.cleared = true
-  return { fromName: getSpecies(traded.speciesId).displayName, toName: getSpecies(newMon.speciesId).displayName }
+  return { fromId: traded.speciesId, toId: newMon.speciesId, level: newMon.level }
 }
 
 export function skipNode(node: MapNode): void {

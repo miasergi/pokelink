@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { getSpecies } from '@/data'
 import Sprite from './Sprite'
+import TypeBadge from './TypeBadge'
 import { Button } from './kit'
 import { typeGradient } from '@/ui/theme/types'
 
-/** Animación de evolución: el Pokémon original se desvanece y aparece el nuevo. */
+/** Animación de evolución/intercambio: el original se desvanece y aparece el nuevo. */
 export default function EvolutionModal({
-  fromId, toId, onClose,
+  fromId, toId, onClose, title = '¡Evolución!', prelude = '¿Qué...?', level,
 }: {
   fromId: number
   toId: number
   onClose: () => void
+  title?: string
+  prelude?: string
+  level?: number
 }) {
   const [phase, setPhase] = useState<'pre' | 'flash' | 'done'>('pre')
   const to = getSpecies(toId)
@@ -50,15 +54,19 @@ export default function EvolutionModal({
         </div>
 
         {phase === 'done' ? (
-          <div className="animate-pop-in flex flex-col items-center gap-3">
-            <div className="text-emerald-300 font-extrabold text-lg">¡Evolución!</div>
-            <div className="text-2xl font-extrabold">{to.displayName}</div>
-            <Button variant="success" onClick={onClose}>
+          <div className="animate-pop-in flex flex-col items-center gap-2">
+            <div className="text-emerald-300 font-extrabold text-lg">{title}</div>
+            <div className="text-2xl font-extrabold">
+              {to.displayName}
+              {level != null && <span className="text-base text-slate-400"> · Nv.{level}</span>}
+            </div>
+            <div className="flex gap-1">{to.types.map((t) => <TypeBadge key={t} type={t} />)}</div>
+            <Button variant="success" onClick={onClose} className="mt-2">
               ¡Genial! ›
             </Button>
           </div>
         ) : (
-          <div className="text-slate-300 text-sm animate-pulse">¿Qué...?</div>
+          <div className="text-slate-300 text-sm animate-pulse">{prelude}</div>
         )}
       </div>
     </div>

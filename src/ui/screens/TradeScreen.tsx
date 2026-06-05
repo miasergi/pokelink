@@ -3,9 +3,10 @@ import { Button, Card, TopBar, money } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
+import EvolutionModal from '@/ui/components/EvolutionModal'
 
 export default function TradeScreen() {
-  const { run, screen, doTrade, skipTrade } = useGame()
+  const { run, screen, doTrade, skipTrade, tradeReveal, closeTradeReveal } = useGame()
   if (!run) return null
   const nodeId = screen.params?.nodeId as string | undefined
   const node = nodeId ? run.map.nodes[nodeId] : undefined
@@ -55,6 +56,17 @@ export default function TradeScreen() {
       <div className="p-4 safe-bottom">
         <Button full variant="secondary" onClick={skipTrade}>No intercambiar</Button>
       </div>
+
+      {tradeReveal && (
+        <EvolutionModal
+          fromId={tradeReveal.fromId}
+          toId={tradeReveal.toId}
+          level={tradeReveal.level}
+          title="¡Intercambio recibido!"
+          prelude="Intercambiando…"
+          onClose={closeTradeReveal}
+        />
+      )}
     </div>
   )
 }

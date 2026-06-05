@@ -24,6 +24,7 @@ export default function PartyBar({
             <div className="w-8 h-1 rounded-full bg-slate-700 overflow-hidden">
               <div className="h-full rounded-full" style={{ width: `${frac * 100}%`, backgroundColor: color }} />
             </div>
+            <span className="text-[9px] font-bold text-slate-300 leading-none">Nv.{mon.level}</span>
           </div>
         )
       })}
