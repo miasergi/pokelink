@@ -1,6 +1,6 @@
 import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
-import { encounterPoolFor, legendaryPoolFor, ALL_SPECIES } from '@/data'
+import { encounterPoolFor, legendaryPoolFor } from '@/data'
 import { createInstance } from '@/engine/team/instance'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
@@ -186,10 +186,10 @@ export function generateMap(
     connect(layers[i].map((id) => nodes[id]), layers[i + 1].map((id) => nodes[id]), rng)
   }
 
-  // --- Modo Random: randomiza TODAS las especies (salvajes, entrenadores,
-  //     jefes) manteniendo los NIVELES para conservar la coherencia. ---
+  // --- Modo Random: randomiza las especies (salvajes, entrenadores, jefes) de
+  //     las REGIONES elegidas, manteniendo los NIVELES para conservar coherencia.
   if (random) {
-    const randPool = ALL_SPECIES.filter((s) => !s.legendary && !s.isMega)
+    const randPool = pool.filter((s) => !s.isMega)
     const reroll = (mon: PokemonInstance, isLegendary: boolean): PokemonInstance =>
       createInstance(rng.pick(isLegendary ? legends : randPool).id, mon.level, rng)
     for (const node of Object.values(nodes)) {

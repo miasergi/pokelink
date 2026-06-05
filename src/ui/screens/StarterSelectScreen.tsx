@@ -22,7 +22,10 @@ export default function StarterSelectScreen() {
   // En Modo Random, 3 iniciales aleatorios con cadena de 3 etapas.
   const starters = useMemo(() => {
     if (!random) return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
-    const pool = threeStageStarterPool()
+    // Iniciales random SOLO de las regiones elegidas.
+    const set = new Set(pools)
+    let pool = threeStageStarterPool().filter((s) => set.has(s.generation))
+    if (pool.length < 3) pool = threeStageStarterPool() // respaldo si hay muy pocos
     const picks: number[] = []
     const used = new Set<number>()
     while (picks.length < 3 && used.size < pool.length) {
@@ -32,7 +35,8 @@ export default function StarterSelectScreen() {
       picks.push(sp.id)
     }
     return picks
-  }, [random, gen])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [random, gen, pools.join(',')])
   const [selected, setSelected] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
