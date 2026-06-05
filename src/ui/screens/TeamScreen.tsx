@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar, money } from '@/ui/components/kit'
 import { getSpecies, getMove, hasMega } from '@/data'
@@ -23,22 +23,39 @@ export default function TeamScreen() {
   const [sel, setSel] = useState<string | null>(null)
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [msgOk, setMsgOk] = useState(false)
   if (!run) return null
   const cap = levelCap(run)
+
+  const flash = (text: string, ok: boolean) => { setMsg(text); setMsgOk(ok) }
+  // El mensaje se desvanece solo.
+  useEffect(() => {
+    if (!msg) return
+    const t = setTimeout(() => setMsg(null), 2200)
+    return () => clearTimeout(t)
+  }, [msg])
 
   // Aplica un objeto a un Pokémon (despacha por categoría) o explica por qué no.
   const applyItem = (id: string, uid: string) => {
     const mon = run.party.find((p) => p.uid === uid)
     if (!mon) return
+    const name = getSpecies(mon.speciesId).displayName
     if (!itemHasEffect(id, mon, cap)) {
-      setMsg(`${getSpecies(mon.speciesId).displayName}: ${noEffectReason(id, mon, cap)}`)
+      flash(`${name}: ${noEffectReason(id, mon, cap)}`, false)
       return
     }
-    const cat = getItem(id).category
-    if (cat === 'held') equipItem(id, uid)
-    else if (cat === 'evolution') useEvolutionItem(id, uid)
-    else useItem(id, uid)
-    setMsg(null)
+    const item = getItem(id)
+    if (item.category === 'held') { equipItem(id, uid); flash(`Equipaste ${item.name} a ${name}.`, true); return }
+    if (item.category === 'evolution') { useEvolutionItem(id, uid); return }
+    // Consumible: aplica y avisa de lo que hizo.
+    const before = { hp: mon.currentHp, lvl: mon.level }
+    useItem(id, uid)
+    let did = `Usaste ${item.name} en ${name}.`
+    if (id === 'rare-candy' || id === 'super-candy') did = `¡${name} subió de nivel! (era Nv.${before.lvl})`
+    else if (id === 'upgrade') did = `¡Mejoraste la potencia del ataque de ${name}!`
+    else if (item.category === 'revive') did = `¡${name} revivió!`
+    else if (item.category === 'heal') did = `${name} recuperó PS.`
+    flash(did, true)
   }
 
   const selMon = run.party.find((p) => p.uid === sel) ?? null
@@ -58,8 +75,8 @@ export default function TeamScreen() {
   return (
     <div className="flex flex-col flex-1 relative">
       {msg && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] bg-rose-600/95 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xl animate-pop-in text-center" onClick={() => setMsg(null)}>
-          🚫 {msg}
+        <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xl animate-pop-in text-center cursor-pointer ${msgOk ? 'bg-emerald-600/95' : 'bg-rose-600/95'}`} onClick={() => setMsg(null)}>
+          {msgOk ? '✅' : '🚫'} {msg}
         </div>
       )}
       <TopBar

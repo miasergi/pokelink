@@ -181,12 +181,12 @@ export const useGame = create<GameState>((set, get) => ({
     run.startedAt = Date.now()
     void clearRun()
     saveRun(run)
-    set({ run, hasSavedRun: true, screen: { name: 'map' }, history: [] })
+    set({ run, hasSavedRun: true, lastEventResult: null, screen: { name: 'map' }, history: [] })
   },
 
   resumeRun: async () => {
     const run = await loadRun()
-    if (run) set({ run, screen: { name: 'map' }, history: [] })
+    if (run) set({ run, lastEventResult: null, screen: { name: 'map' }, history: [] })
   },
 
   restartRun: () => {

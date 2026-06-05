@@ -25,8 +25,12 @@ export function buildTrainerTeam(trainer: TrainerData, rng: RNG): PokemonInstanc
  * para que los encuentros salvajes escalen de forma natural.
  */
 export function tierPool(pool: SpeciesData[], level: number): SpeciesData[] {
-  const cap = 320 + level * 6 // BST máximo permitido
-  const filtered = pool.filter((s) => bst(s) <= cap)
+  const maxBst = 320 + level * 6 // BST máximo permitido
+  // Suelo de BST que sube con el nivel: a partir de cierto punto dejan de salir
+  // Pokémon débiles/sin evolucionar (p.ej. nada de Tyrogue cerca de la Liga).
+  const minBst = level >= 16 ? Math.round(level * 7) : 0
+  let filtered = pool.filter((s) => { const b = bst(s); return b >= minBst && b <= maxBst })
+  if (filtered.length < 6) filtered = pool.filter((s) => bst(s) <= maxBst) // sin suelo si quedan pocos
   return filtered.length > 6 ? filtered : pool
 }
 
@@ -214,6 +218,136 @@ export const EVENTS: Record<string, RunEventDef> = {
     description: '¡Caen rocas por la ladera!',
     options: [
       { label: 'Cubrirse', description: 'Daño moderado, pero podría ser peor.', effect: { kind: 'damage', frac: 0.2 } },
+    ] },
+
+  // --- Más eventos buenos ---
+  old_fisherman: { id: 'old_fisherman', title: 'Viejo pescador', tone: 'good',
+    description: 'Un pescador comparte su captura del día y un consejo.',
+    options: [
+      { label: 'Aceptar la comida', description: 'Cura todo tu equipo.', effect: { kind: 'heal' } },
+      { label: 'Pedir su caña', description: 'Consigue una Campana Concha.', effect: { kind: 'item', itemId: 'shell-bell', qty: 1 } },
+    ] },
+  move_tutor: { id: 'move_tutor', title: 'Maestro de movimientos', tone: 'good',
+    description: 'Un sabio puede pulir la técnica de tu equipo.',
+    options: [
+      { label: 'Recibir lección', description: 'Consigue una Mejora.', effect: { kind: 'item', itemId: 'upgrade', qty: 1 } },
+      { label: 'Donativo', description: 'Te lo agradece con 600 ₽.', effect: { kind: 'money', amount: 600 } },
+    ] },
+  daycare_couple: { id: 'daycare_couple', title: 'Guardería Pokémon', tone: 'good',
+    description: 'La pareja de la guardería cuida a tu equipo unos días.',
+    options: [
+      { label: 'Dejarlos entrenar', description: '+1 nivel a todo el equipo.', effect: { kind: 'levelUp', amount: 1 } },
+      { label: 'Solo descansar', description: 'Cura todo tu equipo.', effect: { kind: 'heal' } },
+    ] },
+  shiny_hunter: { id: 'shiny_hunter', title: 'Cazadora de shinies', tone: 'good',
+    description: 'Una entrenadora obsesionada con los Pokémon raros te regala algo.',
+    options: [
+      { label: 'Aceptar incienso', description: 'Consigue un Incienso Shiny.', effect: { kind: 'item', itemId: 'shiny-incense', qty: 1 } },
+      { label: 'Pedir dinero', description: 'Te da 1000 ₽.', effect: { kind: 'money', amount: 1000 } },
+    ] },
+  generous_nurse: { id: 'generous_nurse', title: 'Enfermera Joy', tone: 'good',
+    description: 'Una enfermera de viaje monta una camilla improvisada.',
+    options: [
+      { label: 'Que te atienda', description: 'Cura todo tu equipo.', effect: { kind: 'heal' } },
+      { label: 'Coger una poción', description: 'Consigue una Hiperpoción.', effect: { kind: 'item', itemId: 'hyper-potion', qty: 1 } },
+    ] },
+  rich_kid: { id: 'rich_kid', title: 'Niño rico', tone: 'good',
+    description: 'Un niño presumido quiere "comprar" tu amistad.',
+    options: [
+      { label: 'Aceptar su dinero', description: '+1800 ₽.', effect: { kind: 'money', amount: 1800 } },
+    ] },
+  wandering_merchant: { id: 'wandering_merchant', title: 'Mercader ambulante', tone: 'good',
+    description: 'Un mercader abre su saco lleno de curiosidades.',
+    options: [
+      { label: 'Rebuscar', description: 'Consigue un objeto raro.', effect: { kind: 'randomItem' } },
+      { label: 'Comprar caramelos', description: 'Recibe 1 Supercaramelo.', effect: { kind: 'item', itemId: 'super-candy', qty: 1 } },
+    ] },
+  fossil_dig: { id: 'fossil_dig', title: 'Excavación de fósiles', tone: 'good',
+    description: 'Unos científicos te dejan unirte a su excavación.',
+    options: [
+      { label: 'Cavar', description: 'Consigue un objeto raro.', effect: { kind: 'randomItem' } },
+      { label: 'Vender el hallazgo', description: '+900 ₽.', effect: { kind: 'money', amount: 900 } },
+    ] },
+  hot_spring: { id: 'hot_spring', title: 'Aguas termales', tone: 'good',
+    description: 'Un manantial humeante invita a un descanso.',
+    options: [
+      { label: 'Darse un baño', description: 'Cura todo tu equipo y consigue Restos.', effect: { kind: 'heal' } },
+    ] },
+  retired_champion: { id: 'retired_champion', title: 'Campeón retirado', tone: 'good',
+    description: 'Un viejo campeón te da un consejo... y una reliquia.',
+    options: [
+      { label: 'Escuchar', description: '+1 nivel a todo el equipo.', effect: { kind: 'levelUp', amount: 1 } },
+      { label: 'Pedir su amuleto', description: 'Consigue un Amuleto Moneda.', effect: { kind: 'item', itemId: 'amulet-coin', qty: 1 } },
+    ] },
+  breeder_gift: { id: 'breeder_gift', title: 'Criador generoso', tone: 'good',
+    description: 'Un criador tiene un Pokémon de más y busca buen hogar.',
+    options: [
+      { label: 'Acogerlo', description: 'Se une un Pokémon a tu equipo/caja.', effect: { kind: 'addMon' } },
+      { label: 'Rechazar', description: 'No pasa nada.', effect: { kind: 'none' } },
+    ] },
+
+  // --- Más eventos de azar ---
+  street_gambler: { id: 'street_gambler', title: 'Trilero callejero', tone: 'neutral',
+    description: '“Encuentra la bola y duplicas tu apuesta.”',
+    options: [
+      { label: 'Apostar 400 ₽', description: '45%: ganas 1000 ₽.', effect: { kind: 'gamble', cost: 400, win: 1400, chance: 0.45 } },
+      { label: 'Pasar', description: 'No juegas.', effect: { kind: 'none' } },
+    ] },
+  mysterious_vendor: { id: 'mysterious_vendor', title: 'Vendedor encapuchado', tone: 'neutral',
+    description: 'Te ofrece una caja cerrada por una "voluntad".',
+    options: [
+      { label: 'Comprar a ciegas 600 ₽', description: '65%: objeto raro. 35%: nada.', effect: { kind: 'risky', chance: 0.65, good: { kind: 'randomItem' }, bad: { kind: 'loseMoneyFrac', frac: 0 } } },
+      { label: 'Marcharse', description: 'No te fías.', effect: { kind: 'none' } },
+    ] },
+  ancient_shrine: { id: 'ancient_shrine', title: 'Santuario antiguo', tone: 'neutral',
+    description: 'Un altar pide una ofrenda a cambio de fortuna.',
+    options: [
+      { label: 'Ofrendar 500 ₽', description: '55%: bendición (objeto). 45%: nada.', effect: { kind: 'risky', chance: 0.55, good: { kind: 'randomItem' }, bad: { kind: 'none' } } },
+      { label: 'Rezar gratis', description: 'A veces basta con desearlo.', effect: { kind: 'gamble', cost: 0, win: 400, chance: 0.4 } },
+    ] },
+  card_dealer: { id: 'card_dealer', title: 'Repartidor de cartas', tone: 'neutral',
+    description: 'Una partida rápida: doble o nada.',
+    options: [
+      { label: 'Jugar 700 ₽', description: '50%: ganas 1400 ₽.', effect: { kind: 'gamble', cost: 700, win: 2100, chance: 0.5 } },
+      { label: 'No jugar', description: 'Te retiras.', effect: { kind: 'none' } },
+    ] },
+
+  // --- Más eventos malos ---
+  toll_bridge: { id: 'toll_bridge', title: 'Puente de peaje', tone: 'bad',
+    description: 'Un Snorlax bloquea el puente. Su dueño cobra por pasar.',
+    options: [
+      { label: 'Pagar peaje', description: 'Pierdes algo de dinero, pasas tranquilo.', effect: { kind: 'loseMoneyFrac', frac: 0.1 } },
+      { label: 'Cruzar el río', description: 'Te mojas: daño leve al equipo.', effect: { kind: 'damage', frac: 0.15 } },
+    ] },
+  electric_storm: { id: 'electric_storm', title: 'Tormenta eléctrica', tone: 'bad',
+    description: 'Una tormenta sorprende a tu equipo a la intemperie.',
+    options: [
+      { label: 'Refugiarse rápido', description: 'Daño leve a todo el equipo.', effect: { kind: 'damage', frac: 0.12 } },
+      { label: 'Aguantar el chaparrón', description: '50%: nada. 50%: daño moderado.', effect: { kind: 'risky', chance: 0.5, good: { kind: 'none' }, bad: { kind: 'damage', frac: 0.3 } } },
+    ] },
+  pickpocket: { id: 'pickpocket', title: 'Carterista', tone: 'bad',
+    description: 'Notas una mano demasiado cerca de tu bolsillo.',
+    options: [
+      { label: 'Reaccionar', description: '60%: lo evitas y ganas extra. 40%: nada.', effect: { kind: 'gamble', cost: 0, win: 600, chance: 0.6 } },
+      { label: 'No darte cuenta', description: 'Pierdes parte de tu dinero.', effect: { kind: 'loseMoneyFrac', frac: 0.18 } },
+    ] },
+  sandstorm: { id: 'sandstorm', title: 'Tormenta de arena', tone: 'bad',
+    description: 'El desierto castiga a quien lo cruza.',
+    options: [
+      { label: 'Cruzar deprisa', description: 'Daño leve al equipo.', effect: { kind: 'damage', frac: 0.15 } },
+      { label: 'Rodear (pagando guía)', description: 'Pierdes algo de dinero.', effect: { kind: 'loseMoneyFrac', frac: 0.12 } },
+    ] },
+  haunted_house: { id: 'haunted_house', title: 'Mansión encantada', tone: 'bad',
+    description: 'Ruidos extraños... y un brillo al fondo.',
+    options: [
+      { label: 'Investigar', description: '60%: objeto raro. 40%: susto (daño).', effect: { kind: 'risky', chance: 0.6, good: { kind: 'randomItem' }, bad: { kind: 'damage', frac: 0.25 } } },
+      { label: 'Salir corriendo', description: 'Mejor no.', effect: { kind: 'none' } },
+    ] },
+  con_artist: { id: 'con_artist', title: 'Timador', tone: 'bad',
+    description: '“Invierte y te devuelvo el triple, palabra.”',
+    options: [
+      { label: 'Confiar 800 ₽', description: '35%: ganas 2400 ₽. 65%: lo pierdes.', effect: { kind: 'gamble', cost: 800, win: 3200, chance: 0.35 } },
+      { label: 'Ni hablar', description: 'No caes.', effect: { kind: 'none' } },
     ] },
 }
 

@@ -363,8 +363,14 @@ function SpriteFx({ side, fx, idx }: { side: Side; fx?: Fx; idx: number }) {
       {!isHeal && !fx.self && fx.eff != null && fx.eff !== 1 && (
         <div
           key={`e-${idx}`}
-          className="fx-dmg absolute font-black text-[13px]"
-          style={{ marginTop: fx.crit ? 56 : 40, color: effectivenessColor(fx.eff), textShadow: '0 1px 4px #000' }}
+          className="fx-eff absolute font-black text-[15px] whitespace-nowrap"
+          style={{
+            marginTop: fx.crit ? 58 : 42,
+            color: effectivenessColor(fx.eff),
+            WebkitTextStroke: '3px #fff',
+            paintOrder: 'stroke',
+            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.7))',
+          }}
         >
           {effectivenessLabel(fx.eff)}
         </div>

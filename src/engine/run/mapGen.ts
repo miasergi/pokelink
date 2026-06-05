@@ -124,6 +124,7 @@ export function generateMap(
   const nodes: Record<string, MapNode> = {}
   let nodeSeq = 0
   const newId = () => `n${nodeSeq++}`
+  const usedEvents = new Set<string>() // para no repetir eventos en la run
 
   plan.forEach((p, layerIdx) => {
     const level = levels[layerIdx]
@@ -137,7 +138,7 @@ export function generateMap(
         const id = newId()
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: level,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng, usedEvents),
           cleared: false,
         }
         ids.push(id)
@@ -239,7 +240,7 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
 }
 
 function buildRouteContent(
-  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG,
+  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>,
 ): MapNode['content'] {
   switch (type) {
     case 'battle':
@@ -252,8 +253,14 @@ function buildRouteContent(
       return { kind: 'item', choices: itemChoices(rng, frac) }
     case 'shop':
       return { kind: 'shop', stock: shopStock(rng, frac) }
-    case 'event':
-      return { kind: 'event', eventId: rng.pick(EVENT_IDS) }
+    case 'event': {
+      // No repetir eventos dentro de una misma run hasta haberlos agotado todos.
+      let avail = EVENT_IDS.filter((id) => !usedEvents.has(id))
+      if (avail.length === 0) { usedEvents.clear(); avail = EVENT_IDS }
+      const eventId = rng.pick(avail)
+      usedEvents.add(eventId)
+      return { kind: 'event', eventId }
+    }
     case 'trade':
       return { kind: 'trade', cost: 300 + level * 20 }
     default:
