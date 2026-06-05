@@ -3,7 +3,7 @@ import { encounterPool, getSpecies, basePool } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
 import { computeStats, expForLevel, gainLevel } from '@/engine/team/leveling'
-import { pendingLevelEvolution, evolve } from '@/engine/team/evolution'
+import { levelEvolutionTargets, evolve } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
@@ -231,13 +231,14 @@ export function applyBattleOutcome(
     summary.caughtLegendary = getSpecies(mon.speciesId).displayName
   }
 
-  // Evoluciones por nivel
+  // Evoluciones por nivel: solo se auto-evoluciona si hay UNA opción. Si hay
+  // varias ramas (Eevee, Tyrogue, Wurmple...), el jugador elige en el menú.
   for (const mon of run.party) {
-    const evoSpecies = pendingLevelEvolution(mon)
-    if (evoSpecies) {
+    const targets = levelEvolutionTargets(mon)
+    if (targets.length === 1) {
       const fromId = mon.speciesId
-      evolve(mon, evoSpecies)
-      summary.evolutions.push({ uid: mon.uid, fromId, toId: evoSpecies.id })
+      evolve(mon, targets[0])
+      summary.evolutions.push({ uid: mon.uid, fromId, toId: targets[0].id })
     }
   }
 

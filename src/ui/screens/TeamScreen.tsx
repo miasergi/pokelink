@@ -7,14 +7,15 @@ import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import PartyList from '@/ui/components/PartyList'
 import EvolutionModal from '@/ui/components/EvolutionModal'
+import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
 import { abilityName } from '@/engine/battle/abilities'
-import { effectiveEvoLevel } from '@/engine/team/evolution'
+import { effectiveEvoLevel, levelEvolutionTargets } from '@/engine/team/evolution'
 
 const CAT_ES: Record<string, string> = { physical: 'Físico', special: 'Especial', status: 'Estado' }
 
 export default function TeamScreen() {
-  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder } = useGame()
+  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evolveByLevel, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   if (!run) return null
 
@@ -139,9 +140,14 @@ export default function TeamScreen() {
               )}
             </div>
 
+            {levelEvolutionTargets(selMon).length > 0 && (
+              <Button variant="success" full className="!py-2 mb-1" onClick={() => evolveByLevel(selMon.uid)}>
+                🧬 Evolucionar{levelEvolutionTargets(selMon).length > 1 ? ' (elegir)' : ''}
+              </Button>
+            )}
             {canEvolve && hasEvoStone && (
               <Button variant="success" full className="!py-2 mb-1" onClick={() => useEvolutionItem('evo-stone', selMon.uid)}>
-                🪨 Evolucionar (Piedra Evolutiva)
+                🪨 Evolucionar (Piedra Evolutiva){getSpecies(selMon.speciesId).evolutions.length > 1 ? ' · elegir' : ''}
               </Button>
             )}
             {hasMega(selMon.speciesId) && hasMegaStone && (
@@ -219,6 +225,7 @@ export default function TeamScreen() {
       </div>
 
       {evoFx && <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />}
+      {evoChoice && <EvoChoiceModal options={evoChoice.options} onPick={chooseEvolution} onCancel={cancelEvoChoice} />}
     </div>
   )
 }

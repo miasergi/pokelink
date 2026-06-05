@@ -25,6 +25,15 @@ export function pendingLevelEvolution(mon: PokemonInstance): SpeciesData | null 
   return null
 }
 
+/** Todas las evoluciones por nivel ya disponibles (para ramas múltiples: Eevee,
+ *  Tyrogue, Wurmple...). Si hay >1, el jugador elige. */
+export function levelEvolutionTargets(mon: PokemonInstance): SpeciesData[] {
+  const species = getSpecies(mon.speciesId)
+  return species.evolutions
+    .filter((evo) => mon.level >= effectiveEvoLevel(evo.trigger))
+    .map((evo) => getSpecies(evo.toId))
+}
+
 /** ¿Una piedra concreta evoluciona a este Pokémon? */
 export function evolutionByItem(
   mon: PokemonInstance,

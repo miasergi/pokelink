@@ -10,7 +10,7 @@ import {
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies } from '@/data'
-import { evolve } from '@/engine/team/evolution'
+import { evolve, levelEvolutionTargets } from '@/engine/team/evolution'
 import { gainLevel, recalcStats } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta } from '@/persistence/db'
 
@@ -39,6 +39,10 @@ interface GameState {
   closeBattle: () => void
   lastEventResult: string | null
   evoFx: { uid: string; fromId: number; toId: number } | null
+  evoChoice: { uid: string; itemId: string | null; options: number[] } | null
+  evolveByLevel: (monUid: string) => boolean
+  chooseEvolution: (targetId: number) => void
+  cancelEvoChoice: () => void
   rescueNodeId: string | null
   useRescue: (monUid: string) => void
   doTrade: (monUid: string) => void
@@ -96,6 +100,7 @@ export const useGame = create<GameState>((set, get) => ({
   battleSummary: null,
   lastEventResult: null,
   evoFx: null,
+  evoChoice: null,
   rescueNodeId: null,
   tradeReveal: null,
   loaded: false,
@@ -329,22 +334,61 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     const mon = run.party.find((p) => p.uid === monUid)
     if (!mon) return false
-    const fromId = mon.speciesId
-    let target = null
-    if (itemId === 'mega-stone') {
-      const forms = getMegaForms(mon.speciesId)
-      target = forms[0] ?? null
-    } else if (itemId === 'evo-stone') {
-      const evos = getSpecies(mon.speciesId).evolutions
-      target = evos.length ? getSpecies(evos[0].toId) : null
+    // Opciones según el objeto.
+    const options =
+      itemId === 'mega-stone'
+        ? getMegaForms(mon.speciesId).map((s) => s.id)
+        : getSpecies(mon.speciesId).evolutions.map((e) => e.toId)
+    if (!options.length) return false
+    // Varias opciones (Charizard X/Y, Eevee...) -> que elija el jugador.
+    if (options.length > 1) {
+      set({ evoChoice: { uid: monUid, itemId, options } })
+      return true
     }
-    if (!target) return false
-    evolve(mon, target)
+    const fromId = mon.speciesId
+    evolve(mon, getSpecies(options[0]))
     removeItem(run, itemId, 1)
     persist(run)
-    set({ run, evoFx: { uid: monUid, fromId, toId: target.id } })
+    set({ run, evoFx: { uid: monUid, fromId, toId: options[0] } })
     return true
   },
+
+  // Evolución por nivel manual (ramas múltiples: Eevee, Tyrogue...).
+  evolveByLevel: (monUid) => {
+    const cur = get().run
+    if (!cur) return false
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === monUid)
+    if (!mon) return false
+    const targets = levelEvolutionTargets(mon)
+    if (!targets.length) return false
+    if (targets.length > 1) {
+      set({ evoChoice: { uid: monUid, itemId: null, options: targets.map((t) => t.id) } })
+      return true
+    }
+    const fromId = mon.speciesId
+    evolve(mon, targets[0])
+    persist(run)
+    set({ run, evoFx: { uid: monUid, fromId, toId: targets[0].id } })
+    return true
+  },
+
+  // Confirma la opción elegida en el modal de elección.
+  chooseEvolution: (targetId) => {
+    const choice = get().evoChoice
+    const cur = get().run
+    if (!choice || !cur) return
+    const run = cloneRun(cur)
+    const mon = run.party.find((p) => p.uid === choice.uid)
+    if (!mon) { set({ evoChoice: null }); return }
+    const fromId = mon.speciesId
+    evolve(mon, getSpecies(targetId))
+    if (choice.itemId) removeItem(run, choice.itemId, 1)
+    persist(run)
+    set({ run, evoChoice: null, evoFx: { uid: choice.uid, fromId, toId: targetId } })
+  },
+
+  cancelEvoChoice: () => set({ evoChoice: null }),
 
   clearEvoFx: () => set({ evoFx: null }),
 
