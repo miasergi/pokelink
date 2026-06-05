@@ -12,6 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false, // registramos manualmente en main.tsx (con auto-recarga)
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'PokéRogue — Roguelike',

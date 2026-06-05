@@ -1,5 +1,6 @@
 import { useGame } from '@/state/gameStore'
 import { Button } from '@/ui/components/kit'
+import { APP_VERSION } from '@/version'
 
 export default function HomeScreen() {
   const { navigate, hasSavedRun, resumeRun } = useGame()
@@ -36,6 +37,7 @@ export default function HomeScreen() {
             ⚙ Ajustes
           </Button>
         </div>
+        <div className="text-center text-[11px] text-slate-600 mt-1">{APP_VERSION}</div>
       </div>
     </div>
   )
