@@ -32,6 +32,19 @@ export default function EvolutionModal({
     <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-6">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="relative w-48 h-48 grid place-items-center">
+          {/* Halo giratorio durante la transformación */}
+          {phase !== 'pre' && (
+            <div className="fx-evo-glow absolute w-56 h-56 rounded-full pointer-events-none" style={{ background: 'conic-gradient(from 0deg, #fde68a55, #38bdf855, #f472b655, #fde68a55)', filter: 'blur(14px)' }} />
+          )}
+          {/* Chispas al completar */}
+          {phase === 'done' && (
+            <div className="absolute inset-0 pointer-events-none">
+              {Array.from({ length: 10 }).map((_, k) => {
+                const ang = (k / 10) * Math.PI * 2
+                return <span key={k} className="fx-evo-spark absolute left-1/2 top-1/2 text-lg" style={{ ['--dx' as string]: `${Math.cos(ang) * 90}px`, ['--dy' as string]: `${Math.sin(ang) * 90}px`, animationDelay: `${k * 0.03}s` }}>✨</span>
+              })}
+            </div>
+          )}
           {phase !== 'done' && (
             <Sprite
               speciesId={fromId}

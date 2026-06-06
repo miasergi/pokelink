@@ -11,6 +11,7 @@ import { MAX_PARTY } from '@/engine/run/party'
 export default function CatchScreen() {
   const { run, screen, doCatch } = useGame()
   const [replacing, setReplacing] = useState(false)
+  const [capturing, setCapturing] = useState(false)
   const nodeId = screen.params?.nodeId as string
   if (!run) return null
   const node = run.map.nodes[nodeId]
@@ -18,13 +19,21 @@ export default function CatchScreen() {
   const mon = node.content.offer
   const sp = getSpecies(mon.speciesId)
   const partyFull = run.party.length >= MAX_PARTY
+  const POKEBALL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'
+  const doCapture = (replaceUid?: string) => { setCapturing(true); setTimeout(() => doCatch(nodeId, true, replaceUid), 1700) }
 
   return (
     <div className="flex flex-col flex-1">
       <TopBar title="¡Pokémon salvaje!" />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center gap-4 no-scrollbar">
-        <div className="rounded-3xl p-4 w-full max-w-sm text-center" style={{ background: typeGradient(sp.types) }}>
-          <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-40 h-40 object-contain mx-auto drop-shadow-2xl animate-float" />
+        <div className="relative rounded-3xl p-4 w-full max-w-sm text-center" style={{ background: typeGradient(sp.types) }}>
+          <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className={`w-40 h-40 object-contain mx-auto drop-shadow-2xl ${capturing ? 'opacity-0 transition-opacity duration-500 delay-200' : 'animate-float'}`} />
+          {capturing && (
+            <div className="absolute inset-0 grid place-items-center pointer-events-none">
+              <img src={POKEBALL} alt="" className="fx-pokeball w-16 h-16" style={{ imageRendering: 'pixelated' }} />
+              <span className="absolute fx-capture-pop text-4xl" style={{ animationDelay: '1.5s' }}>✨</span>
+            </div>
+          )}
           <div className="text-2xl font-extrabold">{sp.displayName} {mon.shiny && '✨'}</div>
           <div className="text-sm opacity-90">Nivel {mon.level}</div>
           <div className="flex gap-1 justify-center mt-2">
@@ -32,10 +41,12 @@ export default function CatchScreen() {
           </div>
         </div>
 
-        {!replacing ? (
+        {capturing ? (
+          <div className="text-center text-sm font-bold text-amber-300 animate-pulse mt-2">¡Lanzando Poké Ball…!</div>
+        ) : !replacing ? (
           <div className="w-full max-w-sm flex flex-col gap-2.5">
             {!partyFull ? (
-              <Button full variant="success" onClick={() => doCatch(nodeId, true)}>
+              <Button full variant="success" onClick={() => doCapture()}>
                 🔴 ¡Capturar y unir al equipo!
               </Button>
             ) : (
@@ -54,7 +65,7 @@ export default function CatchScreen() {
           <div className="w-full max-w-sm flex flex-col gap-2">
             <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para hacer sitio? (desaparece para siempre)</p>
             {run.party.map((p) => (
-              <PokemonCard key={p.uid} mon={p} onClick={() => doCatch(nodeId, true, p.uid)} />
+              <PokemonCard key={p.uid} mon={p} onClick={() => doCapture(p.uid)} />
             ))}
             <Button full variant="ghost" onClick={() => setReplacing(false)}>Cancelar</Button>
           </div>

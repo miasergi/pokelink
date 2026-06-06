@@ -7,6 +7,9 @@ const STEPS = [
   { icon: '👥', title: 'Construye tu equipo', text: 'Captura Pokémon, equípales objetos y reordénalos arrastrando el asa ⠿. El primero del equipo es el líder.' },
   { icon: '🏅', title: 'Jefes y Liga Pokémon', text: 'Vence a los 8 líderes, al Alto Mando y al Campeón. Toca un jefe para ver su equipo y debilidades antes de luchar.' },
   { icon: '💠', title: 'Megaevolución', text: 'Equipa una Mega Piedra a un Pokémon compatible (Charizard, Venusaur…) y megaevolucionará al entrar en combate.' },
+  { icon: '🎒', title: 'Objetos con estrategia', text: 'Equipables (Banda Experto, Mineraluz, Amuleto Relevo…), Mejoras de potencia, Metamorfosis para formas regionales y más. En el equipo, toca "⚖ Comparar" para decidir mejor.' },
+  { icon: '💎', title: 'Nodos arriesgados', text: 'Algunos combates de ruta (💎) traen enemigos más fuertes pero doble dinero y un objeto garantizado. Siempre tendrás una alternativa segura.' },
+  { icon: '🏅', title: 'Logros y ranking', text: 'Gana logros, elige un compañero para Inicio y sube tus mejores tiempos al ranking online. ¡Prueba el Reto diario, igual para todos cada día!' },
 ]
 
 export default function Onboarding({ onClose }: { onClose: () => void }) {

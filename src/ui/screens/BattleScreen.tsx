@@ -122,7 +122,16 @@ export default function BattleScreen() {
 
   const [idx, setIdx] = useState(0)
   const [done, setDone] = useState(false)
+  const [showLog, setShowLog] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
+
+  // Log de combate: mensajes únicos consecutivos.
+  const log = useMemo(() => {
+    const out: string[] = []
+    let last = ''
+    for (const f of frames) { if (f.message && f.message !== last) { out.push(f.message); last = f.message } }
+    return out
+  }, [frames])
 
   useEffect(() => {
     setIdx(0)
@@ -290,6 +299,24 @@ export default function BattleScreen() {
           <div className="text-center text-[11px] text-amber-300/80 mt-1.5">Combate de jefe</div>
         )}
       </div>
+
+      {/* Botón de log de combate */}
+      <button onClick={() => setShowLog(true)} className="absolute top-2 right-2 z-30 w-9 h-9 grid place-items-center rounded-full bg-slate-900/80 border border-slate-700 text-lg active:scale-90" title="Ver registro del combate">📜</button>
+
+      {/* Registro del combate */}
+      {showLog && (
+        <div className="absolute inset-0 z-[60] bg-black/70 backdrop-blur-sm grid place-items-center p-4" onClick={() => setShowLog(false)}>
+          <div className="w-full max-w-md max-h-[80%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-extrabold">📜 Registro del combate</div>
+              <button className="text-slate-400 text-2xl px-1" onClick={() => setShowLog(false)}>✕</button>
+            </div>
+            <ol className="flex flex-col gap-1 text-sm text-slate-200">
+              {log.map((m, i) => <li key={i} className="rounded-lg bg-slate-800/60 px-2.5 py-1.5">{m}</li>)}
+            </ol>
+          </div>
+        </div>
+      )}
 
       {/* Meme al derrotar a un jefe */}
       {battleSummary?.bossDefeated && !memeClosed && (
