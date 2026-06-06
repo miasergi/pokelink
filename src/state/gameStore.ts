@@ -60,7 +60,7 @@ interface GameState {
   useRescue: (monUid: string) => void
   doTrade: (monUid: string) => void
   skipTrade: () => void
-  tradeReveal: { fromId: number; toId: number; level: number } | null
+  tradeReveal: { fromId: number; toId: number; level: number; shiny: boolean } | null
   closeTradeReveal: () => void
   loaded: boolean
   hasSavedRun: boolean
@@ -228,6 +228,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (!node) return
     const res = resolveTrade(run, node, monUid)
     persist(run)
+    if (res) void syncDexFromRun(run)
     if (res) set({ run, tradeReveal: res }) // se queda en la pantalla mostrando la animación
     else set({ run, screen: { name: 'map' }, history: [] })
   },
@@ -368,6 +369,7 @@ export const useGame = create<GameState>((set, get) => ({
     } else return // lleno y sin reemplazo: no hacer nada
     run.stats.pokemonCaught++
     persist(run)
+    void syncDexFromRun(run)
     set({ run, legendaryOffer: null, screen: { name: 'map' }, history: [] })
   },
   skipLegendary: () => set({ legendaryOffer: null, screen: { name: 'map' }, history: [] }),
@@ -387,6 +389,7 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     catchPokemon(run, run.map.nodes[nodeId], accept, chosenUid, replaceUid)
     persist(run)
+    if (accept) void syncDexFromRun(run)
     set({ run, screen: { name: 'map' }, history: [] })
   },
 
@@ -423,6 +426,7 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     const msg = resolveEvent(run, run.map.nodes[nodeId], optionIndex)
     persist(run)
+    void syncDexFromRun(run) // algunos eventos añaden Pokémon (huevo, criador…)
     set({ run, lastEventResult: msg, screen: { name: 'map' }, history: [] })
   },
 
@@ -446,9 +450,9 @@ export const useGame = create<GameState>((set, get) => ({
       if (cur >= 2) ok = false
       else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
     } else if (itemId === 'metamorph') {
-      ok = cycleRegionalForm(mon) // cambia de forma regional (NO se gasta)
+      ok = cycleRegionalForm(mon) // cambia de forma regional (se gasta al usarlo)
     } else ok = applyHealItem(mon, itemId)
-    if (ok && itemId !== 'metamorph') removeItem(run, itemId, 1)
+    if (ok) removeItem(run, itemId, 1)
     // Tras subir de nivel (caramelos), evoluciona si alcanzó su nivel (rama
     // única; las múltiples las elige el jugador).
     let evoFx: { uid: string; fromId: number; toId: number } | null = null
@@ -591,6 +595,32 @@ export const useGame = create<GameState>((set, get) => ({
     set({ run })
   },
 }))
+
+/**
+ * Registra EN VIVO en la Pokédex persistente las especies del equipo/caja
+ * actuales (capturas, intercambios, legendarios, eventos). Antes la dex solo se
+ * grababa al terminar la run, así que un Pokémon capturado seguía saliendo como
+ * "NUEVO" durante esa misma partida. Idempotente: solo guarda si hay cambios.
+ */
+async function syncDexFromRun(run: RunState): Promise<void> {
+  const meta = await loadMeta()
+  const seen = new Set(meta.pokedexSeen)
+  const caught = new Set(meta.pokedexCaught)
+  const shiny = new Set(meta.pokedexShiny)
+  let changed = false
+  for (const p of [...run.party, ...run.box]) {
+    const base = toBaseSpeciesId(p.speciesId) // especie base (no mega/forma)
+    if (!seen.has(base)) { seen.add(base); changed = true }
+    if (!caught.has(base)) { caught.add(base); changed = true }
+    if (p.shiny && !shiny.has(base)) { shiny.add(base); changed = true }
+  }
+  if (!changed) return
+  meta.pokedexSeen = [...seen]
+  meta.pokedexCaught = [...caught]
+  meta.pokedexShiny = [...shiny]
+  await saveMeta(meta)
+  useGame.setState({ dexCaught: meta.pokedexCaught.length })
+}
 
 async function recordRunEnd(run: RunState): Promise<string[]> {
   const meta = await loadMeta()

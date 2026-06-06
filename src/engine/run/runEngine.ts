@@ -7,7 +7,7 @@ import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
-import { EVENTS, type EventEffect } from './nodes'
+import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
@@ -139,7 +139,8 @@ export interface BattleOutcomeSummary {
 }
 
 // (Megapiedra NO aquí: solo en tienda/casilla bien avanzada la run.)
-const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'shell-bell', 'rare-candy', 'upgrade', 'choice-band', 'assault-vest', 'evo-stone', 'revive-charm']
+// Botín variado compartido por jefes, nodos arriesgados y eventos de objeto.
+const BOSS_DROPS = GIFT_ITEMS
 
 /** Tope de nivel del equipo. En Nuzlocke, el nivel del próximo jefe sin vencer
  *  (no puedes sobrenivelar hasta derrotarlo). En el resto, sin tope (100). */
@@ -336,7 +337,7 @@ export function leaveShop(_run: RunState, node: MapNode): void {
 /** Intercambio: cambias un Pokémon por otro aleatorio de primera etapa (+3 niveles). */
 export function resolveTrade(
   run: RunState, node: MapNode, monUid: string,
-): { fromId: number; toId: number; level: number } | null {
+): { fromId: number; toId: number; level: number; shiny: boolean } | null {
   if (node.content.kind !== 'trade') return null
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
@@ -352,7 +353,7 @@ export function resolveTrade(
   run.money -= node.content.cost
   run.stats.pokemonCaught++
   node.cleared = true
-  return { fromId: traded.speciesId, toId: newMon.speciesId, level: newMon.level }
+  return { fromId: traded.speciesId, toId: newMon.speciesId, level: newMon.level, shiny: !!newMon.shiny }
 }
 
 export function skipNode(node: MapNode): void {

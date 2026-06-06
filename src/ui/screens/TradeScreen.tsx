@@ -62,6 +62,7 @@ export default function TradeScreen() {
           fromId={tradeReveal.fromId}
           toId={tradeReveal.toId}
           level={tradeReveal.level}
+          shiny={tradeReveal.shiny}
           title="¡Intercambio recibido!"
           prelude="Intercambiando…"
           onClose={closeTradeReveal}

@@ -7,7 +7,7 @@ import { typeGradient } from '@/ui/theme/types'
 
 /** Animación de evolución/intercambio: el original se desvanece y aparece el nuevo. */
 export default function EvolutionModal({
-  fromId, toId, onClose, title = '¡Evolución!', prelude = '¿Qué...?', level,
+  fromId, toId, onClose, title = '¡Evolución!', prelude = '¿Qué...?', level, shiny = false,
 }: {
   fromId: number
   toId: number
@@ -15,6 +15,7 @@ export default function EvolutionModal({
   title?: string
   prelude?: string
   level?: number
+  shiny?: boolean
 }) {
   const [phase, setPhase] = useState<'pre' | 'flash' | 'done'>('pre')
   const to = getSpecies(toId)
@@ -58,7 +59,7 @@ export default function EvolutionModal({
               className="absolute rounded-2xl p-1 animate-pop-in"
               style={{ background: typeGradient(to.types), opacity: phase === 'done' ? 1 : 0.3 }}
             >
-              <Sprite speciesId={toId} className="w-40 h-40 object-contain drop-shadow-2xl" />
+              <Sprite speciesId={toId} shiny={shiny} className="w-40 h-40 object-contain drop-shadow-2xl" />
             </div>
           )}
           {phase === 'flash' && (
@@ -73,6 +74,7 @@ export default function EvolutionModal({
               {to.displayName}
               {level != null && <span className="text-base text-slate-400"> · Nv.{level}</span>}
             </div>
+            {shiny && <div className="text-sm font-black px-2 py-0.5 rounded-full bg-amber-300 text-black">✨ ¡VARIOCOLOR!</div>}
             <div className="flex gap-1">{to.types.map((t) => <TypeBadge key={t} type={t} />)}</div>
             <Button variant="success" onClick={onClose} className="mt-2">
               ¡Genial! ›

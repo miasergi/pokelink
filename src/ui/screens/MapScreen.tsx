@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useSettings } from '@/state/settingsStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
+import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
 import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
 import { IconCrown, IconTrophy, IconBadge } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
@@ -70,6 +71,7 @@ export default function MapScreen() {
   if (!run) return null
   const { map } = run
   const reachable = new Set(availableNextNodes(run).map((n) => n.id))
+  const partyAvg = run.party.length ? run.party.reduce((s, m) => s + m.level, 0) / run.party.length : 0
 
   // Margen lateral para que los nodos queden más centrados (no pegados al borde).
   const PAD = Math.min(48, width * 0.13)
@@ -189,9 +191,19 @@ export default function MapScreen() {
                     cleared={node.cleared && !isCurrent}
                     dim={!isReach && !node.cleared}
                   />
-                  {node.risky && !node.cleared && (
-                    <span title="Arriesgado: enemigo más fuerte, mejor botín" className="absolute -top-1 -right-1 text-sm drop-shadow" style={{ filter: 'drop-shadow(0 0 2px #000)' }}>💎</span>
-                  )}
+                  {!node.cleared && isCombatNode(node) && (() => {
+                    const d = nodeDifficulty(node, partyAvg, run.difficulty)
+                    if (d.tier === 0) return null
+                    return (
+                      <span
+                        title={`${d.label}: enemigo +${d.delta} niveles sobre tu equipo${node.risky ? ' · mejor botín' : ''}`}
+                        className="absolute -top-1.5 -right-1.5 text-[9px] font-black leading-none rounded-full px-1 py-0.5 border border-black/40"
+                        style={{ background: d.color, color: '#1e293b', filter: 'drop-shadow(0 0 2px #000)' }}
+                      >
+                        {'★'.repeat(d.tier)}
+                      </span>
+                    )
+                  })()}
                   {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'legendary') && (
                     <div className="flex flex-col items-center mt-0.5 leading-tight">
                       <span className="text-[8px] font-bold whitespace-nowrap" style={{ color: meta.color }}>
@@ -227,6 +239,8 @@ export default function MapScreen() {
       {preview && (
         <NodePreview
           node={preview}
+          partyAvgLevel={partyAvg}
+          difficulty={run.difficulty}
           canEnter={reachable.has(preview.id) && !preview.cleared}
           onEnter={() => {
             const id = preview.id

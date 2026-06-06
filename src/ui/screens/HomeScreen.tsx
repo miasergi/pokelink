@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button } from '@/ui/components/kit'
 import { APP_VERSION } from '@/version'
+import { CHANGELOG } from '@/data/changelog'
 import AccountModal from '@/ui/components/AccountModal'
 import Sprite from '@/ui/components/Sprite'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements, startRun } = useGame()
   const [account, setAccount] = useState(false)
   const [dailyOpen, setDailyOpen] = useState(false)
+  const [newsOpen, setNewsOpen] = useState(false)
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom relative">
       {/* Botón de nube / cuenta (arriba, centrado) */}
@@ -62,10 +64,48 @@ export default function HomeScreen() {
             ⚙ Ajustes
           </Button>
         </div>
-        <div className="text-center text-[11px] text-slate-600 mt-1">{APP_VERSION}</div>
+        <button
+          onClick={() => setNewsOpen(true)}
+          className="mt-1 mx-auto flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 active:scale-95 transition"
+        >
+          📜 Novedades · <span className="text-slate-600">{APP_VERSION}</span>
+        </button>
       </div>
 
       {account && <AccountModal onClose={() => setAccount(false)} />}
+
+      {/* Novedades: cambios de las últimas 3 versiones */}
+      {newsOpen && (
+        <div className="absolute inset-0 z-[75] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setNewsOpen(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in max-h-[85%] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center shrink-0">
+              <div className="text-3xl">📜</div>
+              <div className="font-extrabold text-lg">Novedades</div>
+              <p className="text-[11px] text-slate-400">Lo que hemos tocado en las últimas versiones</p>
+            </div>
+            <div className="mt-3 overflow-y-auto no-scrollbar flex flex-col gap-4 pr-1">
+              {CHANGELOG.slice(0, 3).map((e) => (
+                <div key={e.version}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-extrabold text-red-400">{e.version}</span>
+                    <span className="text-sm font-bold text-slate-200">{e.title}</span>
+                    <span className="text-[10px] text-slate-500 ml-auto">{e.date}</span>
+                  </div>
+                  <ul className="mt-1.5 flex flex-col gap-1.5">
+                    {e.changes.map((c, i) => (
+                      <li key={i} className="flex gap-2 text-[12px] text-slate-300 leading-snug">
+                        <span className="text-red-400/70 shrink-0">›</span>
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <Button variant="primary" full className="mt-3 shrink-0" onClick={() => setNewsOpen(false)}>Entendido</Button>
+          </div>
+        </div>
+      )}
 
       {/* Reto diario: info + inicial fijo, igual para todos */}
       {dailyOpen && (() => {

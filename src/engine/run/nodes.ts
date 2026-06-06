@@ -62,6 +62,23 @@ const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
 const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 
+/**
+ * Pool VARIADO de objetos "regalo/botín" (recompensas de jefe, nodos
+ * arriesgados y eventos de objeto aleatorio). Antes era una lista corta donde
+ * Restos/Campana Concha salían el 20% de las veces; ahora abarca casi todo el
+ * catálogo equipable + mejoras + curación fuerte para que haya sorpresa real.
+ */
+export const GIFT_ITEMS = [
+  // Mejoras y consumibles potentes
+  'rare-candy', 'super-candy', 'upgrade', 'evo-stone',
+  // Curación / rescate de calidad
+  'max-potion', 'max-revive', 'hyper-potion', 'revive-charm',
+  // Equipables genéricos (incluye Restos/Concha, ahora diluidos)
+  ...GENERIC_HELD,
+  // Objetos de tipo (gran variedad)
+  ...TYPE_ITEMS,
+]
+
 /** 3 objetos a elegir como recompensa. */
 export function itemChoices(rng: RNG, depthFrac: number): string[] {
   const pool: string[] = []

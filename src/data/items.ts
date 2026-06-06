@@ -54,8 +54,8 @@ export const ITEMS: ItemData[] = [
   { id: 'max-revive', name: 'Revivir Máx', category: 'revive', description: 'Revive con todos los PS.', price: 4000, sprite: ITEM_SPRITE('max-revive') },
 
   // --- Mejora (consumibles de subida) ---
-  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2000, sprite: ITEM_SPRITE('rare-candy') },
-  { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 7000, sprite: ITEM_SPRITE('lucky-egg') },
+  { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2500, sprite: ITEM_SPRITE('rare-candy') },
+  { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 4000, sprite: ITEM_SPRITE('lucky-egg') },
   { id: 'upgrade', name: 'Mejora', category: 'battle', description: 'Sube el NIVEL de potencia del ataque de un Pokémon (40 → 80 → 120).', price: 4000, sprite: ITEM_SPRITE('ability-capsule') },
   { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes contra un salvaje o un entrenador normal, revives a 1 Pokémon y continúas (no funciona contra jefes ni la Liga). Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 
@@ -77,7 +77,7 @@ export const ITEMS: ItemData[] = [
   { id: 'iron-ball', name: 'Lastre de Hierro', category: 'held', description: 'Baja un 20% la Velocidad, pero sube un 50% el daño.', price: 2500, sprite: ITEM_SPRITE('iron-ball') },
   { id: 'amulet-coin', name: 'Amuleto Moneda', category: 'held', description: 'Ganas un 50% más de dinero en los combates mientras lo lleve equipado.', price: 3000, sprite: ITEM_SPRITE('amulet-coin') },
   { id: 'shiny-incense', name: 'Incienso Shiny', category: 'special', description: 'La PRÓXIMA casilla de captura te ofrecerá un Pokémon SHINY. Se gasta solo.', price: 8000, sprite: ITEM_SPRITE('lax-incense') },
-  { id: 'metamorph', name: 'Metamorfosis', category: 'battle', description: 'Cambia entre las formas regionales de un Pokémon (Alola, Galar, Hisui, Paldea) y su forma normal. No se gasta.', price: 4500, sprite: ITEM_SPRITE('reveal-glass') },
+  { id: 'metamorph', name: 'Metamorfosis', category: 'battle', description: 'Cambia entre las formas regionales de un Pokémon (Alola, Galar, Hisui, Paldea) y su forma normal. Se gasta al usarlo.', price: 4500, sprite: ITEM_SPRITE('reveal-glass') },
 
   // --- Objetos de tipo: +50% al daño de ataques de ESE tipo (equipables) ---
   ...TYPE_BOOST_ITEMS,

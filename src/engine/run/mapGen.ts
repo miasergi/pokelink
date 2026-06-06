@@ -12,6 +12,8 @@ import type { MapNode, NodeType, RunMap } from './types'
 
 // Clases de entrenador genéricas con retrato real (Pokémon Showdown).
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
+// Niveles extra de un nodo ARRIESGADO (suma fija, no multiplicador).
+const RISKY_LEVEL_BONUS = 4
 // Cada clase de entrenador tiene una temática de tipo coherente.
 const GENERIC_CLASSES: { slug: string; name: string; type: PokemonType }[] = [
   { slug: 'youngster', name: 'Joven', type: 'normal' },
@@ -96,7 +98,8 @@ export function generateMap(
   const ELITE_LEVELS = [64, 70, 76, 82]
   const CHAMPION_LEVEL = 88
   // Rivales situados ENTRE gimnasios -> nivel acorde a su posición en el mapa.
-  const RIVAL_LEVELS = [13, 46, 62]
+  // (El 2º rival va entre gym4=36 y gym5=45: debe quedar POR DEBAJO de 45.)
+  const RIVAL_LEVELS = [13, 41, 62]
   const LEGENDARY_LEVEL = 57 // guardián entre gym6 y gym7
 
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
@@ -135,6 +138,17 @@ export function generateMap(
   )
   const levels = interpolateLevels(anchors, 5)
 
+  // Nivel del PRÓXIMO jefe en cada capa (para no ofrecer capturas con nivel
+  // pegado al jefe que viene).
+  const nextBossLevel: number[] = new Array(plan.length)
+  {
+    let nb = CHAMPION_LEVEL
+    for (let i = plan.length - 1; i >= 0; i--) {
+      if (anchors[i] !== null) nb = anchors[i] as number
+      nextBossLevel[i] = nb
+    }
+  }
+
   // --- Construcción de nodos por capa ---
   const layers: string[][] = []
   const nodes: Record<string, MapNode> = {}
@@ -153,11 +167,13 @@ export function generateMap(
         const type = c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length)
         const id = newId()
         // Nodo ARRIESGADO: combates con enemigo más fuerte y mejor botín.
+        // Suma unos NIVELES FIJOS (antes multiplicaba ×1.35, que se disparaba a
+        // alto nivel: un nv40 normal salía a 54).
         const risky = (type === 'battle' || type === 'trainer') && layerIdx > 1 && w > 1 && rng.chance(0.2)
-        const nodeLevel = risky ? Math.round(level * 1.35) : level
+        const nodeLevel = risky ? level + RISKY_LEVEL_BONUS : level
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: nodeLevel, risky,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx]),
           cleared: false,
         }
         ids.push(id)
@@ -259,7 +275,7 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
 }
 
 function buildRouteContent(
-  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string,
+  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99,
 ): MapNode['content'] {
   switch (type) {
     case 'battle':
@@ -267,13 +283,19 @@ function buildRouteContent(
     case 'trainer':
       return synthTrainerContent(pool, level, rng, difficulty)
     case 'catch': {
-      // 3 Pokémon distintos a elegir (balanceados por nivel/dificultad).
+      // Pokémon a elegir, balanceados por nivel/dificultad. Nuzlocke: solo 1
+      // (un único intento de captura por zona, como el modo clásico).
+      // El nivel se limita para que un recién capturado no quede pegado (ni por
+      // encima) del próximo jefe: con la variación de makeWild (+1), el tope
+      // efectivo queda en jefe-1.
+      const catchLevel = Math.max(2, Math.min(level, nextBoss - 2))
+      const count = difficulty === 'nuzlocke' ? 1 : 3
       const offers: PokemonInstance[] = []
       const used = new Set<number>()
-      for (let k = 0; k < 3; k++) {
-        let m = makeWild(pool, level, rng, difficulty)
+      for (let k = 0; k < count; k++) {
+        let m = makeWild(pool, catchLevel, rng, difficulty)
         let tries = 0
-        while (used.has(m.speciesId) && tries++ < 8) m = makeWild(pool, level, rng, difficulty)
+        while (used.has(m.speciesId) && tries++ < 8) m = makeWild(pool, catchLevel, rng, difficulty)
         used.add(m.speciesId)
         offers.push(m)
       }

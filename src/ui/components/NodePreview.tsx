@@ -4,6 +4,7 @@ import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
+import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
 import type { PokemonType } from '@/types'
 
 const CLASS_ES: Record<string, string> = {
@@ -33,12 +34,14 @@ const REWARD: Partial<Record<string, string>> = {
 }
 
 export default function NodePreview({
-  node, canEnter = true, onEnter, onClose,
+  node, canEnter = true, onEnter, onClose, partyAvgLevel = 0, difficulty = 'normal',
 }: {
   node: MapNode
   canEnter?: boolean
   onEnter: () => void
   onClose: () => void
+  partyAvgLevel?: number
+  difficulty?: string
 }) {
   const content = node.content
   const isTrainer = content.kind === 'trainer'
@@ -98,16 +101,24 @@ export default function NodePreview({
         {trainer?.quote && <p className="text-sm text-slate-300 italic mt-3">“{trainer.quote}”</p>}
         {simple && <p className="text-sm text-slate-300 mt-3">{simple.desc}</p>}
 
-        {/* Aviso de nodo arriesgado */}
-        {node.risky && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 px-3 py-2">
-            <span className="text-lg">💎</span>
-            <div>
-              <div className="text-[11px] text-fuchsia-300 font-bold">Combate arriesgado</div>
-              <div className="text-sm text-slate-200">Enemigo más fuerte, pero <b>doble dinero</b> y un <b>objeto garantizado</b>.</div>
+        {/* Aviso de dificultad (cualquier enemigo más fuerte de lo normal) */}
+        {(() => {
+          if (!isCombatNode(node)) return null
+          const d = nodeDifficulty(node, partyAvgLevel, difficulty)
+          if (d.tier === 0 && !node.risky) return null
+          return (
+            <div className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2 border" style={{ background: `${d.color}1a`, borderColor: `${d.color}66` }}>
+              <span className="text-base font-black tabular-nums" style={{ color: d.color }}>{'★'.repeat(Math.max(1, d.tier))}</span>
+              <div>
+                <div className="text-[11px] font-bold" style={{ color: d.color }}>
+                  Dificultad: {d.tier === 0 ? 'Equilibrado' : d.label}
+                  {d.delta > 0 && <span className="text-slate-300"> · +{d.delta} niveles sobre tu equipo</span>}
+                </div>
+                {node.risky && <div className="text-sm text-slate-200">Combate arriesgado: <b>doble dinero</b> y un <b>objeto garantizado</b>.</div>}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Recompensa */}
         {REWARD[node.type] && (
