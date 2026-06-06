@@ -9,7 +9,7 @@ import {
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
-import { getMegaForms, getSpecies } from '@/data'
+import { getMegaForms, getSpecies, ALL_SPECIES } from '@/data'
 import { evolve, levelEvolutionTargets, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
@@ -18,7 +18,7 @@ import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, save
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
-  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary'
+  | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
 
 interface Screen {
   name: ScreenName
@@ -40,6 +40,13 @@ interface GameState {
   closeBattle: () => void
   lastEventResult: string | null
   clearEventResult: () => void
+  newAchievements: string[]
+  clearNewAchievements: () => void
+  /** Nº de especies capturadas (para la recompensa de dinero inicial por Pokédex). */
+  dexCaught: number
+  /** Pokémon compañero (speciesId) que se ve en Inicio. */
+  pet: number | null
+  setPet: (speciesId: number | null) => Promise<void>
   evoFx: { uid: string; fromId: number; toId: number } | null
   evoChoice: { uid: string; itemId: string | null; options: number[] } | null
   evolveByLevel: (monUid: string) => boolean
@@ -124,6 +131,15 @@ export const useGame = create<GameState>((set, get) => ({
   cloudBusy: false,
   cloudMsg: null,
   alias: '',
+  pet: null,
+
+  setPet: async (speciesId) => {
+    set({ pet: speciesId })
+    const meta = await loadMeta()
+    meta.pet = speciesId
+    await saveMeta(meta)
+    if (currentUser()) await saveCloudMeta(meta)
+  },
 
   setAlias: async (name) => {
     const alias = name.trim().slice(0, 20)
@@ -154,7 +170,7 @@ export const useGame = create<GameState>((set, get) => ({
     recomputeTotals(merged) // corrige contadores inflados por el antiguo bug
     await saveMeta(merged)
     await saveCloudMeta(merged)
-    set({ cloudBusy: false, alias: merged.alias || get().alias })
+    set({ cloudBusy: false, alias: merged.alias || get().alias, dexCaught: merged.pokedexCaught.length, pet: merged.pet ?? get().pet })
   },
 
   navigate: (name, params) =>
@@ -169,6 +185,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (get().cloudUser) void get().cloudSync()
     void loadMeta().then(async (m) => {
       if (m.alias) set({ alias: m.alias })
+      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null })
       if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
     })
     const saved = await loadRun()
@@ -179,6 +196,8 @@ export const useGame = create<GameState>((set, get) => ({
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
     const run = createRun({ pools: config.pools, random: config.random, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed })
     run.startedAt = Date.now()
+    // Recompensa de Pokédex: +250 ₽ de salida por cada 25 especies (máx +2500).
+    run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
     void clearRun()
     saveRun(run)
     set({ run, hasSavedRun: true, lastEventResult: null, screen: { name: 'map' }, history: [] })
@@ -241,7 +260,7 @@ export const useGame = create<GameState>((set, get) => ({
     const run = get().run
     // Solo registrar si la run sigue activa (abandono real). Si ya está ganada
     // o perdida, finishBattle ya la registró: NO duplicar.
-    if (run && run.status === 'active') await recordRunEnd(run)
+    if (run && run.status === 'active') { const a = await recordRunEnd(run); if (a.length) set({ newAchievements: a }) }
     await clearRun()
     set({ run: null, hasSavedRun: false, pendingBattle: null, screen: { name: 'home' }, history: [] })
   },
@@ -299,7 +318,7 @@ export const useGame = create<GameState>((set, get) => ({
     persist(run)
 
     if (summary.runWon) {
-      void recordRunEnd(run)
+      void recordRunEnd(run).then((a) => { if (a.length) set({ newAchievements: a }) })
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
     } else if (summary.runEnded) {
       // Salvavidas: revive 1 y continúa, SOLO al perder vs salvajes o entrenadores
@@ -309,7 +328,7 @@ export const useGame = create<GameState>((set, get) => ({
         set({ run, lastSummary: summary, pendingBattle: null, rescueNodeId: node.id, screen: { name: 'rescue' }, history: [] })
         return
       }
-      void recordRunEnd(run)
+      void recordRunEnd(run).then((a) => { if (a.length) set({ newAchievements: a }) })
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'gameover' }, history: [] })
     } else if (summary.legendaryOffer) {
       // Venciste a un legendario: pantalla para decidir si se une al equipo.
@@ -323,6 +342,9 @@ export const useGame = create<GameState>((set, get) => ({
   closeBattle: () => set({ pendingBattle: null, battleSummary: null, screen: { name: 'map' }, history: [] }),
 
   clearEventResult: () => set({ lastEventResult: null }),
+  newAchievements: [],
+  clearNewAchievements: () => set({ newAchievements: [] }),
+  dexCaught: 0,
 
   legendaryOffer: null,
   addLegendary: (replaceUid) => {
@@ -551,10 +573,11 @@ export const useGame = create<GameState>((set, get) => ({
   },
 }))
 
-async function recordRunEnd(run: RunState) {
+async function recordRunEnd(run: RunState): Promise<string[]> {
   const meta = await loadMeta()
+  const won = run.status === 'won'
   meta.totals.runs += 1
-  if (run.status === 'won') meta.totals.wins += 1
+  if (won) meta.totals.wins += 1
   meta.totals.gymsDefeated += run.stats.gymsDefeated
   meta.totals.pokemonCaught += run.stats.pokemonCaught
   // pokédex (+ shinies)
@@ -584,6 +607,12 @@ async function recordRunEnd(run: RunState) {
     },
     ...meta.bestRuns,
   ].slice(0, 30)
+
+  // Regiones ganadas y logros.
+  if (won && !meta.regionsWon.includes(run.region)) meta.regionsWon.push(run.region)
+  const newAchievements = checkAchievements(meta, run, won)
+  if (newAchievements.length) meta.achievements = [...new Set([...meta.achievements, ...newAchievements])]
+
   await saveMeta(meta)
   // Sincroniza con la nube si hay sesión (fusiona por si hay datos de otro disp.).
   if (currentUser()) {
@@ -605,6 +634,28 @@ async function recordRunEnd(run: RunState) {
       })
     }
   }
+  return newAchievements
+}
+
+/** Devuelve los logros recién conseguidos (no presentes ya en meta). */
+function checkAchievements(meta: Awaited<ReturnType<typeof loadMeta>>, run: RunState, won: boolean): string[] {
+  const durationMs = Math.max(0, Date.now() - run.startedAt)
+  const types = run.party.map((p) => new Set(getSpecies(p.speciesId).types))
+  const monotype = run.party.length > 0 && [...types[0]].some((t) => types.every((s) => s.has(t)))
+  const earned: string[] = []
+  if (meta.totals.wins >= 1) earned.push('first_win')
+  if (meta.totals.wins >= 10) earned.push('win10')
+  if (run.stats.gymsDefeated >= 8) earned.push('gym_master')
+  if (won && run.difficulty === 'hard') earned.push('champion_hard')
+  if (won && run.difficulty === 'nuzlocke') earned.push('champion_nuzlocke')
+  if (won && durationMs > 0 && durationMs < 25 * 60000) earned.push('speedrun')
+  if (won && monotype) earned.push('monotype')
+  if (meta.pokedexShiny.length >= 1) earned.push('shiny')
+  if (meta.pokedexCaught.length >= 50) earned.push('collector50')
+  if (meta.pokedexCaught.length >= 100) earned.push('collector100')
+  if (meta.pokedexCaught.length >= ALL_SPECIES.length) earned.push('collector_all')
+  if (meta.regionsWon.length >= 9) earned.push('all_regions')
+  return earned.filter((id) => !meta.achievements.includes(id))
 }
 
 export { Party }

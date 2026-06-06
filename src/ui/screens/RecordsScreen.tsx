@@ -34,6 +34,14 @@ export default function RecordsScreen() {
               <span className="text-slate-500 text-2xl">›</span>
             </Card>
 
+            <Card className="p-3.5 flex items-center justify-between active:scale-[0.99] transition" onClick={() => navigate('achievements')}>
+              <div>
+                <div className="font-bold">🏅 Logros y compañero</div>
+                <div className="text-xs text-slate-400">Logros, recompensa de Pokédex y mascota</div>
+              </div>
+              <span className="text-slate-500 text-2xl">›</span>
+            </Card>
+
             <Card className="p-4">
               <div className="grid grid-cols-2 gap-3 text-center">
                 <Stat label="Partidas" value={meta.totals.runs} />

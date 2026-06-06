@@ -16,6 +16,12 @@ interface MetaRecord {
   pokedexCaught: number[]
   pokedexShiny: number[]
   alias: string
+  /** Logros desbloqueados (ids). */
+  achievements: string[]
+  /** Regiones en las que has ganado (para el logro "todas las regiones"). */
+  regionsWon: string[]
+  /** Pokémon mascota/compañero (speciesId) que se ve en Inicio. */
+  pet: number | null
 }
 
 export interface BestRun {
@@ -105,6 +111,9 @@ const EMPTY_META: MetaRecord = {
   pokedexCaught: [],
   pokedexShiny: [],
   alias: '',
+  achievements: [],
+  regionsWon: [],
+  pet: null,
 }
 
 export async function loadMeta(): Promise<MetaRecord> {
@@ -142,6 +151,9 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     pokedexCaught: uni(a.pokedexCaught, b.pokedexCaught),
     pokedexShiny: uni(a.pokedexShiny, b.pokedexShiny),
     alias: a.alias || b.alias || '',
+    achievements: [...new Set([...(a.achievements ?? []), ...(b.achievements ?? [])])],
+    regionsWon: [...new Set([...(a.regionsWon ?? []), ...(b.regionsWon ?? [])])],
+    pet: a.pet ?? b.pet ?? null,
   }
 }
 
