@@ -69,8 +69,8 @@ export function itemChoices(rng: RNG, depthFrac: number): string[] {
   pool.push(rng.pick(['rare-candy', 'upgrade', 'super-candy']))
   // 2) Soporte (curación/revivir).
   pool.push(rng.pick([...HEAL_ITEMS, 'revive-charm']))
-  // 3) Objeto equipable / piedra (Megapiedra a partir de media run).
-  const lastPool = depthFrac > 0.45 && rng.chance(0.25)
+  // 3) Objeto equipable / piedra (Megapiedra solo muy avanzada la run, ~6 gimnasios).
+  const lastPool = depthFrac > 0.72 && rng.chance(0.3)
     ? ['mega-stone']
     : depthFrac > 0.3
       ? ['evo-stone', ...HELD_ITEMS]
@@ -96,7 +96,7 @@ export function shopStock(rng: RNG, depthFrac: number): string[] {
   const morph = depthFrac > 0.35 && rng.chance(0.5) ? ['metamorph'] : []
   const held = rng.sample(HELD_ITEMS, 3)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
-  const mega = depthFrac > 0.5 ? ['mega-stone'] : []
+  const mega = depthFrac > 0.72 ? ['mega-stone'] : []
   return [...base, ...advanced, ...rare, ...morph, ...held, ...evo, ...mega]
 }
 
@@ -367,6 +367,20 @@ export const EVENTS: Record<string, RunEventDef> = {
 }
 
 export const EVENT_IDS = Object.keys(EVENTS)
+
+/** Ilustración (emoji grande) por situación, para dar contexto visual. */
+export const EVENT_ICONS: Record<string, string> = {
+  hiker_heal: '🏕️', mystery_egg: '🥚', rare_candy_cache: '🍬', berry_bush: '🫐',
+  lost_trainer: '🧭', lucky_coin: '🪙', combat_master: '🥋', abandoned_pack: '🎒',
+  wishing_well: '🪣', treasure_chest: '🧰', slot_machine: '🎰', risky_cave: '🕳️',
+  ambush: '😱', toxic_swamp: '☣️', thief: '🦝', cursed_idol: '🗿', rockslide: '🪨',
+  old_fisherman: '🎣', move_tutor: '📖', daycare_couple: '🏠', shiny_hunter: '✨',
+  generous_nurse: '💊', rich_kid: '💰', wandering_merchant: '🛒', fossil_dig: '⛏️',
+  hot_spring: '♨️', retired_champion: '🏆', breeder_gift: '🐣', street_gambler: '🃏',
+  mysterious_vendor: '🎁', ancient_shrine: '⛩️', card_dealer: '🎴', toll_bridge: '🌉',
+  electric_storm: '⛈️', pickpocket: '🫳', sandstorm: '🏜️', haunted_house: '👻',
+  con_artist: '🤥',
+}
 
 export function getItemSafe(id: string) {
   return ITEMS.find((i) => i.id === id)

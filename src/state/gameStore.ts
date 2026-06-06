@@ -9,7 +9,7 @@ import {
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
-import { getMegaForms, getSpecies, ALL_SPECIES } from '@/data'
+import { getMegaForms, getSpecies, ALL_SPECIES, toBaseSpeciesId } from '@/data'
 import { evolve, levelEvolutionTargets, evolutionBlockedByItem, cycleRegionalForm } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
@@ -49,6 +49,7 @@ interface GameState {
   setPet: (speciesId: number | null) => Promise<void>
   evoFx: { uid: string; fromId: number; toId: number } | null
   evoChoice: { uid: string; itemId: string | null; options: number[] } | null
+  evoQueue: { uid: string; options: number[] }[]
   evolveByLevel: (monUid: string) => boolean
   chooseEvolution: (targetId: number) => void
   cancelEvoChoice: () => void
@@ -89,7 +90,7 @@ interface GameState {
   chooseNode: (nodeId: string) => void
   finishBattle: () => void
   doHeal: (nodeId: string) => void
-  doCatch: (nodeId: string, accept: boolean, replaceUid?: string) => void
+  doCatch: (nodeId: string, accept: boolean, chosenUid?: string, replaceUid?: string) => void
   doPickItem: (nodeId: string, itemId: string) => void
   doBuy: (itemId: string, price: number) => void
   doLeaveShop: (nodeId: string) => void
@@ -123,6 +124,7 @@ export const useGame = create<GameState>((set, get) => ({
   lastEventResult: null,
   evoFx: null,
   evoChoice: null,
+  evoQueue: [],
   rescueNodeId: null,
   tradeReveal: null,
   loaded: false,
@@ -283,9 +285,9 @@ export const useGame = create<GameState>((set, get) => ({
         set({ run, screen: { name: 'heal', params: { nodeId } }, history: [] })
         break
       case 'catch': {
-        // Incienso Shiny: la próxima captura es shiny (se gasta).
+        // Incienso Shiny: la próxima captura es shiny (se gasta). Marca las 3 ofertas.
         if ((run.inventory['shiny-incense'] || 0) > 0 && node.content.kind === 'catch') {
-          node.content.offer.shiny = true
+          for (const o of node.content.offers) o.shiny = true
           removeItem(run, 'shiny-incense', 1)
         }
         set({ run, screen: { name: 'catch', params: { nodeId } }, history: [] })
@@ -316,6 +318,12 @@ export const useGame = create<GameState>((set, get) => ({
     const node = run.map.nodes[pending.nodeId]
     const summary = applyBattleOutcome(run, node, pending.result)
     persist(run)
+
+    // Evoluciones con ramas: encola las elecciones (modal global).
+    if (summary.evoChoices.length) {
+      const [first, ...rest] = summary.evoChoices
+      set({ evoChoice: { uid: first.uid, itemId: null, options: first.options }, evoQueue: rest })
+    }
 
     if (summary.runWon) {
       void recordRunEnd(run).then((a) => { if (a.length) set({ newAchievements: a }) })
@@ -373,11 +381,11 @@ export const useGame = create<GameState>((set, get) => ({
     set({ run, screen: { name: 'map' }, history: [] })
   },
 
-  doCatch: (nodeId, accept, replaceUid) => {
+  doCatch: (nodeId, accept, chosenUid, replaceUid) => {
     const cur = get().run
     if (!cur) return
     const run = cloneRun(cur)
-    catchPokemon(run, run.map.nodes[nodeId], accept, replaceUid)
+    catchPokemon(run, run.map.nodes[nodeId], accept, chosenUid, replaceUid)
     persist(run)
     set({ run, screen: { name: 'map' }, history: [] })
   },
@@ -519,9 +527,18 @@ export const useGame = create<GameState>((set, get) => ({
     set({ run, evoChoice: null, evoFx: { uid: choice.uid, fromId, toId: targetId } })
   },
 
-  cancelEvoChoice: () => set({ evoChoice: null }),
+  cancelEvoChoice: () => {
+    const q = get().evoQueue
+    if (q.length) { const [next, ...rest] = q; set({ evoChoice: { uid: next.uid, itemId: null, options: next.options }, evoQueue: rest }) }
+    else set({ evoChoice: null })
+  },
 
-  clearEvoFx: () => set({ evoFx: null }),
+  clearEvoFx: () => {
+    // Tras la animación, muestra la siguiente elección de evolución pendiente.
+    const q = get().evoQueue
+    if (q.length) { const [next, ...rest] = q; set({ evoFx: null, evoChoice: { uid: next.uid, itemId: null, options: next.options }, evoQueue: rest }) }
+    else set({ evoFx: null })
+  },
 
   setLead: (monUid) => {
     const cur = get().run
@@ -587,9 +604,10 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   const caught = new Set(meta.pokedexCaught)
   const shiny = new Set(meta.pokedexShiny)
   for (const p of [...run.party, ...run.box]) {
-    seen.add(p.speciesId)
-    caught.add(p.speciesId)
-    if (p.shiny) shiny.add(p.speciesId)
+    const base = toBaseSpeciesId(p.speciesId) // registra la especie base (no mega/forma)
+    seen.add(base)
+    caught.add(base)
+    if (p.shiny) shiny.add(base)
   }
   meta.pokedexSeen = [...seen]
   meta.pokedexCaught = [...caught]

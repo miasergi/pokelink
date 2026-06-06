@@ -112,6 +112,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder, onU
                 <div className={`relative shrink-0 rounded-xl p-0.5 ${fainted ? 'grayscale opacity-50' : ''}`} style={{ background: typeGradient(sp.types) }}>
                   <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-12 h-12 object-contain pointer-events-none" />
                   {i === 0 && <span className="absolute -top-1.5 -left-1.5 text-[8px] bg-red-500 px-1 rounded-full font-black">LÍDER</span>}
+                  {mon.shiny && <span title="Shiny" className="absolute -top-1.5 -right-1.5 text-xs" style={{ filter: 'drop-shadow(0 0 2px #000)' }}>✨</span>}
                   {mon.heldItemId && tryGetItem(mon.heldItemId)?.sprite && (
                     onUnequip ? (
                       <button
@@ -131,10 +132,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder, onU
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-bold text-sm truncate">
-                      {sp.displayName}
-                      {mon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}
-                    </span>
+                    <span className="font-bold text-sm truncate">{sp.displayName}</span>
                     <span className="text-[10px] text-slate-400 shrink-0">Nv.{mon.level}</span>
                   </div>
                   <div className="flex gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>

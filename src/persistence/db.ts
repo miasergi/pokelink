@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb'
 import type { RunState } from '@/engine/run/types'
+import { toBaseSpeciesId } from '@/data'
 
 const DB_NAME = 'pokerogue'
 const VERSION = 1
@@ -122,6 +123,11 @@ export async function loadMeta(): Promise<MetaRecord> {
   if (!m) return structuredClone(EMPTY_META)
   const meta = { ...structuredClone(EMPTY_META), ...m } // backfill de campos nuevos
   meta.bestRuns = dedupeRuns(meta.bestRuns) // limpia duplicados antiguos
+  // Migra Pokédex: ids de megas/formas regionales -> especie base.
+  const toBase = (arr: number[]) => [...new Set(arr.map(toBaseSpeciesId))]
+  meta.pokedexSeen = toBase(meta.pokedexSeen)
+  meta.pokedexCaught = toBase(meta.pokedexCaught)
+  meta.pokedexShiny = toBase(meta.pokedexShiny)
   return meta
 }
 

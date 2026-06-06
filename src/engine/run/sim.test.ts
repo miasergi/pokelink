@@ -34,7 +34,7 @@ function bstOf(speciesId: number): number {
  *  lleno, sustituye al más débil si el ofrecido aporta más (BST + tipo nuevo). */
 function smartCatch(run: RunState, node: MapNode) {
   if (node.content.kind !== 'catch') return
-  const offer = node.content.offer
+  const offer = node.content.offers[0]
   const offerTypes = getSpecies(offer.speciesId).types
   const teamTypes = new Set(run.party.flatMap((p) => getSpecies(p.speciesId).types))
   const diversity = offerTypes.some((t) => !teamTypes.has(t))
@@ -47,7 +47,7 @@ function smartCatch(run: RunState, node: MapNode) {
   // sustituir al más débil si merece la pena
   const weakest = [...run.party].sort((a, b) => bstOf(a.speciesId) - bstOf(b.speciesId))[0]
   if (offerVal > bstOf(weakest.speciesId) + 40) {
-    catchPokemon(run, node, true, weakest.uid)
+    catchPokemon(run, node, true, undefined, weakest.uid)
   } else {
     catchPokemon(run, node, false)
   }

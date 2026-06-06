@@ -8,8 +8,6 @@ import HpBar from '@/ui/components/HpBar'
 import TypeBadge from '@/ui/components/TypeBadge'
 import PowerDots from '@/ui/components/PowerDots'
 import PartyList from '@/ui/components/PartyList'
-import EvolutionModal from '@/ui/components/EvolutionModal'
-import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import { typeGradient } from '@/ui/theme/types'
 import { effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
@@ -20,17 +18,18 @@ import CompareModal from '@/ui/components/CompareModal'
 import { levelCap } from '@/engine/run/runEngine'
 
 export default function TeamScreen() {
-  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, evoFx, clearEvoFx, setPartyOrder, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
+  const { run, back, useItem, useEvolutionItem, equipItem, unequipHeld, setPartyOrder } = useGame()
   const [sel, setSel] = useState<string | null>(null)
   const [selItem, setSelItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [msgOk, setMsgOk] = useState(false)
+  const [msgIcon, setMsgIcon] = useState<string | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
   useEffect(() => { setCompareOpen(false) }, [sel]) // cerrar comparador al cambiar de Pokémon
   if (!run) return null
   const cap = levelCap(run)
 
-  const flash = (text: string, ok: boolean) => { setMsg(text); setMsgOk(ok) }
+  const flash = (text: string, ok: boolean, icon?: string) => { setMsg(text); setMsgOk(ok); setMsgIcon(icon ?? null) }
   // El mensaje se desvanece solo.
   useEffect(() => {
     if (!msg) return
@@ -49,9 +48,9 @@ export default function TeamScreen() {
       return false
     }
     const item = getItem(id)
-    if (item.category === 'held') { equipItem(id, uid); flash(`Equipaste ${item.name} a ${name}.`, true); return true }
+    if (item.category === 'held') { equipItem(id, uid); flash(`Equipaste ${item.name} a ${name}.`, true, item.sprite); return true }
     if (item.category === 'evolution') { useEvolutionItem(id, uid); return true }
-    // Consumible: aplica y avisa de lo que hizo.
+    // Consumible: aplica y avisa de lo que hizo (con el icono del objeto).
     const before = { lvl: mon.level }
     useItem(id, uid)
     let did = `Usaste ${item.name} en ${name}.`
@@ -60,7 +59,7 @@ export default function TeamScreen() {
     else if (id === 'upgrade') did = `¡Mejoraste la potencia del ataque de ${name}!`
     else if (item.category === 'revive') did = `¡${name} revivió!`
     else if (item.category === 'heal') did = `${name} recuperó PS.`
-    flash(did, true)
+    flash(did, true, item.sprite)
     return true
   }
 
@@ -81,8 +80,9 @@ export default function TeamScreen() {
   return (
     <div className="flex flex-col flex-1 relative">
       {msg && (
-        <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xl animate-pop-in text-center cursor-pointer ${msgOk ? 'bg-emerald-600/95' : 'bg-rose-600/95'}`} onClick={() => setMsg(null)}>
-          {msgOk ? '✅' : '🚫'} {msg}
+        <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xl animate-pop-in text-center cursor-pointer flex items-center gap-2 ${msgOk ? 'bg-emerald-600/95' : 'bg-rose-600/95'}`} onClick={() => setMsg(null)}>
+          {msgIcon ? <img src={msgIcon} alt="" className="w-6 h-6 shrink-0" style={{ imageRendering: 'pixelated' }} /> : <span>{msgOk ? '✅' : '🚫'}</span>}
+          <span>{msg}</span>
         </div>
       )}
       <TopBar
@@ -163,11 +163,12 @@ export default function TeamScreen() {
             <div className="flex justify-end -mb-2 -mt-1"><button aria-label="Cerrar" className="text-slate-400 text-2xl leading-none px-2 active:scale-90" onClick={() => setSel(null)}>✕</button></div>
             <div className="px-0.5">
             <div className="flex items-center gap-3 mb-2">
-              <div className="rounded-xl p-0.5" style={{ background: typeGradient(selSpecies.types) }}>
+              <div className="relative rounded-xl p-0.5" style={{ background: typeGradient(selSpecies.types) }}>
                 <Sprite speciesId={selMon.speciesId} shiny={selMon.shiny} className="w-14 h-14 object-contain" />
+                {selMon.shiny && <span title="Shiny" className="absolute -top-1.5 -right-1.5 text-sm" style={{ filter: 'drop-shadow(0 0 2px #000)' }}>✨</span>}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-extrabold truncate">{selSpecies.displayName}{selMon.shiny && <span title="Shiny" className="text-amber-300"> ✨</span>}</div>
+                <div className="font-extrabold truncate">{selSpecies.displayName}</div>
                 <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -343,8 +344,6 @@ export default function TeamScreen() {
         </div>
       )}
 
-      {evoFx && <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />}
-      {evoChoice && <EvoChoiceModal options={evoChoice.options} onPick={chooseEvolution} onCancel={cancelEvoChoice} />}
       {compareOpen && selMon && <CompareModal team={run.party} baseUid={selMon.uid} onClose={() => setCompareOpen(false)} />}
     </div>
   )

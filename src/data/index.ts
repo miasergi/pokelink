@@ -49,6 +49,16 @@ for (const m of ALL_MEGAS) {
   megasByBase.get(m.baseId)!.push(m)
 }
 
+// forma mega -> id base (para registrar la Pokédex con la especie base)
+const baseOfMega = new Map<number, number>()
+for (const m of ALL_MEGAS) if (m.baseId != null) baseOfMega.set(m.id, m.baseId)
+
+/** Id de la especie BASE para una forma mega o regional (si no lo es, el mismo
+ *  id). Para registrar la Pokédex con la especie original. */
+export function toBaseSpeciesId(id: number): number {
+  return baseOfMega.get(id) ?? baseOfForm.get(id) ?? id
+}
+
 /** Formas mega/primigenias de una especie base (vacío si no tiene). */
 export function getMegaForms(baseId: number): SpeciesData[] {
   return megasByBase.get(baseId) ?? []

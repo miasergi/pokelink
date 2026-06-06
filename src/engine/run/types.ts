@@ -30,7 +30,8 @@ export interface TrainerContent {
 }
 export interface CatchContent {
   kind: 'catch'
-  offer: PokemonInstance
+  /** 3 Pokémon a elegir para capturar. */
+  offers: PokemonInstance[]
 }
 export interface ItemContent {
   kind: 'item'

@@ -266,8 +266,19 @@ function buildRouteContent(
       return { kind: 'wild', enemy: makeWild(pool, level, rng, difficulty) }
     case 'trainer':
       return synthTrainerContent(pool, level, rng, difficulty)
-    case 'catch':
-      return { kind: 'catch', offer: makeWild(pool, level, rng, difficulty) }
+    case 'catch': {
+      // 3 Pokémon distintos a elegir (balanceados por nivel/dificultad).
+      const offers: PokemonInstance[] = []
+      const used = new Set<number>()
+      for (let k = 0; k < 3; k++) {
+        let m = makeWild(pool, level, rng, difficulty)
+        let tries = 0
+        while (used.has(m.speciesId) && tries++ < 8) m = makeWild(pool, level, rng, difficulty)
+        used.add(m.speciesId)
+        offers.push(m)
+      }
+      return { kind: 'catch', offers }
+    }
     case 'item':
       return { kind: 'item', choices: itemChoices(rng, frac) }
     case 'shop':

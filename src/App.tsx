@@ -3,6 +3,8 @@ import { useGame, type ScreenName } from '@/state/gameStore'
 import { useSettings } from '@/state/settingsStore'
 import { startMusic, stopMusic } from '@/utils/music'
 import Onboarding from '@/ui/components/Onboarding'
+import EvolutionModal from '@/ui/components/EvolutionModal'
+import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import HomeScreen from '@/ui/screens/HomeScreen'
 
 // Pantallas cargadas bajo demanda (code-splitting) para aligerar el arranque.
@@ -124,6 +126,18 @@ export default function App() {
           }}
         />
       )}
+      {/* Modales de evolución (globales: las elecciones tras combate salen aquí) */}
+      <EvolutionFx />
+    </>
+  )
+}
+
+function EvolutionFx() {
+  const { evoFx, clearEvoFx, evoChoice, chooseEvolution, cancelEvoChoice } = useGame()
+  return (
+    <>
+      {evoFx && <EvolutionModal fromId={evoFx.fromId} toId={evoFx.toId} onClose={clearEvoFx} />}
+      {evoChoice && <EvoChoiceModal options={evoChoice.options} onPick={chooseEvolution} onCancel={cancelEvoChoice} />}
     </>
   )
 }

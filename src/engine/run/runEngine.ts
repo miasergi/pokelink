@@ -3,7 +3,7 @@ import { encounterPoolFor, getSpecies, basePoolFor } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
 import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
-import { levelEvolutionTargets, evolve } from '@/engine/team/evolution'
+import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
@@ -122,6 +122,8 @@ export interface BattleOutcomeSummary {
   moneyGained: number
   itemGained?: string
   evolutions: { uid: string; fromId: number; toId: number }[]
+  /** Evoluciones con varias ramas: el jugador elige (uid + opciones). */
+  evoChoices: { uid: string; options: number[] }[]
   /** Nuzlocke: nombres de los Pokémon perdidos para siempre en este combate. */
   lost: string[]
   /** Nombre del legendario capturado al vencer su guardián. */
@@ -136,7 +138,8 @@ export interface BattleOutcomeSummary {
   runWon: boolean
 }
 
-const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'shell-bell', 'rare-candy', 'upgrade', 'choice-band', 'assault-vest', 'evo-stone', 'mega-stone', 'revive-charm']
+// (Megapiedra NO aquí: solo en tienda/casilla bien avanzada la run.)
+const BOSS_DROPS = ['max-potion', 'max-revive', 'leftovers', 'shell-bell', 'rare-candy', 'upgrade', 'choice-band', 'assault-vest', 'evo-stone', 'revive-charm']
 
 /** Tope de nivel del equipo. En Nuzlocke, el nivel del próximo jefe sin vencer
  *  (no puedes sobrenivelar hasta derrotarlo). En el resto, sin tope (100). */
@@ -163,6 +166,7 @@ export function applyBattleOutcome(
     won: result.winner === 'player',
     moneyGained: 0,
     evolutions: [],
+    evoChoices: [],
     lost: [],
     levelGains: [],
     runEnded: false,
@@ -258,14 +262,22 @@ export function applyBattleOutcome(
     summary.legendaryOffer = content.enemy
   }
 
-  // Evoluciones por nivel: solo se auto-evoluciona si hay UNA opción. Si hay
-  // varias ramas (Eevee, Tyrogue, Wurmple...), el jugador elige en el menú.
+  // Evoluciones: una sola línea -> auto. Varias ramas (Eevee, Slowpoke,
+  // Tyrogue, Wurmple...) -> SIEMPRE elige el jugador, aunque por nivel solo
+  // calce una rama (p.ej. Slowking umbral 36 vs Slowbro 37).
   for (const mon of run.party) {
-    const targets = levelEvolutionTargets(mon)
-    if (targets.length === 1) {
+    if (evolutionBlockedByItem(mon)) continue
+    const sp = getSpecies(mon.speciesId)
+    if (!sp.evolutions.length) continue
+    const ready = sp.evolutions.some((e) => mon.level >= effectiveEvoLevel(e.trigger))
+    if (!ready) continue
+    if (sp.evolutions.length === 1) {
+      const to = getSpecies(sp.evolutions[0].toId)
       const fromId = mon.speciesId
-      evolve(mon, targets[0])
-      summary.evolutions.push({ uid: mon.uid, fromId, toId: targets[0].id })
+      evolve(mon, to)
+      summary.evolutions.push({ uid: mon.uid, fromId, toId: to.id })
+    } else {
+      summary.evoChoices.push({ uid: mon.uid, options: sp.evolutions.map((e) => e.toId) })
     }
   }
 
@@ -280,11 +292,12 @@ export function resolveHeal(run: RunState, node: MapNode): void {
 }
 
 export function catchPokemon(
-  run: RunState, node: MapNode, accept: boolean, replaceUid?: string,
+  run: RunState, node: MapNode, accept: boolean, chosenUid?: string, replaceUid?: string,
 ): { caught: boolean; toBox: boolean } {
   node.cleared = true
   if (!accept || node.content.kind !== 'catch') return { caught: false, toBox: false }
-  const mon = node.content.offer
+  const offers = node.content.offers
+  const mon = offers.find((o) => o.uid === chosenUid) ?? offers[0]
   // Reemplazo: el Pokémon del equipo elegido se LIBERA (no hay caja).
   if (replaceUid) {
     const idx = run.party.findIndex((p) => p.uid === replaceUid)
@@ -333,6 +346,8 @@ export function resolveTrade(
   // El Pokémon recibido conserva el MISMO nivel de potencia del ataque que diste.
   newMon.moveTier = effectiveTier(traded)
   refreshMoves(newMon)
+  // El objeto que sostenía el Pokémon entregado vuelve a la mochila.
+  if (traded.heldItemId) addItem(run, traded.heldItemId, 1)
   run.party[idx] = newMon
   run.money -= node.content.cost
   run.stats.pokemonCaught++
