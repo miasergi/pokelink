@@ -6,6 +6,7 @@ import TypeBadge from './TypeBadge'
 import PowerDots from './PowerDots'
 import { typeGradient } from '@/ui/theme/types'
 import { formatDuration } from './RunTimer'
+import { shareText, buildShareText } from '@/utils/share'
 
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
 
@@ -28,6 +29,12 @@ export default function RunTeamModal({ run, onClose }: { run: BestRun; onClose: 
           <button className="text-slate-400 text-2xl leading-none px-1 active:scale-90" onClick={onClose}>✕</button>
         </div>
 
+        {run.won && team.length > 0 && (
+          <button
+            onClick={() => void shareText(buildShareText({ region: run.region, difficulty: run.difficulty, durationMs: run.durationMs, team: team.map((m) => ({ name: getSpecies(m.speciesId).displayName, level: m.level })) }))}
+            className="w-full mb-2 py-2 rounded-xl bg-slate-700 text-slate-100 text-sm font-bold active:scale-[0.98]"
+          >📤 Compartir esta Glory Run</button>
+        )}
         {team.length === 0 ? (
           <p className="text-xs text-slate-500 py-6 text-center">No se guardó el equipo de esta partida (es anterior a esta función).</p>
         ) : (

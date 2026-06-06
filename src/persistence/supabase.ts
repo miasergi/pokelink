@@ -159,11 +159,14 @@ export async function submitGloryRun(e: GloryEntry): Promise<boolean> {
 }
 
 /** Ranking público: mejores tiempos (lectura abierta, sin login). */
-export async function fetchLeaderboard(opts: { region?: string; difficulty?: string; limit?: number } = {}): Promise<GloryRow[] | null> {
+export async function fetchLeaderboard(opts: { region?: string; difficulty?: string; limit?: number; since?: string; daily?: boolean } = {}): Promise<GloryRow[] | null> {
   if (!URL || !KEY) return null
   const params = new URLSearchParams({ select: '*', order: 'duration_ms.asc', limit: String(opts.limit ?? 50) })
   if (opts.region) params.set('region', `eq.${opts.region}`)
   if (opts.difficulty) params.set('difficulty', `eq.${opts.difficulty}`)
+  // El Reto diario tiene su propio ranking; las demás tablas lo excluyen.
+  params.set('mode', opts.daily ? 'eq.Reto diario' : 'neq.Reto diario')
+  if (opts.since) params.set('created_at', `gte.${opts.since}`)
   try {
     const res = await fetch(`${URL}/rest/v1/glory_runs?${params.toString()}`, {
       headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },

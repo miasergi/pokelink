@@ -194,7 +194,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ pools: config.pools, random: config.random, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed })
+    const run = createRun({ pools: config.pools, random: config.random, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
     run.startedAt = Date.now()
     // Recompensa de Pokédex: +250 ₽ de salida por cada 25 especies (máx +2500).
     run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
@@ -629,7 +629,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
         alias: merged.alias || currentUser()!.email.split('@')[0],
         region: run.region,
         difficulty: run.difficulty,
-        mode: run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
+        mode: run.daily ? 'Reto diario' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
         pools: run.pools,
         random: run.random,
         duration_ms: durationMs,

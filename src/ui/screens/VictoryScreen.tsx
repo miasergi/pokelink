@@ -5,10 +5,12 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { typeGradient } from '@/ui/theme/types'
 import RunTimer from '@/ui/components/RunTimer'
+import { shareText, buildShareText } from '@/utils/share'
 
 export default function VictoryScreen() {
   const { run, abandonRun } = useGame()
   const [confetti, setConfetti] = useState(true)
+  const [shared, setShared] = useState<string | null>(null)
   useEffect(() => {
     const t = setTimeout(() => setConfetti(false), 4000)
     return () => clearTimeout(t)
@@ -54,9 +56,18 @@ export default function VictoryScreen() {
         </div>
       </Card>
 
-      <Button full variant="primary" className="max-w-sm" onClick={() => void abandonRun()}>
-        Volver al menú
-      </Button>
+      <div className="w-full max-w-sm flex flex-col gap-2">
+        <Button full variant="secondary" onClick={async () => {
+          const text = buildShareText({ region: run.region, difficulty: run.difficulty, durationMs: Math.max(0, Date.now() - run.startedAt), team: run.party.map((p) => ({ name: getSpecies(p.speciesId).displayName, level: p.level })) })
+          const r = await shareText(text)
+          if (r === 'copied') setShared('📋 ¡Copiado! Pégalo donde quieras')
+          else if (r === 'shared') setShared('¡Compartido!')
+        }}>📤 Compartir</Button>
+        {shared && <div className="text-xs text-emerald-300">{shared}</div>}
+        <Button full variant="primary" onClick={() => void abandonRun()}>
+          Volver al menú
+        </Button>
+      </div>
     </div>
   )
 }

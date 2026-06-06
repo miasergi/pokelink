@@ -22,6 +22,8 @@ export interface NewRunConfig {
   gen: number
   starterId: number
   seed: number
+  /** Marca de reto diario (YYYY-MM-DD) si aplica. */
+  daily?: string
 }
 
 export function createRun(config: NewRunConfig): RunState {
@@ -40,6 +42,7 @@ export function createRun(config: NewRunConfig): RunState {
     starterId: config.starterId,
     rivalStarterId,
     seed: config.seed,
+    daily: config.daily,
     rngState: rng.getState(),
     map,
     currentNodeId: null,

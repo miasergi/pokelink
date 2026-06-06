@@ -16,18 +16,29 @@ export default function LeaderboardScreen() {
   const { back } = useGame()
   const [region, setRegion] = useState<string>('')
   const [difficulty, setDifficulty] = useState<string>('')
+  const [range, setRange] = useState<'today' | 'week' | 'season' | 'all'>('all')
   const [rows, setRows] = useState<GloryRow[] | null>(null)
   const [loading, setLoading] = useState(true)
   const me = currentUser()
+  const daily = range === 'today'
 
   useEffect(() => {
     let alive = true
     setLoading(true)
-    void fetchLeaderboard({ region: region || undefined, difficulty: difficulty || undefined, limit: 100 }).then((r) => {
+    let since: string | undefined
+    const now = new Date()
+    if (range === 'today') { const d = new Date(now); d.setHours(0, 0, 0, 0); since = d.toISOString() }
+    else if (range === 'week') { const d = new Date(now); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); d.setHours(0, 0, 0, 0); since = d.toISOString() }
+    else if (range === 'season') { since = new Date(now.getFullYear(), now.getMonth(), 1).toISOString() }
+    void fetchLeaderboard({ region: region || undefined, difficulty: daily ? undefined : difficulty || undefined, since, daily, limit: 100 }).then((r) => {
       if (alive) { setRows(r); setLoading(false) }
     })
     return () => { alive = false }
-  }, [region, difficulty])
+  }, [region, difficulty, range, daily])
+
+  const RANGES: { id: typeof range; label: string }[] = [
+    { id: 'today', label: '🗓️ Hoy (diario)' }, { id: 'week', label: 'Semana' }, { id: 'season', label: 'Temporada' }, { id: 'all', label: 'Histórico' },
+  ]
 
   return (
     <div className="flex flex-col flex-1">
@@ -35,16 +46,23 @@ export default function LeaderboardScreen() {
 
       <div className="p-2.5 flex flex-col gap-2 border-b border-slate-800">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {RANGES.map((r) => (
+            <button key={r.id} onClick={() => setRange(r.id)} className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${range === r.id ? 'bg-fuchsia-500 text-white' : 'bg-slate-800 text-slate-300'}`}>{r.label}</button>
+          ))}
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           <button onClick={() => setRegion('')} className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${region === '' ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'}`}>Todas</button>
           {GENERATIONS.map((g) => (
             <button key={g.gen} onClick={() => setRegion(g.region)} className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${region === g.region ? 'text-white' : 'bg-slate-800 text-slate-300'}`} style={{ background: region === g.region ? g.accent : undefined }}>{g.region}</button>
           ))}
         </div>
-        <div className="flex gap-1.5">
-          {DIFFS.map((d) => (
-            <button key={d.id} onClick={() => setDifficulty(d.id)} className={`px-3 py-1 rounded-full text-xs font-bold ${difficulty === d.id ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'}`}>{d.label}</button>
-          ))}
-        </div>
+        {!daily && (
+          <div className="flex gap-1.5">
+            {DIFFS.map((d) => (
+              <button key={d.id} onClick={() => setDifficulty(d.id)} className={`px-3 py-1 rounded-full text-xs font-bold ${difficulty === d.id ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'}`}>{d.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 no-scrollbar">

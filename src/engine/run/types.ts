@@ -115,6 +115,8 @@ export interface RunState {
     turnsPlayed: number
   }
   startedAt: number
+  /** Reto diario (fecha YYYY-MM-DD) si esta run lo es. */
+  daily?: string
 }
 
 export interface OfferedItem {

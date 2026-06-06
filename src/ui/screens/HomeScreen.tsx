@@ -5,6 +5,7 @@ import { APP_VERSION } from '@/version'
 import AccountModal from '@/ui/components/AccountModal'
 import Sprite from '@/ui/components/Sprite'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
+import { dailyChallenge } from '@/engine/run/daily'
 
 export default function HomeScreen() {
   const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements } = useGame()
@@ -41,6 +42,9 @@ export default function HomeScreen() {
         )}
         <Button variant="primary" full onClick={() => navigate('genSelect')}>
           {hasSavedRun ? 'Nueva partida' : '⚔ Jugar'}
+        </Button>
+        <Button variant="secondary" full onClick={() => { const d = dailyChallenge(); navigate('starterSelect', { gen: d.gen, seed: d.seed, daily: d.date, difficulty: 'normal' }) }}>
+          🗓️ Reto diario
         </Button>
         <div className="grid grid-cols-3 gap-3">
           <Button variant="secondary" onClick={() => navigate('pokedex')}>

@@ -19,6 +19,8 @@ export default function StarterSelectScreen() {
   const gen = (screen.params?.gen as number) ?? 1
   const pools = (screen.params?.pools as number[] | undefined) ?? [gen]
   const random = (screen.params?.random as boolean | undefined) ?? false
+  const daily = screen.params?.daily as string | undefined
+  const dailySeed = screen.params?.seed as number | undefined
   // En Modo Random, 3 iniciales aleatorios con cadena de 3 etapas.
   const starters = useMemo(() => {
     if (!random) return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
@@ -85,31 +87,37 @@ export default function StarterSelectScreen() {
             </div>
           )
         })}
-        {/* Dificultad */}
-        <div className="mt-1">
-          <div className="text-xs font-bold text-slate-400 mb-1.5">Dificultad</div>
-          <div className="grid grid-cols-3 gap-2">
-            {DIFFS.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setDifficulty(d.id)}
-                className={`rounded-xl py-2 text-sm font-bold transition ${
-                  difficulty === d.id ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
+        {/* Dificultad (fija en Reto diario) */}
+        {daily ? (
+          <div className="mt-1 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 px-3 py-2 text-sm">
+            🗓️ <b>Reto diario {daily}</b> — misma región y mapa para todo el mundo hoy. Dificultad Normal.
           </div>
-          <p className="text-[11px] text-slate-500 mt-1.5">{DIFFS.find((d) => d.id === difficulty)?.desc}</p>
-        </div>
+        ) : (
+          <div className="mt-1">
+            <div className="text-xs font-bold text-slate-400 mb-1.5">Dificultad</div>
+            <div className="grid grid-cols-3 gap-2">
+              {DIFFS.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setDifficulty(d.id)}
+                  className={`rounded-xl py-2 text-sm font-bold transition ${
+                    difficulty === d.id ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1.5">{DIFFS.find((d) => d.id === difficulty)?.desc}</p>
+          </div>
+        )}
       </div>
       <div className="p-4 safe-bottom">
         <Button
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun({ gen, pools, random, starterId: selected, difficulty })}
+          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, starterId: selected, difficulty })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>
