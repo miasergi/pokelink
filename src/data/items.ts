@@ -77,6 +77,7 @@ export const ITEMS: ItemData[] = [
   { id: 'iron-ball', name: 'Lastre de Hierro', category: 'held', description: 'Baja un 20% la Velocidad, pero sube un 50% el daño.', price: 2500, sprite: ITEM_SPRITE('iron-ball') },
   { id: 'amulet-coin', name: 'Amuleto Moneda', category: 'held', description: 'Ganas un 50% más de dinero en los combates mientras lo lleve equipado.', price: 3000, sprite: ITEM_SPRITE('amulet-coin') },
   { id: 'shiny-incense', name: 'Incienso Shiny', category: 'special', description: 'La PRÓXIMA casilla de captura te ofrecerá un Pokémon SHINY. Se gasta solo.', price: 8000, sprite: ITEM_SPRITE('lax-incense') },
+  { id: 'metamorph', name: 'Metamorfosis', category: 'battle', description: 'Cambia entre las formas regionales de un Pokémon (Alola, Galar, Hisui, Paldea) y su forma normal. No se gasta.', price: 4500, sprite: ITEM_SPRITE('reveal-glass') },
 
   // --- Objetos de tipo: +50% al daño de ataques de ESE tipo (equipables) ---
   ...TYPE_BOOST_ITEMS,

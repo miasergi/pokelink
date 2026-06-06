@@ -2,18 +2,44 @@ import type { MoveData, SpeciesData } from '@/types'
 import pokemonJson from './generated/pokemon.json'
 import movesJson from './generated/moves.json'
 import megasJson from './generated/megas.json'
+import regionalFormsJson from './generated/regionalForms.json'
 import { buildTypeMoves } from './typeAttacks'
 
 // Cast único de los JSON generados a tipos del dominio.
 export const ALL_SPECIES = pokemonJson as unknown as SpeciesData[]
 export const ALL_MOVES = movesJson as unknown as MoveData[]
 export const ALL_MEGAS = megasJson as unknown as SpeciesData[]
+export const ALL_REGIONAL_FORMS = regionalFormsJson as unknown as SpeciesData[]
 
-// El mapa de búsqueda incluye base + formas mega (para getSpecies/sprites).
+// El mapa de búsqueda incluye base + formas mega + formas regionales.
 // ALL_SPECIES (pools/Pokédex) contiene solo el dex base.
 const speciesById = new Map<number, SpeciesData>()
 for (const s of ALL_SPECIES) speciesById.set(s.id, s)
 for (const m of ALL_MEGAS) speciesById.set(m.id, m)
+for (const f of ALL_REGIONAL_FORMS) speciesById.set(f.id, f)
+
+// baseId (dex normal) -> formas regionales; y forma -> base, para alternar.
+const regionalByBase = new Map<number, SpeciesData[]>()
+const baseOfForm = new Map<number, number>()
+for (const f of ALL_REGIONAL_FORMS) {
+  if (f.baseId == null) continue
+  if (!regionalByBase.has(f.baseId)) regionalByBase.set(f.baseId, [])
+  regionalByBase.get(f.baseId)!.push(f)
+  baseOfForm.set(f.id, f.baseId)
+}
+
+/** Formas regionales de una especie BASE (vacío si no tiene). */
+export function getRegionalForms(baseId: number): SpeciesData[] {
+  return regionalByBase.get(baseId) ?? []
+}
+/** Si `id` es una forma regional, devuelve el id base; si no, null. */
+export function regionalBaseOf(id: number): number | null {
+  return baseOfForm.get(id) ?? null
+}
+/** ¿Esta especie (base o forma) participa en el "círculo" de formas regionales? */
+export function hasRegionalForm(id: number): boolean {
+  return regionalByBase.has(id) || baseOfForm.has(id)
+}
 
 // baseId -> formas mega disponibles
 const megasByBase = new Map<number, SpeciesData[]>()

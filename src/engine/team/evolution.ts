@@ -1,5 +1,5 @@
 import type { PokemonInstance, SpeciesData } from '@/types'
-import { getSpecies } from '@/data'
+import { getSpecies, getRegionalForms, regionalBaseOf } from '@/data'
 import { recalcStats, refreshMoves } from './leveling'
 
 /** Nivel efectivo al que evoluciona un trigger. TODOS evolucionan por nivel:
@@ -64,6 +64,19 @@ export function evolve(mon: PokemonInstance, toSpecies: SpeciesData): void {
   if (toSpecies.abilities.length && !toSpecies.abilities.includes(mon.ability)) {
     mon.ability = toSpecies.abilities[0]
   }
+}
+
+/** Cambia a la SIGUIENTE forma regional (base -> Alola -> Galar -> ... -> base).
+ *  Devuelve true si cambió. */
+export function cycleRegionalForm(mon: PokemonInstance): boolean {
+  const baseId = regionalBaseOf(mon.speciesId) ?? mon.speciesId
+  const forms = getRegionalForms(baseId)
+  if (!forms.length) return false
+  const cycle = [baseId, ...forms.map((f) => f.id)]
+  const i = cycle.indexOf(mon.speciesId)
+  const next = cycle[(i + 1) % cycle.length]
+  evolve(mon, getSpecies(next))
+  return true
 }
 
 /** Evolución final por cadena de niveles (usado para rivales/campeón). */

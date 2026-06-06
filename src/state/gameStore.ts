@@ -10,7 +10,7 @@ import {
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies, ALL_SPECIES } from '@/data'
-import { evolve, levelEvolutionTargets, evolutionBlockedByItem } from '@/engine/team/evolution'
+import { evolve, levelEvolutionTargets, evolutionBlockedByItem, cycleRegionalForm } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
@@ -437,8 +437,10 @@ export const useGame = create<GameState>((set, get) => ({
       const cur = effectiveTier(mon)
       if (cur >= 2) ok = false
       else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
+    } else if (itemId === 'metamorph') {
+      ok = cycleRegionalForm(mon) // cambia de forma regional (NO se gasta)
     } else ok = applyHealItem(mon, itemId)
-    if (ok) removeItem(run, itemId, 1)
+    if (ok && itemId !== 'metamorph') removeItem(run, itemId, 1)
     // Tras subir de nivel (caramelos), evoluciona si alcanzó su nivel (rama
     // única; las múltiples las elige el jugador).
     let evoFx: { uid: string; fromId: number; toId: number } | null = null

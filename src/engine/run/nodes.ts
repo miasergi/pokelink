@@ -93,10 +93,11 @@ export function shopStock(rng: RNG, depthFrac: number): string[] {
   const base = [...potions, 'revive', 'rare-candy', 'upgrade']
   const advanced = depthFrac > 0.4 ? ['max-revive', 'revive-charm', 'super-candy', 'amulet-coin'] : []
   const rare = depthFrac > 0.5 && rng.chance(0.4) ? ['shiny-incense'] : []
+  const morph = depthFrac > 0.35 && rng.chance(0.5) ? ['metamorph'] : []
   const held = rng.sample(HELD_ITEMS, 3)
   const evo = depthFrac > 0.4 ? ['evo-stone'] : []
   const mega = depthFrac > 0.5 ? ['mega-stone'] : []
-  return [...base, ...advanced, ...rare, ...held, ...evo, ...mega]
+  return [...base, ...advanced, ...rare, ...morph, ...held, ...evo, ...mega]
 }
 
 // --- Eventos aleatorios (data-driven) ---

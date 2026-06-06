@@ -1,6 +1,6 @@
 import type { PokemonInstance } from '@/types'
 import { getItem, TYPE_BOOST_BY_ID } from '@/data/items'
-import { getSpecies, getMove, getMegaForms } from '@/data'
+import { getSpecies, getMove, getMegaForms, hasRegionalForm } from '@/data'
 import { effectiveTier } from './leveling'
 
 function canEvolveTwice(speciesId: number): boolean {
@@ -20,6 +20,7 @@ export function itemHasEffect(itemId: string, mon: PokemonInstance, cap = 100): 
     case 'battle':
       if (itemId === 'upgrade') return effectiveTier(mon) < 2
       if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level < cap
+      if (itemId === 'metamorph') return hasRegionalForm(mon.speciesId)
       return true
     case 'evolution':
       if (itemId === 'mega-stone') return getMegaForms(mon.speciesId).length > 0
@@ -82,6 +83,7 @@ export function noEffectReason(itemId: string, mon: PokemonInstance, cap = 100):
   if (item.category === 'revive') return 'No está debilitado'
   if (itemId === 'upgrade') return 'Ya tiene la potencia máxima (120)'
   if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level >= cap ? 'Ya está en el tope de nivel' : ''
+  if (itemId === 'metamorph') return 'No tiene forma regional'
   if (itemId === 'mega-stone') return 'No puede megaevolucionar'
   if (item.category === 'evolution' && (mon.heldItemId === 'eviolite' || mon.heldItemId === 'super-mineral')) return 'No evoluciona mientras lleve ese mineral'
   if (item.category === 'evolution') return 'No puede evolucionar'
