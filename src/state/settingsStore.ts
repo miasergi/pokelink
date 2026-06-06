@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type BattleSpeed = 1 | 2 | 4
+export type BattleSpeed = 1 | 2 | 4 | 8
 export type ThemeName = 'dark' | 'midnight'
 
 interface SettingsState {

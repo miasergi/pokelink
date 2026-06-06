@@ -203,6 +203,12 @@ export function applyBattleOutcome(
   } else if (content.kind === 'wild') {
     summary.moneyGained = 20 + node.enemyLevel * 6
   }
+  // Nodo ARRIESGADO: doble dinero + objeto garantizado (mejor botín).
+  if (node.risky && (content.kind === 'wild' || content.kind === 'trainer')) {
+    summary.moneyGained *= 2
+    summary.itemGained = withRng(run, (rng) => rng.pick(BOSS_DROPS))
+    addItem(run, summary.itemGained, 1)
+  }
   // Amuleto Moneda: +50% si algún Pokémon del equipo lo lleva equipado.
   if (run.party.some((p) => p.heldItemId === 'amulet-coin')) {
     summary.moneyGained = Math.round(summary.moneyGained * 1.5)

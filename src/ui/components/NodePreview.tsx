@@ -98,6 +98,17 @@ export default function NodePreview({
         {trainer?.quote && <p className="text-sm text-slate-300 italic mt-3">“{trainer.quote}”</p>}
         {simple && <p className="text-sm text-slate-300 mt-3">{simple.desc}</p>}
 
+        {/* Aviso de nodo arriesgado */}
+        {node.risky && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 px-3 py-2">
+            <span className="text-lg">💎</span>
+            <div>
+              <div className="text-[11px] text-fuchsia-300 font-bold">Combate arriesgado</div>
+              <div className="text-sm text-slate-200">Enemigo más fuerte, pero <b>doble dinero</b> y un <b>objeto garantizado</b>.</div>
+            </div>
+          </div>
+        )}
+
         {/* Recompensa */}
         {REWARD[node.type] && (
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2">

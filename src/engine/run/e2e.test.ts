@@ -56,7 +56,7 @@ function chooseNext(run: RunState, nodes: MapNode[]): MapNode {
   if (nodes.length === 1) return nodes[0]
   const hurt = run.party.filter((p) => p.currentHp > 0).reduce((a, p) => a + p.currentHp / p.stats.hp, 0) / Math.max(1, run.party.filter((p) => p.currentHp > 0).length) < 0.5
   const tbl: Record<string, number> = { heal: hurt ? 100 : 35, shop: 60, item: 80, catch: run.party.length < 6 ? 85 : 25, event: 40, trainer: 55, battle: 50 }
-  const score = (n: MapNode) => tbl[n.type] ?? 10
+  const score = (n: MapNode) => (n.risky ? -50 : tbl[n.type] ?? 10)
   return [...nodes].sort((a, b) => score(b) - score(a))[0]
 }
 

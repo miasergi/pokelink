@@ -34,6 +34,21 @@ const GENERIC_CLASSES: { slug: string; name: string; type: PokemonType }[] = [
   { slug: 'supernerd', name: 'Empollón', type: 'electric' },
   { slug: 'camper', name: 'Excursionista', type: 'grass' },
   { slug: 'picnicker', name: 'Senderista', type: 'grass' },
+  // --- Clases añadidas (más variedad y cobertura de tipos) ---
+  { slug: 'skier', name: 'Esquiadora', type: 'ice' },
+  { slug: 'medium', name: 'Médium', type: 'ghost' },
+  { slug: 'dragontamer', name: 'Domadragones', type: 'dragon' },
+  { slug: 'veteran', name: 'Veterano', type: 'dragon' },
+  { slug: 'worker', name: 'Operario', type: 'steel' },
+  { slug: 'guitarist', name: 'Guitarrista', type: 'electric' },
+  { slug: 'roughneck', name: 'Maleante', type: 'dark' },
+  { slug: 'swimmer', name: 'Nadador', type: 'water' },
+  { slug: 'aromalady', name: 'Floristera', type: 'grass' },
+  { slug: 'ruinmaniac', name: 'Arqueólogo', type: 'ground' },
+  { slug: 'ninjaboy', name: 'Ninja', type: 'poison' },
+  { slug: 'firebreather', name: 'Tragafuegos', type: 'fire' },
+  { slug: 'collector', name: 'Coleccionista', type: 'normal' },
+  { slug: 'psychic', name: 'Vidente', type: 'psychic' },
 ]
 
 interface LayerPlan {
@@ -137,9 +152,12 @@ export function generateMap(
       for (let c = 0; c < w; c++) {
         const type = c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length)
         const id = newId()
+        // Nodo ARRIESGADO: combates con enemigo más fuerte y mejor botín.
+        const risky = (type === 'battle' || type === 'trainer') && layerIdx > 1 && w > 1 && rng.chance(0.2)
+        const nodeLevel = risky ? Math.round(level * 1.35) : level
         nodes[id] = {
-          id, layer: layerIdx, col: c, type, next: [], enemyLevel: level,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, level, layerIdx / plan.length, rng, usedEvents, difficulty),
+          id, layer: layerIdx, col: c, type, next: [], enemyLevel: nodeLevel, risky,
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty),
           cleared: false,
         }
         ids.push(id)

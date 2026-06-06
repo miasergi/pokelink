@@ -72,6 +72,8 @@ export interface MapNode {
   content: NodeContent
   /** índice del jefe (0..7 gimnasios, 0..3 alto mando) para UI. */
   bossIndex?: number
+  /** Nodo arriesgado: enemigo más fuerte pero mejor botín (doble dinero + objeto). */
+  risky?: boolean
   cleared: boolean
 }
 

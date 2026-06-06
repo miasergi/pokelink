@@ -189,6 +189,9 @@ export default function MapScreen() {
                     cleared={node.cleared && !isCurrent}
                     dim={!isReach && !node.cleared}
                   />
+                  {node.risky && !node.cleared && (
+                    <span title="Arriesgado: enemigo más fuerte, mejor botín" className="absolute -top-1 -right-1 text-sm drop-shadow" style={{ filter: 'drop-shadow(0 0 2px #000)' }}>💎</span>
+                  )}
                   {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'legendary') && (
                     <div className="flex flex-col items-center mt-0.5 leading-tight">
                       <span className="text-[8px] font-bold whitespace-nowrap" style={{ color: meta.color }}>

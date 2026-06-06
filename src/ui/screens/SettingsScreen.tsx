@@ -25,7 +25,7 @@ export default function SettingsScreen() {
         <Card className="p-4">
           <div className="font-bold mb-2">Velocidad de combate por defecto</div>
           <div className="flex gap-2">
-            {([1, 2, 4] as BattleSpeed[]).map((v) => (
+            {([1, 2, 4, 8] as BattleSpeed[]).map((v) => (
               <button
                 key={v}
                 onClick={() => s.setBattleSpeed(v)}

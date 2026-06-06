@@ -269,7 +269,7 @@ export default function BattleScreen() {
         ) : (
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5 flex-1">
-              {([1, 2, 4] as BattleSpeed[]).map((s) => (
+              {([1, 2, 4, 8] as BattleSpeed[]).map((s) => (
                 <button
                   key={s}
                   onClick={() => settings.setBattleSpeed(s)}
@@ -282,7 +282,7 @@ export default function BattleScreen() {
               ))}
             </div>
             <Button variant="secondary" onClick={skip}>
-              Saltar ⏭
+              Saltar a resultado ⏭
             </Button>
           </div>
         )}
