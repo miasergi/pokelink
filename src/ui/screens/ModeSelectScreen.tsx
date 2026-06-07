@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { GENERATIONS, getGeneration } from '@/data/generations'
-import { TYPE_ES, TYPE_HEX, TYPE_ICON } from '@/ui/theme/types'
+import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
+import TypeIcon from '@/ui/components/TypeIcon'
 import type { PokemonType } from '@/types'
 import type { RandomFlags } from '@/engine/run/types'
 
@@ -116,7 +117,12 @@ export default function ModeSelectScreen() {
           <button onClick={() => setMonoOn((v) => !v)} className="flex items-center gap-3 w-full text-left active:scale-[0.99] transition">
             <div className="text-3xl">🔒</div>
             <div className="flex-1">
-              <div className="font-extrabold text-emerald-300">Monolocke {monoOn ? `· ${mono ? `${TYPE_ICON[mono]} ${TYPE_ES[mono]}` : 'elige tipo'}` : ''}</div>
+              <div className="font-extrabold text-emerald-300 inline-flex items-center gap-1">
+                Monolocke
+                {monoOn && (mono
+                  ? <span className="inline-flex items-center gap-1">· <TypeIcon type={mono} />{TYPE_ES[mono]}</span>
+                  : <span>· elige tipo</span>)}
+              </div>
               <div className="text-xs text-slate-400">Solo podrás llevar Pokémon de UN tipo: inicial, capturas, intercambios y eventos.</div>
             </div>
             <span className={`w-11 h-6 rounded-full relative transition shrink-0 ${monoOn ? 'bg-emerald-500' : 'bg-slate-600'}`}>
@@ -137,7 +143,7 @@ export default function ModeSelectScreen() {
                       className={`rounded-lg py-1.5 text-xs font-bold text-white transition active:scale-[0.96] inline-flex items-center justify-center gap-1 ${sel ? 'ring-2 ring-white' : 'opacity-75'}`}
                       style={{ backgroundColor: TYPE_HEX[t] }}
                     >
-                      <span aria-hidden>{TYPE_ICON[t]}</span>{TYPE_ES[t]}
+                      <TypeIcon type={t} />{TYPE_ES[t]}
                     </button>
                   )
                 })}

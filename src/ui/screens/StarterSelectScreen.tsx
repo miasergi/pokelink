@@ -5,7 +5,8 @@ import { STARTERS_BY_GEN } from '@/data/starters'
 import { getSpecies, threeStageStarterPool, basePoolFor } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
-import { typeGradient, TYPE_ES, TYPE_ICON } from '@/ui/theme/types'
+import { typeGradient, TYPE_ES } from '@/ui/theme/types'
+import TypeIcon from '@/ui/components/TypeIcon'
 import type { Difficulty, RandomFlags } from '@/engine/run/types'
 import type { PokemonType, SpeciesData } from '@/types'
 
@@ -61,11 +62,16 @@ export default function StarterSelectScreen() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title={monotype ? `Inicial · Mono ${TYPE_ICON[monotype]} ${TYPE_ES[monotype]}` : 'Elige tu inicial'} left={<Button variant="ghost" onClick={back}>‹</Button>} />
+      <TopBar
+        title={monotype
+          ? <span className="inline-flex items-center gap-1">Inicial · Mono <TypeIcon type={monotype} />{TYPE_ES[monotype]}</span>
+          : 'Elige tu inicial'}
+        left={<Button variant="ghost" onClick={back}>‹</Button>}
+      />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
         {monotype && (
           <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/40 px-3 py-2 text-sm">
-            🔒 <b>Monolocke de tipo {TYPE_ICON[monotype]} {TYPE_ES[monotype]}</b> — solo podrás llevar Pokémon de este tipo (inicial, capturas, intercambios y eventos).
+            🔒 <b className="inline-flex items-center gap-1">Monolocke de tipo <TypeIcon type={monotype} />{TYPE_ES[monotype]}</b> — solo podrás llevar Pokémon de este tipo (inicial, capturas, intercambios y eventos).
           </div>
         )}
         {starters.map((id) => {

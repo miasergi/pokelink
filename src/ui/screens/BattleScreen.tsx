@@ -13,7 +13,8 @@ import TypeBadge from '@/ui/components/TypeBadge'
 import PowerDots from '@/ui/components/PowerDots'
 import MemeOverlay from '@/ui/components/MemeOverlay'
 import { STATUS_LABEL } from '@/engine/battle/status'
-import { TYPE_ES, TYPE_HEX, TYPE_ICON } from '@/ui/theme/types'
+import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
+import TypeIcon from '@/ui/components/TypeIcon'
 import { play, type Sfx } from '@/utils/sfx'
 import { type Weather, WEATHER_ICON, WEATHER_ES } from '@/engine/battle/abilities'
 
@@ -235,8 +236,8 @@ export default function BattleScreen() {
                   className="fx-banner flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg border"
                   style={{ background: `${TYPE_HEX[frame.acting.moveType]}ee`, borderColor: '#fff3' }}
                 >
-                  <span className="text-[10px] font-bold text-white/90 px-1.5 py-0.5 rounded-full bg-black/25">
-                    <span aria-hidden>{TYPE_ICON[frame.acting.moveType]}</span> {TYPE_ES[frame.acting.moveType]}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/90 px-1.5 py-0.5 rounded-full bg-black/25">
+                    <TypeIcon type={frame.acting.moveType} />{TYPE_ES[frame.acting.moveType]}
                   </span>
                   <span className="font-extrabold text-sm text-white">{frame.acting.moveName}</span>
                 </div>

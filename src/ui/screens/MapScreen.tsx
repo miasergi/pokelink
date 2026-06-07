@@ -9,7 +9,8 @@ import { badgeSprite } from '@/ui/components/nodeImage'
 import { ImgFallback } from '@/ui/components/kit'
 import PartyBar from '@/ui/components/PartyBar'
 import NodePreview from '@/ui/components/NodePreview'
-import { TYPE_ES, TYPE_HEX, TYPE_ICON } from '@/ui/theme/types'
+import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
+import TypeIcon from '@/ui/components/TypeIcon'
 import type { MapNode } from '@/engine/run/types'
 import { Button, money, TopBar } from '@/ui/components/kit'
 import RunTimer from '@/ui/components/RunTimer'
@@ -211,10 +212,10 @@ export default function MapScreen() {
                       </span>
                       {node.content.kind === 'trainer' && node.content.trainer.specialtyType && (
                         <span
-                          className="text-[8px] font-bold whitespace-nowrap"
+                          className="inline-flex items-center gap-0.5 text-[8px] font-bold whitespace-nowrap"
                           style={{ color: TYPE_HEX[node.content.trainer.specialtyType] }}
                         >
-                          <span aria-hidden>{TYPE_ICON[node.content.trainer.specialtyType]}</span> {TYPE_ES[node.content.trainer.specialtyType]}
+                          <TypeIcon type={node.content.trainer.specialtyType} />{TYPE_ES[node.content.trainer.specialtyType]}
                         </span>
                       )}
                     </div>

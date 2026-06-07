@@ -19,7 +19,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'El Modo Random ahora se elige por categorías: randomiza por separado iniciales y capturables, salvajes, entrenadores y jefes, y el Alto Mando.',
       'Los objetos de tipo (Imán, Carbón, Aguamística…) se sustituyen por las Tablas: una por tipo (Tabla Acero, Tabla Agua, Tabla Fuego…). Mismo efecto: +50% al daño de ese tipo.',
       'La «Banda Focal» pasa a llamarse «Cinta Focus».',
-      'Cada tipo muestra ahora su icono junto al nombre (🔥 Fuego, 💧 Agua…) en todas las pantallas.',
+      'Cada tipo muestra ahora su icono oficial junto al nombre en todas las pantallas.',
     ],
   },
   {
