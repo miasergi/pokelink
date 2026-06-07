@@ -13,7 +13,6 @@ export default function AchievementsScreen() {
   const [picking, setPicking] = useState(false)
   useEffect(() => { void loadMeta().then((m) => { setUnlocked(new Set(m.achievements)); setCaught(m.pokedexCaught) }) }, [])
 
-  const dexBonus = Math.min(2500, Math.floor(caught.length / 25) * 250)
   const done = ACHIEVEMENTS.filter((a) => unlocked.has(a.id)).length
 
   return (
@@ -32,14 +31,13 @@ export default function AchievementsScreen() {
           <Button variant="secondary" className="!py-2" onClick={() => setPicking(true)}>{pet != null ? 'Cambiar' : 'Elegir'}</Button>
         </Card>
 
-        {/* Recompensa de Pokédex */}
+        {/* Pokédex */}
         <Card className="p-3">
           <div className="flex items-center justify-between">
-            <div className="font-bold">📕 Recompensa de Pokédex</div>
-            <div className="text-amber-300 font-bold text-sm">+{dexBonus.toLocaleString('es')} ₽</div>
+            <div className="font-bold">📕 Pokédex</div>
+            <div className="text-amber-300 font-bold text-sm">{caught.length} especies</div>
           </div>
-          <div className="text-xs text-slate-400 mt-0.5">{caught.length} especies capturadas · +250 ₽ de salida por cada 25 (máx +2.500).</div>
-          <div className="h-2 rounded-full bg-slate-700 mt-2 overflow-hidden"><div className="h-full bg-amber-400" style={{ width: `${Math.min(100, (dexBonus / 2500) * 100)}%` }} /></div>
+          <div className="text-xs text-slate-400 mt-0.5">Especies distintas capturadas a lo largo de tus partidas.</div>
         </Card>
 
         {/* Logros */}

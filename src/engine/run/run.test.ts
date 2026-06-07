@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent } from './runEngine'
 import { EVENTS } from './nodes'
+import { checkAchievements } from './achievements'
+import type { MetaRecord } from '@/persistence/db'
 import { getSpecies } from '@/data'
 
 describe('todas las generaciones', () => {
@@ -98,6 +100,27 @@ describe('Eventos: objetos prometidos se entregan', () => {
         expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
       })
     }
+  })
+})
+
+describe('Logros: Reto diario', () => {
+  const emptyMeta = (): MetaRecord => ({
+    bestRuns: [], totals: { runs: 1, wins: 1, gymsDefeated: 8, pokemonCaught: 0 },
+    pokedexSeen: [], pokedexCaught: [], pokedexShiny: [], alias: '', achievements: [], regionsWon: [], pet: null,
+  })
+
+  it('ganar un Reto diario concede el logro daily_win', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 1, daily: '2026-06-07' })
+    run.status = 'won'; run.stats.gymsDefeated = 8
+    const earned = checkAchievements(emptyMeta(), run, true, run.startedAt + 1000)
+    expect(earned).toContain('daily_win')
+  })
+
+  it('una victoria NO diaria no concede daily_win', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 1 })
+    run.status = 'won'; run.stats.gymsDefeated = 8
+    const earned = checkAchievements(emptyMeta(), run, true, run.startedAt + 1000)
+    expect(earned).not.toContain('daily_win')
   })
 })
 

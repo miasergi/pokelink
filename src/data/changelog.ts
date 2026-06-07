@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.5',
+    date: '2026-06-07',
+    title: 'Dinero inicial igual para todos',
+    changes: [
+      'Todas las partidas empiezan ahora con el mismo dinero (1000 ₽): se retira el bono de dinero por Pokédex.',
+      'Recordatorio: ganar el Reto diario desbloquea el logro «Reto superado» (si no lo veías, era la caché del PWA; recarga para actualizar).',
+    ],
+  },
+  {
     version: 'v5.4',
     date: '2026-06-07',
     title: 'Arreglos del Reto diario',

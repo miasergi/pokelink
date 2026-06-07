@@ -9,7 +9,8 @@ import {
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
 import * as Party from '@/engine/run/party'
-import { getMegaForms, getSpecies, ALL_SPECIES, toBaseSpeciesId } from '@/data'
+import { getMegaForms, getSpecies, toBaseSpeciesId } from '@/data'
+import { checkAchievements } from '@/engine/run/achievements'
 import { evolve, levelEvolutionTargets, evolutionBlockedByItem, cycleRegionalForm } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
@@ -198,9 +199,7 @@ export const useGame = create<GameState>((set, get) => ({
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
     const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
     run.startedAt = Date.now()
-    // Recompensa de Pokédex: +250 ₽ de salida por cada 25 especies (máx +2500).
-    // EXCEPTO en el Reto diario: debe empezar idéntico para todo el mundo (1000 ₽).
-    if (!config.daily) run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
+    // Todas las runs empiezan con el MISMO dinero (1000 ₽). Sin bono de Pokédex.
     void clearRun()
     saveRun(run)
     set({ run, hasSavedRun: true, lastEventResult: null, screen: { name: 'map' }, history: [] })
@@ -692,28 +691,6 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     }
   }
   return newAchievements
-}
-
-/** Devuelve los logros recién conseguidos (no presentes ya en meta). */
-function checkAchievements(meta: Awaited<ReturnType<typeof loadMeta>>, run: RunState, won: boolean): string[] {
-  const durationMs = Math.max(0, Date.now() - run.startedAt)
-  const types = run.party.map((p) => new Set(getSpecies(p.speciesId).types))
-  const monotype = run.party.length > 0 && [...types[0]].some((t) => types.every((s) => s.has(t)))
-  const earned: string[] = []
-  if (meta.totals.wins >= 1) earned.push('first_win')
-  if (meta.totals.wins >= 10) earned.push('win10')
-  if (run.stats.gymsDefeated >= 8) earned.push('gym_master')
-  if (won && run.difficulty === 'hard') earned.push('champion_hard')
-  if (won && run.difficulty === 'nuzlocke') earned.push('champion_nuzlocke')
-  if (won && durationMs > 0 && durationMs < 25 * 60000) earned.push('speedrun')
-  if (won && monotype) earned.push('monotype')
-  if (won && run.daily) earned.push('daily_win')
-  if (meta.pokedexShiny.length >= 1) earned.push('shiny')
-  if (meta.pokedexCaught.length >= 50) earned.push('collector50')
-  if (meta.pokedexCaught.length >= 100) earned.push('collector100')
-  if (meta.pokedexCaught.length >= ALL_SPECIES.length) earned.push('collector_all')
-  if (meta.regionsWon.length >= 9) earned.push('all_regions')
-  return earned.filter((id) => !meta.achievements.includes(id))
 }
 
 export { Party }
