@@ -14,6 +14,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'champion_nuzlocke', title: 'Superviviente', desc: 'Gana una partida en modo Nuzlocke.', icon: '💀' },
   { id: 'speedrun', title: 'A toda velocidad', desc: 'Gana una partida en menos de 25 minutos.', icon: '⏱️' },
   { id: 'monotype', title: 'Especialista', desc: 'Gana con un equipo de un solo tipo.', icon: '🎯' },
+  { id: 'daily_win', title: 'Reto superado', desc: 'Gana un Reto diario.', icon: '🗓️' },
   { id: 'shiny', title: 'Cazador de shinies', desc: 'Captura un Pokémon shiny.', icon: '✨' },
   { id: 'collector50', title: 'Coleccionista', desc: 'Captura 50 especies distintas.', icon: '📕' },
   { id: 'collector100', title: 'Investigador', desc: 'Captura 100 especies distintas.', icon: '📚' },

@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.4',
+    date: '2026-06-07',
+    title: 'Arreglos del Reto diario',
+    changes: [
+      'Ganar el Reto diario ahora desbloquea el logro «Reto superado».',
+      'Al reiniciar un Reto diario, se vuelve a jugar EXACTAMENTE el mismo desafío (misma semilla, mapa e inicial); antes generaba un mapa distinto.',
+      'El Reto diario empieza siempre con el mismo dinero (1000 ₽) para que sea justo para todos. Las partidas normales mantienen el bono de dinero por Pokédex.',
+    ],
+  },
+  {
     version: 'v5.3',
     date: '2026-06-07',
     title: 'Arreglo: objetos de eventos',

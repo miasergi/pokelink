@@ -199,7 +199,8 @@ export const useGame = create<GameState>((set, get) => ({
     const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
     run.startedAt = Date.now()
     // Recompensa de Pokédex: +250 ₽ de salida por cada 25 especies (máx +2500).
-    run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
+    // EXCEPTO en el Reto diario: debe empezar idéntico para todo el mundo (1000 ₽).
+    if (!config.daily) run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
     void clearRun()
     saveRun(run)
     set({ run, hasSavedRun: true, lastEventResult: null, screen: { name: 'map' }, history: [] })
@@ -216,7 +217,13 @@ export const useGame = create<GameState>((set, get) => ({
       set({ screen: { name: 'home' }, history: [] })
       return
     }
-    get().startRun({ pools: run.pools, random: run.random, randomFlags: run.randomFlags, monotype: run.monotype, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
+    // Reto diario: reinicia EXACTAMENTE el mismo desafío (misma semilla, mapa,
+    // inicial y fecha). Una run normal reinicia con un mapa nuevo (semilla nueva).
+    get().startRun({
+      pools: run.pools, random: run.random, randomFlags: run.randomFlags, monotype: run.monotype,
+      gen: run.gen, starterId: run.starterId, difficulty: run.difficulty,
+      ...(run.daily ? { seed: run.seed, daily: run.daily } : {}),
+    })
   },
 
   doTrade: (monUid) => {
@@ -700,6 +707,7 @@ function checkAchievements(meta: Awaited<ReturnType<typeof loadMeta>>, run: RunS
   if (won && run.difficulty === 'nuzlocke') earned.push('champion_nuzlocke')
   if (won && durationMs > 0 && durationMs < 25 * 60000) earned.push('speedrun')
   if (won && monotype) earned.push('monotype')
+  if (won && run.daily) earned.push('daily_win')
   if (meta.pokedexShiny.length >= 1) earned.push('shiny')
   if (meta.pokedexCaught.length >= 50) earned.push('collector50')
   if (meta.pokedexCaught.length >= 100) earned.push('collector100')
