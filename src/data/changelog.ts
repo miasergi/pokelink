@@ -11,6 +11,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.2',
+    date: '2026-06-07',
+    title: 'Reajuste de objetos y nuevos equipables',
+    changes: [
+      'Nuevo · Roca del Rey: cada golpe tiene un 25% de amedrentar al enemigo (le hace perder su turno).',
+      'Nuevo · Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.',
+      'Nuevo · Garra Rápida: el portador ataca siempre primero.',
+      'Banda Experto ahora DUPLICA el daño de los ataques supereficaces (+100%).',
+      'Pañuelo Veloz ahora DUPLICA la Velocidad (+100%).',
+      'Lastre de Hierro: −25% Velocidad y +75% de daño.',
+      'Casco Dentado: el atacante pierde un 10% de sus PS máximos cada vez que te golpea.',
+      'Guante Doble: golpea 2 veces (100% + 25% del daño) y estrena icono de guante.',
+      'Mineraluz y Supermineral pasan a llamarse Mineral Evo. y Supermineral Evo. (icono nuevo).',
+      'Retirado el Amuleto Relevo.',
+    ],
+  },
+  {
     version: 'v5.1',
     date: '2026-06-07',
     title: 'Tablas, Monolocke y Random a la carta',

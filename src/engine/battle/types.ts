@@ -15,6 +15,7 @@ export type BattleEvent =
   | { kind: 'statChange'; side: Side; uid: string; stat: StatKey | 'accuracy' | 'evasion'; delta: number }
   | { kind: 'statusDamage'; side: Side; uid: string; status: StatusCondition; amount: number; hpAfter: number; maxHp: number }
   | { kind: 'cantMove'; side: Side; uid: string; reason: 'par' | 'slp' | 'frz' }
+  | { kind: 'flinch'; side: Side; uid: string }
   | { kind: 'wokeUp'; side: Side; uid: string }
   | { kind: 'thawed'; side: Side; uid: string }
   | { kind: 'faint'; side: Side; uid: string; name: string }

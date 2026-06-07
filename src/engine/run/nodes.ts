@@ -58,7 +58,7 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG, difficult
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
 const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'max-potion', 'revive', 'max-revive']
-const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'quick-scarf', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'relay-charm', 'iron-ball', 'amulet-coin']
+const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'quick-scarf', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'iron-ball', 'amulet-coin', 'kings-rock', 'lucky-egg', 'quick-claw']
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
 const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 

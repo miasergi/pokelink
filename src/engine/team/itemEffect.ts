@@ -52,8 +52,8 @@ export function heldStatMods(mon: PokemonInstance): StatMods {
   if (id === 'eviolite' && getSpecies(mon.speciesId).evolutions.length > 0) { m.def *= 1.5; m.spd *= 1.5 }
   if (id === 'assault-vest') { m.def *= 1.5; m.spd *= 1.5 }
   if (id === 'choice-band' || id === 'life-orb') m.off *= 1.3
-  if (id === 'iron-ball') { m.off *= 1.5; m.spe *= 0.8 }
-  if (id === 'quick-scarf') m.spe *= 1.3
+  if (id === 'iron-ball') { m.off *= 1.75; m.spe *= 0.75 }
+  if (id === 'quick-scarf') m.spe *= 2
   const boostType = TYPE_BOOST_BY_ID[id]
   if (boostType && mon.moves.some((mv) => getMove(mv.moveId).type === boostType)) m.off *= 1.5
   return m

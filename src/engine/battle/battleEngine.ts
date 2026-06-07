@@ -35,6 +35,8 @@ interface SideState {
   toxN: number
   sashUsed: Set<string>
   switches: number
+  /** Amedrentado este turno (Roca del Rey): pierde su acción si aún no actuó. */
+  flinched: boolean
 }
 
 const STRUGGLE: MoveData = {
@@ -110,12 +112,21 @@ export function runBattle(config: BattleConfig): BattleResult {
     // Pokémon que iba a actuar este turno por cada lado. Si entra un relevo
     // (su activo cambia), ese relevo NO actúa hasta el turno siguiente.
     const turnActor: Record<Side, string> = { player: active(player).uid, enemy: active(enemy).uid }
+    // El amedrentamiento (Roca del Rey) dura un turno: se limpia al empezar y lo
+    // marca el atacante que pega primero; el que aún no actuó pierde su acción.
+    player.flinched = false
+    enemy.flinched = false
 
     for (const step of order) {
       const atk = step.side
       const def = atk === player ? enemy : player
       if (active(atk).currentHp <= 0) continue
       if (active(atk).uid !== turnActor[atk.side]) continue // relevo: espera al próximo turno
+      if (atk.flinched) {
+        events.push({ kind: 'flinch', side: atk.side, uid: active(atk).uid })
+        atk.flinched = false
+        continue
+      }
       // Re-elige para el Pokémon activo actual.
       const moveIdx = decide(atk, def, rng)
       performMove(atk, def, moveIdx, rng, events, ctx)
@@ -221,6 +232,7 @@ function makeSide(side: Side, team: PokemonInstance[]): SideState {
     toxN: 1,
     sashUsed: new Set(),
     switches: 0,
+    flinched: false,
   }
 }
 
@@ -261,8 +273,8 @@ function effectiveSpeed(s: SideState, ctx: BattleCtx): number {
   const mon = active(s)
   let spe = mon.stats.spe * stageMul(s.stages.spe)
   if (mon.status === 'par') spe *= 0.5
-  if (mon.heldItemId === 'quick-scarf') spe *= 1.3 // Pañuelo Veloz
-  if (mon.heldItemId === 'iron-ball') spe *= 0.8 // Lastre de Hierro
+  if (mon.heldItemId === 'quick-scarf') spe *= 2 // Pañuelo Veloz (+100%)
+  if (mon.heldItemId === 'iron-ball') spe *= 0.75 // Lastre de Hierro (-25%)
   spe *= weatherSpeedMult(mon.ability, ctx.weather)
   return spe
 }
@@ -287,6 +299,10 @@ function decideOrder(
   const pStep: Step = { side: player, moveIdx: pMove }
   const eStep: Step = { side: enemy, moveIdx: eMove }
   if (pPri !== ePri) return pPri > ePri ? [pStep, eStep] : [eStep, pStep]
+  // Garra Rápida: el portador actúa siempre primero (salvo prioridad de movimiento).
+  const pQC = active(player).heldItemId === 'quick-claw'
+  const eQC = active(enemy).heldItemId === 'quick-claw'
+  if (pQC !== eQC) return pQC ? [pStep, eStep] : [eStep, pStep]
   const pSpe = effectiveSpeed(player, ctx)
   const eSpe = effectiveSpeed(enemy, ctx)
   if (pSpe !== eSpe) return pSpe > eSpe ? [pStep, eStep] : [eStep, pStep]
@@ -375,8 +391,8 @@ function performMove(
       return
     }
     let dmg = res.damage
-    if (attacker.heldItemId === 'double-glove') dmg = Math.floor(dmg * 0.6) // 2 golpes a ~60%
-    if (attacker.heldItemId === 'expert-belt' && res.effectiveness > 1) dmg = Math.floor(dmg * 1.25) // Banda Experto
+    if (attacker.heldItemId === 'double-glove') dmg = Math.floor(dmg * (h === 0 ? 1 : 0.25)) // 1er golpe 100%, 2º 25%
+    if (attacker.heldItemId === 'expert-belt' && res.effectiveness > 1) dmg = Math.floor(dmg * 2) // Banda Experto (+100%)
     if (attacker.heldItemId === 'life-orb') dmg = Math.floor(dmg * 1.3)
     crit = crit || res.crit
 
@@ -401,7 +417,7 @@ function performMove(
       effectiveness: res.effectiveness, crit: res.crit,
     })
     if (defender.heldItemId === 'rocky-helmet' && move.power > 0) {
-      const recoil = Math.max(1, Math.floor(attacker.stats.hp / 6))
+      const recoil = Math.max(1, Math.floor(attacker.stats.hp / 10)) // 10% de los PS máximos
       attacker.currentHp = Math.max(0, attacker.currentHp - recoil)
       events.push({
         kind: 'damage', side: atk.side, uid: attacker.uid,
@@ -412,6 +428,11 @@ function performMove(
   }
 
   if (hits > 1) events.push({ kind: 'message', text: `¡Golpeó ${hits} veces!` })
+
+  // Roca del Rey: 25% de amedrentar al objetivo (pierde su turno si aún no actuó).
+  if (attacker.heldItemId === 'kings-rock' && total > 0 && defender.currentHp > 0 && rng.chance(0.25)) {
+    def.flinched = true
+  }
 
   // Drenaje / curación
   if (move.effect?.drain && total > 0) {
@@ -458,7 +479,7 @@ function offenseMult(mon: PokemonInstance, move: MoveData, ctx: BattleCtx): numb
   // Objetos: de tipo (+50% a ese tipo) y Cinta Elección (+30% a todo).
   if (mon.heldItemId && TYPE_BOOST_BY_ID[mon.heldItemId] === move.type) m *= 1.5
   if (mon.heldItemId === 'choice-band') m *= 1.3
-  if (mon.heldItemId === 'iron-ball') m *= 1.5 // Lastre de Hierro
+  if (mon.heldItemId === 'iron-ball') m *= 1.75 // Lastre de Hierro (+75%)
   m *= weatherDamageMult(ctx.weather, move.type)
   return m
 }
@@ -592,12 +613,6 @@ function resolveFaints(
     s.stages = zeroStages()
     s.sleepTurns = 0
     s.toxN = 1
-    // Amuleto Relevo: el Pokémon que entra por relevo lo hace con +25% PS.
-    const inc = active(s)
-    if (inc.heldItemId === 'relay-charm' && inc.currentHp < inc.stats.hp) {
-      const heal = Math.floor(inc.stats.hp * 0.25)
-      inc.currentHp = Math.min(inc.stats.hp, inc.currentHp + heal)
-    }
     events.push(sendOutEvent(s))
     maybeMega(s, events)
     maybeTransform(s, s === player ? enemy : player, events)

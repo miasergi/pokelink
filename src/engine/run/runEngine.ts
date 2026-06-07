@@ -260,11 +260,18 @@ export function applyBattleOutcome(
   const cap = levelCap(run)
   const levelGain = node.type === 'battle' ? 1
     : (node.type === 'elite' || node.type === 'champion') ? 3 : 2
-  for (let i = 0; i < levelGain; i++) for (const mon of run.party) if (participated.has(mon.uid) && mon.level < cap) gainLevel(mon)
+  // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
+  const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
+  for (const mon of run.party) {
+    if (!participated.has(mon.uid)) continue
+    const gain = levelGain + boxBonus(mon)
+    for (let i = 0; i < gain; i++) if (mon.level < cap) gainLevel(mon)
+  }
 
   // Niveles ganados (combate por EXP + bonus de casilla) para mostrar logros.
   for (const mon of run.party) {
-    const total = (result.levelUps[mon.uid] || 0) + (participated.has(mon.uid) ? levelGain : 0)
+    const bonus = participated.has(mon.uid) ? levelGain + boxBonus(mon) : 0
+    const total = (result.levelUps[mon.uid] || 0) + bonus
     if (total > 0) summary.levelGains.push({ name: getSpecies(mon.speciesId).displayName, levels: total })
   }
 

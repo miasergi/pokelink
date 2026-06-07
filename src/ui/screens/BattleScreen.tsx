@@ -75,7 +75,7 @@ interface Frame {
 const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
   start: 500, sendOut: 520, move: 560, damage: 780, heal: 620, faint: 820,
   status: 660, statChange: 580, statusDamage: 640, cantMove: 640, miss: 560,
-  noEffect: 880, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
+  noEffect: 880, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100, flinch: 720,
   ability: 820, weather: 820,
 }
 
@@ -600,6 +600,7 @@ function buildFrames(
         const r = e.reason === 'par' ? 'está paralizado y no puede moverse' : e.reason === 'slp' ? 'está dormido' : 'está congelado'
         message = `¡${s.name} ${r}!`; push(); break
       }
+      case 'flinch': { const s = getSide(e.side)!; message = `¡${s.name} se amedrentó y no pudo moverse!`; push({ sound: 'noEffect' }); break }
       case 'wokeUp': { const s = getSide(e.side)!; s.status = 'none'; message = `¡${s.name} se despertó!`; push(); break }
       case 'thawed': { const s = getSide(e.side)!; s.status = 'none'; message = `¡${s.name} se descongeló!`; push(); break }
       case 'faint': {
