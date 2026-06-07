@@ -418,6 +418,7 @@ function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
       return `¡Tu equipo subió ${eff.amount} nivel(es)!`
     case 'loseMoneyFrac': {
       const lost = Math.floor(run.money * eff.frac)
+      if (lost <= 0) return 'No pasó nada.'
       run.money -= lost
       return `Pierdes ${lost} ₽.`
     }
@@ -428,6 +429,9 @@ function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
       return 'No hubo suerte esta vez...'
     case 'risky':
       return applyEventEffect(run, rng.chance(eff.chance) ? eff.good : eff.bad, rng)
+    case 'multi':
+      // Aplica todos los efectos y junta los mensajes (p.ej. curar + dar objeto).
+      return eff.effects.map((e) => applyEventEffect(run, e, rng)).filter(Boolean).join(' ')
     case 'none':
       return 'No pasó nada.'
   }

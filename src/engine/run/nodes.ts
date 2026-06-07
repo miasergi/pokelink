@@ -129,6 +129,7 @@ export type EventEffect =
   | { kind: 'loseMoneyFrac'; frac: number } // pierdes % del dinero
   | { kind: 'gamble'; cost: number; win: number; chance: number }
   | { kind: 'risky'; chance: number; good: EventEffect; bad: EventEffect }
+  | { kind: 'multi'; effects: EventEffect[] } // aplica varios efectos a la vez
   | { kind: 'none' }
 
 export interface RunEventOption {
@@ -303,7 +304,7 @@ export const EVENTS: Record<string, RunEventDef> = {
   hot_spring: { id: 'hot_spring', title: 'Aguas termales', tone: 'good',
     description: 'Un manantial humeante invita a un descanso.',
     options: [
-      { label: 'Darse un baño', description: 'Cura todo tu equipo y consigue Restos.', effect: { kind: 'heal' } },
+      { label: 'Darse un baño', description: 'Cura todo tu equipo y consigue unos Restos.', effect: { kind: 'multi', effects: [{ kind: 'heal' }, { kind: 'item', itemId: 'leftovers', qty: 1 }] } },
     ] },
   retired_champion: { id: 'retired_champion', title: 'Campeón retirado', tone: 'good',
     description: 'Un viejo campeón te da un consejo... y una reliquia.',

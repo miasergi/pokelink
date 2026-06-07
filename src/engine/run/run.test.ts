@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome } from './runEngine'
+import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent } from './runEngine'
+import { EVENTS } from './nodes'
 import { getSpecies } from '@/data'
 
 describe('todas las generaciones', () => {
@@ -68,6 +69,34 @@ describe('Modo Monolocke', () => {
       for (const o of n.content.offers) {
         expect(getSpecies(o.speciesId).types).toContain('water')
       }
+    }
+  })
+})
+
+describe('Eventos: objetos prometidos se entregan', () => {
+  const freshRun = () => createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 4242 })
+  const asEventNode = (run: ReturnType<typeof freshRun>, eventId: string) => {
+    const node = run.map.nodes[Object.keys(run.map.nodes)[0]]
+    node.content = { kind: 'event', eventId }
+    node.cleared = false
+    return node
+  }
+
+  it('Aguas termales entrega de verdad los Restos que promete', () => {
+    const run = freshRun()
+    resolveEvent(run, asEventNode(run, 'hot_spring'), 0)
+    expect(run.inventory['leftovers'] ?? 0).toBeGreaterThan(0)
+  })
+
+  it('toda opción con efecto «item» entrega exactamente ese objeto', () => {
+    for (const def of Object.values(EVENTS)) {
+      def.options.forEach((opt, i) => {
+        if (opt.effect.kind !== 'item') return
+        const run = freshRun()
+        const before = run.inventory[opt.effect.itemId] ?? 0
+        resolveEvent(run, asEventNode(run, def.id), i)
+        expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
+      })
     }
   })
 })

@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.3',
+    date: '2026-06-07',
+    title: 'Arreglo: objetos de eventos',
+    changes: [
+      'Corregido el evento «Aguas termales»: ahora SÍ te da los Restos que prometía (antes solo curaba).',
+      'Revisadas todas las situaciones aleatorias: cada opción que promete un objeto lo entrega de verdad.',
+    ],
+  },
+  {
     version: 'v5.2',
     date: '2026-06-07',
     title: 'Reajuste de objetos y nuevos equipables',
