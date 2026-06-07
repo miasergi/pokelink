@@ -1,8 +1,20 @@
-import type { ItemData, PokemonInstance, TrainerData } from '@/types'
+import type { ItemData, PokemonInstance, PokemonType, TrainerData } from '@/types'
 
 export type GameMode = 'generation' | 'all' | 'random'
 
 export type Difficulty = 'normal' | 'hard' | 'nuzlocke'
+
+/** Qué categorías randomiza el Modo Random (cada una por separado). */
+export interface RandomFlags {
+  /** Iniciales y Pokémon capturables. */
+  starters: boolean
+  /** Combates salvajes (y guardián legendario). */
+  wild: boolean
+  /** Entrenadores normales, gimnasios, rival y campeón. */
+  trainers: boolean
+  /** Alto Mando. */
+  elite: boolean
+}
 
 export type NodeType =
   | 'battle' // combate salvaje
@@ -89,8 +101,13 @@ export type RunStatus = 'active' | 'won' | 'lost'
 export interface RunState {
   /** Generaciones cuyos Pokémon pueden aparecer (salvajes, capturas, etc.). */
   pools: number[]
-  /** Modo aleatorio: randomiza por completo las especies. */
+  /** Modo aleatorio: ¿hay alguna categoría randomizada? (etiquetas/ranking). */
   random: boolean
+  /** Qué categorías randomiza (si `random`). Ausente en runs antiguas/diario. */
+  randomFlags?: RandomFlags
+  /** Modo Monolocke: si está, solo obtienes Pokémon de este tipo (inicial,
+   *  capturas, intercambios y eventos). */
+  monotype?: PokemonType
   difficulty: Difficulty
   gen: number
   region: string

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome } from './runEngine'
+import { getSpecies } from '@/data'
 
 describe('todas las generaciones', () => {
   it('cada generación (1-9) crea una run válida (IDs y rosters correctos)', () => {
@@ -37,6 +38,36 @@ describe('Modo Random', () => {
       expect(randGym.content.team.map((m) => m.level)).toEqual(realGym.content.team.map((m) => m.level))
       const sameSpecies = randGym.content.team.every((m, i) => m.speciesId === (realGym.content as { team: typeof randGym.content.team }).team[i].speciesId)
       expect(sameSpecies).toBe(false)
+    }
+  })
+})
+
+describe('Modo Random por categorías', () => {
+  it('randomizar solo salvajes deja intactos los equipos de jefe', () => {
+    const base = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 4, seed: 7 })
+    const wildOnly = createRun({ pools: [1], random: true, randomFlags: { starters: false, wild: true, trainers: false, elite: false }, difficulty: 'normal', gen: 1, starterId: 4, seed: 7 })
+    const gymBase = Object.values(base.map.nodes).find((n) => n.type === 'gym')!
+    const gymRand = Object.values(wildOnly.map.nodes).find((n) => n.type === 'gym')!
+    if (gymBase.content.kind === 'trainer' && gymRand.content.kind === 'trainer') {
+      // los jefes NO se tocan si solo randomizamos salvajes
+      expect(gymRand.content.team.map((m) => m.speciesId)).toEqual(gymBase.content.team.map((m) => m.speciesId))
+    }
+    // pero algún salvaje sí cambia
+    const wildIds = (run: typeof base) => Object.values(run.map.nodes).filter((n) => n.type === 'battle' && n.content.kind === 'wild').map((n) => (n.content as { enemy: { speciesId: number } }).enemy.speciesId)
+    expect(wildIds(wildOnly)).not.toEqual(wildIds(base))
+  })
+})
+
+describe('Modo Monolocke', () => {
+  it('todas las capturas son del tipo elegido', () => {
+    const mono = createRun({ pools: [1], random: false, monotype: 'water', difficulty: 'normal', gen: 1, starterId: 7, seed: 31 })
+    const catches = Object.values(mono.map.nodes).filter((n) => n.content.kind === 'catch')
+    expect(catches.length).toBeGreaterThan(0)
+    for (const n of catches) {
+      if (n.content.kind !== 'catch') continue
+      for (const o of n.content.offers) {
+        expect(getSpecies(o.speciesId).types).toContain('water')
+      }
     }
   })
 })

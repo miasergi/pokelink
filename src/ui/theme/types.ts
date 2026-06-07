@@ -8,6 +8,15 @@ export const TYPE_ES: Record<PokemonType, string> = {
   steel: 'Acero', fairy: 'Hada',
 }
 
+/** Icono (emoji) representativo de cada tipo, para acompañar al nombre. */
+export const TYPE_ICON: Record<PokemonType, string> = {
+  normal: '🐾', fire: '🔥', water: '💧', electric: '⚡',
+  grass: '🌿', ice: '❄️', fighting: '🥊', poison: '☠️',
+  ground: '⛰️', flying: '🕊️', psychic: '🔮', bug: '🐛',
+  rock: '🪨', ghost: '👻', dragon: '🐉', dark: '🌙',
+  steel: '⚙️', fairy: '🧚',
+}
+
 export const TYPE_HEX: Record<PokemonType, string> = {
   normal: '#9099a1', fire: '#ff9d55', water: '#4d90d5', electric: '#f4d23c',
   grass: '#63bc5a', ice: '#73cec0', fighting: '#ce4069', poison: '#ab6ac8',

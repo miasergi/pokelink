@@ -8,7 +8,7 @@ import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
 import {
   makeWild, tierPool, itemChoices, shopStock, EVENT_IDS,
 } from './nodes'
-import type { MapNode, NodeType, RunMap } from './types'
+import type { MapNode, NodeType, RandomFlags, RunMap } from './types'
 
 // Clases de entrenador genéricas con retrato real (Pokémon Showdown).
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
@@ -68,13 +68,19 @@ interface LayerPlan {
 
 export function generateMap(
   pools: number[],
-  random: boolean,
   gen: number,
   starterId: number,
   rng: RNG,
   difficulty: string = 'normal',
+  opts: { randomFlags?: RandomFlags; monotype?: PokemonType } = {},
 ): { map: RunMap; rivalStarterId: number } {
   const pool: SpeciesData[] = encounterPoolFor(pools)
+  const monotype = opts.monotype
+  // Pool del que el jugador OBTIENE Pokémon (capturas). En Monolocke, solo del
+  // tipo elegido; los enemigos (salvajes/entrenadores) NO se filtran.
+  const acquirePool: SpeciesData[] = monotype
+    ? (pool.filter((s) => s.types.includes(monotype)).length ? pool.filter((s) => s.types.includes(monotype)) : pool)
+    : pool
   const rivalStarterId = counterStarterId(starterId)
   const rivalFinalId = getFinalEvolution(rivalStarterId)
   const region = getRegion(gen)
@@ -173,7 +179,7 @@ export function generateMap(
         const nodeLevel = risky ? level + RISKY_LEVEL_BONUS : level
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: nodeLevel, risky,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx]),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx], acquirePool),
           cleared: false,
         }
         ids.push(id)
@@ -221,16 +227,29 @@ export function generateMap(
     connect(layers[i].map((id) => nodes[id]), layers[i + 1].map((id) => nodes[id]), rng)
   }
 
-  // --- Modo Random: randomiza las especies (salvajes, entrenadores, jefes) de
-  //     las REGIONES elegidas, manteniendo los NIVELES para conservar coherencia.
-  if (random) {
+  // --- Modo Random: randomiza por CATEGORÍA las especies de las REGIONES
+  //     elegidas, manteniendo los NIVELES para conservar coherencia.
+  //       starters -> capturas (las capturas; los iniciales se eligen en la UI)
+  //       wild     -> combates salvajes (y guardián legendario)
+  //       trainers -> entrenadores normales, gimnasios, rival y campeón
+  //       elite    -> Alto Mando
+  const rf = opts.randomFlags
+  if (rf) {
     const randPool = pool.filter((s) => !s.isMega)
-    const reroll = (mon: PokemonInstance, isLegendary: boolean): PokemonInstance =>
-      createInstance(rng.pick(isLegendary ? legends : randPool).id, mon.level, rng)
+    // Las capturas en Monolocke siguen siendo del tipo elegido.
+    const catchPool = acquirePool.filter((s) => !s.isMega)
+    const reroll = (mon: PokemonInstance, from: SpeciesData[]): PokemonInstance =>
+      createInstance(rng.pick(from).id, mon.level, rng)
     for (const node of Object.values(nodes)) {
       const c = node.content
-      if (c.kind === 'wild') c.enemy = reroll(c.enemy, node.type === 'legendary')
-      else if (c.kind === 'trainer') c.team = c.team.map((m) => reroll(m, false))
+      if (c.kind === 'wild') {
+        if (rf.wild) c.enemy = reroll(c.enemy, node.type === 'legendary' ? legends : randPool)
+      } else if (c.kind === 'trainer') {
+        const on = node.type === 'elite' ? rf.elite : rf.trainers
+        if (on) c.team = c.team.map((m) => reroll(m, randPool))
+      } else if (c.kind === 'catch') {
+        if (rf.starters && catchPool.length) c.offers = c.offers.map((m) => reroll(m, catchPool))
+      }
     }
   }
 
@@ -275,7 +294,7 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
 }
 
 function buildRouteContent(
-  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99,
+  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99, catchPool: SpeciesData[] = pool,
 ): MapNode['content'] {
   switch (type) {
     case 'battle':
@@ -293,9 +312,9 @@ function buildRouteContent(
       const offers: PokemonInstance[] = []
       const used = new Set<number>()
       for (let k = 0; k < count; k++) {
-        let m = makeWild(pool, catchLevel, rng, difficulty)
+        let m = makeWild(catchPool, catchLevel, rng, difficulty)
         let tries = 0
-        while (used.has(m.speciesId) && tries++ < 8) m = makeWild(pool, catchLevel, rng, difficulty)
+        while (used.has(m.speciesId) && tries++ < 8) m = makeWild(catchPool, catchLevel, rng, difficulty)
         used.add(m.speciesId)
         offers.push(m)
       }

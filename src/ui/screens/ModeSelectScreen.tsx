@@ -2,6 +2,18 @@ import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { GENERATIONS, getGeneration } from '@/data/generations'
+import { TYPE_ES, TYPE_HEX, TYPE_ICON } from '@/ui/theme/types'
+import type { PokemonType } from '@/types'
+import type { RandomFlags } from '@/engine/run/types'
+
+const RANDOM_CATS: { key: keyof RandomFlags; label: string; desc: string }[] = [
+  { key: 'starters', label: 'Iniciales y capturables', desc: 'Tu inicial y los Pokémon que capturas' },
+  { key: 'wild', label: 'Salvajes', desc: 'Los Pokémon de los combates salvajes' },
+  { key: 'trainers', label: 'Entrenadores y jefes', desc: 'Entrenadores, gimnasios, rival y campeón' },
+  { key: 'elite', label: 'Alto Mando', desc: 'Los miembros del Alto Mando' },
+]
+
+const TYPES = Object.keys(TYPE_ES) as PokemonType[]
 
 export default function ModeSelectScreen() {
   const { navigate, back, screen } = useGame()
@@ -9,7 +21,13 @@ export default function ModeSelectScreen() {
   const region = getGeneration(gen).region
 
   const [pools, setPools] = useState<Set<number>>(() => new Set([gen]))
-  const [random, setRandom] = useState(false)
+  const [rand, setRand] = useState<RandomFlags>({ starters: false, wild: false, trainers: false, elite: false })
+  const [monoOn, setMonoOn] = useState(false)
+  const [mono, setMono] = useState<PokemonType | null>(null)
+
+  const anyRandom = rand.starters || rand.wild || rand.trainers || rand.elite
+  const monotype = monoOn ? mono ?? undefined : undefined
+  const blocked = monoOn && !mono // monolocke activado pero sin tipo elegido
 
   const toggle = (g: number) => {
     setPools((prev) => {
@@ -19,6 +37,11 @@ export default function ModeSelectScreen() {
       if (next.size === 0) next.add(gen) // siempre al menos una
       return next
     })
+  }
+  const toggleCat = (key: keyof RandomFlags) => setRand((r) => ({ ...r, [key]: !r[key] }))
+  const toggleAllRandom = () => {
+    const v = !anyRandom
+    setRand({ starters: v, wild: v, trainers: v, elite: v })
   }
 
   return (
@@ -53,25 +76,85 @@ export default function ModeSelectScreen() {
           })}
         </div>
 
-        <button
-          onClick={() => setRandom((r) => !r)}
-          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border text-left transition active:scale-[0.98] ${random ? 'border-fuchsia-400' : 'border-slate-700/60'}`}
-          style={{ background: random ? 'rgba(168,85,247,0.18)' : 'rgba(15,23,42,0.5)' }}
-        >
-          <div className="text-3xl">🎲</div>
-          <div className="flex-1">
-            <div className="font-extrabold text-fuchsia-300">Modo Random {random ? '· activado' : ''}</div>
-            <div className="text-xs text-slate-400">Randomiza por completo salvajes, entrenadores y jefes (de las regiones marcadas). Los niveles se mantienen.</div>
+        {/* --- Modo Random (por categorías) --- */}
+        <div className={`rounded-2xl px-4 py-3 border transition ${anyRandom ? 'border-fuchsia-400' : 'border-slate-700/60'}`} style={{ background: anyRandom ? 'rgba(168,85,247,0.14)' : 'rgba(15,23,42,0.5)' }}>
+          <button onClick={toggleAllRandom} className="flex items-center gap-3 w-full text-left active:scale-[0.99] transition">
+            <div className="text-3xl">🎲</div>
+            <div className="flex-1">
+              <div className="font-extrabold text-fuchsia-300">Modo Random {anyRandom ? '· activado' : ''}</div>
+              <div className="text-xs text-slate-400">Elige qué randomizar (de las regiones marcadas). Los niveles se mantienen.</div>
+            </div>
+            <span className={`w-11 h-6 rounded-full relative transition shrink-0 ${anyRandom ? 'bg-fuchsia-500' : 'bg-slate-600'}`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${anyRandom ? 'left-[22px]' : 'left-0.5'}`} />
+            </span>
+          </button>
+
+          <div className="mt-2 grid gap-1.5">
+            {RANDOM_CATS.map((c) => {
+              const on = rand[c.key]
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => toggleCat(c.key)}
+                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2 border text-left transition active:scale-[0.98] ${on ? 'border-fuchsia-400/60 bg-fuchsia-500/10' : 'border-slate-700/50 bg-slate-900/30'}`}
+                >
+                  <span className={`w-5 h-5 rounded-md grid place-items-center text-xs font-black shrink-0 ${on ? 'bg-fuchsia-400 text-slate-900' : 'text-slate-500'}`} style={{ boxShadow: on ? 'none' : 'inset 0 0 0 2px #475569' }}>
+                    {on ? '✓' : ''}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm" style={{ color: on ? '#f0abfc' : '#cbd5e1' }}>{c.label}</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">{c.desc}</div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
-          <span className={`w-11 h-6 rounded-full relative transition ${random ? 'bg-fuchsia-500' : 'bg-slate-600'}`}>
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${random ? 'left-[22px]' : 'left-0.5'}`} />
-          </span>
-        </button>
+        </div>
+
+        {/* --- Monolocke (tipo único) --- */}
+        <div className={`rounded-2xl px-4 py-3 border transition ${monoOn ? 'border-emerald-400' : 'border-slate-700/60'}`} style={{ background: monoOn ? 'rgba(16,185,129,0.12)' : 'rgba(15,23,42,0.5)' }}>
+          <button onClick={() => setMonoOn((v) => !v)} className="flex items-center gap-3 w-full text-left active:scale-[0.99] transition">
+            <div className="text-3xl">🔒</div>
+            <div className="flex-1">
+              <div className="font-extrabold text-emerald-300">Monolocke {monoOn ? `· ${mono ? `${TYPE_ICON[mono]} ${TYPE_ES[mono]}` : 'elige tipo'}` : ''}</div>
+              <div className="text-xs text-slate-400">Solo podrás llevar Pokémon de UN tipo: inicial, capturas, intercambios y eventos.</div>
+            </div>
+            <span className={`w-11 h-6 rounded-full relative transition shrink-0 ${monoOn ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${monoOn ? 'left-[22px]' : 'left-0.5'}`} />
+            </span>
+          </button>
+
+          {monoOn && (
+            <div className="mt-2.5">
+              <p className="text-[11px] text-slate-400 mb-1.5">¿De qué tipo quieres tu Monolocke?</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {TYPES.map((t) => {
+                  const sel = mono === t
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setMono(t)}
+                      className={`rounded-lg py-1.5 text-xs font-bold text-white transition active:scale-[0.96] inline-flex items-center justify-center gap-1 ${sel ? 'ring-2 ring-white' : 'opacity-75'}`}
+                      style={{ backgroundColor: TYPE_HEX[t] }}
+                    >
+                      <span aria-hidden>{TYPE_ICON[t]}</span>{TYPE_ES[t]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-4 safe-bottom">
-        <Button full variant="primary" onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random })}>
-          Continuar ›
+        <Button
+          full
+          variant="primary"
+          disabled={blocked}
+          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype })}
+        >
+          {blocked ? 'Elige un tipo para el Monolocke' : 'Continuar ›'}
         </Button>
       </div>
     </div>

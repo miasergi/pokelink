@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.1',
+    date: '2026-06-07',
+    title: 'Tablas, Monolocke y Random a la carta',
+    changes: [
+      'Nuevo modo Monolocke: elige un tipo y SOLO podrás llevar Pokémon de ese tipo (inicial, capturas, intercambios y eventos).',
+      'El Modo Random ahora se elige por categorías: randomiza por separado iniciales y capturables, salvajes, entrenadores y jefes, y el Alto Mando.',
+      'Los objetos de tipo (Imán, Carbón, Aguamística…) se sustituyen por las Tablas: una por tipo (Tabla Acero, Tabla Agua, Tabla Fuego…). Mismo efecto: +50% al daño de ese tipo.',
+      'La «Banda Focal» pasa a llamarse «Cinta Focus».',
+      'Cada tipo muestra ahora su icono junto al nombre (🔥 Fuego, 💧 Agua…) en todas las pantallas.',
+    ],
+  },
+  {
     version: 'v5.0',
     date: '2026-06-07',
     title: 'Pulido y balance',

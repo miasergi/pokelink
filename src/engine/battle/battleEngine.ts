@@ -380,7 +380,7 @@ function performMove(
     if (attacker.heldItemId === 'life-orb') dmg = Math.floor(dmg * 1.3)
     crit = crit || res.crit
 
-    // Banda focal / Robustez: sobrevive con 1 PS a un golpe letal desde PS máximos
+    // Cinta Focus / Robustez: sobrevive con 1 PS a un golpe letal desde PS máximos
     const sturdy = defender.ability === 'sturdy'
     if (
       (defender.heldItemId === 'focus-sash' || sturdy) &&

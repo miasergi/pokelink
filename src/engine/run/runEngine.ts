@@ -12,12 +12,17 @@ import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
 import { getGeneration } from '@/data/generations'
-import type { Difficulty, MapNode, RunState } from './types'
+import type { Difficulty, MapNode, RandomFlags, RunState } from './types'
+import type { PokemonType } from '@/types'
 
 export interface NewRunConfig {
   /** Generaciones cuyos Pokémon aparecen. Por defecto, [gen]. */
   pools: number[]
   random: boolean
+  /** Categorías a randomizar (si `random`). Por defecto (legacy) todas. */
+  randomFlags?: RandomFlags
+  /** Modo Monolocke: tipo único para todo lo que obtienes. */
+  monotype?: PokemonType
   difficulty: Difficulty
   gen: number
   starterId: number
@@ -26,16 +31,22 @@ export interface NewRunConfig {
   daily?: string
 }
 
+const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
+
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
   const pools = config.pools.length ? config.pools : [config.gen]
-  const { map, rivalStarterId } = generateMap(pools, config.random, config.gen, config.starterId, rng, config.difficulty)
+  // Runs antiguas/diario: `random` sin flags => randomiza todo (legacy).
+  const randomFlags = config.random ? (config.randomFlags ?? ALL_RANDOM) : undefined
+  const { map, rivalStarterId } = generateMap(pools, config.gen, config.starterId, rng, config.difficulty, { randomFlags, monotype: config.monotype })
   const starter = createInstance(config.starterId, 5, rng)
   const region = getGeneration(config.gen).region
 
   return {
     pools,
     random: config.random,
+    randomFlags,
+    monotype: config.monotype,
     difficulty: config.difficulty,
     gen: config.gen,
     region,
@@ -342,7 +353,8 @@ export function resolveTrade(
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
   const traded = run.party[idx]
-  const pool = basePoolFor(run.pools)
+  // Monolocke: el Pokémon recibido también es del tipo elegido.
+  const pool = monotypePool(basePoolFor(run.pools), run.monotype)
   const newMon = withRng(run, (rng) => createInstance(rng.pick(pool).id, traded.level + 3, rng))
   // El Pokémon recibido conserva el MISMO nivel de potencia del ataque que diste.
   newMon.moveTier = effectiveTier(traded)
@@ -432,10 +444,18 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
   const avg = Math.round(
     run.party.reduce((a, p) => a + p.level, 0) / Math.max(1, run.party.length),
   )
-  const pool = encounterPoolFor(run.pools)
+  // Monolocke: los Pokémon de evento (huevo/criador) también son del tipo.
+  const pool = monotypePool(encounterPoolFor(run.pools), run.monotype)
   const tier = tierPool(pool, avg)
   const sp = rng.pick(tier)
   return createInstance(sp.id, Math.max(2, avg), rng)
+}
+
+/** Filtra un pool al tipo del Monolocke. Si no hay (o no es monolocke), el pool tal cual. */
+function monotypePool(pool: import('@/types').SpeciesData[], monotype?: PokemonType): import('@/types').SpeciesData[] {
+  if (!monotype) return pool
+  const f = pool.filter((s) => s.types.includes(monotype))
+  return f.length ? f : pool
 }
 
 /** Sube un Pokémon a un nivel mínimo (mantiene fracción de PS y aprende movimientos del nivel). */

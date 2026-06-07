@@ -196,7 +196,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ pools: config.pools, random: config.random, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
+    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
     run.startedAt = Date.now()
     // Recompensa de Pokédex: +250 ₽ de salida por cada 25 especies (máx +2500).
     run.money += Math.min(2500, Math.floor(get().dexCaught / 25) * 250)
@@ -216,7 +216,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ screen: { name: 'home' }, history: [] })
       return
     }
-    get().startRun({ pools: run.pools, random: run.random, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
+    get().startRun({ pools: run.pools, random: run.random, randomFlags: run.randomFlags, monotype: run.monotype, gen: run.gen, starterId: run.starterId, difficulty: run.difficulty })
   },
 
   doTrade: (monUid) => {
@@ -645,7 +645,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   meta.bestRuns = [
     {
       date: Date.now(),
-      mode: run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
+      mode: run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
       region: run.region,
       difficulty: run.difficulty,
       durationMs: Math.max(0, Date.now() - run.startedAt),
@@ -677,7 +677,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
         alias: merged.alias || currentUser()!.email.split('@')[0],
         region: run.region,
         difficulty: run.difficulty,
-        mode: run.daily ? 'Reto diario' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
+        mode: run.daily ? 'Reto diario' : run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
         pools: run.pools,
         random: run.random,
         duration_ms: durationMs,

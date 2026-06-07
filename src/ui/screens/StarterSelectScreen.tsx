@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { STARTERS_BY_GEN } from '@/data/starters'
-import { getSpecies, threeStageStarterPool } from '@/data'
+import { getSpecies, threeStageStarterPool, basePoolFor } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
-import { typeGradient } from '@/ui/theme/types'
-import type { Difficulty } from '@/engine/run/types'
+import { typeGradient, TYPE_ES, TYPE_ICON } from '@/ui/theme/types'
+import type { Difficulty, RandomFlags } from '@/engine/run/types'
+import type { PokemonType, SpeciesData } from '@/types'
 
 const DIFFS: { id: Difficulty; label: string; desc: string }[] = [
   { id: 'normal', label: 'Normal', desc: 'Equilibrado. Los Pokémon suben de nivel por casilla (+1 salvaje, +2 entrenador/gimnasio, +3 Liga). Perder un combate = fin de la partida.' },
@@ -19,33 +20,54 @@ export default function StarterSelectScreen() {
   const gen = (screen.params?.gen as number) ?? 1
   const pools = (screen.params?.pools as number[] | undefined) ?? [gen]
   const random = (screen.params?.random as boolean | undefined) ?? false
+  const randomFlags = screen.params?.randomFlags as RandomFlags | undefined
+  const monotype = screen.params?.monotype as PokemonType | undefined
   const daily = screen.params?.daily as string | undefined
   const dailySeed = screen.params?.seed as number | undefined
-  // En Modo Random, 3 iniciales aleatorios con cadena de 3 etapas.
-  const starters = useMemo(() => {
-    if (!random) return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
-    // Iniciales random SOLO de las regiones elegidas.
-    const set = new Set(pools)
-    let pool = threeStageStarterPool().filter((s) => set.has(s.generation))
-    if (pool.length < 3) pool = threeStageStarterPool() // respaldo si hay muy pocos
+  // Selecciona hasta `n` ids distintos de un pool (aleatorio).
+  const pickDistinct = (pool: SpeciesData[], n: number): number[] => {
     const picks: number[] = []
     const used = new Set<number>()
-    while (picks.length < 3 && used.size < pool.length) {
+    while (picks.length < n && used.size < pool.length) {
       const sp = pool[Math.floor(Math.random() * pool.length)]
       if (used.has(sp.id)) continue
       used.add(sp.id)
       picks.push(sp.id)
     }
     return picks
+  }
+  const starters = useMemo(() => {
+    // Monolocke: iniciales del TIPO elegido (preferiblemente con 3 etapas).
+    if (monotype) {
+      const set = new Set(pools)
+      const byType = (s: SpeciesData) => s.types.includes(monotype)
+      let pool = threeStageStarterPool().filter((s) => set.has(s.generation) && byType(s))
+      if (pool.length < 3) pool = threeStageStarterPool().filter(byType)
+      if (pool.length < 1) pool = basePoolFor(pools).filter(byType)
+      if (pool.length < 1) pool = basePoolFor([]).filter(byType)
+      const picks = pickDistinct(pool, 3)
+      return picks.length ? picks : (STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1])
+    }
+    // Iniciales random (3 etapas) SOLO de las regiones elegidas.
+    if (!randomFlags?.starters) return STARTERS_BY_GEN[gen] ?? STARTERS_BY_GEN[1]
+    const set = new Set(pools)
+    let pool = threeStageStarterPool().filter((s) => set.has(s.generation))
+    if (pool.length < 3) pool = threeStageStarterPool() // respaldo si hay muy pocos
+    return pickDistinct(pool, 3)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [random, gen, pools.join(',')])
+  }, [monotype, randomFlags?.starters, gen, pools.join(',')])
   const [selected, setSelected] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="Elige tu inicial" left={<Button variant="ghost" onClick={back}>‹</Button>} />
+      <TopBar title={monotype ? `Inicial · Mono ${TYPE_ICON[monotype]} ${TYPE_ES[monotype]}` : 'Elige tu inicial'} left={<Button variant="ghost" onClick={back}>‹</Button>} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
+        {monotype && (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/40 px-3 py-2 text-sm">
+            🔒 <b>Monolocke de tipo {TYPE_ICON[monotype]} {TYPE_ES[monotype]}</b> — solo podrás llevar Pokémon de este tipo (inicial, capturas, intercambios y eventos).
+          </div>
+        )}
         {starters.map((id) => {
           const sp = getSpecies(id)
           const isSel = selected === id
@@ -117,7 +139,7 @@ export default function StarterSelectScreen() {
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, starterId: selected, difficulty })}
+          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, randomFlags, monotype, starterId: selected, difficulty })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>
