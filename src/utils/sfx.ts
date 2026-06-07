@@ -58,7 +58,7 @@ function vibrate(pattern: number | number[]) {
 
 export type Sfx =
   | 'hit' | 'crit' | 'faint' | 'heal' | 'status' | 'levelup'
-  | 'victory' | 'defeat' | 'select' | 'mega' | 'catch'
+  | 'victory' | 'defeat' | 'select' | 'mega' | 'catch' | 'noEffect'
 
 export function play(kind: Sfx) {
   if (!useSettings.getState().sound) return
@@ -82,6 +82,11 @@ export function play(kind: Sfx) {
       break
     case 'status':
       tone(200, 0.12, 'triangle', 0.04)
+      break
+    case 'noEffect':
+      // golpe sordo y apagado: el ataque "rebota" sin efecto
+      tone(110, 0.15, 'sine', 0.035)
+      vibrate(8)
       break
     case 'levelup':
       tone(523, 0.09, 'square', 0.05)

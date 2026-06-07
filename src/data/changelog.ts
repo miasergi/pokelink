@@ -20,6 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Los objetos de tipo (Imán, Carbón, Aguamística…) se sustituyen por las Tablas: una por tipo (Tabla Acero, Tabla Agua, Tabla Fuego…). Mismo efecto: +50% al daño de ese tipo.',
       'La «Banda Focal» pasa a llamarse «Cinta Focus».',
       'Cada tipo muestra ahora su icono oficial junto al nombre en todas las pantallas.',
+      'Cuando un ataque NO afecta (inmunidad por tipo, p. ej. Tierra contra Volador) ahora se ve claramente en la arena con un «No afecta».',
     ],
   },
   {

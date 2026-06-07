@@ -51,7 +51,7 @@ interface TeamSlot {
 }
 interface Fx {
   side: Side // objetivo del efecto
-  kind: 'damage' | 'heal'
+  kind: 'damage' | 'heal' | 'noEffect'
   amount: number
   crit?: boolean
   eff?: number
@@ -75,7 +75,7 @@ interface Frame {
 const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
   start: 500, sendOut: 520, move: 560, damage: 780, heal: 620, faint: 820,
   status: 660, statChange: 580, statusDamage: 640, cantMove: 640, miss: 560,
-  noEffect: 640, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
+  noEffect: 880, wokeUp: 560, thawed: 560, message: 740, end: 200, mega: 1100,
   ability: 820, weather: 820,
 }
 
@@ -369,39 +369,58 @@ function BattleRewards({ summary, onContinue }: { summary: import('@/engine/run/
 function SpriteFx({ side, fx, idx }: { side: Side; fx?: Fx; idx: number }) {
   if (!fx || fx.side !== side) return null
   const isHeal = fx.kind === 'heal'
+  const isNoEff = fx.kind === 'noEffect'
   const color = isHeal ? '#34d399' : fx.crit ? '#fb923c' : fx.self ? '#fca5a5' : '#f87171'
-  const burst = fx.moveType ? TYPE_HEX[fx.moveType] : '#f87171'
+  // En "no afecta" el estallido es apagado/gris (el ataque rebota sin efecto).
+  const burst = isNoEff ? '#94a3b8' : fx.moveType ? TYPE_HEX[fx.moveType] : '#f87171'
   return (
     <div className="absolute inset-0 z-20 pointer-events-none grid place-items-center">
       {!isHeal && (
         <div key={`b-${idx}`} className="fx-burst rounded-full" style={{ width: 90, height: 90, background: `radial-gradient(circle, ${burst}cc, ${burst}00 70%)` }} />
       )}
-      <div
-        key={`n-${idx}`}
-        className="fx-dmg absolute font-extrabold tabular-nums"
-        style={{ color, fontSize: fx.crit ? 30 : 24, textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}
-      >
-        {isHeal ? `+${fx.amount}` : `-${fx.amount}`}
-      </div>
-      {fx.crit && (
-        <div key={`c-${idx}`} className="fx-dmg absolute -mt-12 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs font-black shadow-lg" style={{ textShadow: 'none' }}>
-          ⚡ ¡CRÍTICO!
-        </div>
-      )}
-      {!isHeal && !fx.self && fx.eff != null && fx.eff !== 1 && (
+      {isNoEff ? (
         <div
-          key={`e-${idx}`}
-          className="fx-eff absolute font-black text-[15px] whitespace-nowrap"
+          key={`ne-${idx}`}
+          className="fx-eff absolute font-black text-[17px] whitespace-nowrap"
           style={{
-            marginTop: fx.crit ? 58 : 42,
-            color: effectivenessColor(fx.eff),
+            color: effectivenessColor(0),
             WebkitTextStroke: '3px #fff',
             paintOrder: 'stroke',
             filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.7))',
           }}
         >
-          {effectivenessLabel(fx.eff)}
+          {effectivenessLabel(0)}
         </div>
+      ) : (
+        <>
+          <div
+            key={`n-${idx}`}
+            className="fx-dmg absolute font-extrabold tabular-nums"
+            style={{ color, fontSize: fx.crit ? 30 : 24, textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}
+          >
+            {isHeal ? `+${fx.amount}` : `-${fx.amount}`}
+          </div>
+          {fx.crit && (
+            <div key={`c-${idx}`} className="fx-dmg absolute -mt-12 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs font-black shadow-lg" style={{ textShadow: 'none' }}>
+              ⚡ ¡CRÍTICO!
+            </div>
+          )}
+          {!isHeal && !fx.self && fx.eff != null && fx.eff !== 1 && (
+            <div
+              key={`e-${idx}`}
+              className="fx-eff absolute font-black text-[15px] whitespace-nowrap"
+              style={{
+                marginTop: fx.crit ? 58 : 42,
+                color: effectivenessColor(fx.eff),
+                WebkitTextStroke: '3px #fff',
+                paintOrder: 'stroke',
+                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.7))',
+              }}
+            >
+              {effectivenessLabel(fx.eff)}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -554,7 +573,14 @@ function buildFrames(
         break
       }
       case 'miss': { const s = getSide(e.side)!; message = `¡${s.name} falló el ataque!`; push(); break }
-      case 'noEffect': { const s = getSide(e.side)!; message = `No afecta a ${s.name}...`; push(); break }
+      case 'noEffect': {
+        const s = getSide(e.side)!
+        // tipo del ataque = el del atacante (el lado contrario al que recibe).
+        const moveType = lastMoveType[e.side === 'player' ? 'enemy' : 'player']
+        message = `No afecta a ${s.name}...`
+        push({ fx: { side: e.side, kind: 'noEffect', amount: 0, eff: 0, moveType }, sound: 'noEffect' })
+        break
+      }
       case 'status': {
         const s = getSide(e.side)!; s.status = e.status
         message = `¡${s.name} sufre ${STATUS_LABEL[e.status]}!`; push({ sound: 'status' }); break
