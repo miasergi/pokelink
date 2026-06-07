@@ -64,7 +64,8 @@ export function createRun(config: NewRunConfig): RunState {
     money: 1000,
     status: 'active',
     stats: { battlesWon: 0, pokemonCaught: 0, gymsDefeated: 0, eliteDefeated: 0, turnsPlayed: 0 },
-    startedAt: config.seed, // timestamp se fija fuera del engine
+    startedAt: config.seed, // ancla de sesión; se fija a Date.now() en startRun
+    elapsedMs: 0, // tiempo de juego activo acumulado
   }
 }
 

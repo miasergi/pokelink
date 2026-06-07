@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.7',
+    date: '2026-06-07',
+    title: 'El cronómetro solo cuenta el juego activo',
+    changes: [
+      'El tiempo de la partida ya NO cuenta los ratos con la app cerrada: al cerrar y volver con «Continuar run», el cronómetro se reanuda donde lo dejaste.',
+      'Esto también arregla los tiempos del ranking de Glory Runs y el logro de velocidad.',
+    ],
+  },
+  {
     version: 'v5.6',
     date: '2026-06-07',
     title: 'Arreglo del icono de tipo Hielo',

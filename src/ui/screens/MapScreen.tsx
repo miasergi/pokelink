@@ -87,7 +87,7 @@ export default function MapScreen() {
         title={
           <span className="text-sm">
             {run.region} · <span className="text-amber-300">{money(run.money)}</span>
-            {' · '}<RunTimer startedAt={run.startedAt} className="text-slate-400" />
+            {' · '}<RunTimer run={run} className="text-slate-400" />
           </span>
         }
         left={

@@ -8,7 +8,9 @@ import { ALL_SPECIES, getSpecies } from '@/data'
  * `won` = la run terminó en victoria (campeón derrotado).
  */
 export function checkAchievements(meta: MetaRecord, run: RunState, won: boolean, now: number = Date.now()): string[] {
-  const durationMs = Math.max(0, now - run.startedAt)
+  // Duración = tiempo de juego ACTIVO (elapsedMs ya volcado al cerrar la run);
+  // si falta (runs antiguas), se estima con el ancla de sesión.
+  const durationMs = run.elapsedMs != null ? run.elapsedMs : Math.max(0, now - run.startedAt)
   const types = run.party.map((p) => new Set(getSpecies(p.speciesId).types))
   const monotype = run.party.length > 0 && [...types[0]].some((t) => types.every((s) => s.has(t)))
   const earned: string[] = []

@@ -5,6 +5,7 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { typeGradient } from '@/ui/theme/types'
 import RunTimer from '@/ui/components/RunTimer'
+import { runElapsedMs } from '@/engine/run/playtime'
 import { shareText, buildShareText } from '@/utils/share'
 
 export default function VictoryScreen() {
@@ -34,7 +35,7 @@ export default function VictoryScreen() {
       )}
       <div className="text-7xl animate-float">🏆</div>
       <h2 className="text-3xl font-extrabold text-amber-300">¡CAMPEÓN!</h2>
-      <div className="text-lg font-extrabold text-emerald-300"><RunTimer startedAt={run.startedAt} frozen /></div>
+      <div className="text-lg font-extrabold text-emerald-300"><RunTimer run={run} frozen /></div>
       <p className="text-slate-200 text-sm max-w-xs">
         Has derrotado al Alto Mando y al Campeón de {run.region}. ¡Eres el nuevo
         Maestro Pokémon!
@@ -58,7 +59,7 @@ export default function VictoryScreen() {
 
       <div className="w-full max-w-sm flex flex-col gap-2">
         <Button full variant="secondary" onClick={async () => {
-          const text = buildShareText({ region: run.region, difficulty: run.difficulty, durationMs: Math.max(0, Date.now() - run.startedAt), team: run.party.map((p) => ({ name: getSpecies(p.speciesId).displayName, level: p.level })) })
+          const text = buildShareText({ region: run.region, difficulty: run.difficulty, durationMs: runElapsedMs(run), team: run.party.map((p) => ({ name: getSpecies(p.speciesId).displayName, level: p.level })) })
           const r = await shareText(text)
           if (r === 'copied') setShared('📋 ¡Copiado! Pégalo donde quieras')
           else if (r === 'shared') setShared('¡Compartido!')

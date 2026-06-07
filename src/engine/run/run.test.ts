@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent } from './runEngine'
 import { EVENTS } from './nodes'
+import { runElapsedMs, commitElapsed } from './playtime'
 import { checkAchievements } from './achievements'
 import type { MetaRecord } from '@/persistence/db'
 import { getSpecies } from '@/data'
@@ -100,6 +101,22 @@ describe('Eventos: objetos prometidos se entregan', () => {
         expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
       })
     }
+  })
+})
+
+describe('Cronómetro: solo tiempo de juego activo', () => {
+  it('al reanudar NO cuenta el tiempo con la app cerrada', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 1 })
+    // Simula una sesión de ~60 s y un guardado (volcado a elapsedMs).
+    run.elapsedMs = 0
+    run.startedAt = Date.now() - 60_000
+    commitElapsed(run)
+    expect(run.elapsedMs).toBeGreaterThanOrEqual(59_000)
+    // Cierras el navegador y vuelves 1 h después: reanudar reinicia el ancla.
+    run.startedAt = Date.now() // lo que hace resumeRun
+    const total = runElapsedMs(run)
+    expect(total).toBeGreaterThanOrEqual(59_000)
+    expect(total).toBeLessThan(62_000) // ~60 s, NO +1 h
   })
 })
 

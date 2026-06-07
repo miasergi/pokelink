@@ -132,7 +132,12 @@ export interface RunState {
     eliteDefeated: number
     turnsPlayed: number
   }
+  /** Ancla de la SESIÓN en curso (timestamp). Al reanudar se reinicia a "ahora"
+   *  para no contar el tiempo con la app cerrada. */
   startedAt: number
+  /** Tiempo de juego ACTIVO acumulado de sesiones anteriores (ms). El tiempo
+   *  total de la run = elapsedMs + (ahora − startedAt). */
+  elapsedMs?: number
   /** Reto diario (fecha YYYY-MM-DD) si esta run lo es. */
   daily?: string
 }

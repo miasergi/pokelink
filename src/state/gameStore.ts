@@ -8,6 +8,7 @@ import {
   type BattleOutcomeSummary, type NewRunConfig,
 } from '@/engine/run/runEngine'
 import { applyHealItem } from '@/engine/run/party'
+import { commitElapsed } from '@/engine/run/playtime'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies, toBaseSpeciesId } from '@/data'
 import { checkAchievements } from '@/engine/run/achievements'
@@ -108,7 +109,9 @@ interface GameState {
 }
 
 function persist(run: RunState | null) {
-  if (run && run.status === 'active') void saveRun(run)
+  // Acumula el tiempo de juego activo antes de guardar, para que al cerrar y
+  // reabrir no se cuente el tiempo con la app cerrada.
+  if (run && run.status === 'active') { commitElapsed(run); void saveRun(run) }
 }
 
 function cloneRun(run: RunState): RunState {
@@ -199,6 +202,7 @@ export const useGame = create<GameState>((set, get) => ({
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
     const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
     run.startedAt = Date.now()
+    run.elapsedMs = 0 // cronómetro de juego activo (no cuenta app cerrada)
     // Todas las runs empiezan con el MISMO dinero (1000 ₽). Sin bono de Pokédex.
     void clearRun()
     saveRun(run)
@@ -207,7 +211,13 @@ export const useGame = create<GameState>((set, get) => ({
 
   resumeRun: async () => {
     const run = await loadRun()
-    if (run) set({ run, lastEventResult: null, screen: { name: 'map' }, history: [] })
+    if (run) {
+      // Reanudar: reinicia el ancla del cronómetro a "ahora" para NO contar el
+      // tiempo que la app estuvo cerrada (el activo ya está en elapsedMs).
+      run.startedAt = Date.now()
+      void saveRun(run)
+      set({ run, lastEventResult: null, screen: { name: 'map' }, history: [] })
+    }
   },
 
   restartRun: () => {
@@ -629,6 +639,9 @@ async function syncDexFromRun(run: RunState): Promise<void> {
 }
 
 async function recordRunEnd(run: RunState): Promise<string[]> {
+  // Cierra el cronómetro: tiempo total = solo juego activo (no app cerrada).
+  commitElapsed(run)
+  const durationMs = run.elapsedMs ?? 0
   const meta = await loadMeta()
   const won = run.status === 'won'
   meta.totals.runs += 1
@@ -654,7 +667,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
       mode: run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
       region: run.region,
       difficulty: run.difficulty,
-      durationMs: Math.max(0, Date.now() - run.startedAt),
+      durationMs,
       gymsDefeated: run.stats.gymsDefeated,
       eliteDefeated: run.stats.eliteDefeated,
       won: run.status === 'won',
@@ -676,8 +689,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     const merged = cloud ? mergeMeta(meta, cloud) : meta
     await saveMeta(merged)
     await saveCloudMeta(merged)
-    // Glory Run: si GANASTE, envía tu tiempo al ranking online.
-    const durationMs = Math.max(0, Date.now() - run.startedAt)
+    // Glory Run: si GANASTE, envía tu tiempo (de juego activo) al ranking online.
     if (run.status === 'won' && durationMs > 0) {
       await submitGloryRun({
         alias: merged.alias || currentUser()!.email.split('@')[0],

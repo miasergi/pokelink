@@ -18,7 +18,7 @@ export default function GameOverScreen() {
         <div className="text-6xl mt-2">💀</div>
         <h2 className="text-3xl font-extrabold text-rose-400">Fin de la partida</h2>
         <p className="text-slate-300 text-sm">Tu aventura en {run.region} ha terminado.</p>
-        <RunTimer startedAt={run.startedAt} frozen className="text-slate-400 font-bold" />
+        <RunTimer run={run} frozen className="text-slate-400 font-bold" />
 
         <Card className="p-4 w-full max-w-sm">
           <div className="grid grid-cols-2 gap-3 text-sm">
