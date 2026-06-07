@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.6',
+    date: '2026-06-07',
+    title: 'Arreglo del icono de tipo Hielo',
+    changes: [
+      'El icono del tipo Hielo (y cualquiera con varias piezas) ahora se ve completo: antes solo se dibujaba un trozo.',
+      'Los iconos de tipo llevan una sombra sutil para verse mejor sobre colores claros (Hielo, Eléctrico, Hada…).',
+    ],
+  },
+  {
     version: 'v5.5',
     date: '2026-06-07',
     title: 'Dinero inicial igual para todos',
