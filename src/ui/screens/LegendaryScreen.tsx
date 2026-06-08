@@ -8,16 +8,18 @@ import PokemonCard from '@/ui/components/PokemonCard'
 import { typeGradient } from '@/ui/theme/types'
 
 export default function LegendaryScreen() {
-  const { run, legendaryOffer, addLegendary, skipLegendary } = useGame()
+  const { run, legendaryOffer, offerKind, addLegendary, skipLegendary } = useGame()
   const [replacing, setReplacing] = useState(false)
   if (!run || !legendaryOffer) return null
   const mon = legendaryOffer
   const sp = getSpecies(mon.speciesId)
   const full = run.party.length >= 6
+  const isRescue = offerKind === 'rescue'
+  const noun = isRescue ? 'el Pokémon' : 'el legendario'
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="✨ ¡Legendario vencido!" />
+      <TopBar title={isRescue ? '🔓 ¡Pokémon liberado!' : '✨ ¡Legendario vencido!'} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center gap-4 no-scrollbar">
         <div className="rounded-3xl p-4 w-full max-w-sm text-center" style={{ background: typeGradient(sp.types) }}>
           <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-44 h-44 object-contain mx-auto drop-shadow-2xl animate-float" />
@@ -36,11 +38,11 @@ export default function LegendaryScreen() {
                 <Button full variant="success" onClick={() => setReplacing(true)}>Liberar uno y añadir</Button>
               </>
             )}
-            <Button full variant="ghost" onClick={skipLegendary}>Dejarlo marchar</Button>
+            <Button full variant="ghost" onClick={skipLegendary}>{isRescue ? 'Enviar a la caja' : 'Dejarlo marchar'}</Button>
           </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col gap-2">
-            <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para quedarte el legendario? (desaparece para siempre)</p>
+            <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para quedarte {noun}? (desaparece para siempre; su objeto vuelve a la mochila)</p>
             {run.party.map((p) => (
               <PokemonCard key={p.uid} mon={p} onClick={() => addLegendary(p.uid)} />
             ))}

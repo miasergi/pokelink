@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.3',
+    date: '2026-06-08',
+    title: 'Liberar al Pokémon de Team Rocket: tú decides',
+    changes: [
+      'Al liberar el Pokémon secuestrado de Team Rocket, ahora decides igual que con un legendario: añadirlo, o (si tienes 6) liberar a uno para hacerle hueco.',
+      'Si liberas a uno de los tuyos para quedarte el rescatado, su objeto equipado vuelve a la mochila (no se pierde).',
+      'Si decides no quedártelo, va a la caja (no se pierde).',
+    ],
+  },
+  {
     version: 'v6.2',
     date: '2026-06-08',
     title: 'Team Rocket secuestra Pokémon',

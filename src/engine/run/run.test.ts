@@ -107,7 +107,7 @@ describe('Eventos: objetos prometidos se entregan', () => {
 })
 
 describe('Team Rocket: Pokémon secuestrado', () => {
-  it('al ganar liberas el Pokémon secuestrado y solo subes +1 nivel', () => {
+  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y solo +1 nivel', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 5 })
     const startLvl = run.party[0].level
     const partyN = run.party.length
@@ -121,9 +121,9 @@ describe('Team Rocket: Pokémon secuestrado', () => {
     }
     node.cleared = false
     const summary = applyBattleOutcome(run, node, { events: [], winner: 'player', playerTeam: run.party, expByUid: {}, levelUps: {} })
-    expect(summary.rescuedName).toBeTruthy()
-    expect(run.party.length).toBe(partyN + 1)
-    expect(run.party.some((p) => p.speciesId === 25)).toBe(true)
+    // Se OFRECE (lo decide el jugador en pantalla, como un legendario): no se añade aún.
+    expect(summary.rescueOffer?.speciesId).toBe(25)
+    expect(run.party.length).toBe(partyN)
     // Casilla de Team Rocket: solo +1 nivel (un entrenador normal daría +2).
     expect(run.party[0].level).toBe(startLvl + 1)
   })

@@ -360,9 +360,6 @@ function BattleRewards({ summary, onContinue }: { summary: import('@/engine/run/
         {summary.caughtLegendary && (
           <span className="text-xs font-bold bg-violet-500/15 border border-violet-500/30 text-violet-300 rounded-lg px-2 py-1">⭐ {summary.caughtLegendary}</span>
         )}
-        {summary.rescuedName && (
-          <span className="text-xs font-bold bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-200 rounded-lg px-2 py-1">🔓 Liberado: {summary.rescuedName}{summary.rescuedToBox ? ' (a la caja)' : ''}</span>
-        )}
         {summary.lost.length > 0 && (
           <span className="text-xs font-bold bg-rose-500/15 border border-rose-500/30 text-rose-300 rounded-lg px-2 py-1">☠ {summary.lost.join(', ')}</span>
         )}

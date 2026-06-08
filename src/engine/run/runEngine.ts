@@ -144,10 +144,9 @@ export interface BattleOutcomeSummary {
   legendaryOffer?: PokemonInstance
   /** Nombre del jefe derrotado (para celebrar / meme). */
   bossDefeated?: string
-  /** Team Rocket: nombre del Pokémon secuestrado que has liberado (se une). */
-  rescuedName?: string
-  /** Si el Pokémon liberado fue a la caja (equipo lleno). */
-  rescuedToBox?: boolean
+  /** Team Rocket: Pokémon secuestrado liberado que te ofrece unirse (tú decides,
+   *  igual que con un legendario: añadir, liberar a uno para hacer hueco, o caja). */
+  rescueOffer?: PokemonInstance
   /** Niveles ganados por Pokémon (combate + casilla). */
   levelGains: { name: string; levels: number }[]
   runEnded: boolean
@@ -239,14 +238,11 @@ export function applyBattleOutcome(
   }
   run.money += summary.moneyGained
 
-  // Team Rocket: liberas el Pokémon secuestrado (se une al equipo o a la caja).
+  // Team Rocket: el Pokémon secuestrado te ofrece unirse (tú decides en pantalla,
+  // igual que con un legendario). No se añade aquí: lo gestiona finishBattle.
   const isRocket = content.kind === 'trainer' && !!content.rescue
   if (content.kind === 'trainer' && content.rescue) {
-    const freed = structuredClone(content.rescue)
-    if (run.party.length < MAX_PARTY) run.party.push(freed)
-    else { run.box.push(freed); summary.rescuedToBox = true }
-    run.stats.pokemonCaught++
-    summary.rescuedName = getSpecies(freed.speciesId).displayName
+    summary.rescueOffer = structuredClone(content.rescue)
   }
 
   // Jefes: contador + drop + posible victoria final

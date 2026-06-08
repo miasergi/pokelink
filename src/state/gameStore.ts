@@ -57,6 +57,8 @@ interface GameState {
   cancelEvoChoice: () => void
   rescueNodeId: string | null
   legendaryOffer: import('@/types').PokemonInstance | null
+  /** Origen de la oferta de unirse: legendario vencido o Pokémon liberado de Team Rocket. */
+  offerKind: 'legendary' | 'rescue'
   addLegendary: (replaceUid?: string) => void
   skipLegendary: () => void
   useRescue: (monUid: string) => void
@@ -338,7 +340,6 @@ export const useGame = create<GameState>((set, get) => ({
     const node = run.map.nodes[pending.nodeId]
     const summary = applyBattleOutcome(run, node, pending.result)
     persist(run)
-    if (summary.rescuedName) void syncDexFromRun(run) // Pokémon liberado de Team Rocket
 
     // Evoluciones con ramas: encola las elecciones (modal global).
     if (summary.evoChoices.length) {
@@ -361,7 +362,10 @@ export const useGame = create<GameState>((set, get) => ({
       set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'gameover' }, history: [] })
     } else if (summary.legendaryOffer) {
       // Venciste a un legendario: pantalla para decidir si se une al equipo.
-      set({ run, lastSummary: summary, pendingBattle: null, battleSummary: null, legendaryOffer: summary.legendaryOffer, screen: { name: 'legendary' }, history: [] })
+      set({ run, lastSummary: summary, pendingBattle: null, battleSummary: null, legendaryOffer: summary.legendaryOffer, offerKind: 'legendary', screen: { name: 'legendary' }, history: [] })
+    } else if (summary.rescueOffer) {
+      // Team Rocket: Pokémon liberado. MISMA pantalla/lógica que un legendario.
+      set({ run, lastSummary: summary, pendingBattle: null, battleSummary: null, legendaryOffer: summary.rescueOffer, offerKind: 'rescue', screen: { name: 'legendary' }, history: [] })
     } else {
       // Victoria normal: mostramos las recompensas EN la pantalla de batalla.
       set({ run, lastSummary: summary, battleSummary: summary })
@@ -376,6 +380,7 @@ export const useGame = create<GameState>((set, get) => ({
   dexCaught: 0,
 
   legendaryOffer: null,
+  offerKind: 'legendary',
   addLegendary: (replaceUid) => {
     const cur = get().run
     const offer = get().legendaryOffer
@@ -384,7 +389,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (replaceUid) {
       const idx = run.party.findIndex((p) => p.uid === replaceUid)
       if (idx >= 0) {
-        // El Pokémon liberado devuelve su objeto equipado a la mochila.
+        // El Pokémon que liberas para hacer hueco devuelve su objeto a la mochila.
         if (run.party[idx].heldItemId) addItem(run, run.party[idx].heldItemId!, 1)
         run.party[idx] = offer
       }
@@ -394,9 +399,26 @@ export const useGame = create<GameState>((set, get) => ({
     run.stats.pokemonCaught++
     persist(run)
     void syncDexFromRun(run)
-    set({ run, legendaryOffer: null, screen: { name: 'map' }, history: [] })
+    set({ run, legendaryOffer: null, offerKind: 'legendary', screen: { name: 'map' }, history: [] })
   },
-  skipLegendary: () => set({ legendaryOffer: null, screen: { name: 'map' }, history: [] }),
+  skipLegendary: () => {
+    // Un legendario rechazado se marcha (se pierde). Un Pokémon liberado de Team
+    // Rocket NO se pierde: va a la caja (no lo dejamos abandonado tras salvarlo).
+    if (get().offerKind === 'rescue') {
+      const cur = get().run
+      const offer = get().legendaryOffer
+      if (cur && offer) {
+        const run = cloneRun(cur)
+        run.box.push(offer)
+        run.stats.pokemonCaught++
+        persist(run)
+        void syncDexFromRun(run)
+        set({ run, legendaryOffer: null, offerKind: 'legendary', screen: { name: 'map' }, history: [] })
+        return
+      }
+    }
+    set({ legendaryOffer: null, offerKind: 'legendary', screen: { name: 'map' }, history: [] })
+  },
 
   doHeal: (nodeId) => {
     const cur = get().run
