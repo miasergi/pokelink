@@ -23,6 +23,15 @@ interface MetaRecord {
   regionsWon: string[]
   /** Pokémon mascota/compañero (speciesId) que se ve en Inicio. */
   pet: number | null
+  /** Liga Pokémon: campeonatos ganados y mejor fase alcanzada. */
+  leagueChampionships?: number
+  leagueBestStage?: string
+}
+
+const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
+const bestStage = (a?: string, b?: string) => {
+  const ai = a ? LEAGUE_STAGES.indexOf(a) : -1, bi = b ? LEAGUE_STAGES.indexOf(b) : -1
+  return ai >= bi ? a : b
 }
 
 export interface BestRun {
@@ -176,6 +185,8 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     achievements: [...new Set([...(a.achievements ?? []), ...(b.achievements ?? [])])],
     regionsWon: [...new Set([...(a.regionsWon ?? []), ...(b.regionsWon ?? [])])],
     pet: a.pet ?? b.pet ?? null,
+    leagueChampionships: Math.max(a.leagueChampionships ?? 0, b.leagueChampionships ?? 0),
+    leagueBestStage: bestStage(a.leagueBestStage, b.leagueBestStage),
   }
 }
 

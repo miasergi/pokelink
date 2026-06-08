@@ -191,3 +191,51 @@ export function leagueChampion(state: LeagueState): number | null {
   const last = state.knockout[state.knockout.length - 1]
   return last?.matches[0]?.winner ?? null
 }
+
+const STAGE_ORDER = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
+export function stageRank(stage: string): number {
+  return STAGE_ORDER.indexOf(stage)
+}
+
+/** ¿El jugador ha perdido algún combate del torneo? */
+export function playerLostAny(state: LeagueState): boolean {
+  const pid = state.playerIdx
+  for (const g of state.groups) for (const m of g.matches) {
+    if (!m.played) continue
+    if (m.a === pid && m.winner === 'b') return true
+    if (m.b === pid && m.winner === 'a') return true
+  }
+  for (const r of state.knockout) for (const m of r.matches) {
+    if (!m.played || m.winner == null) continue
+    if ((m.a === pid || m.b === pid) && m.winner !== pid) return true
+  }
+  return false
+}
+
+/** Mejor fase alcanzada por el jugador (para récords). */
+export function playerBestStage(state: LeagueState): string {
+  const pid = state.playerIdx
+  if (state.phase === 'champion' && leagueChampion(state) === pid) return 'Campeón'
+  let bestIdx = -1
+  for (const r of state.knockout) {
+    if (r.matches.some((m) => m.a === pid || m.b === pid)) bestIdx = Math.max(bestIdx, STAGE_ORDER.indexOf(r.name))
+  }
+  return bestIdx >= 0 ? STAGE_ORDER[bestIdx] : 'Fase de grupos'
+}
+
+/** Logros de Liga conseguidos según el estado actual del torneo. */
+export function leagueAchievements(state: LeagueState): string[] {
+  const pid = state.playerIdx
+  const out: string[] = []
+  if (state.knockout[0]?.matches.some((m) => m.a === pid || m.b === pid)) out.push('league_groups')
+  for (const r of state.knockout) {
+    if (!r.matches.some((m) => m.a === pid || m.b === pid)) continue
+    if (r.name === 'Semifinal') out.push('league_semis')
+    if (r.name === 'Final') out.push('league_finalist')
+  }
+  if (state.phase === 'champion' && leagueChampion(state) === pid) {
+    out.push('league_champion')
+    if (!playerLostAny(state)) out.push('league_flawless')
+  }
+  return out
+}

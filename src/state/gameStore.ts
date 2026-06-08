@@ -21,6 +21,7 @@ import { runBattle } from '@/engine/battle/battleEngine'
 import {
   createLeague, playerGroupMatch, recordGroupResult, advanceMatchday,
   playerKnockoutMatch, recordKnockoutResult, advanceKnockoutRound,
+  leagueAchievements, playerBestStage, stageRank,
 } from '@/engine/league/league'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
@@ -159,6 +160,19 @@ function autoFinishLeague(league: LeagueState): void {
   }
 }
 
+/** Otorga logros de Liga y actualiza récords (campeonatos, mejor fase). */
+async function awardLeague(league: LeagueState): Promise<void> {
+  const meta = await loadMeta()
+  const ach = leagueAchievements(league).filter((id) => !meta.achievements.includes(id))
+  const stage = playerBestStage(league)
+  let changed = false
+  if (!meta.leagueBestStage || stageRank(stage) > stageRank(meta.leagueBestStage)) { meta.leagueBestStage = stage; changed = true }
+  if (ach.includes('league_champion')) { meta.leagueChampionships = (meta.leagueChampionships ?? 0) + 1; changed = true }
+  if (ach.length) { meta.achievements = [...new Set([...meta.achievements, ...ach])]; changed = true }
+  if (changed) { await saveMeta(meta); if (currentUser()) await saveCloudMeta(meta) }
+  if (ach.length) useGame.setState((s) => ({ newAchievements: [...s.newAchievements, ...ach] }))
+}
+
 export const useGame = create<GameState>((set, get) => ({
   screen: { name: 'home' },
   history: [],
@@ -221,7 +235,7 @@ export const useGame = create<GameState>((set, get) => ({
     recomputeTotals(merged) // corrige contadores inflados por el antiguo bug
     await saveMeta(merged)
     await saveCloudMeta(merged)
-    set({ cloudBusy: false, alias: merged.alias || get().alias, dexCaught: merged.pokedexCaught.length, pet: merged.pet ?? get().pet })
+    set({ cloudBusy: false, alias: merged.alias || get().alias, dexCaught: merged.pokedexCaught.length, pet: merged.pet ?? get().pet, totalWins: merged.totals.wins })
   },
 
   navigate: (name, params) =>
@@ -389,6 +403,7 @@ export const useGame = create<GameState>((set, get) => ({
     }
     autoFinishLeague(league)
     void saveLeague(league)
+    void awardLeague(league)
     set({ league, leagueBattle: null, pendingBattle: null, battleSummary: null, screen: { name: 'league' }, history: [] })
   },
   equipLeagueItem: (uid, itemId) => {

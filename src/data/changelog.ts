@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.15',
+    date: '2026-06-08',
+    title: 'Más logros + récords de la Liga',
+    changes: [
+      'Arreglado: la Liga Pokémon ya se desbloquea al iniciar sesión en una cuenta que tenga victorias.',
+      'Muchos logros nuevos y más variados: velocidad, modos (Random, Monolocke, multi-región), composición de equipo (legendario, shiny, equipo completo), colección y más.',
+      'Nuevos logros de la Liga Pokémon (clasificarte, semifinales, final, campeón, ganarla sin perder).',
+      'Récords de la Liga: campeonatos ganados y mejor fase alcanzada (en la pantalla de Récords).',
+    ],
+  },
+  {
     version: 'v6.14',
     date: '2026-06-08',
     title: 'Liga Pokémon: ajustes',

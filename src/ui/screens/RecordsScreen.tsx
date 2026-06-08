@@ -53,11 +53,19 @@ export default function RecordsScreen() {
             </Card>
 
             <Card className="p-4">
+              <div className="flex items-center gap-1.5 mb-2 font-bold"><Icon name="liga" className="w-5 h-5" /> Liga Pokémon</div>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <Stat label="Campeonatos" value={meta.leagueChampionships ?? 0} />
+                <Stat label="Mejor fase" value={meta.leagueBestStage ?? '—'} />
+              </div>
+            </Card>
+
+            <Card className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold">Pokédex</span>
-                <span className="text-sm text-slate-400">
+                <span className="text-sm text-slate-400 inline-flex items-center">
                   {meta.pokedexCaught.length} / {DEX_TOTAL} ({Math.round((meta.pokedexCaught.length / DEX_TOTAL) * 100)}%)
-                  {meta.pokedexShiny.length > 0 && <span className="text-amber-300 ml-2">✨ {meta.pokedexShiny.length}</span>}
+                  {meta.pokedexShiny.length > 0 && <span className="text-amber-300 ml-2 inline-flex items-center gap-0.5"><Icon name="sparkle" className="w-3.5 h-3.5" /> {meta.pokedexShiny.length}</span>}
                 </span>
               </div>
               <div className="h-2.5 rounded-full bg-slate-700 overflow-hidden">
@@ -118,7 +126,7 @@ export default function RecordsScreen() {
   )
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex flex-col">
       <span className="text-2xl font-extrabold tabular-nums">{value}</span>
