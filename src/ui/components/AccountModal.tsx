@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { cloudEnabled } from '@/persistence/supabase'
 
 /** Modal de cuenta en la nube: login / registro / alias / sincronizar. */
@@ -16,8 +17,8 @@ export default function AccountModal({ onClose }: { onClose: () => void }) {
     <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <div className="font-extrabold text-lg">☁️ Cuenta</div>
-          <button className="text-slate-400 text-2xl leading-none px-1 active:scale-90" onClick={onClose}>✕</button>
+          <div className="font-extrabold text-lg inline-flex items-center gap-1.5"><Icon name="cloud" className="w-5 h-5" /> Cuenta</div>
+          <button className="text-slate-400 px-1 active:scale-90" onClick={onClose} aria-label="Cerrar"><Icon name="x" className="w-5 h-5" /></button>
         </div>
 
         {!enabled ? (
@@ -40,7 +41,7 @@ export default function AccountModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" disabled={cloudBusy} onClick={() => void cloudSync()}>{cloudBusy ? 'Sincronizando…' : '🔄 Sincronizar'}</Button>
+              <Button variant="secondary" className="flex-1" disabled={cloudBusy} onClick={() => void cloudSync()}>{cloudBusy ? 'Sincronizando…' : <span className="inline-flex items-center justify-center gap-1.5"><Icon name="refresh" className="w-4 h-4" /> Sincronizar</span>}</Button>
               <Button variant="danger" className="flex-1" onClick={cloudLogout}>Cerrar sesión</Button>
             </div>
             {cloudMsg && <div className="text-xs text-emerald-300">{cloudMsg}</div>}

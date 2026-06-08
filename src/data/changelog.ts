@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.11',
+    date: '2026-06-08',
+    title: 'Más iconos: Jugar y Cuenta',
+    changes: [
+      'El botón de Jugar vuelve a usar un icono de «play».',
+      'La pantalla/botón de Cuenta usa iconos propios (nube, sincronizar, cerrar) en vez de emojis.',
+    ],
+  },
+  {
     version: 'v6.10',
     date: '2026-06-08',
     title: 'Icono de Ajustes',

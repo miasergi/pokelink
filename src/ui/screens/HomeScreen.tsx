@@ -52,7 +52,7 @@ export default function HomeScreen() {
         className={`absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-bold active:scale-95 transition max-w-[80%] ${cloudUser ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-slate-800/80 text-slate-300'}`}
         aria-label="Cuenta en la nube"
       >
-        ☁️ <span className="truncate">{cloudUser ? cloudUser.email : 'Iniciar sesión'}</span>
+        <Icon name="cloud" className="w-4 h-4 shrink-0" /> <span className="truncate">{cloudUser ? cloudUser.email : 'Iniciar sesión'}</span>
       </button>
 
       <div className="flex-1 flex flex-col items-center justify-center gap-2 mt-10">
@@ -71,7 +71,7 @@ export default function HomeScreen() {
           </Button>
         )}
         <Button variant="primary" full onClick={() => navigate('genSelect')}>
-          <span className="inline-flex items-center justify-center gap-1.5">{!hasSavedRun && <Icon name="sword" className="w-4 h-4" />}{hasSavedRun ? 'Nueva partida' : 'Jugar'}</span>
+          <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" />{hasSavedRun ? 'Nueva partida' : 'Jugar'}</span>
         </Button>
         <Button variant="secondary" full onClick={() => setDailyOpen(true)}>
           <span className="inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4" /> Reto diario</span>

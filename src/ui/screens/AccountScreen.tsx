@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, TopBar } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { cloudEnabled } from '@/persistence/supabase'
 
 export default function AccountScreen() {
@@ -41,7 +42,7 @@ export default function AccountScreen() {
             <p className="text-xs text-slate-400">Tu historial (récords, Pokédex, Glory Runs) se guarda en la nube y se sincroniza al terminar cada partida.</p>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" disabled={cloudBusy} onClick={() => void cloudSync()}>
-                {cloudBusy ? 'Sincronizando…' : '🔄 Sincronizar ahora'}
+                {cloudBusy ? 'Sincronizando…' : <span className="inline-flex items-center justify-center gap-1.5"><Icon name="refresh" className="w-4 h-4" /> Sincronizar ahora</span>}
               </Button>
               <Button variant="danger" className="flex-1" onClick={cloudLogout}>Cerrar sesión</Button>
             </div>
