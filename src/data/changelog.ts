@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.20',
+    date: '2026-06-08',
+    title: 'Tu sprite de entrenador',
+    changes: [
+      'Tu personaje aparece ahora en los combates (sobre tu cuadro de info, simétrico al entrenador rival) y como tu retrato en la Liga Pokémon.',
+    ],
+  },
+  {
     version: 'v6.19',
     date: '2026-06-08',
     title: 'Nuevos iconos: Récords y Reto diario',

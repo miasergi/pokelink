@@ -17,6 +17,7 @@ import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import { play, type Sfx } from '@/utils/sfx'
 import { type Weather, WEATHER_ICON, WEATHER_ES } from '@/engine/battle/abilities'
+import { PLAYER_SPRITE } from '@/ui/playerSprite'
 
 interface AtkView { type: PokemonType; power: number }
 interface SideView {
@@ -280,6 +281,21 @@ export default function BattleScreen() {
                 </div>
               </div>
               <div className="flex flex-col gap-1 items-end">
+                {/* Entrenador (tú) ENCIMA de tu cuadro de info, simétrico al rival. */}
+                <div className="flex items-center gap-2 mb-0.5 pr-0.5 flex-row-reverse">
+                  <img
+                    src={PLAYER_SPRITE}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    className="w-12 h-12 object-contain drop-shadow-lg shrink-0"
+                  />
+                  <div className="leading-tight min-w-0 text-right">
+                    <div className="text-[9px] uppercase tracking-wide text-slate-400">Entrenador</div>
+                    <div className="text-xs font-extrabold text-slate-100 truncate">Tú</div>
+                  </div>
+                </div>
                 <Tray team={teams.player} fainted={[...frame.fainted.player, ...preFainted.player]} activeUid={frame.player.uid} align="right" />
                 <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
               </div>

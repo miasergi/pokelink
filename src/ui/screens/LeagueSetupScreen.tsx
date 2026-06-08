@@ -6,7 +6,7 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import Icon from '@/ui/components/Icon'
 import { formatDuration } from '@/ui/components/RunTimer'
-import { pokemonSprite } from '@/ui/components/nodeImage'
+import { PLAYER_SPRITE } from '@/ui/playerSprite'
 
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
 
@@ -53,7 +53,7 @@ export default function LeagueSetupScreen() {
           {shown.map((r, i) => (
             <button
               key={i}
-              onClick={() => startLeague(r.team!.map((m) => structuredClone(m)), alias || 'Tú', pokemonSprite(r.team![0].speciesId))}
+              onClick={() => startLeague(r.team!.map((m) => structuredClone(m)), alias || 'Tú', PLAYER_SPRITE)}
               className="rounded-2xl border border-slate-700 bg-slate-800/60 p-3 text-left active:scale-[0.98] transition"
             >
               <div className="flex items-center justify-between mb-1.5">
