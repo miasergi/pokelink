@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.7',
+    date: '2026-06-08',
+    title: 'Icono del Movimiento Z',
+    changes: [
+      'El Movimiento Z ahora usa el icono del Anillo Z (en la mochila/tienda y como indicador del ataque) en lugar de la «Z» blanca.',
+    ],
+  },
+  {
     version: 'v6.6',
     date: '2026-06-08',
     title: 'Reto diario: ya completado',

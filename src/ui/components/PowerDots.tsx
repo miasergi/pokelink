@@ -2,19 +2,22 @@ import type { PokemonType } from '@/types'
 import { TYPE_HEX } from '@/ui/theme/types'
 import { isZMove } from '@/data/typeAttacks'
 
+// Icono propio (local) del Movimiento Z.
+const ZMOVE_ICON = import.meta.env.BASE_URL + 'items/z-move.png'
+
 /** Indicador de nivel de potencia del ataque (40/80/120) con 3 bolitas: las del
  *  color del tipo = nivel; el resto, blancas. Si es Movimiento Z (160), muestra
- *  el logo «Z» en blanco en vez de las bolitas. */
+ *  el icono del Movimiento Z en vez de las bolitas. */
 export default function PowerDots({ type, power, size = 7 }: { type: PokemonType; power: number; size?: number }) {
   if (isZMove(power)) {
     return (
-      <span
-        className="inline-grid place-items-center align-middle rounded-full shrink-0"
+      <img
+        src={ZMOVE_ICON}
+        alt="Movimiento Z"
         title={`Movimiento Z (potencia ${power})`}
-        style={{ width: size * 2.6, height: size * 2.6, boxShadow: 'inset 0 0 0 1.5px #fff, 0 0 5px rgba(255,255,255,0.55)' }}
-      >
-        <span className="font-black italic text-white leading-none" style={{ fontSize: size * 1.7 }}>Z</span>
-      </span>
+        className="inline-block align-middle object-contain shrink-0 drop-shadow"
+        style={{ width: size * 3, height: size * 3 }}
+      />
     )
   }
   const tier = power >= 120 ? 3 : power >= 80 ? 2 : 1
