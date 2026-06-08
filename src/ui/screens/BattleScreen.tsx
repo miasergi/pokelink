@@ -214,6 +214,17 @@ export default function BattleScreen() {
                 {trainer?.name && <span className="text-[10px] text-slate-400 pl-1">vs {trainer.name}</span>}
               </div>
               <div className="relative mr-10 sm:mr-20">
+                {/* Retrato del entrenador detrás del Pokémon: sensación de duelo. */}
+                {trainer?.sprite && (
+                  <img
+                    src={trainer.sprite}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    className="absolute -top-9 -right-4 w-24 h-24 object-contain opacity-30 pointer-events-none select-none drop-shadow-xl"
+                  />
+                )}
                 <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
                 <Platform />
                 <div className={lungeEnemy}>

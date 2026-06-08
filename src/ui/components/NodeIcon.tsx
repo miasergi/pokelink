@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { MapNode, NodeType } from '@/engine/run/types'
-import { nodeImage, aceSprite } from './nodeImage'
+import { nodeImage, aceSprite, POKEBALL } from './nodeImage'
 import { IconCheck, NodeTypeIcon } from './icons'
 
 export const NODE_META: Record<NodeType, { label: string; color: string }> = {
@@ -35,7 +35,9 @@ export default function NodeIcon({
   const img = nodeImage(node)
   const fallbackUrl = isTrainer ? aceSprite(node) : null
   const src = stage === 0 ? img.url : fallbackUrl
-  const imgSize = Math.round(size * (isBoss ? 1.12 : 0.94))
+  // La Poké Ball se ve un poco más pequeña dentro del nodo (más margen).
+  const isPokeball = img.url === POKEBALL
+  const imgSize = Math.round(size * (isBoss ? 1.12 : isPokeball ? 0.68 : 0.94))
 
   return (
     <div

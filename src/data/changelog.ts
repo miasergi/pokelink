@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.9',
+    date: '2026-06-08',
+    title: 'Duelos con entrenador y retoques visuales',
+    changes: [
+      'En los combates contra entrenadores, jefes y Alto Mando ahora se ve al entrenador detrás de su Pokémon.',
+      'Los Pokémon de doble tipo recortan el nombre con «…» en una línea en vez de descuadrar la tarjeta del equipo.',
+      'Las Poké Ball de los nodos del mapa se ven un poco más pequeñas.',
+      'Nueva imagen para las casillas de Intercambio (más clara).',
+    ],
+  },
+  {
     version: 'v5.8',
     date: '2026-06-08',
     title: 'Modo Sorpresa, reintentar mapa y arreglos',
