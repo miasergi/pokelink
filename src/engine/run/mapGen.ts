@@ -86,18 +86,22 @@ const ROCKET_TEAMS: Record<number, number[]> = {
   9: [52, 24, 110], // Meowth, Arbok, Weezing (Paldea, sin anime propio)
 }
 
-function buildRocketContent(level: number, rng: RNG, gen: number): MapNode['content'] {
+function buildRocketContent(level: number, rng: RNG, gen: number, pool: SpeciesData[], difficulty: string): MapNode['content'] {
   const roster = ROCKET_TEAMS[gen] ?? ROCKET_TEAMS[1]
   const size = level < 15 ? 2 : 3
   const team = roster.slice(0, size).map((id, i) => createInstance(id, Math.max(5, level + 1 - i * 2), rng))
+  // Pokémon "secuestrado": uno aleatorio acorde al nivel. Forma parte del equipo
+  // (lo combates) y, si ganas, lo liberas. Guardamos una copia prístina (PS llenos).
+  const rescue = makeWild(pool, level, rng, difficulty)
+  team.push(structuredClone(rescue))
   const trainer: TrainerData = {
     id: `rocket-${level}-${rng.int(0, 9999)}`,
     name: 'Team Rocket', trainerClass: 'trainer',
-    sprite: ROCKET_SPRITE, reward: { money: 400 + level * 35 },
+    sprite: ROCKET_SPRITE, reward: { money: 500 + level * 45 },
     quote: 'Prepárate para los problemas... ¡y más vale que teman!',
     team: [],
   }
-  return { kind: 'trainer', trainer, team }
+  return { kind: 'trainer', trainer, team, rescue }
 }
 
 interface LayerPlan {
@@ -390,7 +394,7 @@ function buildRouteContent(
  *  De vez en cuando aparece Team Rocket con su equipo del anime de la región. */
 function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG, difficulty: string = 'normal', gen: number = 1): MapNode['content'] {
   // ~9% (a partir de nivel medio): Team Rocket.
-  if (level >= 8 && rng.chance(0.09)) return buildRocketContent(level, rng, gen)
+  if (level >= 8 && rng.chance(0.09)) return buildRocketContent(level, rng, gen, pool, difficulty)
 
   // Solo clases cuyo tipo EXISTE en el pool (p. ej. nada de Siniestro en Kanto),
   // para que el equipo del entrenador siempre case con su tipo. Los "Guay" valen.

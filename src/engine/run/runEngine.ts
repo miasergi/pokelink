@@ -144,6 +144,10 @@ export interface BattleOutcomeSummary {
   legendaryOffer?: PokemonInstance
   /** Nombre del jefe derrotado (para celebrar / meme). */
   bossDefeated?: string
+  /** Team Rocket: nombre del Pokémon secuestrado que has liberado (se une). */
+  rescuedName?: string
+  /** Si el Pokémon liberado fue a la caja (equipo lleno). */
+  rescuedToBox?: boolean
   /** Niveles ganados por Pokémon (combate + casilla). */
   levelGains: { name: string; levels: number }[]
   runEnded: boolean
@@ -235,6 +239,16 @@ export function applyBattleOutcome(
   }
   run.money += summary.moneyGained
 
+  // Team Rocket: liberas el Pokémon secuestrado (se une al equipo o a la caja).
+  const isRocket = content.kind === 'trainer' && !!content.rescue
+  if (content.kind === 'trainer' && content.rescue) {
+    const freed = structuredClone(content.rescue)
+    if (run.party.length < MAX_PARTY) run.party.push(freed)
+    else { run.box.push(freed); summary.rescuedToBox = true }
+    run.stats.pokemonCaught++
+    summary.rescuedName = getSpecies(freed.speciesId).displayName
+  }
+
   // Jefes: contador + drop + posible victoria final
   if (node.type === 'gym') run.stats.gymsDefeated++
   if (node.type === 'elite') run.stats.eliteDefeated++
@@ -259,8 +273,10 @@ export function applyBattleOutcome(
   // y guardián +2; Alto Mando y Campeón +3. Solo a los que participaron.
   // Nuzlocke: tope de nivel = nivel del próximo jefe (no puedes pasarte).
   const cap = levelCap(run)
+  // Team Rocket solo da +1 (ya te llevas el Pokémon liberado: no chetar la casilla).
   const levelGain = node.type === 'battle' ? 1
-    : (node.type === 'elite' || node.type === 'champion') ? 3 : 2
+    : (node.type === 'elite' || node.type === 'champion') ? 3
+    : isRocket ? 1 : 2
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
 import { EVENTS } from './nodes'
+import { createInstance } from '@/engine/team/instance'
+import { RNG } from '@/utils/rng'
 import { runElapsedMs, commitElapsed } from './playtime'
 import { checkAchievements } from './achievements'
 import type { MetaRecord } from '@/persistence/db'
@@ -101,6 +103,29 @@ describe('Eventos: objetos prometidos se entregan', () => {
         expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
       })
     }
+  })
+})
+
+describe('Team Rocket: Pokémon secuestrado', () => {
+  it('al ganar liberas el Pokémon secuestrado y solo subes +1 nivel', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 5 })
+    const startLvl = run.party[0].level
+    const partyN = run.party.length
+    const rescue = createInstance(25, 6, new RNG(1)) // Pikachu secuestrado
+    const node = run.map.nodes[Object.keys(run.map.nodes)[0]]
+    node.type = 'trainer'
+    node.content = {
+      kind: 'trainer',
+      trainer: { id: 'r', name: 'Team Rocket', trainerClass: 'trainer', sprite: '', reward: { money: 100 }, team: [] },
+      team: [], rescue,
+    }
+    node.cleared = false
+    const summary = applyBattleOutcome(run, node, { events: [], winner: 'player', playerTeam: run.party, expByUid: {}, levelUps: {} })
+    expect(summary.rescuedName).toBeTruthy()
+    expect(run.party.length).toBe(partyN + 1)
+    expect(run.party.some((p) => p.speciesId === 25)).toBe(true)
+    // Casilla de Team Rocket: solo +1 nivel (un entrenador normal daría +2).
+    expect(run.party[0].level).toBe(startLvl + 1)
   })
 })
 

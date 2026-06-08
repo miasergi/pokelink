@@ -338,6 +338,7 @@ export const useGame = create<GameState>((set, get) => ({
     const node = run.map.nodes[pending.nodeId]
     const summary = applyBattleOutcome(run, node, pending.result)
     persist(run)
+    if (summary.rescuedName) void syncDexFromRun(run) // Pokémon liberado de Team Rocket
 
     // Evoluciones con ramas: encola las elecciones (modal global).
     if (summary.evoChoices.length) {

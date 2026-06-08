@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.2',
+    date: '2026-06-08',
+    title: 'Team Rocket secuestra Pokémon',
+    changes: [
+      'Team Rocket lleva un Pokémon «secuestrado» (uno aleatorio). Si les ganas, lo LIBERAS y se une a tu equipo, además de dinero extra.',
+      'Para no desequilibrar, su casilla solo sube +1 nivel a tu equipo (en vez de +2).',
+      'El entrenador rival se muestra encima del cuadro de info de su Pokémon (sin mover al Pokémon).',
+    ],
+  },
+  {
     version: 'v6.0',
     date: '2026-06-08',
     title: 'Entrenadores coherentes y Team Rocket',

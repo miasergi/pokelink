@@ -39,6 +39,9 @@ export interface TrainerContent {
   kind: 'trainer'
   trainer: TrainerData
   team: PokemonInstance[]
+  /** Team Rocket: Pokémon "secuestrado" (forma parte del equipo). Si ganas, lo
+   *  liberas y se une a tu equipo. Copia prístina (PS llenos) para entregarla. */
+  rescue?: PokemonInstance
 }
 export interface CatchContent {
   kind: 'catch'

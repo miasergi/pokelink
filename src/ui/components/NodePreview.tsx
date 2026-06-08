@@ -47,6 +47,7 @@ export default function NodePreview({
   const isTrainer = content.kind === 'trainer'
   const trainer = content.kind === 'trainer' ? content.trainer : null
   const team = content.kind === 'trainer' ? content.team : []
+  const rescue = content.kind === 'trainer' ? content.rescue : undefined // Team Rocket
   const isBoss = ['gym', 'elite', 'champion', 'rival'].includes(node.type)
   const img = nodeImage(node)
 
@@ -162,6 +163,20 @@ export default function NodePreview({
             ) : (
               <div className="flex flex-wrap gap-1">{teamTypes.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
             )}
+          </div>
+        )}
+
+        {/* Team Rocket: Pokémon secuestrado que liberas si ganas */}
+        {rescue && (
+          <div className="mt-3 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 p-2.5">
+            <div className="text-xs font-bold text-fuchsia-200 mb-1.5">🔒 Pokémon secuestrado</div>
+            <div className="flex items-center gap-2">
+              <Sprite speciesId={rescue.speciesId} shiny={rescue.shiny} variant="front" className="w-12 h-12 object-contain" />
+              <div className="min-w-0">
+                <div className="text-sm font-bold truncate">{getSpecies(rescue.speciesId).displayName} <span className="text-[10px] text-slate-400">Nv.{rescue.level}</span></div>
+                <div className="text-[11px] text-fuchsia-200/90">¡Si ganas, lo liberas y se une a tu equipo!</div>
+              </div>
+            </div>
           </div>
         )}
 
