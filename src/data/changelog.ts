@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.4',
+    date: '2026-06-08',
+    title: 'Movimiento Z y Alto Mando más temible',
+    changes: [
+      'Nuevo objeto «Movimiento Z» (10 000 ₽, en la tienda desde la 7ª medalla): otorga el 4º y máximo nivel de ataque, potencia 160. Cada tipo tiene su Movimiento Z.',
+      'Los ataques Z muestran el logo «Z» en blanco en lugar de las bolitas de potencia.',
+      'Difícil y Nuzlocke: los jefes desde la 6ª medalla, el Alto Mando y el Campeón llevan su mejor Pokémon con Movimiento Z.',
+      'Difícil y Nuzlocke: cada miembro del Alto Mando tiene SIEMPRE una megaevolución.',
+    ],
+  },
+  {
     version: 'v6.3',
     date: '2026-06-08',
     title: 'Liberar al Pokémon de Team Rocket: tú decides',

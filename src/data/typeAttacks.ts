@@ -28,21 +28,38 @@ export const TYPE_ATTACKS: Record<PokemonType, [TypeAttackTier, TypeAttackTier, 
 
 const BASE_ID = 900000
 
-/** ID sintético del ataque de un tipo en un nivel de potencia (0/1/2). */
-export function typeAttackId(type: PokemonType, tier: number): number {
-  return BASE_ID + TYPES.indexOf(type) * 10 + Math.max(0, Math.min(2, tier))
+/** Nivel 4 (Movimiento Z): el máximo, potencia 160. Solo con el objeto Movimiento Z.
+ *  Nivel 100 = nunca se aprende por subir de nivel. */
+export const Z_MOVE = { name: 'Movimiento Z', power: 160, level: 100 } as const
+
+/** Datos del ataque de un tipo en un nivel de potencia (0/1/2/3). El 3 es el Z. */
+export function typeAttackTier(type: PokemonType, tier: number): TypeAttackTier {
+  if (tier >= 3) return { name: Z_MOVE.name, power: Z_MOVE.power, level: Z_MOVE.level }
+  return TYPE_ATTACKS[type][Math.max(0, Math.min(2, tier))]
 }
 
-/** Nivel de potencia (0=40, 1=80, 2=120) según el nivel del Pokémon. */
+/** ID sintético del ataque de un tipo en un nivel de potencia (0/1/2/3). */
+export function typeAttackId(type: PokemonType, tier: number): number {
+  return BASE_ID + TYPES.indexOf(type) * 10 + Math.max(0, Math.min(3, tier))
+}
+
+/** ¿Este movimiento (por su potencia) es un Movimiento Z (nivel 4)? */
+export function isZMove(power: number): boolean {
+  return power >= Z_MOVE.power
+}
+
+/** Nivel de potencia (0=40, 1=80, 2=120) según el nivel del Pokémon. El Z (3) NO
+ *  se obtiene por nivel: solo con el objeto Movimiento Z. */
 export function tierForLevel(level: number): number {
   return level >= 45 ? 2 : level >= 20 ? 1 : 0
 }
 
-/** Construye los MoveData sintéticos para registrarlos en el catálogo. */
+/** Construye los MoveData sintéticos para registrarlos en el catálogo (4 niveles). */
 export function buildTypeMoves(): MoveData[] {
   const out: MoveData[] = []
   TYPES.forEach((type) => {
-    TYPE_ATTACKS[type].forEach((tier, idx) => {
+    for (let idx = 0; idx < 4; idx++) {
+      const tier = typeAttackTier(type, idx)
       out.push({
         id: typeAttackId(type, idx),
         name: `${type}-atk-${idx}`,
@@ -51,10 +68,10 @@ export function buildTypeMoves(): MoveData[] {
         category: 'physical',
         power: tier.power,
         accuracy: 100,
-        pp: 24,
+        pp: idx === 3 ? 12 : 24,
         priority: 0,
       })
-    })
+    }
   })
   return out
 }

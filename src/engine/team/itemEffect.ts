@@ -19,6 +19,7 @@ export function itemHasEffect(itemId: string, mon: PokemonInstance, cap = 100): 
       return mon.currentHp <= 0
     case 'battle':
       if (itemId === 'upgrade') return effectiveTier(mon) < 2
+      if (itemId === 'z-move') return effectiveTier(mon) < 3
       if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level < cap
       if (itemId === 'metamorph') return hasRegionalForm(mon.speciesId)
       return true
@@ -82,6 +83,7 @@ export function noEffectReason(itemId: string, mon: PokemonInstance, cap = 100):
   if (item.category === 'heal') return mon.currentHp <= 0 ? 'Está debilitado (usa Revivir)' : 'Ya tiene los PS al máximo'
   if (item.category === 'revive') return 'No está debilitado'
   if (itemId === 'upgrade') return 'Ya tiene la potencia máxima (120)'
+  if (itemId === 'z-move') return 'Ya tiene el Movimiento Z (160)'
   if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level >= cap ? 'Ya está en el tope de nivel' : ''
   if (itemId === 'metamorph') return 'No tiene forma regional'
   if (itemId === 'mega-stone') return 'No puede megaevolucionar'

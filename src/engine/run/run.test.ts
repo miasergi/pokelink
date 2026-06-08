@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
 import { EVENTS } from './nodes'
 import { createInstance } from '@/engine/team/instance'
+import { refreshMoves } from '@/engine/team/leveling'
 import { RNG } from '@/utils/rng'
 import { runElapsedMs, commitElapsed } from './playtime'
 import { checkAchievements } from './achievements'
 import type { MetaRecord } from '@/persistence/db'
-import { getSpecies } from '@/data'
+import { getSpecies, getMove, getMegaForms } from '@/data'
 
 describe('todas las generaciones', () => {
   it('cada generación (1-9) crea una run válida (IDs y rosters correctos)', () => {
@@ -102,6 +103,37 @@ describe('Eventos: objetos prometidos se entregan', () => {
         resolveEvent(run, asEventNode(run, def.id), i)
         expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
       })
+    }
+  })
+})
+
+describe('Movimiento Z (nivel 4, potencia 160)', () => {
+  it('moveTier 3 otorga un ataque de potencia 160', () => {
+    const mon = createInstance(6, 50, new RNG(1)) // Charizard
+    mon.moveTier = 3
+    refreshMoves(mon)
+    expect(mon.moves.some((mv) => getMove(mv.moveId).power === 160)).toBe(true)
+  })
+
+  it('Difícil: cada miembro del Alto Mando tiene mega y su ace lleva Movimiento Z', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'hard', gen: 1, starterId: 1, seed: 3 })
+    const elites = Object.values(run.map.nodes).filter((n) => n.type === 'elite')
+    expect(elites.length).toBe(4)
+    for (const n of elites) {
+      if (n.content.kind !== 'trainer') continue
+      const hasMega = n.content.team.some((m) => m.heldItemId === 'mega-stone' && getMegaForms(m.speciesId).length > 0)
+      expect(hasMega).toBe(true)
+      const ace = n.content.team[n.content.team.length - 1]
+      expect(ace.moves.some((mv) => getMove(mv.moveId).power >= 160)).toBe(true)
+    }
+  })
+
+  it('Normal: el Alto Mando NO tiene Movimiento Z forzado', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 3 })
+    const elite = Object.values(run.map.nodes).find((n) => n.type === 'elite')!
+    if (elite.content.kind === 'trainer') {
+      const ace = elite.content.team[elite.content.team.length - 1]
+      expect(ace.moves.every((mv) => getMove(mv.moveId).power <= 120)).toBe(true)
     }
   })
 })

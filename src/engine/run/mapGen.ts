@@ -1,7 +1,8 @@
 import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
-import { encounterPoolFor, legendaryPoolFor } from '@/data'
+import { encounterPoolFor, legendaryPoolFor, getMegaForms, getSpecies, ALL_MEGAS } from '@/data'
 import { createInstance } from '@/engine/team/instance'
+import { refreshMoves } from '@/engine/team/leveling'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
 import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
@@ -14,6 +15,8 @@ import type { MapNode, NodeType, RandomFlags, RunMap } from './types'
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
 // Niveles extra de un nodo ARRIESGADO (suma fija, no multiplicador).
 const RISKY_LEVEL_BONUS = 4
+// Especies base que tienen megaevolución (para garantizar mega en el Alto Mando).
+const MEGA_BASES: number[] = [...new Set(ALL_MEGAS.map((m) => m.baseId).filter((b): b is number => b != null))]
 // Cada clase de entrenador tiene una temática de tipo y SOLO lleva Pokémon de
 // ese tipo (coherencia). Excepción: "Entrenador/a Guay" (mixed) lleva de todo.
 // Cubre los 18 tipos con al menos una clase estricta.
@@ -262,6 +265,27 @@ export function generateMap(
           heldItemId: spec.heldItemId ?? null,
         }),
       )
+      // --- Difícil / Nuzlocke: jefes más duros ---
+      const tough = difficulty === 'hard' || difficulty === 'nuzlocke'
+      const aceMon = team[team.length - 1] // el de mayor nivel
+      // Movimiento Z al mejor Pokémon: gimnasios desde la 6ª medalla + Alto Mando + Campeón.
+      const lateBoss = (p.type === 'gym' && (p.bossIndex ?? 0) >= 5) || p.type === 'elite' || p.type === 'champion'
+      if (tough && lateBoss && aceMon) { aceMon.moveTier = 3; refreshMoves(aceMon) }
+      // Alto Mando: garantiza SIEMPRE una megaevolución (Megapiedra a un mega-capaz).
+      if (tough && p.type === 'elite' && aceMon) {
+        const mi = team.findIndex((m) => getMegaForms(m.speciesId).length > 0)
+        if (mi >= 0) team[mi].heldItemId = 'mega-stone'
+        else {
+          // Nadie del equipo tiene mega: convierte al ace en una especie con mega
+          // (del mismo tipo si es posible) y le da la Megapiedra.
+          const aceTypes = new Set(getSpecies(aceMon.speciesId).types)
+          const sameType = MEGA_BASES.filter((b) => getSpecies(b).types.some((t) => aceTypes.has(t)))
+          const baseId = rng.pick(sameType.length ? sameType : MEGA_BASES)
+          const newAce = createInstance(baseId, aceMon.level, rng, { heldItemId: 'mega-stone' })
+          if (tough && lateBoss) { newAce.moveTier = 3; refreshMoves(newAce) }
+          team[team.length - 1] = newAce
+        }
+      }
       nodes[id] = {
         id, layer: layerIdx, col: 0, type: p.type!, next: [], enemyLevel: ace,
         bossIndex: p.bossIndex,

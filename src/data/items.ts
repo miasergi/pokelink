@@ -50,6 +50,7 @@ export const ITEMS: ItemData[] = [
   { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2500, sprite: ITEM_SPRITE('rare-candy') },
   { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 4000, sprite: ITEM_SPRITE('sweet-heart') },
   { id: 'upgrade', name: 'Mejora', category: 'battle', description: 'Sube el NIVEL de potencia del ataque de un Pokémon (40 → 80 → 120).', price: 4000, sprite: ITEM_SPRITE('ability-capsule') },
+  { id: 'z-move', name: 'Movimiento Z', category: 'battle', description: 'Otorga el MOVIMIENTO Z (potencia 160), el 4º y máximo nivel de ataque. Solo en la tienda a partir de la 7ª medalla.', price: 10000, sprite: ITEM_SPRITE('z-power-ring') },
   { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes contra un salvaje o un entrenador normal, revives a 1 Pokémon y continúas (no funciona contra jefes ni la Liga). Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 
   // --- Objetos equipables genéricos ---

@@ -495,6 +495,10 @@ export const useGame = create<GameState>((set, get) => ({
       const cur = effectiveTier(mon)
       if (cur >= 2) ok = false
       else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
+    } else if (itemId === 'z-move') {
+      // Movimiento Z: 4º y máximo nivel de potencia (160).
+      if (effectiveTier(mon) >= 3) ok = false
+      else { mon.moveTier = 3; refreshMoves(mon); ok = true }
     } else if (itemId === 'metamorph') {
       ok = cycleRegionalForm(mon) // cambia de forma regional (se gasta al usarlo)
     } else ok = applyHealItem(mon, itemId)
