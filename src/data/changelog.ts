@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.24',
+    date: '2026-06-09',
+    title: 'Piedra Z por tipo',
+    changes: [
+      'Los Movimientos Z ahora muestran una piedra Z (cristal facetado) con el color del tipo del movimiento, en vez del icono genérico.',
+    ],
+  },
+  {
     version: 'v6.23',
     date: '2026-06-08',
     title: 'Liga: detalle de cada combate',
