@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
@@ -20,6 +20,8 @@ export default function LeagueScreen() {
   const { league, startLeagueMatch, abandonLeague, equipLeagueItem, unequipLeagueItem, navigate } = useGame()
   const [viewTeam, setViewTeam] = useState<number | null>(null) // participante a inspeccionar
   const [shop, setShop] = useState(false)
+  const [results, setResults] = useState(false)
+  const myGroupRef = useRef<HTMLDivElement | null>(null)
   if (!league) return null
 
   const champ = leagueChampion(league)
@@ -31,7 +33,7 @@ export default function LeagueScreen() {
   return (
     <div className="flex flex-col flex-1">
       <TopBar
-        title={<span className="inline-flex items-center gap-2"><Icon name="trophy" className="w-5 h-5" /> Liga Pokémon</span>}
+        title={<span className="inline-flex items-center gap-2"><Icon name="liga" className="w-6 h-6" /> Liga Pokémon</span>}
         left={<Button variant="ghost" onClick={() => navigate('home')}>‹</Button>}
         right={<button className="text-[11px] text-rose-300 font-bold pr-1" onClick={() => void abandonLeague()}>Abandonar</button>}
       />
@@ -57,19 +59,34 @@ export default function LeagueScreen() {
               </div>
             </button>
             <div className="flex gap-2 mt-2.5">
-              <Button full variant="primary" onClick={startLeagueMatch}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="sword" className="w-4 h-4" /> ¡Combatir!</span></Button>
+              <Button full variant="primary" onClick={startLeagueMatch}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> ¡Combatir!</span></Button>
               <Button variant="secondary" className="!px-4" onClick={() => setShop(true)}><span className="inline-flex items-center gap-1.5"><Icon name="bag" className="w-4 h-4" /> Tienda</span></Button>
             </div>
+          </div>
+        )}
+
+        {/* Accesos: ver resultados por jornada y saltar a mi grupo */}
+        {league.phase !== 'champion' && (
+          <div className="flex gap-2">
+            <Button variant="secondary" full className="!py-2" onClick={() => setResults(true)}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="clipboard" className="w-4 h-4" /> Resultados</span>
+            </Button>
+            {league.phase === 'groups' && (
+              <Button variant="secondary" full className="!py-2" onClick={() => myGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+                <span className="inline-flex items-center justify-center gap-1.5"><Icon name="target" className="w-4 h-4" /> Mi grupo</span>
+              </Button>
+            )}
           </div>
         )}
 
         {/* Grupos */}
         {league.phase === 'groups' && league.groups.map((g) => {
           const st = groupStandings(league, g.idx)
+          const mine = g.members.includes(league.playerIdx)
           return (
-            <div key={g.idx} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-2">
+            <div key={g.idx} ref={mine ? myGroupRef : undefined} className={`rounded-xl border bg-slate-900/40 p-2 ${mine ? 'border-fuchsia-500/50' : 'border-slate-700/60'}`}>
               <div className="flex items-center justify-between mb-1 px-1">
-                <div className="text-xs font-bold text-slate-300">Grupo {g.idx + 1}</div>
+                <div className="text-xs font-bold text-slate-300">Grupo {g.idx + 1}{mine && <span className="text-fuchsia-300"> · tu grupo</span>}</div>
                 <div className="text-[9px] text-slate-500">Pts · Kills</div>
               </div>
               <div className="flex flex-col gap-0.5">
@@ -112,6 +129,7 @@ export default function LeagueScreen() {
 
       {viewTeam != null && <TeamModal p={league.participants[viewTeam]} onClose={() => setViewTeam(null)} />}
       {shop && <LeagueShop league={league} onEquip={equipLeagueItem} onUnequip={unequipLeagueItem} onClose={() => setShop(false)} />}
+      {results && <ResultsModal league={league} onClose={() => setResults(false)} onView={setViewTeam} />}
     </div>
   )
 }
@@ -171,6 +189,43 @@ function TeamModal({ p, onClose }: { p: LeagueParticipant; onClose: () => void }
               </div>
             )
           })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ResultsModal({ league, onClose, onView }: { league: LeagueState; onClose: () => void; onView: (i: number) => void }) {
+  const [md, setMd] = useState(Math.max(0, Math.min(2, league.matchday - (league.phase === 'groups' ? 1 : 0))))
+  return (
+    <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-5 h-5" /> Resultados</div>
+          <button className="text-slate-400 px-1" onClick={onClose}><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+        <div className="flex gap-1.5 mb-2">
+          {[0, 1, 2].map((j) => (
+            <button key={j} onClick={() => setMd(j)} className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${md === j ? 'bg-fuchsia-500 text-white' : 'bg-slate-800 text-slate-300'}`}>Jornada {j + 1}</button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2">
+          {league.groups.map((g) => (
+            <div key={g.idx} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-2">
+              <div className="text-[11px] font-bold text-slate-300 mb-1 px-1">Grupo {g.idx + 1}</div>
+              {g.matches.filter((m) => m.matchday === md).map((m, i) => {
+                const na = league.participants[m.a].name, nb = league.participants[m.b].name
+                const aWin = m.winner === 'a', bWin = m.winner === 'b'
+                return (
+                  <div key={i} className="flex items-center gap-1.5 text-[11px] py-0.5">
+                    <button onClick={() => onView(m.a)} className={`flex-1 min-w-0 truncate text-right ${aWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{na}</button>
+                    <span className="tabular-nums text-slate-400 shrink-0">{m.played ? `${m.killsA! >= 0 ? '+' : ''}${m.killsA} · ${m.killsB! >= 0 ? '+' : ''}${m.killsB}` : 'vs'}</span>
+                    <button onClick={() => onView(m.b)} className={`flex-1 min-w-0 truncate ${bWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{nb}</button>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </div>

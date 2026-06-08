@@ -29,6 +29,7 @@ export default function HomeScreen() {
   const [newsOpen, setNewsOpen] = useState(false)
   const [dailyWins, setDailyWins] = useState<BestRun[]>([])
   const [viewRun, setViewRun] = useState<BestRun | null>(null)
+  const [leagueLocked, setLeagueLocked] = useState(false)
   const today = dailyChallenge().date
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
   // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
@@ -76,11 +77,13 @@ export default function HomeScreen() {
         <Button variant="secondary" full onClick={() => setDailyOpen(true)}>
           <span className="inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4" /> Reto diario</span>
         </Button>
-        {totalWins > 0 && (
-          <Button variant="secondary" full onClick={() => hasSavedLeague ? void resumeLeague() : navigate('leagueSetup')}>
-            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="trophy" className="w-4 h-4" /> Liga Pokémon{hasSavedLeague ? ' · continuar' : ''}</span>
-          </Button>
-        )}
+        <Button variant="secondary" full className={totalWins > 0 ? '' : 'opacity-70'}
+          onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="liga" className="w-5 h-5" /> Liga Pokémon
+            {totalWins > 0 ? (hasSavedLeague ? ' · continuar' : '') : <Icon name="lock" className="w-3.5 h-3.5 text-slate-400" />}
+          </span>
+        </Button>
         <div className="grid grid-cols-3 gap-3">
           <Button variant="secondary" onClick={() => navigate('pokedex')}>
             <span className="inline-flex items-center justify-center gap-1"><Icon name="pokedex" className="w-4 h-4" /> Pokédex</span>
@@ -191,6 +194,24 @@ export default function HomeScreen() {
 
       {/* Detalle del equipo de una partida diaria ganada */}
       {viewRun && <RunTeamModal run={viewRun} onClose={() => setViewRun(null)} />}
+
+      {/* Liga bloqueada: explicación */}
+      {leagueLocked && (
+        <div className="absolute inset-0 z-[75] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setLeagueLocked(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-amber-500/50 bg-slate-900 p-4 animate-pop-in text-center" onClick={(e) => e.stopPropagation()}>
+            <Icon name="liga" className="w-12 h-12 mx-auto" />
+            <div className="font-extrabold text-amber-300 text-lg mt-1 inline-flex items-center gap-1.5 justify-center"><Icon name="lock" className="w-4 h-4" /> Liga Pokémon</div>
+            <p className="text-sm text-slate-300 mt-2">
+              Un <b>torneo de 32 entrenadores</b> (fase de grupos + eliminatorias) contra líderes, Alto Mando,
+              campeones y personajes del anime. Eliges uno de tus <b>equipos campeones</b> y compites con él a nivel 100.
+            </p>
+            <div className="rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm mt-3 inline-flex items-center gap-1.5 justify-center w-full">
+              <Icon name="lock" className="w-4 h-4 shrink-0 text-slate-400" /> Necesitas <b>ganar al menos 1 partida</b> para desbloquearla.
+            </div>
+            <Button variant="primary" full className="mt-3" onClick={() => setLeagueLocked(false)}>Entendido</Button>
+          </div>
+        </div>
+      )}
 
       {/* Aviso de logros recién conseguidos */}
       {newAchievements.length > 0 && (

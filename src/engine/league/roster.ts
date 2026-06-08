@@ -67,17 +67,24 @@ export function buildLeagueTeam(def: LeagueTrainerDef, rng: RNG): PokemonInstanc
     }
   }
   const team = ids.map((id) => createInstance(id, 100, rng))
-  // Objetos variados (uno por Pokémon).
+  // Objetos variados equipables (uno por Pokémon).
   const items = rng.sample(HELD_POOL, team.length)
   team.forEach((m, i) => { m.heldItemId = items[i] ?? 'life-orb' })
-  // 1 megaevolución: Megapiedra a un mega-capaz (o convierte uno si ninguno lo es).
+  // 1 megaevolución PERMANENTE ("Permamega"): el Pokémon YA está en su forma mega
+  // (no lleva Megapiedra) y conserva un objeto equipado normal.
   let mi = team.findIndex((m) => getMegaForms(m.speciesId).length > 0)
   if (mi < 0) {
     const baseId = rng.pick(MEGA_BASES)
     team[team.length - 1] = createInstance(baseId, 100, rng)
+    team[team.length - 1].heldItemId = rng.pick(HELD_POOL)
     mi = team.length - 1
   }
-  team[mi].heldItemId = 'mega-stone'
+  const megaForm = getMegaForms(team[mi].speciesId)[0]
+  if (megaForm) {
+    const keepItem = team[mi].heldItemId ?? rng.pick(HELD_POOL)
+    team[mi] = createInstance(megaForm.id, 100, rng)
+    team[mi].heldItemId = keepItem // objeto normal equipado (no Megapiedra)
+  }
   // 1 Movimiento Z (en otro Pokémon distinto al de la mega).
   let zi = team.findIndex((_, i) => i !== mi)
   if (zi < 0) zi = 0

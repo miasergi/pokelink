@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.14',
+    date: '2026-06-08',
+    title: 'Liga Pokémon: ajustes',
+    changes: [
+      'El botón de la Liga aparece siempre; si aún no la has desbloqueado, te explica qué es y cómo conseguirlo.',
+      'Nuevo logo de la Liga Pokémon.',
+      'Al elegir equipo puedes filtrar por región y ordenar por recientes o más rápidas.',
+      'En la fase de grupos: botón de «Resultados» (por jornada y combate) y botón «Mi grupo».',
+      'Los rivales llevan su Pokémon ya megaevolucionado de forma permanente (sin Megapiedra) y con objeto equipado.',
+    ],
+  },
+  {
     version: 'v6.13',
     date: '2026-06-08',
     title: '¡Nueva modalidad: Liga Pokémon!',

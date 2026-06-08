@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { RNG } from '@/utils/rng'
 import { createInstance } from '@/engine/team/instance'
-import { getMegaForms, getMove } from '@/data'
+import { getSpecies, getMove } from '@/data'
 import {
   createLeague, simulateMatch, playerGroupMatch, recordGroupResult, advanceMatchday,
   groupStandings, playerKnockoutMatch, recordKnockoutResult, advanceKnockoutRound, leagueChampion,
@@ -30,8 +30,9 @@ describe('Liga Pokémon — estructura', () => {
       if (p.isPlayer) continue
       expect(p.team).toHaveLength(6)
       expect(p.team.every((m) => m.level === 100)).toBe(true)
-      const hasMega = p.team.some((m) => m.heldItemId === 'mega-stone' && getMegaForms(m.speciesId).length > 0)
-      expect(hasMega).toBe(true)
+      // Permamega: un miembro ya está en su forma mega y SIN Megapiedra.
+      expect(p.team.some((m) => getSpecies(m.speciesId).isMega)).toBe(true)
+      expect(p.team.every((m) => m.heldItemId !== 'mega-stone')).toBe(true)
       const hasZ = p.team.some((m) => m.moves.some((mv) => getMove(mv.moveId).power >= 160))
       expect(hasZ).toBe(true)
     }
