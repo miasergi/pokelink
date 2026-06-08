@@ -209,36 +209,37 @@ export default function BattleScreen() {
             {/* Enemigo (arriba): barra a la izquierda, sprite a la derecha */}
             <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2">
               <div className="flex flex-col gap-1">
-                <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
-                <Tray team={teams.enemy} fainted={[...frame.fainted.enemy, ...preFainted.enemy]} activeUid={frame.enemy.uid} align="left" />
-              </div>
-              <div className="relative mr-8 sm:mr-16 flex flex-col items-center">
-                {/* Entrenador ARRIBA, con su nombre debajo: sensación de duelo. */}
+                {/* Entrenador ENCIMA del cuadro de info de su Pokémon. */}
                 {trainer?.sprite && (
-                  <div className="flex flex-col items-center -mb-3 z-10 pointer-events-none select-none">
+                  <div className="flex items-center gap-2 mb-0.5 pl-0.5">
                     <img
                       src={trainer.sprite}
                       alt=""
                       aria-hidden
                       draggable={false}
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                      className="w-16 h-16 object-contain drop-shadow-xl"
+                      className="w-12 h-12 object-contain drop-shadow-lg shrink-0"
                     />
-                    <span className="text-[10px] font-bold text-slate-100 bg-slate-900/80 border border-slate-700 rounded-full px-2 py-0.5 -mt-1 whitespace-nowrap">{trainer.name}</span>
+                    <div className="leading-tight min-w-0">
+                      <div className="text-[9px] uppercase tracking-wide text-slate-400">Entrenador</div>
+                      <div className="text-xs font-extrabold text-slate-100 truncate">{trainer.name}</div>
+                    </div>
                   </div>
                 )}
-                <div className="relative">
-                  <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
-                  <Platform />
-                  <div className={lungeEnemy}>
-                    <Sprite
-                      speciesId={frame.enemy.speciesId}
-                      shiny={frame.enemy.shiny}
-                      className={`relative w-28 h-28 object-contain drop-shadow-2xl transition-all ${
-                        frame.enemy.fainted ? 'animate-faint' : ''
-                      } ${frame.anim.enemy === 'hit' ? 'animate-shake brightness-150' : ''}`}
-                    />
-                  </div>
+                <InfoCard view={frame.enemy} remaining={frame.remaining.enemy} align="left" />
+                <Tray team={teams.enemy} fainted={[...frame.fainted.enemy, ...preFainted.enemy]} activeUid={frame.enemy.uid} align="left" />
+              </div>
+              <div className="relative mr-10 sm:mr-20">
+                <SpriteFx side="enemy" fx={frame.fx} idx={idx} />
+                <Platform />
+                <div className={lungeEnemy}>
+                  <Sprite
+                    speciesId={frame.enemy.speciesId}
+                    shiny={frame.enemy.shiny}
+                    className={`relative w-28 h-28 object-contain drop-shadow-2xl transition-all ${
+                      frame.enemy.fainted ? 'animate-faint' : ''
+                    } ${frame.anim.enemy === 'hit' ? 'animate-shake brightness-150' : ''}`}
+                  />
                 </div>
               </div>
             </div>
