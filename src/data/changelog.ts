@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.19',
+    date: '2026-06-08',
+    title: 'Nuevos iconos: Récords y Reto diario',
+    changes: [
+      'Nuevo icono para el botón de Récords (trofeo Pokémon).',
+      'Nuevo icono para el Reto diario (símbolo de Arceus).',
+    ],
+  },
+  {
     version: 'v6.18',
     date: '2026-06-08',
     title: 'De campeón directo a la Liga',

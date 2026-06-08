@@ -15,6 +15,8 @@ const IMAGES: Record<string, string> = {
   pokeball: BASE + 'items/pokeball.png',
   dadoballs: BASE + 'icons/dadoballs.png',
   liga: BASE + 'icons/liga.png',
+  records: BASE + 'icons/records.png',
+  daily: BASE + 'icons/daily.png',
 }
 
 // --- Iconos por SVG (trazo currentColor, viewBox 0 0 24 24) ---
