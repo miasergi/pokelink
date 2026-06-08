@@ -15,6 +15,12 @@ import { getSpecies } from '@/data'
 import { loadMeta, type BestRun } from '@/persistence/db'
 import TypeBadge from '@/ui/components/TypeBadge'
 
+/** Fecha local (YYYY-MM-DD) de un timestamp, igual que `dailyChallenge`. */
+function localDateStr(ms: number): string {
+  const dt = new Date(ms)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
 export default function HomeScreen() {
   const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements, startRun } = useGame()
   const [account, setAccount] = useState(false)
@@ -24,9 +30,18 @@ export default function HomeScreen() {
   const [viewRun, setViewRun] = useState<BestRun | null>(null)
   const today = dailyChallenge().date
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
+  // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
+  // inicial que el reto (para victorias anteriores a la etiqueta `daily`).
   useEffect(() => {
     if (!dailyOpen) return
-    void loadMeta().then((m) => setDailyWins((m.bestRuns ?? []).filter((r) => r.daily === today && r.won)))
+    const d = dailyChallenge()
+    const dRegion = GENERATIONS.find((g) => g.gen === d.gen)?.region
+    const dStarters = STARTERS_BY_GEN[d.gen] ?? STARTERS_BY_GEN[1]
+    const dStarter = dStarters[d.seed % dStarters.length]
+    void loadMeta().then((m) => setDailyWins((m.bestRuns ?? []).filter((r) => r.won && (
+      r.daily === today ||
+      (!r.daily && r.region === dRegion && r.starterId === dStarter && localDateStr(r.date) === today)
+    ))))
   }, [dailyOpen, today])
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom relative">

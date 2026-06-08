@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.8',
+    date: '2026-06-08',
+    title: 'Reto diario: detecta victorias anteriores',
+    changes: [
+      'El «ya completado» del Reto diario ahora también reconoce la victoria de hoy aunque la lograras en una versión anterior (misma región e inicial del reto).',
+    ],
+  },
+  {
     version: 'v6.7',
     date: '2026-06-08',
     title: 'Icono del Movimiento Z',
