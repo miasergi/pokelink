@@ -4,6 +4,7 @@ import { Button, Card, TopBar } from '@/ui/components/kit'
 import { GENERATIONS, getGeneration } from '@/data/generations'
 import { TYPE_ES } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
+import Icon from '@/ui/components/Icon'
 import type { PokemonType } from '@/types'
 import type { RandomFlags } from '@/engine/run/types'
 
@@ -55,7 +56,7 @@ export default function RandomSetupScreen() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="🎲 Modo Sorpresa" left={<Button variant="ghost" onClick={back}>‹</Button>} />
+      <TopBar title={<span className="inline-flex items-center gap-2"><Icon name="dadoballs" className="w-8 h-5" /> Modo Sorpresa</span>} left={<Button variant="ghost" onClick={back}>‹</Button>} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
         <p className="text-slate-300 text-sm text-center">Configuración generada al azar. Decide si empezar, volver a tirar el dado o salir.</p>
 
@@ -83,7 +84,7 @@ export default function RandomSetupScreen() {
         <Button full variant="primary" onClick={() => navigate('starterSelect', { gen: cfg.gen, pools: cfg.pools, random: cfg.random, randomFlags: cfg.randomFlags, monotype: cfg.monotype })}>
           Empezar ›
         </Button>
-        <Button full variant="secondary" onClick={() => setCfg(rollConfig())}>🎲 Volver a tirar</Button>
+        <Button full variant="secondary" onClick={() => setCfg(rollConfig())}><span className="inline-flex items-center justify-center gap-2"><Icon name="dadoballs" className="w-8 h-5" /> Volver a tirar</span></Button>
         <Button full variant="ghost" onClick={back}>Salir</Button>
       </div>
     </div>

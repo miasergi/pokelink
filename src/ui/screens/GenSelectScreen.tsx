@@ -1,6 +1,7 @@
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { GENERATIONS } from '@/data/generations'
+import Icon from '@/ui/components/Icon'
 
 export default function GenSelectScreen() {
   const { navigate, back } = useGame()
@@ -14,7 +15,7 @@ export default function GenSelectScreen() {
           className="w-full mb-3 rounded-2xl p-4 border text-left transition active:scale-[0.98] flex items-center gap-3"
           style={{ borderColor: 'rgba(217,70,239,0.5)', background: 'linear-gradient(135deg, rgba(217,70,239,0.22), rgba(15,23,42,0.7))' }}
         >
-          <div className="text-3xl">🎲</div>
+          <Icon name="dadoballs" className="w-14 h-9 shrink-0" />
           <div className="flex-1">
             <div className="font-extrabold text-fuchsia-200">Modo Sorpresa</div>
             <div className="text-[11px] text-slate-300">Región, Pokémon, Random y Monolocke elegidos al azar. Tú decides si empezar.</div>

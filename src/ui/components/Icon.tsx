@@ -13,6 +13,7 @@ const IMAGES: Record<string, string> = {
   trophy: BASE + 'icons/trophy.png',
   achievement: BASE + 'icons/achievement.png',
   pokeball: BASE + 'items/pokeball.png',
+  dadoballs: BASE + 'icons/dadoballs.png',
 }
 
 // --- Iconos por SVG (trazo currentColor, viewBox 0 0 24 24) ---

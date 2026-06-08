@@ -4,6 +4,7 @@ import { Button, TopBar } from '@/ui/components/kit'
 import { GENERATIONS, getGeneration } from '@/data/generations'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
+import Icon from '@/ui/components/Icon'
 import type { PokemonType } from '@/types'
 import type { RandomFlags } from '@/engine/run/types'
 
@@ -80,7 +81,7 @@ export default function ModeSelectScreen() {
         {/* --- Modo Random (por categorías) --- */}
         <div className={`rounded-2xl px-4 py-3 border transition ${anyRandom ? 'border-fuchsia-400' : 'border-slate-700/60'}`} style={{ background: anyRandom ? 'rgba(168,85,247,0.14)' : 'rgba(15,23,42,0.5)' }}>
           <button onClick={toggleAllRandom} className="flex items-center gap-3 w-full text-left active:scale-[0.99] transition">
-            <div className="text-3xl">🎲</div>
+            <Icon name="dadoballs" className="w-12 h-8 shrink-0" />
             <div className="flex-1">
               <div className="font-extrabold text-fuchsia-300">Modo Random {anyRandom ? '· activado' : ''}</div>
               <div className="text-xs text-slate-400">Elige qué randomizar (de las regiones marcadas). Los niveles se mantienen.</div>
