@@ -4,6 +4,7 @@ import { Button, Card, TopBar } from '@/ui/components/kit'
 import { cloudEnabled, fetchLeaderboard, currentUser, type GloryRow } from '@/persistence/supabase'
 import { formatDuration } from '@/ui/components/RunTimer'
 import { GENERATIONS } from '@/data/generations'
+import Icon from '@/ui/components/Icon'
 
 const DIFFS = [
   { id: '', label: 'Todas' },
@@ -42,7 +43,7 @@ export default function LeaderboardScreen() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="🏆 Ranking Glory Runs" left={<Button variant="ghost" onClick={back}>‹</Button>} />
+      <TopBar title={<span className="inline-flex items-center gap-1.5"><Icon name="trophy" className="w-5 h-5" /> Ranking Glory Runs</span>} left={<Button variant="ghost" onClick={back}>‹</Button>} />
 
       <div className="p-2.5 flex flex-col gap-2 border-b border-slate-800">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">

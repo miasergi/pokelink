@@ -5,6 +5,7 @@ import { loadMeta } from '@/persistence/db'
 import { ALL_SPECIES, getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
+import Icon from '@/ui/components/Icon'
 import { STAT_ES, typeGradient } from '@/ui/theme/types'
 import { TYPES } from '@/data/typechart'
 import type { PokemonType } from '@/types'
@@ -20,6 +21,7 @@ export default function PokedexScreen() {
   const [shiny, setShiny] = useState<Set<number>>(new Set())
   const [type, setType] = useState<PokemonType | 'all'>('all')
   const [onlyCaught, setOnlyCaught] = useState(false)
+  const [onlyShiny, setOnlyShiny] = useState(false)
   useEffect(() => {
     void loadMeta().then((m) => { setCaught(new Set(m.pokedexCaught)); setShiny(new Set(m.pokedexShiny)) })
   }, [])
@@ -31,16 +33,17 @@ export default function PokedexScreen() {
         (gen === 'all' || s.generation === gen) &&
         (type === 'all' || s.types.includes(type)) &&
         (!onlyCaught || caught.has(s.id)) &&
+        (!onlyShiny || shiny.has(s.id)) &&
         (!q || s.displayName.toLowerCase().includes(q) || String(s.id) === q),
     )
-  }, [gen, query, type, onlyCaught, caught])
+  }, [gen, query, type, onlyCaught, onlyShiny, caught, shiny])
 
   return (
     <div className="flex flex-col flex-1">
       <TopBar
         title="Pokédex"
         left={<Button variant="ghost" onClick={back}>‹</Button>}
-        right={<span className="text-xs font-bold pr-1"><span className="text-emerald-300">{caught.size}/{DEX_TOTAL}</span>{shiny.size > 0 && <span className="text-amber-300 ml-1.5">✨{shiny.size}</span>}</span>}
+        right={<span className="text-xs font-bold pr-1 inline-flex items-center gap-1"><span className="text-emerald-300">{caught.size}/{DEX_TOTAL}</span>{shiny.size > 0 && <span className="text-amber-300 inline-flex items-center gap-0.5"><Icon name="sparkle" className="w-3 h-3" />{shiny.size}</span>}</span>}
       />
 
       <div className="p-2.5 flex flex-col gap-2 border-b border-slate-800">
@@ -62,7 +65,8 @@ export default function PokedexScreen() {
           ))}
         </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar items-center">
-          <button onClick={() => setOnlyCaught((v) => !v)} className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${onlyCaught ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-300'}`}>● Capturados</button>
+          <button onClick={() => setOnlyCaught((v) => !v)} className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${onlyCaught ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-300'}`}><Icon name="pokeball" className="w-3.5 h-3.5" />Capturados</button>
+          <button onClick={() => setOnlyShiny((v) => !v)} className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${onlyShiny ? 'bg-amber-400 text-black' : 'bg-slate-800 text-slate-300'}`}><Icon name="sparkle" className="w-3.5 h-3.5" />Shiny</button>
           <button onClick={() => setType('all')} className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${type === 'all' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'}`}>Todos</button>
           {TYPES.map((t) => (
             <button key={t} onClick={() => setType(t)} className="shrink-0 rounded-full" style={{ opacity: type === t ? 1 : 0.55 }}>
@@ -83,8 +87,8 @@ export default function PokedexScreen() {
             >
               <span className="text-[9px] text-slate-500 self-start flex items-center gap-0.5">
                 #{String(s.id).padStart(4, '0')}
-                {caught.has(s.id) && <span className="text-emerald-400">●</span>}
-                {shiny.has(s.id) && <span className="text-amber-300">✨</span>}
+                {caught.has(s.id) && <Icon name="pokeball" className="w-3 h-3" title="Capturado" />}
+                {shiny.has(s.id) && <Icon name="sparkle" className="w-3 h-3 text-amber-300" title="Shiny" />}
               </span>
               <Sprite speciesId={s.id} variant="front" shiny={shiny.has(s.id)} className={`w-16 h-16 object-contain ${caught.has(s.id) ? '' : 'opacity-80'}`} />
               <span className="text-[11px] font-semibold truncate w-full text-center">{s.displayName}</span>

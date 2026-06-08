@@ -5,6 +5,7 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { typeGradient } from '@/ui/theme/types'
 import RunTimer from '@/ui/components/RunTimer'
+import Icon from '@/ui/components/Icon'
 import { runElapsedMs } from '@/engine/run/playtime'
 import { shareText, buildShareText } from '@/utils/share'
 
@@ -25,15 +26,15 @@ export default function VictoryScreen() {
           {Array.from({ length: 30 }).map((_, i) => (
             <span
               key={i}
-              className="absolute text-xl animate-float"
+              className="absolute animate-float"
               style={{ left: `${(i * 37) % 100}%`, top: `${(i * 53) % 100}%`, animationDelay: `${(i % 10) * 0.2}s` }}
             >
-              {['🎉', '✨', '🏆', '⭐'][i % 4]}
+              <Icon name={['party', 'sparkle', 'trophy', 'star'][i % 4]} className="w-5 h-5 text-amber-300" />
             </span>
           ))}
         </div>
       )}
-      <div className="text-7xl animate-float">🏆</div>
+      <Icon name="trophy" className="w-24 h-24 animate-float" />
       <h2 className="text-3xl font-extrabold text-amber-300">¡CAMPEÓN!</h2>
       <div className="text-lg font-extrabold text-emerald-300"><RunTimer run={run} frozen /></div>
       <p className="text-slate-200 text-sm max-w-xs">

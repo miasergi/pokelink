@@ -5,6 +5,7 @@ import { loadMeta } from '@/persistence/db'
 import { ACHIEVEMENTS } from '@/data/achievements'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
+import Icon from '@/ui/components/Icon'
 
 export default function AchievementsScreen() {
   const { back, pet, setPet } = useGame()
@@ -22,7 +23,7 @@ export default function AchievementsScreen() {
         {/* Compañero */}
         <Card className="p-3 flex items-center gap-3">
           <div className="w-14 h-14 grid place-items-center rounded-xl bg-slate-800 shrink-0">
-            {pet != null ? <Sprite speciesId={pet} className="w-12 h-12 object-contain" /> : <span className="text-2xl">🐾</span>}
+            {pet != null ? <Sprite speciesId={pet} className="w-12 h-12 object-contain" /> : <Icon name="pokeball" className="w-7 h-7 opacity-70" />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold">Compañero</div>
@@ -34,7 +35,7 @@ export default function AchievementsScreen() {
         {/* Pokédex */}
         <Card className="p-3">
           <div className="flex items-center justify-between">
-            <div className="font-bold">📕 Pokédex</div>
+            <div className="font-bold inline-flex items-center gap-1.5"><Icon name="pokedex" className="w-5 h-5" /> Pokédex</div>
             <div className="text-amber-300 font-bold text-sm">{caught.length} especies</div>
           </div>
           <div className="text-xs text-slate-400 mt-0.5">Especies distintas capturadas a lo largo de tus partidas.</div>
@@ -46,7 +47,7 @@ export default function AchievementsScreen() {
             const got = unlocked.has(a.id)
             return (
               <Card key={a.id} className={`p-3 flex items-center gap-3 ${got ? '' : 'opacity-45'}`} style={got ? { borderColor: '#f59e0b66' } : undefined}>
-                <span className="text-2xl shrink-0">{got ? a.icon : '🔒'}</span>
+                {got ? <Icon name={a.icon} className="w-7 h-7 shrink-0 text-amber-300" /> : <Icon name="lock" className="w-6 h-6 shrink-0 text-slate-500" />}
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm">{a.title} {got && <span className="text-[9px] bg-amber-500 text-black px-1.5 rounded-full font-black">✓</span>}</div>
                   <div className="text-xs text-slate-400">{a.desc}</div>

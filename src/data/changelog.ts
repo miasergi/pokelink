@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.9',
+    date: '2026-06-08',
+    title: 'Sin emojis: iconos propios (1ª parte)',
+    changes: [
+      'Nuevo logo del juego en la pantalla de Inicio.',
+      'En la Pokédex, los Pokémon capturados se marcan con una Poké Ball (antes un puntito) y hay un nuevo filtro para ver solo los shinys.',
+      'Empezamos a sustituir los emojis por iconos/imágenes propias (Inicio, Récords, Logros, Pokédex, Liga, Victoria). El resto llegará en próximas versiones.',
+    ],
+  },
+  {
     version: 'v6.8',
     date: '2026-06-08',
     title: 'Reto diario: detecta victorias anteriores',

@@ -6,6 +6,7 @@ import { ALL_SPECIES } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { formatDuration } from '@/ui/components/RunTimer'
 import RunTeamModal from '@/ui/components/RunTeamModal'
+import Icon from '@/ui/components/Icon'
 
 const DEX_TOTAL = ALL_SPECIES.length
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
@@ -28,7 +29,7 @@ export default function RecordsScreen() {
           <>
             <Card className="p-3.5 flex items-center justify-between active:scale-[0.99] transition" style={{ borderColor: '#f59e0b66' }} onClick={() => navigate('leaderboard')}>
               <div>
-                <div className="font-bold text-amber-300">🏆 Ranking online de Glory Runs</div>
+                <div className="font-bold text-amber-300 inline-flex items-center gap-1.5"><Icon name="trophy" className="w-5 h-5" /> Ranking online de Glory Runs</div>
                 <div className="text-xs text-slate-400">Mejores tiempos de todos los jugadores</div>
               </div>
               <span className="text-slate-500 text-2xl">›</span>
@@ -36,7 +37,7 @@ export default function RecordsScreen() {
 
             <Card className="p-3.5 flex items-center justify-between active:scale-[0.99] transition" onClick={() => navigate('achievements')}>
               <div>
-                <div className="font-bold">🏅 Logros y compañero</div>
+                <div className="font-bold inline-flex items-center gap-1.5"><Icon name="achievement" className="w-5 h-5" /> Logros y compañero</div>
                 <div className="text-xs text-slate-400">Logros, recompensa de Pokédex y mascota</div>
               </div>
               <span className="text-slate-500 text-2xl">›</span>
@@ -70,7 +71,7 @@ export default function RecordsScreen() {
               if (!glory.length) return null
               return (
                 <div>
-                  <div className="text-sm font-bold text-amber-300 mb-1.5 px-1">🏆 Glory Runs (mejores tiempos)</div>
+                  <div className="text-sm font-bold text-amber-300 mb-1.5 px-1 inline-flex items-center gap-1.5"><Icon name="trophy" className="w-4 h-4" /> Glory Runs (mejores tiempos)</div>
                   <div className="flex flex-col gap-2">
                     {glory.map((r, i) => (
                       <Card key={i} className="p-2.5 flex items-center gap-3 active:scale-[0.99] transition" style={{ borderColor: i === 0 ? '#f59e0b66' : undefined }} onClick={() => setSelRun(r)}>
