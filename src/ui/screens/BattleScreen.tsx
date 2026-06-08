@@ -214,10 +214,10 @@ export default function BattleScreen() {
           <div className="relative w-full max-w-md" style={{ height: 'min(46vh, 340px)' }}>
             {/* Enemigo (arriba): barra a la izquierda, sprite a la derecha */}
             <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2">
-              <div className="flex flex-col gap-1">
-                {/* Entrenador ENCIMA del cuadro de info de su Pokémon. */}
+              <div className="relative flex flex-col gap-1">
+                {/* Entrenador flotando ENCIMA del cuadro de info (sin empujarlo). */}
                 {trainer?.sprite && (
-                  <div className="flex items-center gap-2 mb-0.5 pl-0.5">
+                  <div className="absolute bottom-full left-0 mb-0.5 flex items-center gap-2 pl-0.5">
                     <img
                       src={trainer.sprite}
                       alt=""
@@ -281,11 +281,11 @@ export default function BattleScreen() {
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-1 items-end">
+              <div className="relative flex flex-col gap-1 items-end">
                 <Tray team={teams.player} fainted={[...frame.fainted.player, ...preFainted.player]} activeUid={frame.player.uid} align="right" />
                 <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
-                {/* Entrenador (tú) DEBAJO de tu cuadro de info. */}
-                <div className="flex items-center gap-2 mt-0.5 pr-0.5 flex-row-reverse">
+                {/* Entrenador (tú) flotando DEBAJO de tu cuadro de info (sin empujarlo). */}
+                <div className="absolute top-full right-0 mt-0.5 flex items-center gap-2 pr-0.5 flex-row-reverse">
                   <img
                     src={PLAYER_SPRITE}
                     alt=""

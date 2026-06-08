@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.22',
+    date: '2026-06-08',
+    title: 'Combate: retratos sin descuadrar',
+    changes: [
+      'Los retratos de entrenador ya no desplazan los cuadros de info: ahora flotan fuera del cuadro (el rival arriba, tú abajo), dejando los cuadros en su sitio.',
+    ],
+  },
+  {
     version: 'v6.21',
     date: '2026-06-08',
     title: 'Tu personaje: sin fondo y debajo de tu info',
