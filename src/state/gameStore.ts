@@ -14,11 +14,19 @@ import { getMegaForms, getSpecies, toBaseSpeciesId } from '@/data'
 import { checkAchievements } from '@/engine/run/achievements'
 import { evolve, levelEvolutionTargets, evolutionBlockedByItem, cycleRegionalForm } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
-import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals } from '@/persistence/db'
+import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals, saveLeague, loadLeague, clearLeague } from '@/persistence/db'
+import type { PokemonInstance } from '@/types'
+import type { LeagueState } from '@/engine/league/types'
+import { runBattle } from '@/engine/battle/battleEngine'
+import {
+  createLeague, playerGroupMatch, recordGroupResult, advanceMatchday,
+  playerKnockoutMatch, recordKnockoutResult, advanceKnockoutRound,
+} from '@/engine/league/league'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect' | 'randomSetup'
+  | 'leagueSetup' | 'league'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
   | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
 
@@ -32,11 +40,31 @@ interface PendingBattle {
   result: BattleResult
 }
 
+interface LeagueBattle {
+  result: BattleResult
+  playerTeam: PokemonInstance[]
+  enemyTeam: PokemonInstance[]
+  enemyName: string
+  enemySprite: string
+}
+
 interface GameState {
   screen: Screen
   history: Screen[]
   run: RunState | null
   pendingBattle: PendingBattle | null
+  // --- Liga Pokémon ---
+  league: LeagueState | null
+  leagueBattle: LeagueBattle | null
+  hasSavedLeague: boolean
+  totalWins: number
+  startLeague: (team: PokemonInstance[], playerName: string, sprite: string) => void
+  resumeLeague: () => Promise<void>
+  abandonLeague: () => Promise<void>
+  startLeagueMatch: () => void
+  finishLeagueBattle: () => void
+  equipLeagueItem: (uid: string, itemId: string) => void
+  unequipLeagueItem: (uid: string) => void
   lastSummary: BattleOutcomeSummary | null
   battleSummary: BattleOutcomeSummary | null
   closeBattle: () => void
@@ -121,11 +149,25 @@ function cloneRun(run: RunState): RunState {
   return structuredClone(run)
 }
 
+/** Si el jugador ya no tiene combate (eliminado o no clasificó), simula el resto
+ *  de eliminatorias hasta coronar al campeón. */
+function autoFinishLeague(league: LeagueState): void {
+  if (league.phase !== 'knockout') return
+  let guard = 0
+  while (league.phase === 'knockout' && !playerKnockoutMatch(league) && guard++ < 12) {
+    advanceKnockoutRound(league)
+  }
+}
+
 export const useGame = create<GameState>((set, get) => ({
   screen: { name: 'home' },
   history: [],
   run: null,
   pendingBattle: null,
+  league: null,
+  leagueBattle: null,
+  hasSavedLeague: false,
+  totalWins: 0,
   lastSummary: null,
   battleSummary: null,
   lastEventResult: null,
@@ -194,11 +236,12 @@ export const useGame = create<GameState>((set, get) => ({
     if (get().cloudUser) void get().cloudSync()
     void loadMeta().then(async (m) => {
       if (m.alias) set({ alias: m.alias })
-      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null })
+      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins })
       if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
     })
     const saved = await loadRun()
-    set({ loaded: true, hasSavedRun: !!saved })
+    const savedLeague = await loadLeague()
+    set({ loaded: true, hasSavedRun: !!saved, hasSavedLeague: !!savedLeague })
   },
 
   startRun: (config) => {
@@ -287,6 +330,86 @@ export const useGame = create<GameState>((set, get) => ({
     if (run && run.status === 'active') { const a = await recordRunEnd(run); if (a.length) set({ newAchievements: a }) }
     await clearRun()
     set({ run: null, hasSavedRun: false, pendingBattle: null, screen: { name: 'home' }, history: [] })
+  },
+
+  // --- Liga Pokémon ---
+  startLeague: (team, playerName, sprite) => {
+    const seed = Math.floor(Math.random() * 2 ** 31)
+    const league = createLeague(playerName, sprite, team, seed)
+    void clearLeague(); void saveLeague(league)
+    set({ league, hasSavedLeague: true, leagueBattle: null, screen: { name: 'league' }, history: [] })
+  },
+  resumeLeague: async () => {
+    const league = await loadLeague()
+    if (league) set({ league, leagueBattle: null, screen: { name: 'league' }, history: [] })
+  },
+  abandonLeague: async () => {
+    await clearLeague()
+    set({ league: null, hasSavedLeague: false, leagueBattle: null, screen: { name: 'home' }, history: [] })
+  },
+  startLeagueMatch: () => {
+    const league = get().league
+    if (!league) return
+    const gm = playerGroupMatch(league)
+    const km = gm ? null : playerKnockoutMatch(league)
+    let opp: number
+    if (gm) opp = gm.a === league.playerIdx ? gm.b : gm.a
+    else if (km && km.a != null && km.b != null) opp = km.a === league.playerIdx ? km.b : km.a
+    else return
+    const player = league.participants[league.playerIdx]
+    const enemy = league.participants[opp]
+    const seed = Math.floor(Math.random() * 2 ** 30)
+    const result = runBattle({ playerTeam: structuredClone(player.team), enemyTeam: structuredClone(enemy.team), seed, isBoss: true, enemyName: enemy.name })
+    set({
+      leagueBattle: { result, playerTeam: structuredClone(player.team), enemyTeam: structuredClone(enemy.team), enemyName: enemy.name, enemySprite: enemy.sprite },
+      pendingBattle: { nodeId: '', result }, battleSummary: null, screen: { name: 'battle' }, history: [],
+    })
+  },
+  finishLeagueBattle: () => {
+    const cur = get().league
+    const lb = get().leagueBattle
+    if (!cur || !lb) { set({ leagueBattle: null, pendingBattle: null, screen: { name: 'league' }, history: [] }); return }
+    const league = structuredClone(cur)
+    let fp = 0, fe = 0
+    for (const e of lb.result.events) if (e.kind === 'faint') { if (e.side === 'player') fp++; else fe++ }
+    const playerWon = lb.result.winner === 'player'
+    const gm = playerGroupMatch(league)
+    if (gm) {
+      const isA = gm.a === league.playerIdx
+      recordGroupResult(league, gm, isA
+        ? { winner: playerWon ? 'a' : 'b', killsA: fe - fp, killsB: fp - fe }
+        : { winner: playerWon ? 'b' : 'a', killsA: fp - fe, killsB: fe - fp })
+      advanceMatchday(league)
+    } else {
+      const km = playerKnockoutMatch(league)
+      if (km && km.a != null && km.b != null) {
+        recordKnockoutResult(league, km, playerWon ? league.playerIdx : (km.a === league.playerIdx ? km.b : km.a))
+      }
+      advanceKnockoutRound(league)
+    }
+    autoFinishLeague(league)
+    void saveLeague(league)
+    set({ league, leagueBattle: null, pendingBattle: null, battleSummary: null, screen: { name: 'league' }, history: [] })
+  },
+  equipLeagueItem: (uid, itemId) => {
+    const cur = get().league
+    if (!cur) return
+    const league = structuredClone(cur)
+    const mon = league.participants[league.playerIdx].team.find((m) => m.uid === uid)
+    if (!mon) return
+    mon.heldItemId = itemId
+    void saveLeague(league)
+    set({ league })
+  },
+  unequipLeagueItem: (uid) => {
+    const cur = get().league
+    if (!cur) return
+    const league = structuredClone(cur)
+    const mon = league.participants[league.playerIdx].team.find((m) => m.uid === uid)
+    if (!mon) return
+    mon.heldItemId = null
+    void saveLeague(league)
+    set({ league })
   },
 
   chooseNode: (nodeId) => {
@@ -679,7 +802,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   const meta = await loadMeta()
   const won = run.status === 'won'
   meta.totals.runs += 1
-  if (won) meta.totals.wins += 1
+  if (won) { meta.totals.wins += 1; useGame.setState({ totalWins: meta.totals.wins }) }
   meta.totals.gymsDefeated += run.stats.gymsDefeated
   meta.totals.pokemonCaught += run.stats.pokemonCaught
   // pokédex (+ shinies)

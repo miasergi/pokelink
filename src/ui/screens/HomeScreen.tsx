@@ -23,7 +23,7 @@ function localDateStr(ms: number): string {
 }
 
 export default function HomeScreen() {
-  const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements, startRun } = useGame()
+  const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements, startRun, totalWins, hasSavedLeague, resumeLeague } = useGame()
   const [account, setAccount] = useState(false)
   const [dailyOpen, setDailyOpen] = useState(false)
   const [newsOpen, setNewsOpen] = useState(false)
@@ -76,6 +76,11 @@ export default function HomeScreen() {
         <Button variant="secondary" full onClick={() => setDailyOpen(true)}>
           <span className="inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4" /> Reto diario</span>
         </Button>
+        {totalWins > 0 && (
+          <Button variant="secondary" full onClick={() => hasSavedLeague ? void resumeLeague() : navigate('leagueSetup')}>
+            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="trophy" className="w-4 h-4" /> Liga Pokémon{hasSavedLeague ? ' · continuar' : ''}</span>
+          </Button>
+        )}
         <div className="grid grid-cols-3 gap-3">
           <Button variant="secondary" onClick={() => navigate('pokedex')}>
             <span className="inline-flex items-center justify-center gap-1"><Icon name="pokedex" className="w-4 h-4" /> Pokédex</span>

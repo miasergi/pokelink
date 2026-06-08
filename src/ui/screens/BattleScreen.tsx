@@ -80,22 +80,30 @@ const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
 }
 
 export default function BattleScreen() {
-  const { run, pendingBattle, finishBattle, battleSummary, closeBattle } = useGame()
+  const { run, pendingBattle, leagueBattle, finishBattle, finishLeagueBattle, battleSummary, closeBattle } = useGame()
   const settings = useSettings()
   const [memeClosed, setMemeClosed] = useState(false)
 
+  // Equipos del combate: de la Liga (si hay) o de la run.
+  const playerMons: PokemonInstance[] = leagueBattle ? leagueBattle.playerTeam : run?.party ?? []
+  const enemyMons = useMemo<PokemonInstance[]>(() => {
+    if (leagueBattle) return leagueBattle.enemyTeam
+    if (!run || !pendingBattle) return []
+    const c = run.map.nodes[pendingBattle.nodeId].content
+    if (c.kind === 'wild') return [c.enemy]
+    if (c.kind === 'trainer') return c.team
+    return []
+  }, [run, pendingBattle, leagueBattle])
+
   const uidMap = useMemo(() => {
     const map = new Map<string, MonView>()
-    if (!run || !pendingBattle) return map
+    if (!pendingBattle) return map
     const add = (mons: PokemonInstance[]) => {
       for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, physical: m.stats.atk >= m.stats.spa, moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
     }
-    add(run.party)
-    const content = run.map.nodes[pendingBattle.nodeId].content
-    if (content.kind === 'wild') add([content.enemy])
-    else if (content.kind === 'trainer') add(content.team)
+    add(playerMons); add(enemyMons)
     return map
-  }, [run, pendingBattle])
+  }, [playerMons, enemyMons, pendingBattle])
 
   const frames = useMemo(
     () => (pendingBattle ? buildFrames(pendingBattle.result.events, uidMap) : []),
@@ -103,16 +111,10 @@ export default function BattleScreen() {
   )
 
   // Orden de los equipos para las bandejas (ambos lados).
-  const teams = useMemo(() => {
-    const empty = { player: [] as TeamSlot[], enemy: [] as TeamSlot[] }
-    if (!run || !pendingBattle) return empty
-    const player = run.party.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny }))
-    let enemy: TeamSlot[] = []
-    const content = run.map.nodes[pendingBattle.nodeId].content
-    if (content.kind === 'wild') enemy = [{ uid: content.enemy.uid, speciesId: content.enemy.speciesId, shiny: content.enemy.shiny }]
-    else if (content.kind === 'trainer') enemy = content.team.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny }))
-    return { player, enemy }
-  }, [run, pendingBattle])
+  const teams = useMemo(() => ({
+    player: playerMons.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny })),
+    enemy: enemyMons.map((m) => ({ uid: m.uid, speciesId: m.speciesId, shiny: m.shiny })),
+  }), [playerMons, enemyMons])
 
   // Pokémon ya debilitados ANTES del combate (no participan): la bandeja debe
   // mostrarlos apagados desde el inicio, no solo los que caen en el combate.
@@ -147,8 +149,8 @@ export default function BattleScreen() {
 
   // Al terminar la animación, resuelve el combate (recompensas inline / fin de run).
   useEffect(() => {
-    if (done && !battleSummary) finishBattle()
-  }, [done, battleSummary, finishBattle])
+    if (done && !battleSummary) { if (leagueBattle) finishLeagueBattle(); else finishBattle() }
+  }, [done, battleSummary, finishBattle, finishLeagueBattle, leagueBattle])
 
   useEffect(() => {
     if (idx >= frames.length - 1) {
@@ -161,11 +163,13 @@ export default function BattleScreen() {
     return () => clearTimeout(timer.current)
   }, [idx, frames, settings.battleSpeed, pendingBattle])
 
-  if (!run || !pendingBattle || !frames.length) return null
+  if (!pendingBattle || !frames.length || (!run && !leagueBattle)) return null
   const frame = frames[Math.min(idx, frames.length - 1)]
-  const battleNode = run.map.nodes[pendingBattle.nodeId]
-  const isBoss = ['gym', 'elite', 'champion', 'rival'].includes(battleNode.type)
-  const trainer = battleNode.content.kind === 'trainer' ? battleNode.content.trainer : null
+  const battleNode = run && !leagueBattle ? run.map.nodes[pendingBattle.nodeId] : null
+  const isBoss = leagueBattle ? true : battleNode ? ['gym', 'elite', 'champion', 'rival'].includes(battleNode.type) : false
+  const trainer: { name: string; sprite?: string } | null = leagueBattle
+    ? { name: leagueBattle.enemyName, sprite: leagueBattle.enemySprite }
+    : battleNode?.content.kind === 'trainer' ? battleNode.content.trainer : null
 
   const skip = () => {
     clearTimeout(timer.current)

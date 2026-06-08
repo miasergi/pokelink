@@ -11,6 +11,8 @@ import HomeScreen from '@/ui/screens/HomeScreen'
 const ModeSelectScreen = lazy(() => import('@/ui/screens/ModeSelectScreen'))
 const GenSelectScreen = lazy(() => import('@/ui/screens/GenSelectScreen'))
 const RandomSetupScreen = lazy(() => import('@/ui/screens/RandomSetupScreen'))
+const LeagueSetupScreen = lazy(() => import('@/ui/screens/LeagueSetupScreen'))
+const LeagueScreen = lazy(() => import('@/ui/screens/LeagueScreen'))
 const StarterSelectScreen = lazy(() => import('@/ui/screens/StarterSelectScreen'))
 const MapScreen = lazy(() => import('@/ui/screens/MapScreen'))
 const BattleScreen = lazy(() => import('@/ui/screens/BattleScreen'))
@@ -38,6 +40,8 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   modeSelect: ModeSelectScreen,
   genSelect: GenSelectScreen,
   randomSetup: RandomSetupScreen,
+  leagueSetup: LeagueSetupScreen,
+  league: LeagueScreen,
   starterSelect: StarterSelectScreen,
   map: MapScreen,
   battle: BattleScreen,
@@ -81,7 +85,7 @@ export default function App() {
   // Música de fondo según la pantalla.
   useEffect(() => {
     if (!music) { stopMusic(); return }
-    if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records') startMusic('map')
+    if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records' || screen.name === 'league' || screen.name === 'leagueSetup') startMusic('map')
     else if (screen.name === 'battle') startMusic('battle')
     else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover') stopMusic()
   }, [screen.name, music])

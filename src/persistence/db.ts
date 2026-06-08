@@ -106,6 +106,20 @@ export async function clearRun(): Promise<void> {
   await d.delete('runs', 'current')
 }
 
+// ---- Liga Pokémon (torneo en curso) ----
+export async function saveLeague(state: import('@/engine/league/types').LeagueState): Promise<void> {
+  const d = await db()
+  await d.put('runs', state, 'league')
+}
+export async function loadLeague(): Promise<import('@/engine/league/types').LeagueState | null> {
+  const d = await db()
+  return (await d.get('runs', 'league')) ?? null
+}
+export async function clearLeague(): Promise<void> {
+  const d = await db()
+  await d.delete('runs', 'league')
+}
+
 // ---- Meta-progresión ----
 const EMPTY_META: MetaRecord = {
   bestRuns: [],

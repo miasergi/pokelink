@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.13',
+    date: '2026-06-08',
+    title: '¡Nueva modalidad: Liga Pokémon!',
+    changes: [
+      'Liga Pokémon (se desbloquea al ganar tu primera partida): elige uno de tus equipos campeones y disputa un torneo de 32.',
+      'Fase de grupos (8 grupos de 4, todos contra todos) con clasificación por puntos, kills y enfrentamiento directo; ves todos los grupos y resultados para prepararte.',
+      'Rivales: líderes, Alto Mando, campeones y personajes del anime (Ash, Red, Gary, Cynthia, Steven, Leon, N…) con equipos de 6 a nivel 100, objetos, megaevolución y Movimiento Z.',
+      'Tienda gratis entre combates (solo equipables) y eliminatorias hasta la final.',
+    ],
+  },
+  {
     version: 'v6.11',
     date: '2026-06-08',
     title: 'Más iconos: Jugar y Cuenta',
