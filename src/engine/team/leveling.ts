@@ -1,12 +1,19 @@
 import type { BaseStats, PokemonInstance, SpeciesData } from '@/types'
 import { getSpecies, getMove } from '@/data'
-import { typeAttackId, tierForLevel } from '@/data/typeAttacks'
+import { typeAttackId, tierForLevel, captureTier } from '@/data/typeAttacks'
 
 /** Nivel de potencia efectivo (0/1/2/3). FIJO: el que tenía al crearse/capturarse,
  *  más "Mejora" (hasta 2) y "Movimiento Z" (3). NO sube por subir de nivel.
  *  (Respaldo para partidas antiguas sin el dato: el del nivel.) */
 export function effectiveTier(mon: PokemonInstance): number {
   return Math.min(3, mon.moveTier ?? tierForLevel(mon.level))
+}
+
+/** Ajusta el tier de potencia de un Pokémon recién OBTENIDO por captura: 1 hasta
+ *  nv.35, 2 desde nv.36, nunca 3. (Luego sube con Mejora/Movimiento Z.) */
+export function applyCaptureTier(mon: PokemonInstance): void {
+  mon.moveTier = captureTier(mon.level)
+  refreshMoves(mon)
 }
 
 /** Reasigna el moveset estándar (ataque por tipo) al nivel de potencia actual. */

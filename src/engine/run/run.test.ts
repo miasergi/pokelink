@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
 import { EVENTS } from './nodes'
 import { createInstance } from '@/engine/team/instance'
-import { refreshMoves } from '@/engine/team/leveling'
+import { refreshMoves, applyCaptureTier } from '@/engine/team/leveling'
+import { itemHasEffect } from '@/engine/team/itemEffect'
 import { RNG } from '@/utils/rng'
 import { runElapsedMs, commitElapsed } from './playtime'
 import { checkAchievements } from './achievements'
@@ -107,12 +108,45 @@ describe('Eventos: objetos prometidos se entregan', () => {
   })
 })
 
+describe('Capturas: curva de potencia limitada', () => {
+  it('captura tier 0 (40) hasta nv.35, tier 1 (80) desde nv.36, nunca tier 2', () => {
+    const low = createInstance(6, 30, new RNG(1)); applyCaptureTier(low)
+    expect(low.moveTier).toBe(0)
+    const high = createInstance(6, 40, new RNG(1)); applyCaptureTier(high)
+    expect(high.moveTier).toBe(1)
+    const veryHigh = createInstance(6, 70, new RNG(1)); applyCaptureTier(veryHigh)
+    expect(veryHigh.moveTier).toBe(1) // nunca 2 al capturar
+  })
+
+  it('ninguna oferta de captura supera la potencia 80 (tier 1)', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 9 })
+    let checked = 0
+    for (const n of Object.values(run.map.nodes)) {
+      if (n.content.kind !== 'catch') continue
+      for (const o of n.content.offers) {
+        checked++
+        expect(o.moveTier).toBeLessThanOrEqual(1)
+        expect(Math.max(...o.moves.map((mv) => getMove(mv.moveId).power))).toBeLessThanOrEqual(80)
+      }
+    }
+    expect(checked).toBeGreaterThan(0)
+  })
+})
+
 describe('Movimiento Z (nivel 4, potencia 160)', () => {
   it('moveTier 3 otorga un ataque de potencia 160', () => {
     const mon = createInstance(6, 50, new RNG(1)) // Charizard
     mon.moveTier = 3
     refreshMoves(mon)
     expect(mon.moves.some((mv) => getMove(mv.moveId).power === 160)).toBe(true)
+  })
+
+  it('el Movimiento Z solo se puede usar si el Pokémon está a potencia máxima (120)', () => {
+    const mon = createInstance(6, 50, new RNG(1))
+    mon.moveTier = 0; expect(itemHasEffect('z-move', mon)).toBe(false)
+    mon.moveTier = 1; expect(itemHasEffect('z-move', mon)).toBe(false)
+    mon.moveTier = 2; expect(itemHasEffect('z-move', mon)).toBe(true)
+    mon.moveTier = 3; expect(itemHasEffect('z-move', mon)).toBe(false)
   })
 
   it('Difícil: cada miembro del Alto Mando tiene mega y su ace lleva Movimiento Z', () => {

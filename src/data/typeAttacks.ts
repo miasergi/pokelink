@@ -54,6 +54,12 @@ export function tierForLevel(level: number): number {
   return level >= 45 ? 2 : level >= 20 ? 1 : 0
 }
 
+/** Nivel de potencia de un Pokémon que CAPTURAS: potencia 1 (tier 0) hasta nv.35,
+ *  potencia 2 (tier 1) desde nv.36. Nunca te dan potencia 3 (tier 2) al capturar. */
+export function captureTier(level: number): number {
+  return level >= 36 ? 1 : 0
+}
+
 /** Construye los MoveData sintéticos para registrarlos en el catálogo (4 niveles). */
 export function buildTypeMoves(): MoveData[] {
   const out: MoveData[] = []

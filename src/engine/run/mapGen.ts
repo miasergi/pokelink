@@ -2,7 +2,7 @@ import type { PokemonInstance, PokemonType, SpeciesData, TrainerData } from '@/t
 import { RNG } from '@/utils/rng'
 import { encounterPoolFor, legendaryPoolFor, getMegaForms, getSpecies, ALL_MEGAS } from '@/data'
 import { createInstance } from '@/engine/team/instance'
-import { refreshMoves } from '@/engine/team/leveling'
+import { refreshMoves, applyCaptureTier } from '@/engine/team/leveling'
 import { counterStarterId } from '@/data/trainers/gen1'
 import { getRegion, buildRival } from '@/data/trainers/regions'
 import { evolutionAtLevel, getFinalEvolution } from '@/engine/team/evolution'
@@ -96,6 +96,7 @@ function buildRocketContent(level: number, rng: RNG, gen: number, pool: SpeciesD
   // Pokémon "secuestrado": uno aleatorio acorde al nivel. Forma parte del equipo
   // (lo combates) y, si ganas, lo liberas. Guardamos una copia prístina (PS llenos).
   const rescue = makeWild(pool, level, rng, difficulty)
+  applyCaptureTier(rescue) // al liberarlo lo obtienes: misma curva que una captura
   team.push(structuredClone(rescue))
   const trainer: TrainerData = {
     id: `rocket-${level}-${rng.int(0, 9999)}`,
@@ -391,6 +392,7 @@ function buildRouteContent(
         let tries = 0
         while (used.has(m.speciesId) && tries++ < 8) m = makeWild(catchPool, catchLevel, rng, difficulty)
         used.add(m.speciesId)
+        applyCaptureTier(m) // capturas: potencia 1 hasta nv.35, 2 desde nv.36, nunca 3
         offers.push(m)
       }
       return { kind: 'catch', offers }

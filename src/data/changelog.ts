@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.5',
+    date: '2026-06-08',
+    title: 'Ajustes de potencia: Z y capturas',
+    changes: [
+      'El objeto Movimiento Z ahora solo se puede usar en un Pokémon que ya esté a potencia máxima (120).',
+      'Los Pokémon que capturas vienen a potencia 1 hasta el nivel 35 y a potencia 2 desde el nivel 36; nunca a potencia 3 (tendrás que subirlos con Mejoras).',
+    ],
+  },
+  {
     version: 'v6.4',
     date: '2026-06-08',
     title: 'Movimiento Z y Alto Mando más temible',

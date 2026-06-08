@@ -2,7 +2,7 @@ import type { PokemonInstance } from '@/types'
 import { encounterPoolFor, getSpecies, basePoolFor } from '@/data'
 import { RNG } from '@/utils/rng'
 import { createInstance, selectMoveset } from '@/engine/team/instance'
-import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
+import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier, applyCaptureTier } from '@/engine/team/leveling'
 import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
@@ -474,7 +474,9 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
   const pool = monotypePool(encounterPoolFor(run.pools), run.monotype)
   const tier = tierPool(pool, avg)
   const sp = rng.pick(tier)
-  return createInstance(sp.id, Math.max(2, avg), rng)
+  const mon = createInstance(sp.id, Math.max(2, avg), rng)
+  applyCaptureTier(mon) // Pokémon obtenido: misma curva de potencia que una captura
+  return mon
 }
 
 /** Filtra un pool al tipo del Monolocke. Si no hay (o no es monolocke), el pool tal cual. */
