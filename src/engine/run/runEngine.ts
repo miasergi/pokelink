@@ -318,10 +318,12 @@ export function catchPokemon(
   if (!accept || node.content.kind !== 'catch') return { caught: false, toBox: false }
   const offers = node.content.offers
   const mon = offers.find((o) => o.uid === chosenUid) ?? offers[0]
-  // Reemplazo: el Pokémon del equipo elegido se LIBERA (no hay caja).
+  // Reemplazo: el Pokémon del equipo elegido se LIBERA (no hay caja). Su objeto
+  // equipado vuelve a la mochila (no se pierde).
   if (replaceUid) {
     const idx = run.party.findIndex((p) => p.uid === replaceUid)
     if (idx >= 0) {
+      if (run.party[idx].heldItemId) addItem(run, run.party[idx].heldItemId!, 1)
       run.party[idx] = mon
       run.stats.pokemonCaught++
       return { caught: true, toBox: false }

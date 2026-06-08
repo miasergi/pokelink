@@ -38,10 +38,15 @@ export default function GameOverScreen() {
 
       {/* Botones siempre visibles abajo */}
       <div className="p-4 flex flex-col gap-2 border-t border-slate-800 bg-slate-900/80">
-        <Button full variant="primary" onClick={restartRun}>
-          🔄 Reiniciar ({run.region} · {starterName})
+        <Button full variant="primary" onClick={() => restartRun(true)}>
+          🔁 Reintentar este mapa ({run.region} · {starterName})
         </Button>
-        <Button full variant="secondary" onClick={() => void abandonRun()}>
+        {!run.daily && (
+          <Button full variant="secondary" onClick={() => restartRun(false)}>
+            🔄 Reiniciar con mapa nuevo
+          </Button>
+        )}
+        <Button full variant="ghost" onClick={() => void abandonRun()}>
           🏠 Volver a Inicio
         </Button>
       </div>

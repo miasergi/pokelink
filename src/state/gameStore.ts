@@ -18,7 +18,7 @@ import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTot
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
-  | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect'
+  | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect' | 'randomSetup'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
   | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
 
@@ -85,7 +85,8 @@ interface GameState {
   init: () => Promise<void>
   startRun: (config: Omit<NewRunConfig, 'seed'> & { seed?: number }) => void
   resumeRun: () => Promise<void>
-  restartRun: () => void
+  /** Reinicia la run. Con `sameSeed`, reusa la misma semilla (mismo mapa/inicial). */
+  restartRun: (sameSeed?: boolean) => void
   abandonRun: () => Promise<void>
 
   // interacción con nodos
@@ -220,18 +221,20 @@ export const useGame = create<GameState>((set, get) => ({
     }
   },
 
-  restartRun: () => {
+  restartRun: (sameSeed?: boolean) => {
     const run = get().run
     if (!run) {
       set({ screen: { name: 'home' }, history: [] })
       return
     }
-    // Reto diario: reinicia EXACTAMENTE el mismo desafío (misma semilla, mapa,
-    // inicial y fecha). Una run normal reinicia con un mapa nuevo (semilla nueva).
+    // Reto diario: reinicia SIEMPRE el mismo desafío (misma semilla/mapa/fecha).
+    // En una run normal, `sameSeed` permite reintentar el MISMO mapa; si no, mapa nuevo.
+    const keepSeed = sameSeed || !!run.daily
     get().startRun({
       pools: run.pools, random: run.random, randomFlags: run.randomFlags, monotype: run.monotype,
       gen: run.gen, starterId: run.starterId, difficulty: run.difficulty,
-      ...(run.daily ? { seed: run.seed, daily: run.daily } : {}),
+      ...(keepSeed ? { seed: run.seed } : {}),
+      ...(run.daily ? { daily: run.daily } : {}),
     })
   },
 
@@ -379,7 +382,11 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     if (replaceUid) {
       const idx = run.party.findIndex((p) => p.uid === replaceUid)
-      if (idx >= 0) run.party[idx] = offer
+      if (idx >= 0) {
+        // El Pokémon liberado devuelve su objeto equipado a la mochila.
+        if (run.party[idx].heldItemId) addItem(run, run.party[idx].heldItemId!, 1)
+        run.party[idx] = offer
+      }
     } else if (run.party.length < 6) {
       run.party.push(offer)
     } else return // lleno y sin reemplazo: no hacer nada

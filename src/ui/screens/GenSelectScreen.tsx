@@ -8,6 +8,20 @@ export default function GenSelectScreen() {
     <div className="flex flex-col flex-1">
       <TopBar title="Elige región" left={<Button variant="ghost" onClick={back}>‹</Button>} />
       <div className="flex-1 overflow-y-auto p-3 no-scrollbar">
+        {/* Modo Sorpresa: configura TODO al azar (región, Pokémon, random, monolocke). */}
+        <button
+          onClick={() => navigate('randomSetup')}
+          className="w-full mb-3 rounded-2xl p-4 border text-left transition active:scale-[0.98] flex items-center gap-3"
+          style={{ borderColor: 'rgba(217,70,239,0.5)', background: 'linear-gradient(135deg, rgba(217,70,239,0.22), rgba(15,23,42,0.7))' }}
+        >
+          <div className="text-3xl">🎲</div>
+          <div className="flex-1">
+            <div className="font-extrabold text-fuchsia-200">Modo Sorpresa</div>
+            <div className="text-[11px] text-slate-300">Región, Pokémon, Random y Monolocke elegidos al azar. Tú decides si empezar.</div>
+          </div>
+          <span className="text-fuchsia-300 font-bold">›</span>
+        </button>
+
         <div className="grid grid-cols-2 gap-3">
           {GENERATIONS.map((g) => (
             <button

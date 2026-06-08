@@ -10,6 +10,7 @@ import HomeScreen from '@/ui/screens/HomeScreen'
 // Pantallas cargadas bajo demanda (code-splitting) para aligerar el arranque.
 const ModeSelectScreen = lazy(() => import('@/ui/screens/ModeSelectScreen'))
 const GenSelectScreen = lazy(() => import('@/ui/screens/GenSelectScreen'))
+const RandomSetupScreen = lazy(() => import('@/ui/screens/RandomSetupScreen'))
 const StarterSelectScreen = lazy(() => import('@/ui/screens/StarterSelectScreen'))
 const MapScreen = lazy(() => import('@/ui/screens/MapScreen'))
 const BattleScreen = lazy(() => import('@/ui/screens/BattleScreen'))
@@ -36,6 +37,7 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
   modeSelect: ModeSelectScreen,
   genSelect: GenSelectScreen,
+  randomSetup: RandomSetupScreen,
   starterSelect: StarterSelectScreen,
   map: MapScreen,
   battle: BattleScreen,

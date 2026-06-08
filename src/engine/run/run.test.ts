@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent } from './runEngine'
+import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
 import { EVENTS } from './nodes'
 import { runElapsedMs, commitElapsed } from './playtime'
 import { checkAchievements } from './achievements'
@@ -101,6 +101,20 @@ describe('Eventos: objetos prometidos se entregan', () => {
         expect(run.inventory[opt.effect.itemId] ?? 0).toBe(before + opt.effect.qty)
       })
     }
+  })
+})
+
+describe('Intercambio: el objeto equipado vuelve a la mochila', () => {
+  it('al intercambiar un Pokémon con objeto, el objeto no se pierde', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 9 })
+    run.party[0].heldItemId = 'leftovers'
+    run.money = 99_999
+    const node = run.map.nodes[Object.keys(run.map.nodes)[0]]
+    node.content = { kind: 'trade', cost: 0 }
+    node.cleared = false
+    const res = resolveTrade(run, node, run.party[0].uid)
+    expect(res).not.toBeNull()
+    expect(run.inventory['leftovers'] ?? 0).toBeGreaterThan(0)
   })
 })
 

@@ -8,8 +8,7 @@ import PokemonCard from '@/ui/components/PokemonCard'
 import { typeGradient } from '@/ui/theme/types'
 import { MAX_PARTY } from '@/engine/run/party'
 import { loadMeta } from '@/persistence/db'
-
-const POKEBALL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'
+import { POKEBALL } from '@/ui/components/nodeImage'
 
 export default function CatchScreen() {
   const { run, screen, doCatch } = useGame()

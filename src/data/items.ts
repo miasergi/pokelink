@@ -15,13 +15,15 @@ const TYPE_ES: Record<PokemonType, string> = {
   psychic: 'Psíquico', bug: 'Bicho', rock: 'Roca', ghost: 'Fantasma', dragon: 'Dragón',
   dark: 'Siniestro', steel: 'Acero', fairy: 'Hada',
 }
+// Placa oficial de cada tipo (PokeAPI). El tipo Normal no tiene placa propia en
+// los juegos, así que usamos la Tabla Legendaria (Legend Plate) servida en local.
 const PLATE_SPRITE: Record<PokemonType, string> = {
-  normal: 'silk-scarf', // no existe placa de tipo Normal: se mantiene el Pañuelo Seda
-  fire: 'flame-plate', water: 'splash-plate', electric: 'zap-plate', grass: 'meadow-plate',
-  ice: 'icicle-plate', fighting: 'fist-plate', poison: 'toxic-plate', ground: 'earth-plate',
-  flying: 'sky-plate', psychic: 'mind-plate', bug: 'insect-plate', rock: 'stone-plate',
-  ghost: 'spooky-plate', dragon: 'draco-plate', dark: 'dread-plate', steel: 'iron-plate',
-  fairy: 'pixie-plate',
+  normal: LOCAL_ITEM('legend-plate.png'),
+  fire: ITEM_SPRITE('flame-plate'), water: ITEM_SPRITE('splash-plate'), electric: ITEM_SPRITE('zap-plate'), grass: ITEM_SPRITE('meadow-plate'),
+  ice: ITEM_SPRITE('icicle-plate'), fighting: ITEM_SPRITE('fist-plate'), poison: ITEM_SPRITE('toxic-plate'), ground: ITEM_SPRITE('earth-plate'),
+  flying: ITEM_SPRITE('sky-plate'), psychic: ITEM_SPRITE('mind-plate'), bug: ITEM_SPRITE('insect-plate'), rock: ITEM_SPRITE('stone-plate'),
+  ghost: ITEM_SPRITE('spooky-plate'), dragon: ITEM_SPRITE('draco-plate'), dark: ITEM_SPRITE('dread-plate'), steel: ITEM_SPRITE('iron-plate'),
+  fairy: ITEM_SPRITE('pixie-plate'),
 }
 const ALL_TYPES = Object.keys(TYPE_ES) as PokemonType[]
 /** id de objeto de tipo -> tipo que potencia (para el motor de combate). */
@@ -29,7 +31,7 @@ export const TYPE_BOOST_BY_ID: Record<string, PokemonType> = {}
 const TYPE_BOOST_ITEMS: ItemData[] = ALL_TYPES.map((type) => {
   const id = `boost-${type}`
   TYPE_BOOST_BY_ID[id] = type
-  return { id, name: `Tabla ${TYPE_ES[type]}`, category: 'held' as const, description: `Sube un 50% el daño de los ataques de tipo ${TYPE_ES[type]}.`, price: 2500, sprite: ITEM_SPRITE(PLATE_SPRITE[type]) }
+  return { id, name: `Tabla ${TYPE_ES[type]}`, category: 'held' as const, description: `Sube un 50% el daño de los ataques de tipo ${TYPE_ES[type]}.`, price: 2500, sprite: PLATE_SPRITE[type] }
 })
 
 // Catálogo ÁGIL pensado para roguelike: pocas categorías, decisiones rápidas.

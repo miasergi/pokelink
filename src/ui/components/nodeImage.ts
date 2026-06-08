@@ -11,8 +11,9 @@ const ITEM = TILES + 'item.png'
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites'
 export const pokemonSprite = (id: number) => `${SPRITES}/pokemon/${id}.png`
-const itemSprite = (slug: string) => `${SPRITES}/items/${slug}.png`
 export const badgeSprite = (n: number) => `${SPRITES}/badges/${n}.png`
+// Poké Ball propia (local), usada en capturas y como fallback de retrato.
+export const POKEBALL = import.meta.env.BASE_URL + 'items/pokeball.png'
 
 /** Sprite del Pokémon estrella de un nodo de entrenador (fallback de retrato). */
 export function aceSprite(node: MapNode): string {
@@ -21,7 +22,7 @@ export function aceSprite(node: MapNode): string {
     const ace = c.team.reduce((a, b) => (b.level >= a.level ? b : a))
     return pokemonSprite(ace.speciesId)
   }
-  return itemSprite('poke-ball')
+  return POKEBALL
 }
 
 export interface NodeImage {
@@ -38,7 +39,7 @@ export function nodeImage(node: MapNode): NodeImage {
       // Salvaje: solo se ve hierba alta; el Pokémon se revela al entrar.
       return { url: TALLGRASS, pixel: false }
     case 'legendary':
-      return { url: c.kind === 'wild' ? pokemonSprite(c.enemy.speciesId) : itemSprite('poke-ball'), pixel: true }
+      return { url: c.kind === 'wild' ? pokemonSprite(c.enemy.speciesId) : POKEBALL, pixel: true }
     case 'trainer':
     case 'rival':
     case 'elite':
@@ -48,10 +49,10 @@ export function nodeImage(node: MapNode): NodeImage {
       const sprite = c.kind === 'trainer' ? c.trainer.sprite : undefined
       if (sprite) return { url: sprite, pixel: true }
       const ace = c.kind === 'trainer' && c.team.length ? c.team[c.team.length - 1].speciesId : null
-      return { url: ace ? pokemonSprite(ace) : itemSprite('poke-ball'), pixel: true }
+      return { url: ace ? pokemonSprite(ace) : POKEBALL, pixel: true }
     }
     case 'catch':
-      return { url: itemSprite('poke-ball'), pixel: true }
+      return { url: POKEBALL, pixel: true }
     case 'item':
       // Casilla de objeto: Chapa Dorada (imagen propia).
       return { url: ITEM, pixel: false }
@@ -64,6 +65,6 @@ export function nodeImage(node: MapNode): NodeImage {
     case 'event':
       return { url: EVENT, pixel: false }
     default:
-      return { url: itemSprite('poke-ball'), pixel: true }
+      return { url: POKEBALL, pixel: true }
   }
 }

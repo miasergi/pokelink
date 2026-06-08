@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v5.8',
+    date: '2026-06-08',
+    title: 'Modo Sorpresa, reintentar mapa y arreglos',
+    changes: [
+      'Nuevo «Modo Sorpresa» en la elección de región: genera al azar región, Pokémon, Random y Monolocke, y te enseña la configuración para empezar, volver a tirar o salir.',
+      'Al perder, ya puedes «Reintentar este mapa» (misma semilla) o reiniciar con un mapa nuevo.',
+      'Los Pokémon de doble tipo ya no descuadran la tarjeta del equipo (los tipos se ajustan a dos líneas).',
+      'La Tabla Normal ahora se ve como una tabla (Tabla Legendaria) en vez de un pañuelo.',
+      'Al liberar un Pokémon para capturar/quedarte un legendario, su objeto equipado vuelve a la mochila (ya no se pierde).',
+      'Nueva imagen de Poké Ball en capturas y en el mapa.',
+    ],
+  },
+  {
     version: 'v5.7',
     date: '2026-06-07',
     title: 'El cronómetro solo cuenta el juego activo',

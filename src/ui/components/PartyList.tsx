@@ -135,7 +135,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder, onU
                     <span className="font-bold text-sm truncate">{sp.displayName}</span>
                     <span className="text-[10px] text-slate-400 shrink-0">Nv.{mon.level}</span>
                   </div>
-                  <div className="flex gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+                  <div className="flex flex-wrap gap-0.5 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-1">
