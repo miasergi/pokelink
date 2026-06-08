@@ -35,6 +35,8 @@ export interface BestRun {
   eliteDefeated: number
   won: boolean
   starterId: number
+  /** Fecha del Reto diario (YYYY-MM-DD) si esta run lo era. */
+  daily?: string
   /** Instantánea del equipo con el que se terminó (para ver el detalle). */
   team?: import('@/engine/run/types').RunState['party']
 }

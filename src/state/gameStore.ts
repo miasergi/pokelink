@@ -698,7 +698,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   meta.bestRuns = [
     {
       date: Date.now(),
-      mode: run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
+      mode: run.daily ? 'Reto diario' : run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
       region: run.region,
       difficulty: run.difficulty,
       durationMs,
@@ -706,6 +706,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
       eliteDefeated: run.stats.eliteDefeated,
       won: run.status === 'won',
       starterId: run.starterId,
+      daily: run.daily,
       team: structuredClone(run.party),
     },
     ...meta.bestRuns,

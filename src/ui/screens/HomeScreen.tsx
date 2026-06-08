@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button } from '@/ui/components/kit'
 import { APP_VERSION } from '@/version'
 import { CHANGELOG } from '@/data/changelog'
 import AccountModal from '@/ui/components/AccountModal'
 import Sprite from '@/ui/components/Sprite'
+import RunTeamModal from '@/ui/components/RunTeamModal'
+import { formatDuration } from '@/ui/components/RunTimer'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
 import { dailyChallenge } from '@/engine/run/daily'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
+import { loadMeta, type BestRun } from '@/persistence/db'
 import TypeBadge from '@/ui/components/TypeBadge'
 
 export default function HomeScreen() {
@@ -17,6 +20,14 @@ export default function HomeScreen() {
   const [account, setAccount] = useState(false)
   const [dailyOpen, setDailyOpen] = useState(false)
   const [newsOpen, setNewsOpen] = useState(false)
+  const [dailyWins, setDailyWins] = useState<BestRun[]>([])
+  const [viewRun, setViewRun] = useState<BestRun | null>(null)
+  const today = dailyChallenge().date
+  // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
+  useEffect(() => {
+    if (!dailyOpen) return
+    void loadMeta().then((m) => setDailyWins((m.bestRuns ?? []).filter((r) => r.daily === today && r.won)))
+  }, [dailyOpen, today])
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom relative">
       {/* Botón de nube / cuenta (arriba, centrado) */}
@@ -114,26 +125,55 @@ export default function HomeScreen() {
         const starters = STARTERS_BY_GEN[d.gen] ?? STARTERS_BY_GEN[1]
         const starterId = starters[d.seed % starters.length]
         const sp = getSpecies(starterId)
+        const playDaily = () => { setDailyOpen(false); startRun({ gen: d.gen, pools: [d.gen], random: false, starterId, difficulty: 'normal', seed: d.seed, daily: d.date }) }
+        const won = dailyWins.length > 0
         return (
           <div className="absolute inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setDailyOpen(false)}>
             <div className="w-full max-w-sm rounded-3xl border border-fuchsia-500/50 bg-slate-900 p-4 animate-pop-in text-center" onClick={(e) => e.stopPropagation()}>
               <div className="text-3xl">🗓️</div>
               <div className="font-extrabold text-fuchsia-300 text-lg">Reto diario · {d.date}</div>
-              <p className="text-sm text-slate-300 mt-1">El <b>mismo desafío para todo el mundo hoy</b>: misma región, mismo mapa (semilla fija) y mismo inicial. Dificultad <b>Normal</b>. ¡Compite por el mejor tiempo en el ranking «Hoy»!</p>
-              <div className="my-3 flex items-center justify-center gap-3 rounded-2xl bg-slate-800 p-3">
-                <Sprite speciesId={starterId} className="w-16 h-16 object-contain" />
-                <div className="text-left">
-                  <div className="text-[11px] text-slate-400 uppercase tracking-wide">Región {region}</div>
-                  <div className="font-bold">{sp.displayName}</div>
-                  <div className="flex gap-1 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
-                </div>
-              </div>
-              <Button variant="primary" full onClick={() => { setDailyOpen(false); startRun({ gen: d.gen, pools: [d.gen], random: false, starterId, difficulty: 'normal', seed: d.seed, daily: d.date }) }}>¡Aceptar el reto!</Button>
-              <button className="text-xs text-slate-500 mt-2" onClick={() => setDailyOpen(false)}>Ahora no</button>
+
+              {won ? (
+                <>
+                  <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/40 px-3 py-2 text-sm mt-2 mb-1">
+                    ✅ <b>¡Ya completaste el reto de hoy!</b>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mb-2">{dailyWins.length === 1 ? 'Lo conseguiste con esta partida' : 'Lo conseguiste con estas partidas'} (toca para ver el equipo):</p>
+                  <div className="flex flex-col gap-2 mb-3">
+                    {dailyWins.map((r, i) => (
+                      <button key={i} onClick={() => setViewRun(r)} className="flex items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-800/60 p-2 active:scale-[0.98] transition">
+                        <div className="flex items-center gap-1">
+                          {(r.team ?? []).slice(0, 6).map((m) => <Sprite key={m.uid} speciesId={m.speciesId} shiny={m.shiny} className="w-7 h-7 object-contain" />)}
+                        </div>
+                        <span className="text-emerald-300 font-bold text-sm whitespace-nowrap shrink-0">⏱ {formatDuration(r.durationMs)} ›</span>
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="primary" full onClick={playDaily}>🔁 Volver a jugar</Button>
+                  <button className="text-xs text-slate-500 mt-2" onClick={() => setDailyOpen(false)}>Cerrar</button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-300 mt-1">El <b>mismo desafío para todo el mundo hoy</b>: misma región, mismo mapa (semilla fija) y mismo inicial. Dificultad <b>Normal</b>. ¡Compite por el mejor tiempo en el ranking «Hoy»!</p>
+                  <div className="my-3 flex items-center justify-center gap-3 rounded-2xl bg-slate-800 p-3">
+                    <Sprite speciesId={starterId} className="w-16 h-16 object-contain" />
+                    <div className="text-left">
+                      <div className="text-[11px] text-slate-400 uppercase tracking-wide">Región {region}</div>
+                      <div className="font-bold">{sp.displayName}</div>
+                      <div className="flex gap-1 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+                    </div>
+                  </div>
+                  <Button variant="primary" full onClick={playDaily}>¡Aceptar el reto!</Button>
+                  <button className="text-xs text-slate-500 mt-2" onClick={() => setDailyOpen(false)}>Ahora no</button>
+                </>
+              )}
             </div>
           </div>
         )
       })()}
+
+      {/* Detalle del equipo de una partida diaria ganada */}
+      {viewRun && <RunTeamModal run={viewRun} onClose={() => setViewRun(null)} />}
 
       {/* Aviso de logros recién conseguidos */}
       {newAchievements.length > 0 && (

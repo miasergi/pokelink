@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.6',
+    date: '2026-06-08',
+    title: 'Reto diario: ya completado',
+    changes: [
+      'Si ya ganaste el Reto diario de hoy, al abrirlo verás que ya lo completaste y las partidas con las que lo lograste (tiempo y equipo final, tocando para ver el detalle).',
+      'Puedes volver a jugar el reto del día cuando quieras.',
+    ],
+  },
+  {
     version: 'v6.5',
     date: '2026-06-08',
     title: 'Ajustes de potencia: Z y capturas',
