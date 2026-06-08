@@ -8,9 +8,10 @@ import RunTimer from '@/ui/components/RunTimer'
 import Icon from '@/ui/components/Icon'
 import { runElapsedMs } from '@/engine/run/playtime'
 import { shareText, buildShareText } from '@/utils/share'
+import { pokemonSprite } from '@/ui/components/nodeImage'
 
 export default function VictoryScreen() {
-  const { run, abandonRun } = useGame()
+  const { run, abandonRun, startLeagueWithRunTeam } = useGame()
   const [confetti, setConfetti] = useState(true)
   const [shared, setShared] = useState<string | null>(null)
   useEffect(() => {
@@ -66,7 +67,10 @@ export default function VictoryScreen() {
           else if (r === 'shared') setShared('¡Compartido!')
         }}>📤 Compartir</Button>
         {shared && <div className="text-xs text-emerald-300">{shared}</div>}
-        <Button full variant="primary" onClick={() => void abandonRun()}>
+        <Button full variant="primary" onClick={() => startLeagueWithRunTeam(pokemonSprite(run.party[0].speciesId))}>
+          <span className="inline-flex items-center justify-center gap-1.5"><Icon name="liga" className="w-5 h-5" /> ¡Ir a Liga Pokémon!</span>
+        </Button>
+        <Button full variant="secondary" onClick={() => void abandonRun()}>
           Volver al menú
         </Button>
       </div>

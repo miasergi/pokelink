@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.18',
+    date: '2026-06-08',
+    title: 'De campeón directo a la Liga',
+    changes: [
+      'Al ganar una partida, nuevo botón «¡Ir a Liga Pokémon!» para entrar directamente al torneo con el equipo con el que te has pasado la run.',
+    ],
+  },
+  {
     version: 'v6.17',
     date: '2026-06-08',
     title: 'Liga: gestiona tu equipo',

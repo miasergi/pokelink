@@ -60,6 +60,7 @@ interface GameState {
   hasSavedLeague: boolean
   totalWins: number
   startLeague: (team: PokemonInstance[], playerName: string, sprite: string) => void
+  startLeagueWithRunTeam: (sprite: string) => void
   resumeLeague: () => Promise<void>
   abandonLeague: () => Promise<void>
   startLeagueMatch: () => void
@@ -353,6 +354,17 @@ export const useGame = create<GameState>((set, get) => ({
     const league = createLeague(playerName, sprite, team, seed)
     void clearLeague(); void saveLeague(league)
     set({ league, hasSavedLeague: true, leagueBattle: null, screen: { name: 'league' }, history: [] })
+  },
+  // Desde la pantalla de victoria: entra a la Liga con el equipo ganador y limpia la run.
+  startLeagueWithRunTeam: (sprite) => {
+    const run = get().run
+    if (!run) return
+    const team = run.party.map((p) => structuredClone(p))
+    void clearRun()
+    const seed = Math.floor(Math.random() * 2 ** 31)
+    const league = createLeague(get().alias || 'Tú', sprite, team, seed)
+    void clearLeague(); void saveLeague(league)
+    set({ run: null, hasSavedRun: false, pendingBattle: null, league, hasSavedLeague: true, leagueBattle: null, screen: { name: 'league' }, history: [] })
   },
   resumeLeague: async () => {
     const league = await loadLeague()
