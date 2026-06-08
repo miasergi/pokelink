@@ -104,6 +104,22 @@ describe('Eventos: objetos prometidos se entregan', () => {
   })
 })
 
+describe('Coherencia de entrenadores por tipo', () => {
+  it('un entrenador con tipo de especialidad solo lleva Pokémon de ese tipo', () => {
+    for (let s = 1; s <= 6; s++) {
+      const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 700 + s })
+      for (const n of Object.values(run.map.nodes)) {
+        if (n.type !== 'trainer' || n.content.kind !== 'trainer') continue
+        const t = n.content.trainer
+        if (!t.specialtyType) continue // "Guay" mixto o Team Rocket: sin tipo fijo
+        for (const m of n.content.team) {
+          expect(getSpecies(m.speciesId).types).toContain(t.specialtyType)
+        }
+      }
+    }
+  })
+})
+
 describe('Intercambio: el objeto equipado vuelve a la mochila', () => {
   it('al intercambiar un Pokémon con objeto, el objeto no se pierde', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 9 })

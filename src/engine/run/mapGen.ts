@@ -14,44 +14,91 @@ import type { MapNode, NodeType, RandomFlags, RunMap } from './types'
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
 // Niveles extra de un nodo ARRIESGADO (suma fija, no multiplicador).
 const RISKY_LEVEL_BONUS = 4
-// Cada clase de entrenador tiene una temática de tipo coherente.
-const GENERIC_CLASSES: { slug: string; name: string; type: PokemonType }[] = [
+// Cada clase de entrenador tiene una temática de tipo y SOLO lleva Pokémon de
+// ese tipo (coherencia). Excepción: "Entrenador/a Guay" (mixed) lleva de todo.
+// Cubre los 18 tipos con al menos una clase estricta.
+const GENERIC_CLASSES: { slug: string; name: string; type: PokemonType; mixed?: boolean }[] = [
+  // Normal
   { slug: 'youngster', name: 'Joven', type: 'normal' },
   { slug: 'lass', name: 'Chica', type: 'normal' },
-  { slug: 'bugcatcher', name: 'Cazabichos', type: 'bug' },
-  { slug: 'hiker', name: 'Montañero', type: 'rock' },
-  { slug: 'beauty', name: 'Modelo', type: 'fairy' },
-  { slug: 'acetrainer', name: 'Entrenador Guay', type: 'flying' },
-  { slug: 'acetrainerf', name: 'Entrenadora Guay', type: 'psychic' },
-  { slug: 'blackbelt', name: 'Karateka', type: 'fighting' },
-  { slug: 'sailor', name: 'Marinero', type: 'water' },
-  { slug: 'pokemaniac', name: 'Pokémano', type: 'ground' },
-  { slug: 'gambler', name: 'Apostador', type: 'fire' },
-  { slug: 'juggler', name: 'Malabarista', type: 'psychic' },
-  { slug: 'scientist', name: 'Científico', type: 'electric' },
-  { slug: 'burglar', name: 'Ladrón', type: 'dark' },
-  { slug: 'fisherman', name: 'Pescador', type: 'water' },
-  { slug: 'biker', name: 'Motorista', type: 'poison' },
   { slug: 'gentleman', name: 'Caballero', type: 'normal' },
-  { slug: 'supernerd', name: 'Empollón', type: 'electric' },
+  // Fuego
+  { slug: 'firebreather', name: 'Tragafuegos', type: 'fire' },
+  { slug: 'gambler', name: 'Apostador', type: 'fire' },
+  // Agua
+  { slug: 'fisherman', name: 'Pescador', type: 'water' },
+  { slug: 'sailor', name: 'Marinero', type: 'water' },
+  { slug: 'swimmer', name: 'Nadador', type: 'water' },
+  // Eléctrico
+  { slug: 'scientist', name: 'Científico', type: 'electric' },
+  { slug: 'guitarist', name: 'Guitarrista', type: 'electric' },
+  // Planta
   { slug: 'camper', name: 'Excursionista', type: 'grass' },
   { slug: 'picnicker', name: 'Senderista', type: 'grass' },
-  // --- Clases añadidas (más variedad y cobertura de tipos) ---
+  { slug: 'aromalady', name: 'Floristera', type: 'grass' },
+  // Hielo
   { slug: 'skier', name: 'Esquiadora', type: 'ice' },
+  // Lucha
+  { slug: 'blackbelt', name: 'Karateka', type: 'fighting' },
+  // Veneno
+  { slug: 'biker', name: 'Motorista', type: 'poison' },
+  { slug: 'ninjaboy', name: 'Ninja', type: 'poison' },
+  // Tierra
+  { slug: 'pokemaniac', name: 'Pokémano', type: 'ground' },
+  { slug: 'ruinmaniac', name: 'Arqueólogo', type: 'ground' },
+  // Volador
+  { slug: 'birdkeeper', name: 'Ornitólogo', type: 'flying' },
+  // Psíquico
+  { slug: 'psychic', name: 'Vidente', type: 'psychic' },
+  { slug: 'juggler', name: 'Malabarista', type: 'psychic' },
+  // Bicho
+  { slug: 'bugcatcher', name: 'Cazabichos', type: 'bug' },
+  // Roca
+  { slug: 'hiker', name: 'Montañero', type: 'rock' },
+  // Fantasma
   { slug: 'medium', name: 'Médium', type: 'ghost' },
+  // Dragón
   { slug: 'dragontamer', name: 'Domadragones', type: 'dragon' },
   { slug: 'veteran', name: 'Veterano', type: 'dragon' },
-  { slug: 'worker', name: 'Operario', type: 'steel' },
-  { slug: 'guitarist', name: 'Guitarrista', type: 'electric' },
+  // Siniestro
   { slug: 'roughneck', name: 'Maleante', type: 'dark' },
-  { slug: 'swimmer', name: 'Nadador', type: 'water' },
-  { slug: 'aromalady', name: 'Floristera', type: 'grass' },
-  { slug: 'ruinmaniac', name: 'Arqueólogo', type: 'ground' },
-  { slug: 'ninjaboy', name: 'Ninja', type: 'poison' },
-  { slug: 'firebreather', name: 'Tragafuegos', type: 'fire' },
-  { slug: 'collector', name: 'Coleccionista', type: 'normal' },
-  { slug: 'psychic', name: 'Vidente', type: 'psychic' },
+  { slug: 'burglar', name: 'Ladrón', type: 'dark' },
+  // Acero
+  { slug: 'worker', name: 'Operario', type: 'steel' },
+  // Hada
+  { slug: 'beauty', name: 'Modelo', type: 'fairy' },
+  // Mixtos: "Entrenador/a Guay" puede llevar Pokémon de cualquier tipo.
+  { slug: 'acetrainer', name: 'Entrenador Guay', type: 'normal', mixed: true },
+  { slug: 'acetrainerf', name: 'Entrenadora Guay', type: 'normal', mixed: true },
 ]
+
+// --- Team Rocket: Jessie & James con los Pokémon que usan en el anime por región. ---
+const ROCKET_SPRITE = 'https://play.pokemonshowdown.com/sprites/trainers/teamrocket.png'
+const ROCKET_TEAMS: Record<number, number[]> = {
+  1: [52, 24, 110], // Meowth, Arbok, Weezing (Kanto)
+  2: [202, 24, 110], // Wobbuffet, Arbok, Weezing (Johto)
+  3: [52, 336, 331], // Meowth, Seviper, Cacnea (Hoenn)
+  4: [52, 336, 455], // Meowth, Seviper, Carnivine (Sinnoh)
+  5: [52, 591, 593], // Meowth, Amoonguss, Jellicent (Teselia)
+  6: [52, 711, 687], // Meowth, Gourgeist, Malamar (Kalos)
+  7: [52, 778, 747], // Meowth, Mimikyu, Mareanie (Alola)
+  8: [52, 711, 687], // Meowth, Gourgeist, Malamar (Galar)
+  9: [52, 24, 110], // Meowth, Arbok, Weezing (Paldea, sin anime propio)
+}
+
+function buildRocketContent(level: number, rng: RNG, gen: number): MapNode['content'] {
+  const roster = ROCKET_TEAMS[gen] ?? ROCKET_TEAMS[1]
+  const size = level < 15 ? 2 : 3
+  const team = roster.slice(0, size).map((id, i) => createInstance(id, Math.max(5, level + 1 - i * 2), rng))
+  const trainer: TrainerData = {
+    id: `rocket-${level}-${rng.int(0, 9999)}`,
+    name: 'Team Rocket', trainerClass: 'trainer',
+    sprite: ROCKET_SPRITE, reward: { money: 400 + level * 35 },
+    quote: 'Prepárate para los problemas... ¡y más vale que teman!',
+    team: [],
+  }
+  return { kind: 'trainer', trainer, team }
+}
 
 interface LayerPlan {
   kind: 'route' | 'boss' | 'heal' | 'legendary'
@@ -179,7 +226,7 @@ export function generateMap(
         const nodeLevel = risky ? level + RISKY_LEVEL_BONUS : level
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: nodeLevel, risky,
-          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx], acquirePool),
+          content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx], acquirePool, gen),
           cleared: false,
         }
         ids.push(id)
@@ -294,13 +341,13 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
 }
 
 function buildRouteContent(
-  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99, catchPool: SpeciesData[] = pool,
+  type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99, catchPool: SpeciesData[] = pool, gen: number = 1,
 ): MapNode['content'] {
   switch (type) {
     case 'battle':
       return { kind: 'wild', enemy: makeWild(pool, level, rng, difficulty) }
     case 'trainer':
-      return synthTrainerContent(pool, level, rng, difficulty)
+      return synthTrainerContent(pool, level, rng, difficulty, gen)
     case 'catch': {
       // Pokémon a elegir, balanceados por nivel/dificultad. Nuzlocke: solo 1
       // (un único intento de captura por zona, como el modo clásico).
@@ -339,23 +386,33 @@ function buildRouteContent(
   }
 }
 
-/** Entrenador genérico con temática de tipo coherente y equipo de ese tipo. */
-function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG, difficulty: string = 'normal'): MapNode['content'] {
-  const cls = rng.pick(GENERIC_CLASSES)
+/** Entrenador genérico: SOLO lleva Pokémon de su tipo (salvo los "Guay" mixtos).
+ *  De vez en cuando aparece Team Rocket con su equipo del anime de la región. */
+function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG, difficulty: string = 'normal', gen: number = 1): MapNode['content'] {
+  // ~9% (a partir de nivel medio): Team Rocket.
+  if (level >= 8 && rng.chance(0.09)) return buildRocketContent(level, rng, gen)
+
+  // Solo clases cuyo tipo EXISTE en el pool (p. ej. nada de Siniestro en Kanto),
+  // para que el equipo del entrenador siempre case con su tipo. Los "Guay" valen.
+  const present = new Set(pool.flatMap((s) => s.types))
+  const usable = GENERIC_CLASSES.filter((c) => c.mixed || present.has(c.type))
+  const cls = rng.pick(usable.length ? usable : GENERIC_CLASSES)
   const trainer: TrainerData = {
     id: `trainer-${level}-${rng.int(0, 9999)}`,
     name: cls.name,
     trainerClass: 'trainer',
-    specialtyType: cls.type,
+    // Mixto (Guay): sin tipo de especialidad. Estricto: su tipo.
+    specialtyType: cls.mixed ? undefined : cls.type,
     sprite: SHOWDOWN_TRAINER(cls.slug),
     reward: { money: 200 + level * 25 },
     team: [],
   }
-  const tier = tierPool(pool, level, difficulty)
   const size = level < 15 ? 1 : level < 35 ? 2 : 3
-  // Filtra al tipo temático; si no hay suficientes, usa el pool general.
-  const typed = tier.filter((s) => s.types.includes(cls.type))
-  const usePool = typed.length >= size ? typed : tier
+  // Pool del que sale el equipo: del TIPO del entrenador (estricto) o general (mixto).
+  // Para coherencia, un entrenador de tipo SIEMPRE lleva ese tipo (de todo el pool,
+  // no solo de la ventana de nivel), eligiendo los más acordes al nivel.
+  const typeBase = cls.mixed ? pool : pool.filter((s) => s.types.includes(cls.type))
+  const usePool = typeBase.length ? tierPool(typeBase, level, difficulty) : tierPool(pool, level, difficulty)
   const team: PokemonInstance[] = []
   for (let i = 0; i < size; i++) {
     const sp = rng.pick(usePool)

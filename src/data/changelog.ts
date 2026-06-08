@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.0',
+    date: '2026-06-08',
+    title: 'Entrenadores coherentes y Team Rocket',
+    changes: [
+      'Cada entrenador lleva ahora SOLO Pokémon de su tipo (un Pescador lleva tipo Agua, un Cazabichos tipo Bicho…). El «Entrenador/a Guay» sigue llevando tipos variados.',
+      'Solo aparecen entrenadores cuyo tipo existe en la región elegida (p. ej. nada de tipo Siniestro en Kanto).',
+      '¡Aparece Team Rocket! Con los Pokémon que usan en el anime de cada región.',
+      'En combate, el entrenador rival se muestra más arriba y con su nombre debajo.',
+      'Arreglado el rival de Paldea (Nemona), que mostraba un Pokémon en vez de su retrato.',
+    ],
+  },
+  {
     version: 'v5.9',
     date: '2026-06-08',
     title: 'Duelos con entrenador y retoques visuales',

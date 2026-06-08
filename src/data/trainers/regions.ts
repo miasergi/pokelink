@@ -32,7 +32,7 @@ const REGIONS: Record<number, RegionData> = {
   6: { gen: 6, badgeBase: 40, rival: { name: 'Calem', sprite: SHOWDOWN('calem') }, rivalExtras: [[661, 659], [662, 667], [663, 695, 697]], gymLeaders: KALOS_GYM_LEADERS, eliteFour: KALOS_ELITE_FOUR, buildChampion: buildKalosChampion },
   7: { gen: 7, badgeBase: 48, rival: { name: 'Tilo', sprite: SHOWDOWN('hau') }, rivalExtras: [[731, 734], [738, 757], [745, 462, 628]], gymLeaders: ALOLA_GYM_LEADERS, eliteFour: ALOLA_ELITE_FOUR, buildChampion: buildAlolaChampion },
   8: { gen: 8, badgeBase: 56, rival: { name: 'Hop', sprite: SHOWDOWN('hop') }, rivalExtras: [[819, 821], [831, 845], [823, 884, 6]], gymLeaders: GALAR_GYM_LEADERS, eliteFour: GALAR_ELITE_FOUR, buildChampion: buildGalarChampion },
-  9: { gen: 9, badgeBase: 64, rival: { name: 'Nemona', sprite: SHOWDOWN('nemona') }, rivalExtras: [[921, 915], [948, 957], [983, 970, 713]], gymLeaders: PALDEA_GYM_LEADERS, eliteFour: PALDEA_ELITE_FOUR, buildChampion: buildPaldeaChampion },
+  9: { gen: 9, badgeBase: 64, rival: { name: 'Nemona', sprite: SHOWDOWN('nemona-masters') }, rivalExtras: [[921, 915], [948, 957], [983, 970, 713]], gymLeaders: PALDEA_GYM_LEADERS, eliteFour: PALDEA_ELITE_FOUR, buildChampion: buildPaldeaChampion },
 }
 
 export function getRegion(gen: number): RegionData {
