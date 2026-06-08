@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.10',
+    date: '2026-06-08',
+    title: 'Icono de Ajustes',
+    changes: [
+      'El botón de Ajustes ahora usa un icono de llave inglesa (herramienta).',
+    ],
+  },
+  {
     version: 'v6.9',
     date: '2026-06-08',
     title: 'Sin emojis: iconos propios (1ª parte)',

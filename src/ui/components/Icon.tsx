@@ -49,6 +49,7 @@ const SVGS: Record<string, SvgIcon> = {
   share: S(<><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" /></>),
   warning: S(<><path d="M12 3l9.5 17H2.5L12 3Z" /><path d="M12 9.5v5M12 17.5h.01" /></>),
   gear: S(<><circle cx="12" cy="12" r="3.2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></>),
+  wrench: S(<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" />),
   clipboard: S(<><rect x="6" y="4" width="12" height="17" rx="2" /><rect x="9" y="2.5" width="6" height="3.5" rx="1" /><path d="M9 11h6M9 15h6" /></>),
   dna: S(<path d="M7 3c0 5 10 6 10 11s-10 5-10 10M17 3c0 5-10 6-10 11s10 5 10 10M8 6h8M8 18h8M9.5 9.5h5M9.5 14.5h5" />),
   target: S(<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></>),

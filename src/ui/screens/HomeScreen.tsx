@@ -84,7 +84,7 @@ export default function HomeScreen() {
             <span className="inline-flex items-center justify-center gap-1"><Icon name="trophy" className="w-4 h-4" /> Récords</span>
           </Button>
           <Button variant="secondary" onClick={() => navigate('settings')}>
-            <span className="inline-flex items-center justify-center gap-1"><Icon name="gear" className="w-4 h-4" /> Ajustes</span>
+            <span className="inline-flex items-center justify-center gap-1"><Icon name="wrench" className="w-4 h-4" /> Ajustes</span>
           </Button>
         </div>
         <button
