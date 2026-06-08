@@ -166,13 +166,13 @@ export function counterStarterId(playerStarterId: number): number {
 }
 
 /**
- * Campeón (rival Blue). Su inicial es el que cuenta al del jugador.
+ * Campeón (rival Azul). Su inicial es el que cuenta al del jugador.
  * `rivalStarterFinalId` se calcula fuera (con getFinalEvolution) para soportar
  * todas las generaciones; aquí damos el equipo de apoyo clásico de Kanto.
  */
 export function buildKantoChampion(rivalStarterFinalId: number): TrainerData {
   return {
-    id: 'champion-blue', name: 'Blue', trainerClass: 'champion',
+    id: 'champion-blue', name: 'Azul', trainerClass: 'champion',
     sprite: TRAINER_SPRITE('blue'), reward: { money: 12000 },
     quote: '¡Ja! ¡Soy el Campeón de la Liga Pokémon! ¿Crees que puedes ganarme?',
     team: [

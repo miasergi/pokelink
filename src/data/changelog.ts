@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.16',
+    date: '2026-06-08',
+    title: 'Liga: modal centrado + nombres en español',
+    changes: [
+      'Arreglado: al ver el equipo de un rival en la Liga, la ventana ya se abre centrada (antes saltaba arriba).',
+      'Nombres de entrenadores de Johto en español: Pegaso, Antón, Blanca, Morti, Aníbal, Yasmina y Fredo; y el rival de Kanto pasa a ser «Azul».',
+    ],
+  },
+  {
     version: 'v6.15',
     date: '2026-06-08',
     title: 'Más logros + récords de la Liga',

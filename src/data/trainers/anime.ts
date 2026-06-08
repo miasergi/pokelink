@@ -28,7 +28,6 @@ export const ANIME_TRAINERS: AnimeTrainer[] = [
   { id: 'serena', name: 'Serena', sprite: SHOWDOWN('serena'), team: [655, 700, 671, 706, 681, 762] }, // Delphox, Sylveon, Florges, Goodra, Aegislash, Steenee
   { id: 'elio', name: 'Elio', sprite: SHOWDOWN('elio'), team: [724, 745, 727, 730, 738, 784] }, // Decidueye, Lycanroc, Incineroar, Primarina, Vikavolt, Kommo-o
   { id: 'selene', name: 'Selene', sprite: SHOWDOWN('selene'), team: [727, 760, 738, 754, 745, 778] }, // Incineroar, Bewear, Vikavolt, Lurantis, Lycanroc, Mimikyu
-  { id: 'victor', name: 'Vic', sprite: SHOWDOWN('victor'), team: [887, 681, 462, 248, 823, 884] }, // Dragapult, Aegislash, Magnezone, Tyranitar, Corviknight, Duraludon
+  { id: 'victor', name: 'Víctor', sprite: SHOWDOWN('victor'), team: [887, 681, 462, 248, 823, 884] }, // Dragapult, Aegislash, Magnezone, Tyranitar, Corviknight, Duraludon
   { id: 'gloria', name: 'Gloria', sprite: SHOWDOWN('gloria'), team: [892, 869, 879, 858, 845, 818] }, // Urshifu, Alcremie, Copperajah, Hatterene, Cramorant, Inteleon
-  { id: 'leon', name: 'Lionel', sprite: SHOWDOWN('leon'), team: [149, 6, 887, 681, 462, 248] }, // Dragonite, Charizard, Dragapult, Aegislash, Magnezone, Tyranitar
 ]

@@ -9,43 +9,43 @@ const T = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/$
 
 export const JOHTO_GYM_LEADERS: TrainerData[] = [
   {
-    id: 'falkner', name: 'Falkner', trainerClass: 'gym', specialtyType: 'flying',
+    id: 'falkner', name: 'Pegaso', trainerClass: 'gym', specialtyType: 'flying',
     sprite: T('falkner'), reward: { money: 1200 },
-    quote: '¡Soy Falkner, el orgulloso maestro de los Pokémon de tipo volador!',
+    quote: '¡Soy Pegaso, el orgulloso maestro de los Pokémon de tipo volador!',
     team: [{ speciesId: 16, level: 9 }, { speciesId: 17, level: 13 }],
   },
   {
-    id: 'bugsy', name: 'Bugsy', trainerClass: 'gym', specialtyType: 'bug',
+    id: 'bugsy', name: 'Antón', trainerClass: 'gym', specialtyType: 'bug',
     sprite: T('bugsy'), reward: { money: 1600 },
-    quote: '¡Soy Bugsy! ¡Nadie sabe más de Pokémon insecto que yo!',
+    quote: '¡Soy Antón! ¡Nadie sabe más de Pokémon insecto que yo!',
     team: [{ speciesId: 11, level: 15 }, { speciesId: 14, level: 15 }, { speciesId: 123, level: 17 }],
   },
   {
-    id: 'whitney', name: 'Whitney', trainerClass: 'gym', specialtyType: 'normal',
+    id: 'whitney', name: 'Blanca', trainerClass: 'gym', specialtyType: 'normal',
     sprite: T('whitney'), reward: { money: 2000 },
     quote: '¡Los Pokémon normales son los mejores y más monos!',
     team: [{ speciesId: 35, level: 18 }, { speciesId: 241, level: 20 }],
   },
   {
-    id: 'morty', name: 'Morty', trainerClass: 'gym', specialtyType: 'ghost',
+    id: 'morty', name: 'Morti', trainerClass: 'gym', specialtyType: 'ghost',
     sprite: T('morty'), reward: { money: 2400 },
     quote: 'Puedo ver lo que otros no ven... ¡tu derrota!',
     team: [{ speciesId: 92, level: 21 }, { speciesId: 93, level: 21 }, { speciesId: 93, level: 23 }, { speciesId: 94, level: 25 }],
   },
   {
-    id: 'chuck', name: 'Chuck', trainerClass: 'gym', specialtyType: 'fighting',
+    id: 'chuck', name: 'Aníbal', trainerClass: 'gym', specialtyType: 'fighting',
     sprite: T('chuck'), reward: { money: 2900 },
     quote: '¡UOOOH! ¡Mi entrenamiento de lucha te hará pedazos!',
     team: [{ speciesId: 57, level: 29 }, { speciesId: 62, level: 31 }],
   },
   {
-    id: 'jasmine', name: 'Jasmine', trainerClass: 'gym', specialtyType: 'steel',
+    id: 'jasmine', name: 'Yasmina', trainerClass: 'gym', specialtyType: 'steel',
     sprite: T('jasmine'), reward: { money: 3200 },
     quote: 'Esto... gracias por ayudar antes. Daré lo mejor de mí.',
     team: [{ speciesId: 81, level: 30 }, { speciesId: 81, level: 30 }, { speciesId: 208, level: 35 }],
   },
   {
-    id: 'pryce', name: 'Pryce', trainerClass: 'gym', specialtyType: 'ice',
+    id: 'pryce', name: 'Fredo', trainerClass: 'gym', specialtyType: 'ice',
     sprite: T('pryce'), reward: { money: 3400 },
     quote: 'Los Pokémon y yo hemos sobrevivido a duros inviernos. ¡Verás!',
     team: [{ speciesId: 86, level: 27 }, { speciesId: 87, level: 29 }, { speciesId: 221, level: 31 }],

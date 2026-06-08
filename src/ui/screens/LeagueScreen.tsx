@@ -164,7 +164,7 @@ function ChampionCard({ league, champ, onView }: { league: LeagueState; champ: n
 
 function TeamModal({ p, onClose }: { p: LeagueParticipant; onClose: () => void }) {
   return (
-    <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div className="w-full max-w-md max-h-[90%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-2">
           {p.sprite && <img src={p.sprite} alt="" className="w-10 h-10 object-contain" />}
@@ -198,7 +198,7 @@ function TeamModal({ p, onClose }: { p: LeagueParticipant; onClose: () => void }
 function ResultsModal({ league, onClose, onView }: { league: LeagueState; onClose: () => void; onView: (i: number) => void }) {
   const [md, setMd] = useState(Math.max(0, Math.min(2, league.matchday - (league.phase === 'groups' ? 1 : 0))))
   return (
-    <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-2">
           <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-5 h-5" /> Resultados</div>
@@ -236,7 +236,7 @@ function LeagueShop({ league, onEquip, onUnequip, onClose }: { league: LeagueSta
   const [pick, setPick] = useState<string | null>(null) // itemId elegido para equipar
   const team = league.participants[league.playerIdx].team
   return (
-    <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="bag" className="w-5 h-5" /> Tienda (gratis)</div>
