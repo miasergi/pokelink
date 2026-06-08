@@ -81,7 +81,8 @@ const DURATION: Partial<Record<BattleEvent['kind'], number>> = {
 }
 
 export default function BattleScreen() {
-  const { run, pendingBattle, leagueBattle, finishBattle, finishLeagueBattle, battleSummary, closeBattle } = useGame()
+  const { run, pendingBattle, leagueBattle, finishBattle, finishLeagueBattle, battleSummary, closeBattle, cloudUser, alias } = useGame()
+  const playerName = cloudUser ? (alias || 'Tú') : 'Invitaditto'
   const settings = useSettings()
   const [memeClosed, setMemeClosed] = useState(false)
 
@@ -281,8 +282,10 @@ export default function BattleScreen() {
                 </div>
               </div>
               <div className="flex flex-col gap-1 items-end">
-                {/* Entrenador (tú) ENCIMA de tu cuadro de info, simétrico al rival. */}
-                <div className="flex items-center gap-2 mb-0.5 pr-0.5 flex-row-reverse">
+                <Tray team={teams.player} fainted={[...frame.fainted.player, ...preFainted.player]} activeUid={frame.player.uid} align="right" />
+                <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
+                {/* Entrenador (tú) DEBAJO de tu cuadro de info. */}
+                <div className="flex items-center gap-2 mt-0.5 pr-0.5 flex-row-reverse">
                   <img
                     src={PLAYER_SPRITE}
                     alt=""
@@ -293,11 +296,9 @@ export default function BattleScreen() {
                   />
                   <div className="leading-tight min-w-0 text-right">
                     <div className="text-[9px] uppercase tracking-wide text-slate-400">Entrenador</div>
-                    <div className="text-xs font-extrabold text-slate-100 truncate">Tú</div>
+                    <div className="text-xs font-extrabold text-slate-100 truncate">{playerName}</div>
                   </div>
                 </div>
-                <Tray team={teams.player} fainted={[...frame.fainted.player, ...preFainted.player]} activeUid={frame.player.uid} align="right" />
-                <InfoCard view={frame.player} remaining={frame.remaining.player} align="right" />
               </div>
             </div>
           </div>

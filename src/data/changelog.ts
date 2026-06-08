@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.21',
+    date: '2026-06-08',
+    title: 'Tu personaje: sin fondo y debajo de tu info',
+    changes: [
+      'El sprite del jugador ya no tiene fondo blanco.',
+      'En combate, tu personaje aparece ahora debajo de tu cuadro de info, con tu nombre de perfil (o «Invitaditto» si no has iniciado sesión).',
+    ],
+  },
+  {
     version: 'v6.20',
     date: '2026-06-08',
     title: 'Tu sprite de entrenador',
