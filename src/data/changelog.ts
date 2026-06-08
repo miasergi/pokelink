@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.17',
+    date: '2026-06-08',
+    title: 'Liga: gestiona tu equipo',
+    changes: [
+      'Nuevo botón «Mi equipo» en la Liga: mira tus Pokémon, reordénalos arrastrando (el primero es tu líder) y compáralos entre sí, igual que en una partida.',
+    ],
+  },
+  {
     version: 'v6.16',
     date: '2026-06-08',
     title: 'Liga: modal centrado + nombres en español',

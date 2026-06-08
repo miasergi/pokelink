@@ -1,12 +1,20 @@
 import { useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
-import { getSpecies } from '@/data'
+import { getSpecies, getMove } from '@/data'
 import { ITEMS, getItem } from '@/data/items'
 import Sprite from '@/ui/components/Sprite'
 import Icon from '@/ui/components/Icon'
 import TypeBadge from '@/ui/components/TypeBadge'
+import HpBar from '@/ui/components/HpBar'
+import PowerDots from '@/ui/components/PowerDots'
+import PartyList from '@/ui/components/PartyList'
+import CompareModal from '@/ui/components/CompareModal'
+import { typeGradient } from '@/ui/theme/types'
+import { displayStats } from '@/engine/team/itemEffect'
+import { attackCategory } from '@/engine/battle/damage'
 import { groupStandings, playerGroupMatch, playerKnockoutMatch, leagueChampion } from '@/engine/league/league'
+import type { PokemonInstance } from '@/types'
 import type { LeagueParticipant, LeagueState } from '@/engine/league/types'
 
 const EQUIPPABLES = ITEMS.filter((i) => i.category === 'held').map((i) => i.id)
@@ -17,9 +25,10 @@ function Portrait({ p, size = 'w-9 h-9' }: { p: LeagueParticipant; size?: string
 }
 
 export default function LeagueScreen() {
-  const { league, startLeagueMatch, abandonLeague, equipLeagueItem, unequipLeagueItem, navigate } = useGame()
+  const { league, startLeagueMatch, abandonLeague, equipLeagueItem, unequipLeagueItem, setLeagueOrder, navigate } = useGame()
   const [viewTeam, setViewTeam] = useState<number | null>(null) // participante a inspeccionar
   const [shop, setShop] = useState(false)
+  const [team, setTeam] = useState(false) // gestionar mi equipo
   const [results, setResults] = useState(false)
   const myGroupRef = useRef<HTMLDivElement | null>(null)
   if (!league) return null
@@ -58,9 +67,10 @@ export default function LeagueScreen() {
                 <div className="text-[11px] text-slate-300">Toca para ver su equipo y prepararte</div>
               </div>
             </button>
-            <div className="flex gap-2 mt-2.5">
-              <Button full variant="primary" onClick={startLeagueMatch}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> ¡Combatir!</span></Button>
-              <Button variant="secondary" className="!px-4" onClick={() => setShop(true)}><span className="inline-flex items-center gap-1.5"><Icon name="bag" className="w-4 h-4" /> Tienda</span></Button>
+            <Button full variant="primary" className="mt-2.5" onClick={startLeagueMatch}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> ¡Combatir!</span></Button>
+            <div className="flex gap-2 mt-2">
+              <Button full variant="secondary" onClick={() => setTeam(true)}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="people" className="w-4 h-4" /> Mi equipo</span></Button>
+              <Button full variant="secondary" onClick={() => setShop(true)}><span className="inline-flex items-center justify-center gap-1.5"><Icon name="bag" className="w-4 h-4" /> Tienda</span></Button>
             </div>
           </div>
         )}
@@ -128,6 +138,7 @@ export default function LeagueScreen() {
       </div>
 
       {viewTeam != null && <TeamModal p={league.participants[viewTeam]} onClose={() => setViewTeam(null)} />}
+      {team && <MyTeamModal team={league.participants[league.playerIdx].team} onReorder={setLeagueOrder} onClose={() => setTeam(false)} />}
       {shop && <LeagueShop league={league} onEquip={equipLeagueItem} onUnequip={unequipLeagueItem} onClose={() => setShop(false)} />}
       {results && <ResultsModal league={league} onClose={() => setResults(false)} onView={setViewTeam} />}
     </div>
@@ -228,6 +239,73 @@ function ResultsModal({ league, onClose, onView }: { league: LeagueState; onClos
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function MyTeamModal({ team, onReorder, onClose }: { team: PokemonInstance[]; onReorder: (uids: string[]) => void; onClose: () => void }) {
+  const [sel, setSel] = useState<string | null>(null)
+  const [compare, setCompare] = useState(false)
+  const mon = team.find((p) => p.uid === sel) ?? null
+  const sp = mon ? getSpecies(mon.speciesId) : null
+  return (
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="people" className="w-5 h-5" /> Tu equipo</div>
+          <button className="text-slate-400 px-1" onClick={onClose}><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-2">Arrastra para reordenar (el primero es tu líder). Toca un Pokémon para ver detalles y comparar.</p>
+        <PartyList party={team} selectedUid={sel} onSelect={(uid) => setSel(uid === sel ? null : uid)} onReorder={onReorder} />
+      </div>
+
+      {mon && sp && (
+        <div className="fixed inset-0 z-[72] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={() => setSel(null)}>
+          <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-end -mb-1"><button className="text-slate-400 px-1" onClick={() => setSel(null)}><Icon name="x" className="w-5 h-5" /></button></div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="rounded-xl p-0.5" style={{ background: typeGradient(sp.types) }}>
+                <Sprite speciesId={mon.speciesId} shiny={mon.shiny} className="w-14 h-14 object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-extrabold truncate">{sp.displayName}</div>
+                <div className="flex gap-1 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs text-slate-400">Nv.{mon.level}</span>
+                {team.length > 1 && <button onClick={() => setCompare(true)} className="text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-slate-200 active:scale-95 inline-flex items-center gap-1"><Icon name="scales" className="w-3.5 h-3.5" /> Comparar</button>}
+              </div>
+            </div>
+            <div className="mb-2"><HpBar current={mon.currentHp} max={mon.stats.hp} status={mon.status} showNumbers /></div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
+              {displayStats(mon).filter((r) => r.key !== 'hp').map((r) => {
+                const color = r.eff > r.base ? 'text-emerald-400' : r.eff < r.base ? 'text-rose-400' : ''
+                return (
+                  <div key={r.key} className="flex justify-between">
+                    <span className="text-slate-400">{r.label}</span>
+                    <span className={`font-bold tabular-nums ${color}`}>{r.eff}{r.eff !== r.base && <span className="text-[9px] text-slate-500 font-normal"> ({r.base})</span>}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="grid grid-cols-1 gap-1.5 mb-2">
+              {mon.moves.map((mv) => {
+                const m = getMove(mv.moveId)
+                return (
+                  <div key={mv.moveId} className="rounded-lg bg-slate-900/60 px-2.5 py-1.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0"><TypeBadge type={m.type} size="sm" /><span className="text-xs font-semibold truncate">{m.displayName}</span><PowerDots type={m.type} power={m.power} /></div>
+                    <span className="text-[10px] text-slate-400 shrink-0">{attackCategory(mon) === 'physical' ? 'Físico' : 'Especial'} · {m.power}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-slate-900/60 px-2.5 py-1.5">
+              {mon.heldItemId ? (<><img src={getItem(mon.heldItemId).sprite} alt="" className="w-6 h-6" style={{ imageRendering: 'pixelated' }} /><span className="text-xs flex-1 truncate">{getItem(mon.heldItemId).name}</span></>) : <span className="text-xs text-slate-500">Sin objeto equipado</span>}
+            </div>
+          </div>
+        </div>
+      )}
+      {compare && mon && <CompareModal team={team} baseUid={mon.uid} onClose={() => setCompare(false)} />}
     </div>
   )
 }

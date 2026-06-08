@@ -66,6 +66,7 @@ interface GameState {
   finishLeagueBattle: () => void
   equipLeagueItem: (uid: string, itemId: string) => void
   unequipLeagueItem: (uid: string) => void
+  setLeagueOrder: (uids: string[]) => void
   lastSummary: BattleOutcomeSummary | null
   battleSummary: BattleOutcomeSummary | null
   closeBattle: () => void
@@ -423,6 +424,17 @@ export const useGame = create<GameState>((set, get) => ({
     const mon = league.participants[league.playerIdx].team.find((m) => m.uid === uid)
     if (!mon) return
     mon.heldItemId = null
+    void saveLeague(league)
+    set({ league })
+  },
+  setLeagueOrder: (uids) => {
+    const cur = get().league
+    if (!cur) return
+    const league = structuredClone(cur)
+    const team = league.participants[league.playerIdx].team
+    const map = new Map(team.map((m) => [m.uid, m]))
+    const reordered = uids.map((u) => map.get(u)).filter((m): m is NonNullable<typeof m> => !!m)
+    if (reordered.length === team.length) league.participants[league.playerIdx].team = reordered
     void saveLeague(league)
     set({ league })
   },
