@@ -397,20 +397,30 @@ export const useGame = create<GameState>((set, get) => ({
     const lb = get().leagueBattle
     if (!cur || !lb) { set({ leagueBattle: null, pendingBattle: null, screen: { name: 'league' }, history: [] }); return }
     const league = structuredClone(cur)
-    let fp = 0, fe = 0
-    for (const e of lb.result.events) if (e.kind === 'faint') { if (e.side === 'player') fp++; else fe++ }
+    // Qué Pokémon cayeron en cada bando (por uid) para el detalle del combate.
+    const fpSet = new Set<string>(), feSet = new Set<string>()
+    for (const e of lb.result.events) if (e.kind === 'faint') (e.side === 'player' ? fpSet : feSet).add(e.uid)
+    const fp = fpSet.size, fe = feSet.size
+    const side = (team: PokemonInstance[], dead: Set<string>) => team.map((m) => ({ speciesId: m.speciesId, shiny: m.shiny, fainted: dead.has(m.uid) }))
+    const playerDetail = side(lb.playerTeam, fpSet)
+    const enemyDetail = side(lb.enemyTeam, feSet)
     const playerWon = lb.result.winner === 'player'
     const gm = playerGroupMatch(league)
     if (gm) {
       const isA = gm.a === league.playerIdx
       recordGroupResult(league, gm, isA
-        ? { winner: playerWon ? 'a' : 'b', killsA: fe - fp, killsB: fp - fe }
-        : { winner: playerWon ? 'b' : 'a', killsA: fp - fe, killsB: fe - fp })
+        ? { winner: playerWon ? 'a' : 'b', killsA: fe - fp, killsB: fp - fe, detailA: playerDetail, detailB: enemyDetail }
+        : { winner: playerWon ? 'b' : 'a', killsA: fp - fe, killsB: fe - fp, detailA: enemyDetail, detailB: playerDetail })
       advanceMatchday(league)
     } else {
       const km = playerKnockoutMatch(league)
       if (km && km.a != null && km.b != null) {
-        recordKnockoutResult(league, km, playerWon ? league.playerIdx : (km.a === league.playerIdx ? km.b : km.a))
+        const isA = km.a === league.playerIdx
+        recordKnockoutResult(league, km, playerWon ? league.playerIdx : (isA ? km.b : km.a), {
+          winner: (isA ? playerWon : !playerWon) ? 'a' : 'b',
+          killsA: isA ? fe - fp : fp - fe, killsB: isA ? fp - fe : fe - fp,
+          detailA: isA ? playerDetail : enemyDetail, detailB: isA ? enemyDetail : playerDetail,
+        })
       }
       advanceKnockoutRound(league)
     }

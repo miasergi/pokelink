@@ -55,10 +55,15 @@ function withRng<T>(state: LeagueState, fn: (rng: RNG) => T): T {
 export function simulateMatch(teamA: PokemonInstance[], teamB: PokemonInstance[], rng: RNG): MatchOutcome {
   const seed = rng.int(1, 2 ** 30)
   const res = runBattle({ playerTeam: structuredClone(teamA), enemyTeam: structuredClone(teamB), seed, isBoss: true })
-  let fa = 0, fb = 0
-  for (const e of res.events) if (e.kind === 'faint') { if (e.side === 'player') fa++; else fb++ }
+  const fa = new Set<string>(), fb = new Set<string>()
+  for (const e of res.events) if (e.kind === 'faint') (e.side === 'player' ? fa : fb).add(e.uid)
   const winner: 'a' | 'b' = res.winner === 'player' ? 'a' : 'b'
-  return { winner, killsA: fb - fa, killsB: fa - fb }
+  return {
+    winner,
+    killsA: fb.size - fa.size, killsB: fa.size - fb.size,
+    detailA: teamA.map((m) => ({ speciesId: m.speciesId, shiny: m.shiny, fainted: fa.has(m.uid) })),
+    detailB: teamB.map((m) => ({ speciesId: m.speciesId, shiny: m.shiny, fainted: fb.has(m.uid) })),
+  }
 }
 
 function applyOutcome(m: LeagueMatch, o: MatchOutcome): void {
@@ -66,6 +71,8 @@ function applyOutcome(m: LeagueMatch, o: MatchOutcome): void {
   m.winner = o.winner
   m.killsA = o.killsA
   m.killsB = o.killsB
+  m.detailA = o.detailA
+  m.detailB = o.detailB
 }
 
 /** Combate de grupos del jugador en la jornada actual (o null si no le toca / no está en grupos). */
@@ -160,10 +167,11 @@ export function playerKnockoutMatch(state: LeagueState): KnockoutMatch | null {
   return round.matches.find((m) => (m.a === state.playerIdx || m.b === state.playerIdx) && !m.played) ?? null
 }
 
-export function recordKnockoutResult(state: LeagueState, match: KnockoutMatch, winner: number): void {
+export function recordKnockoutResult(state: LeagueState, match: KnockoutMatch, winner: number, o?: MatchOutcome): void {
   void state
   match.played = true
   match.winner = winner
+  if (o) { match.killsA = o.killsA; match.killsB = o.killsB; match.detailA = o.detailA; match.detailB = o.detailB }
 }
 
 /** Simula el resto de la ronda eliminatoria y monta la siguiente (o corona campeón). */
@@ -175,6 +183,7 @@ export function advanceKnockoutRound(state: LeagueState): void {
       const o = simulateMatch(state.participants[m.a].team, state.participants[m.b].team, rng)
       m.played = true
       m.winner = o.winner === 'a' ? m.a : m.b
+      m.killsA = o.killsA; m.killsB = o.killsB; m.detailA = o.detailA; m.detailB = o.detailB
     }
   })
   const winners = round.matches.map((m) => m.winner!).filter((w) => w != null)

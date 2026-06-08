@@ -15,7 +15,9 @@ import { displayStats } from '@/engine/team/itemEffect'
 import { attackCategory } from '@/engine/battle/damage'
 import { groupStandings, playerGroupMatch, playerKnockoutMatch, leagueChampion } from '@/engine/league/league'
 import type { PokemonInstance } from '@/types'
-import type { LeagueParticipant, LeagueState } from '@/engine/league/types'
+import type { LeagueParticipant, LeagueState, LeagueMatch, KnockoutMatch, MatchSide } from '@/engine/league/types'
+
+interface BattleView { aIdx: number; bIdx: number; detailA?: MatchSide[]; detailB?: MatchSide[]; killsA?: number; killsB?: number; winnerIdx: number }
 
 const EQUIPPABLES = ITEMS.filter((i) => i.category === 'held').map((i) => i.id)
 
@@ -30,8 +32,12 @@ export default function LeagueScreen() {
   const [shop, setShop] = useState(false)
   const [team, setTeam] = useState(false) // gestionar mi equipo
   const [results, setResults] = useState(false)
+  const [battle, setBattle] = useState<BattleView | null>(null)
   const myGroupRef = useRef<HTMLDivElement | null>(null)
   if (!league) return null
+
+  const openGroup = (m: LeagueMatch) => { if (m.played) setBattle({ aIdx: m.a, bIdx: m.b, detailA: m.detailA, detailB: m.detailB, killsA: m.killsA, killsB: m.killsB, winnerIdx: m.winner === 'a' ? m.a : m.b }) }
+  const openKo = (m: KnockoutMatch) => { if (m.played && m.a != null && m.b != null) setBattle({ aIdx: m.a, bIdx: m.b, detailA: m.detailA, detailB: m.detailB, killsA: m.killsA, killsB: m.killsB, winnerIdx: m.winner! }) }
 
   const champ = leagueChampion(league)
   const pgm = playerGroupMatch(league)
@@ -130,6 +136,7 @@ export default function LeagueScreen() {
                   <KoSide league={league} idx={m.a} win={m.winner === m.a} onView={setViewTeam} />
                   <span className="text-slate-500 text-[10px]">vs</span>
                   <KoSide league={league} idx={m.b} win={m.winner === m.b} onView={setViewTeam} />
+                  {m.played && <button onClick={() => openKo(m)} className="shrink-0 text-sky-300/80 active:scale-90 px-1" title="Ver combate"><Icon name="scroll" className="w-4 h-4" /></button>}
                 </div>
               ))}
             </div>
@@ -140,7 +147,8 @@ export default function LeagueScreen() {
       {viewTeam != null && <TeamModal p={league.participants[viewTeam]} onClose={() => setViewTeam(null)} />}
       {team && <MyTeamModal team={league.participants[league.playerIdx].team} onReorder={setLeagueOrder} onClose={() => setTeam(false)} />}
       {shop && <LeagueShop league={league} onEquip={equipLeagueItem} onUnequip={unequipLeagueItem} onClose={() => setShop(false)} />}
-      {results && <ResultsModal league={league} onClose={() => setResults(false)} onView={setViewTeam} />}
+      {results && <ResultsModal league={league} onClose={() => setResults(false)} onOpen={openGroup} />}
+      {battle && <BattleResultModal league={league} v={battle} onClose={() => setBattle(null)} />}
     </div>
   )
 }
@@ -206,7 +214,7 @@ function TeamModal({ p, onClose }: { p: LeagueParticipant; onClose: () => void }
   )
 }
 
-function ResultsModal({ league, onClose, onView }: { league: LeagueState; onClose: () => void; onView: (i: number) => void }) {
+function ResultsModal({ league, onClose, onOpen }: { league: LeagueState; onClose: () => void; onOpen: (m: LeagueMatch) => void }) {
   const [md, setMd] = useState(Math.max(0, Math.min(2, league.matchday - (league.phase === 'groups' ? 1 : 0))))
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
@@ -228,16 +236,65 @@ function ResultsModal({ league, onClose, onView }: { league: LeagueState; onClos
                 const na = league.participants[m.a].name, nb = league.participants[m.b].name
                 const aWin = m.winner === 'a', bWin = m.winner === 'b'
                 return (
-                  <div key={i} className="flex items-center gap-1.5 text-[11px] py-0.5">
-                    <button onClick={() => onView(m.a)} className={`flex-1 min-w-0 truncate text-right ${aWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{na}</button>
+                  <button key={i} disabled={!m.played} onClick={() => onOpen(m)} className="w-full flex items-center gap-1.5 text-[11px] py-1 px-1 rounded-lg disabled:opacity-100 enabled:active:bg-slate-800/60">
+                    <span className={`flex-1 min-w-0 truncate text-right ${aWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{na}</span>
                     <span className="tabular-nums text-slate-400 shrink-0">{m.played ? `${m.killsA! >= 0 ? '+' : ''}${m.killsA} · ${m.killsB! >= 0 ? '+' : ''}${m.killsB}` : 'vs'}</span>
-                    <button onClick={() => onView(m.b)} className={`flex-1 min-w-0 truncate ${bWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{nb}</button>
-                  </div>
+                    <span className={`flex-1 min-w-0 truncate ${bWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{nb}</span>
+                    {m.played && <Icon name="scroll" className="w-3.5 h-3.5 text-sky-300/70 shrink-0" />}
+                  </button>
                 )
               })}
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function BattleResultModal({ league, v, onClose }: { league: LeagueState; v: BattleView; onClose: () => void }) {
+  const faintsA = v.detailA?.filter((d) => d.fainted).length ?? 0
+  const faintsB = v.detailB?.filter((d) => d.fainted).length ?? 0
+  const side = (idx: number, detail: MatchSide[] | undefined, faints: number, kos: number) => {
+    const p = league.participants[idx]
+    const win = v.winnerIdx === idx
+    const total = detail?.length ?? 6
+    return (
+      <div className={`rounded-2xl border p-2.5 ${win ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-700 bg-slate-900/40'}`}>
+        <div className="flex items-center gap-2 mb-1.5">
+          {p.sprite && <img src={p.sprite} alt="" className="w-9 h-9 object-contain shrink-0" />}
+          <div className="min-w-0 flex-1">
+            <div className="font-bold truncate text-sm">{p.name}{win && <span className="text-emerald-300 text-[10px] font-black ml-1">GANA</span>}</div>
+            <div className="text-[10px] text-slate-400">{total - faints}/{total} en pie · {kos} K.O. rival</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-6 gap-1">
+          {(detail ?? []).map((d, i) => (
+            <div key={i} className="relative">
+              <Sprite speciesId={d.speciesId} shiny={d.shiny} className={`w-full object-contain ${d.fainted ? 'grayscale opacity-40' : ''}`} />
+              {d.fainted && <Icon name="x" className="absolute inset-0 m-auto w-4 h-4 text-rose-400 drop-shadow" />}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="fixed inset-0 z-[74] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="sword" className="w-5 h-5" /> Resultado del combate</div>
+          <button className="text-slate-400 px-1" onClick={onClose}><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+        {!v.detailA ? (
+          <p className="text-sm text-slate-400 text-center py-4">Este combate se jugó antes de guardar el detalle. Los nuevos combates ya lo muestran.</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {side(v.aIdx, v.detailA, faintsA, faintsB)}
+            <div className="text-center text-[11px] text-slate-400">Kills (neto): <b className="text-slate-200">{v.killsA! >= 0 ? '+' : ''}{v.killsA}</b> · <b className="text-slate-200">{v.killsB! >= 0 ? '+' : ''}{v.killsB}</b></div>
+            {side(v.bIdx, v.detailB, faintsB, faintsA)}
+          </div>
+        )}
       </div>
     </div>
   )

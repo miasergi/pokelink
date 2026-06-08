@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.23',
+    date: '2026-06-08',
+    title: 'Liga: detalle de cada combate',
+    changes: [
+      'Toca un enfrentamiento (en eliminatorias o en los resultados de grupos) para ver el detalle del combate: ambos equipos, qué Pokémon cayeron y el marcador.',
+    ],
+  },
+  {
     version: 'v6.22',
     date: '2026-06-08',
     title: 'Combate: retratos sin descuadrar',

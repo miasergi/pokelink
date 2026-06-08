@@ -11,6 +11,13 @@ export interface LeagueParticipant {
   team: PokemonInstance[]
 }
 
+/** Estado final de un Pokémon en un combate (para mostrar el resultado). */
+export interface MatchSide {
+  speciesId: number
+  shiny: boolean
+  fainted: boolean
+}
+
 /** Un combate de fase de grupos. `a`/`b` son índices de participante. */
 export interface LeagueMatch {
   a: number
@@ -21,6 +28,9 @@ export interface LeagueMatch {
   /** Kills netas en ESTE combate (rivales debilitados − propios debilitados). */
   killsA?: number
   killsB?: number
+  /** Equipos al final del combate (qué Pokémon cayeron). */
+  detailA?: MatchSide[]
+  detailB?: MatchSide[]
 }
 
 export interface LeagueGroup {
@@ -45,6 +55,10 @@ export interface KnockoutMatch {
   b: number | null
   played: boolean
   winner?: number // índice de participante
+  killsA?: number
+  killsB?: number
+  detailA?: MatchSide[]
+  detailB?: MatchSide[]
 }
 export interface KnockoutRound {
   name: string
@@ -71,4 +85,6 @@ export interface MatchOutcome {
   winner: 'a' | 'b'
   killsA: number
   killsB: number
+  detailA: MatchSide[]
+  detailB: MatchSide[]
 }
