@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.28',
+    date: '2026-06-09',
+    title: 'Arreglo: el Capítulo 1 abría Kanto',
+    changes: [
+      'Corregido: al empezar el Capítulo 1 se iniciaba una run normal de Kanto en vez del mapa temático del capítulo.',
+    ],
+  },
+  {
     version: 'v6.27',
     date: '2026-06-09',
     title: 'Modo Historia: Capítulo 1 jugable + Dossier',

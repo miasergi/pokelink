@@ -262,7 +262,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily })
+    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily, story: config.story })
     run.startedAt = Date.now()
     run.elapsedMs = 0 // cronómetro de juego activo (no cuenta app cerrada)
     // Todas las runs empiezan con el MISMO dinero (1000 ₽). Sin bono de Pokédex.
