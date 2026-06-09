@@ -84,7 +84,14 @@ export default function MapScreen() {
 
   const storyBg = run.story ? CHAPTERS[run.story - 1]?.mapBg : undefined
   return (
-    <div className="flex flex-col flex-1 min-h-0" style={storyBg ? { background: `linear-gradient(rgba(2,6,23,0.5), rgba(2,6,23,0.78)), url(${storyBg}) center/cover` } : undefined}>
+    <div className="flex flex-col flex-1 min-h-0 relative">
+      {storyBg && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none overflow-hidden"
+          style={{ zIndex: -1, backgroundImage: `linear-gradient(rgba(2,6,23,0.66), rgba(2,6,23,0.82)), url(${storyBg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(3px) saturate(0.9)', transform: 'scale(1.06)' }}
+        />
+      )}
       <TopBar
         title={
           <span className="text-sm">

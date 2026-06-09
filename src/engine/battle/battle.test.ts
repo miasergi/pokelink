@@ -20,6 +20,28 @@ describe('tabla de tipos', () => {
     // ice vs dragon/flying = 2 * 2 = 4
     expect(typeEffectiveness('ice', ['dragon', 'flying'])).toBe(4)
   })
+
+  it('tipo Sonoro — ataque', () => {
+    expect(typeEffectiveness('sonoro', ['psychic'])).toBe(2)
+    expect(typeEffectiveness('sonoro', ['ice'])).toBe(2)
+    expect(typeEffectiveness('sonoro', ['water'])).toBe(2)
+    expect(typeEffectiveness('sonoro', ['flying'])).toBe(0.5)
+    expect(typeEffectiveness('sonoro', ['fairy'])).toBe(0.5)
+    expect(typeEffectiveness('sonoro', ['steel'])).toBe(0.5)
+    expect(typeEffectiveness('sonoro', ['ground'])).toBe(0)
+    expect(typeEffectiveness('sonoro', ['normal'])).toBe(1)
+  })
+
+  it('tipo Sonoro — defensa', () => {
+    expect(typeEffectiveness('normal', ['sonoro'])).toBe(2)
+    expect(typeEffectiveness('steel', ['sonoro'])).toBe(2)
+    expect(typeEffectiveness('rock', ['sonoro'])).toBe(2)
+    expect(typeEffectiveness('flying', ['sonoro'])).toBe(0.5)
+    expect(typeEffectiveness('fairy', ['sonoro'])).toBe(0.5)
+    expect(typeEffectiveness('water', ['sonoro'])).toBe(1)
+    // Sonoro vs Sonoro = neutro
+    expect(typeEffectiveness('sonoro', ['sonoro'])).toBe(1)
+  })
 })
 
 describe('stats y niveles', () => {

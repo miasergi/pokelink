@@ -37,13 +37,29 @@ const MATRIX: Record<PokemonType, Record<PokemonType, number>> = {
   fairy:    { normal:N, fire:H, water:N, electric:N, grass:N, ice:N, fighting:T, poison:H, ground:N, flying:N, psychic:N, bug:N, rock:N, ghost:N, dragon:T, dark:T, steel:H, fairy:N },
 }
 
+// --- Tipo SONORO (artificial, Modo Historia). No entra en la unión global de
+//     tipos; se trata como caso especial. ---
+export type ExtType = PokemonType | 'sonoro'
+
+// Ataque Sonoro VS tipo defensor (lo no listado = 1×).
+const SONORO_ATK: Partial<Record<ExtType, number>> = { psychic: T, ice: T, water: T, flying: H, fairy: H, steel: H, ground: Z }
+// Tipo atacante VS defensor Sonoro (lo no listado = 1×).
+const SONORO_DEF: Partial<Record<ExtType, number>> = { normal: T, steel: T, rock: T, flying: H, fairy: H }
+
+/** Multiplicador de un solo tipo atacante contra un solo tipo defensor. */
+function pairMult(atk: ExtType, def: ExtType): number {
+  if (atk === 'sonoro') return def === 'sonoro' ? N : (SONORO_ATK[def] ?? N)
+  if (def === 'sonoro') return SONORO_DEF[atk] ?? N
+  return MATRIX[atk][def]
+}
+
 /** Efectividad de un movimiento de `atkType` contra un objetivo con `defTypes`. */
 export function typeEffectiveness(
-  atkType: PokemonType,
-  defTypes: PokemonType[],
+  atkType: ExtType,
+  defTypes: ExtType[],
 ): number {
   let mult = 1
-  for (const d of defTypes) mult *= MATRIX[atkType][d]
+  for (const d of defTypes) mult *= pairMult(atkType, d)
   return mult
 }
 

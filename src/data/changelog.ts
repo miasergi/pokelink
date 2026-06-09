@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.37',
+    date: '2026-06-09',
+    title: 'Eficacias del tipo Sonoro + fondo del Cap.1 atenuado',
+    changes: [
+      'Implementadas las eficacias del tipo Sonoro (ataque: supereficaz contra Psíquico/Hielo/Agua, sin efecto contra Tierra…; defensa: débil a Normal/Acero/Roca…).',
+      'El fondo del mapa del Capítulo 1 (tu nueva versión) ahora va desenfocado y oscurecido para que se lean bien las casillas del roguelike.',
+    ],
+  },
+  {
     version: 'v6.36',
     date: '2026-06-09',
     title: 'Modo Historia: nuevas ilustraciones de fondo',
