@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.25',
+    date: '2026-06-09',
+    title: 'Liga: cuadro de eliminatorias y marcadores',
+    changes: [
+      'Las eliminatorias se muestran ahora como un cuadro (rondas en columnas, con desplazamiento lateral) y la columna del Campeón.',
+      'El resultado de cada combate se muestra como marcador de Pokémon debilitados (p. ej. «6-3») en grupos, eliminatorias y en el detalle.',
+      'Nuevo botón «Clasificación» para consultar las tablas de la fase de grupos una vez terminada.',
+      'Icono del Reto diario más sutil (un calendario con estrella).',
+    ],
+  },
+  {
     version: 'v6.24',
     date: '2026-06-09',
     title: 'Piedra Z por tipo',

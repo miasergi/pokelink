@@ -66,6 +66,7 @@ const SVGS: Record<string, SvgIcon> = {
   lifebuoy: S(<><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.5" /><path d="M6 6l3.6 3.6M14.4 14.4 18 18M18 6l-3.6 3.6M9.6 14.4 6 18" /></>),
   pointer: S(<path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11l1-4a1.4 1.4 0 0 1 2.7.6l-.2 4.4 1.2-2a1.3 1.3 0 0 1 2.3 1.2c-.6 3-1.4 5-2.4 6.2A5 5 0 0 1 12 21a6 6 0 0 1-5.2-3l-2-3.6a1.4 1.4 0 0 1 2.3-1.5L9 11Z" />),
   calendar: S(<><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></>),
+  dailycal: S(<><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9.5h16M8 3v4M16 3v4" /><path d="M12 12l.85 1.72 1.9.28-1.37 1.34.32 1.9L12 16.55l-1.7.69.32-1.9L9.25 14l1.9-.28L12 12Z" fill="currentColor" stroke="none" /></>),
   potion: S(<><path d="M10 3h4M11 3v3.5L7 14a5 5 0 0 0 10 0l-4-7.5V3" /><path d="M7.7 12.5h8.6" /></>),
   book: S(<path d="M5 4h9a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H5V4Zm0 0v14" />),
   music: S(<path d="M9 18V6l11-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm11-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />),

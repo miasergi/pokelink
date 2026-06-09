@@ -75,7 +75,7 @@ export default function HomeScreen() {
           <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" />{hasSavedRun ? 'Nueva partida' : 'Jugar'}</span>
         </Button>
         <Button variant="secondary" full onClick={() => setDailyOpen(true)}>
-          <span className="inline-flex items-center justify-center gap-1.5"><Icon name="daily" className="w-5 h-5" /> Reto diario</span>
+          <span className="inline-flex items-center justify-center gap-1.5"><Icon name="dailycal" className="w-5 h-5" /> Reto diario</span>
         </Button>
         <Button variant="secondary" full className={totalWins > 0 ? '' : 'opacity-70'}
           onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }}>
@@ -150,7 +150,7 @@ export default function HomeScreen() {
         return (
           <div className="absolute inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setDailyOpen(false)}>
             <div className="w-full max-w-sm rounded-3xl border border-fuchsia-500/50 bg-slate-900 p-4 animate-pop-in text-center" onClick={(e) => e.stopPropagation()}>
-              <Icon name="daily" className="w-9 h-9 mx-auto" />
+              <Icon name="dailycal" className="w-9 h-9 mx-auto text-fuchsia-300" />
               <div className="font-extrabold text-fuchsia-300 text-lg">Reto diario · {d.date}</div>
 
               {won ? (

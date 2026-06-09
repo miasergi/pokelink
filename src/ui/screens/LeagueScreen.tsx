@@ -19,6 +19,13 @@ import type { LeagueParticipant, LeagueState, LeagueMatch, KnockoutMatch, MatchS
 
 interface BattleView { aIdx: number; bIdx: number; detailA?: MatchSide[]; detailB?: MatchSide[]; killsA?: number; killsB?: number; winnerIdx: number }
 
+const faints = (d?: MatchSide[]) => d?.filter((x) => x.fainted).length ?? 0
+/** Marcador "K.O. de A - K.O. de B" (p. ej. "6-3"). null si no hay detalle. */
+function koScore(detailA?: MatchSide[], detailB?: MatchSide[]): string | null {
+  if (!detailA || !detailB) return null
+  return `${faints(detailB)}-${faints(detailA)}` // A mató a los de B, y viceversa
+}
+
 const EQUIPPABLES = ITEMS.filter((i) => i.category === 'held').map((i) => i.id)
 
 function Portrait({ p, size = 'w-9 h-9' }: { p: LeagueParticipant; size?: string }) {
@@ -32,6 +39,7 @@ export default function LeagueScreen() {
   const [shop, setShop] = useState(false)
   const [team, setTeam] = useState(false) // gestionar mi equipo
   const [results, setResults] = useState(false)
+  const [standings, setStandings] = useState(false)
   const [battle, setBattle] = useState<BattleView | null>(null)
   const myGroupRef = useRef<HTMLDivElement | null>(null)
   if (!league) return null
@@ -81,19 +89,21 @@ export default function LeagueScreen() {
           </div>
         )}
 
-        {/* Accesos: ver resultados por jornada y saltar a mi grupo */}
-        {league.phase !== 'champion' && (
-          <div className="flex gap-2">
-            <Button variant="secondary" full className="!py-2" onClick={() => setResults(true)}>
-              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="clipboard" className="w-4 h-4" /> Resultados</span>
+        {/* Accesos: resultados, clasificación de grupos, y saltar a mi grupo */}
+        <div className="flex gap-2">
+          <Button variant="secondary" full className="!py-2" onClick={() => setResults(true)}>
+            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="clipboard" className="w-4 h-4" /> Resultados</span>
+          </Button>
+          {league.phase === 'groups' ? (
+            <Button variant="secondary" full className="!py-2" onClick={() => myGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="target" className="w-4 h-4" /> Mi grupo</span>
             </Button>
-            {league.phase === 'groups' && (
-              <Button variant="secondary" full className="!py-2" onClick={() => myGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
-                <span className="inline-flex items-center justify-center gap-1.5"><Icon name="target" className="w-4 h-4" /> Mi grupo</span>
-              </Button>
-            )}
-          </div>
-        )}
+          ) : (
+            <Button variant="secondary" full className="!py-2" onClick={() => setStandings(true)}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="league" className="w-4 h-4" /> Clasificación</span>
+            </Button>
+          )}
+        </div>
 
         {/* Grupos */}
         {league.phase === 'groups' && league.groups.map((g) => {
@@ -126,42 +136,110 @@ export default function LeagueScreen() {
           )
         })}
 
-        {/* Eliminatorias */}
-        {league.phase !== 'groups' && league.knockout.map((round, ri) => (
-          <div key={ri} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-2">
-            <div className="text-xs font-bold text-slate-300 mb-1 px-1">{round.name}</div>
-            <div className="flex flex-col gap-1">
-              {round.matches.map((m, mi) => (
-                <div key={mi} className="flex items-center gap-1.5 text-xs">
-                  <KoSide league={league} idx={m.a} win={m.winner === m.a} onView={setViewTeam} />
-                  <span className="text-slate-500 text-[10px]">vs</span>
-                  <KoSide league={league} idx={m.b} win={m.winner === m.b} onView={setViewTeam} />
-                  {m.played && <button onClick={() => openKo(m)} className="shrink-0 text-sky-300/80 active:scale-90 px-1" title="Ver combate"><Icon name="scroll" className="w-4 h-4" /></button>}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+        {/* Eliminatorias: cuadro */}
+        {league.phase !== 'groups' && <KnockoutBracket league={league} champ={champ} onOpen={openKo} />}
       </div>
 
       {viewTeam != null && <TeamModal p={league.participants[viewTeam]} onClose={() => setViewTeam(null)} />}
       {team && <MyTeamModal team={league.participants[league.playerIdx].team} onReorder={setLeagueOrder} onClose={() => setTeam(false)} />}
       {shop && <LeagueShop league={league} onEquip={equipLeagueItem} onUnequip={unequipLeagueItem} onClose={() => setShop(false)} />}
       {results && <ResultsModal league={league} onClose={() => setResults(false)} onOpen={openGroup} />}
+      {standings && <StandingsModal league={league} onClose={() => setStandings(false)} onView={setViewTeam} />}
       {battle && <BattleResultModal league={league} v={battle} onClose={() => setBattle(null)} />}
     </div>
   )
 }
 
-function KoSide({ league, idx, win, onView }: { league: LeagueState; idx: number | null; win: boolean; onView: (i: number) => void }) {
-  if (idx == null) return <div className="flex-1 text-slate-600 text-[11px] px-2">—</div>
-  const p = league.participants[idx]
-  const isPlayer = idx === league.playerIdx
+/** Cuadro de eliminatorias con scroll horizontal (rondas en columnas). */
+function KnockoutBracket({ league, champ, onOpen }: { league: LeagueState; champ: number | null; onOpen: (m: KnockoutMatch) => void }) {
   return (
-    <button onClick={() => onView(idx)} className={`flex-1 min-w-0 flex items-center gap-1.5 rounded-lg px-2 py-1 ${win ? 'bg-emerald-500/15' : ''} ${isPlayer ? 'ring-1 ring-fuchsia-400' : ''}`}>
-      <Portrait p={p} size="w-6 h-6" />
-      <span className={`truncate ${win ? 'font-bold text-emerald-200' : 'text-slate-300'}`}>{p.name}{isPlayer && ' (tú)'}</span>
+    <div className="overflow-x-auto no-scrollbar -mx-3 px-3">
+      <div className="flex gap-2 items-stretch" style={{ height: 'min(72vh, 470px)' }}>
+        {league.knockout.map((round, ri) => (
+          <div key={ri} className="flex flex-col w-[148px] shrink-0">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide text-center mb-1">{round.name}</div>
+            <div className="flex-1 flex flex-col justify-around gap-1.5">
+              {round.matches.map((m, mi) => <BracketMatch key={mi} league={league} m={m} onOpen={onOpen} />)}
+            </div>
+          </div>
+        ))}
+        {champ != null && (
+          <div className="flex flex-col w-[148px] shrink-0">
+            <div className="text-[10px] font-bold text-amber-300 uppercase tracking-wide text-center mb-1">Campeón</div>
+            <div className="flex-1 grid place-items-center">
+              <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 flex flex-col items-center gap-1 w-full">
+                {league.participants[champ].sprite && <img src={league.participants[champ].sprite} alt="" className="w-10 h-10 object-contain" />}
+                <span className="text-xs font-bold text-amber-200 text-center truncate w-full">{league.participants[champ].name}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function BracketMatch({ league, m, onOpen }: { league: LeagueState; m: KnockoutMatch; onOpen: (m: KnockoutMatch) => void }) {
+  const row = (idx: number | null, win: boolean) => {
+    if (idx == null) return <div className="px-1.5 py-1 text-[11px] text-slate-600">—</div>
+    const p = league.participants[idx]
+    const isPlayer = idx === league.playerIdx
+    return (
+      <div className={`flex items-center gap-1 px-1.5 py-1 ${win ? 'bg-emerald-500/15' : ''} ${isPlayer ? 'ring-1 ring-inset ring-fuchsia-400/60' : ''}`}>
+        {p.sprite && <img src={p.sprite} alt="" className="w-5 h-5 object-contain shrink-0" />}
+        <span className={`text-[11px] truncate ${win ? 'font-bold text-emerald-200' : 'text-slate-300'}`}>{p.name}{isPlayer && ' (tú)'}</span>
+      </div>
+    )
+  }
+  const score = koScore(m.detailA, m.detailB)
+  return (
+    <button disabled={!m.played} onClick={() => onOpen(m)} className="rounded-lg border border-slate-700 bg-slate-900/60 overflow-hidden text-left w-full enabled:active:scale-[0.98] enabled:hover:border-sky-500/50 transition">
+      {row(m.a, m.winner === m.a)}
+      <div className="border-t border-slate-700/60 relative">
+        {score && <span className="absolute right-1 -top-2 text-[8px] font-black tabular-nums text-sky-300 bg-slate-900 px-1 rounded">{score}</span>}
+      </div>
+      {row(m.b, m.winner === m.b)}
     </button>
+  )
+}
+
+function StandingsModal({ league, onClose, onView }: { league: LeagueState; onClose: () => void; onView: (i: number) => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-extrabold inline-flex items-center gap-1.5"><Icon name="league" className="w-5 h-5" /> Clasificación de grupos</div>
+          <button className="text-slate-400 px-1" onClick={onClose}><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {league.groups.map((g) => {
+            const st = groupStandings(league, g.idx)
+            return (
+              <div key={g.idx} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-2">
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <div className="text-xs font-bold text-slate-300">Grupo {g.idx + 1}</div>
+                  <div className="text-[9px] text-slate-500">Pts · Kills</div>
+                </div>
+                {st.map((row, pos) => {
+                  const p = league.participants[row.participant]
+                  const isPlayer = row.participant === league.playerIdx
+                  const q = pos < 2
+                  return (
+                    <button key={row.participant} onClick={() => onView(row.participant)} className={`flex items-center gap-2 rounded-lg px-2 py-1 w-full text-left ${isPlayer ? 'bg-fuchsia-500/20' : q ? 'bg-emerald-500/5' : ''}`}>
+                      <span className={`text-[10px] font-black w-4 ${q ? 'text-emerald-300' : 'text-slate-500'}`}>{pos + 1}</span>
+                      <Portrait p={p} size="w-6 h-6" />
+                      <span className={`flex-1 min-w-0 text-xs font-semibold truncate ${isPlayer ? 'text-fuchsia-200' : ''}`}>{p.name}{isPlayer && ' (tú)'}</span>
+                      <span className="text-[11px] font-bold tabular-nums">{row.points}</span>
+                      <span className="text-[10px] text-slate-400 tabular-nums w-7 text-right">{row.kills >= 0 ? '+' : ''}{row.kills}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -238,7 +316,7 @@ function ResultsModal({ league, onClose, onOpen }: { league: LeagueState; onClos
                 return (
                   <button key={i} disabled={!m.played} onClick={() => onOpen(m)} className="w-full flex items-center gap-1.5 text-[11px] py-1 px-1 rounded-lg disabled:opacity-100 enabled:active:bg-slate-800/60">
                     <span className={`flex-1 min-w-0 truncate text-right ${aWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{na}</span>
-                    <span className="tabular-nums text-slate-400 shrink-0">{m.played ? `${m.killsA! >= 0 ? '+' : ''}${m.killsA} · ${m.killsB! >= 0 ? '+' : ''}${m.killsB}` : 'vs'}</span>
+                    <span className="tabular-nums font-bold text-slate-100 shrink-0 px-1">{m.played ? (koScore(m.detailA, m.detailB) ?? 'fin') : 'vs'}</span>
                     <span className={`flex-1 min-w-0 truncate ${bWin ? 'font-bold text-emerald-300' : 'text-slate-300'}`}>{nb}</span>
                     {m.played && <Icon name="scroll" className="w-3.5 h-3.5 text-sky-300/70 shrink-0" />}
                   </button>
@@ -291,7 +369,10 @@ function BattleResultModal({ league, v, onClose }: { league: LeagueState; v: Bat
         ) : (
           <div className="flex flex-col gap-1.5">
             {side(v.aIdx, v.detailA, faintsA, faintsB)}
-            <div className="text-center text-[11px] text-slate-400">Kills (neto): <b className="text-slate-200">{v.killsA! >= 0 ? '+' : ''}{v.killsA}</b> · <b className="text-slate-200">{v.killsB! >= 0 ? '+' : ''}{v.killsB}</b></div>
+            <div className="text-center">
+              <div className="text-2xl font-black tabular-nums tracking-wide">{faints(v.detailB)} <span className="text-slate-500">-</span> {faints(v.detailA)}</div>
+              <div className="text-[10px] text-slate-500">Pokémon debilitados al rival</div>
+            </div>
             {side(v.bIdx, v.detailB, faintsB, faintsA)}
           </div>
         )}
