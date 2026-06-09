@@ -7,6 +7,7 @@ import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
+import { generateStoryMap } from './storyMap'
 import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
@@ -29,18 +30,25 @@ export interface NewRunConfig {
   seed: number
   /** Marca de reto diario (YYYY-MM-DD) si aplica. */
   daily?: string
+  /** Modo Historia: nº de capítulo (usa un mapa temático propio). */
+  story?: number
 }
 
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
+
+/** Nombre de "región" mostrado para cada capítulo del Modo Historia. */
+const STORY_CHAPTERS: Record<number, string> = { 1: 'El Archipiélago de Niebla' }
 
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
   const pools = config.pools.length ? config.pools : [config.gen]
   // Runs antiguas/diario: `random` sin flags => randomiza todo (legacy).
   const randomFlags = config.random ? (config.randomFlags ?? ALL_RANDOM) : undefined
-  const { map, rivalStarterId } = generateMap(pools, config.gen, config.starterId, rng, config.difficulty, { randomFlags, monotype: config.monotype })
+  const { map, rivalStarterId } = config.story
+    ? { map: generateStoryMap(config.starterId, rng, config.difficulty).map, rivalStarterId: config.starterId }
+    : generateMap(pools, config.gen, config.starterId, rng, config.difficulty, { randomFlags, monotype: config.monotype })
   const starter = createInstance(config.starterId, 5, rng)
-  const region = getGeneration(config.gen).region
+  const region = config.story ? STORY_CHAPTERS[config.story] ?? 'Modo Historia' : getGeneration(config.gen).region
 
   return {
     pools,
@@ -54,6 +62,7 @@ export function createRun(config: NewRunConfig): RunState {
     rivalStarterId,
     seed: config.seed,
     daily: config.daily,
+    story: config.story,
     rngState: rng.getState(),
     map,
     currentNodeId: null,

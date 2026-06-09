@@ -143,6 +143,8 @@ export interface RunState {
   elapsedMs?: number
   /** Reto diario (fecha YYYY-MM-DD) si esta run lo es. */
   daily?: string
+  /** Modo Historia: nº de capítulo (si esta run es de la historia). */
+  story?: number
 }
 
 export interface OfferedItem {

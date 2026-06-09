@@ -335,7 +335,7 @@ export function generateMap(
   }
 }
 
-function interpolateLevels(anchors: (number | null)[], startLevel: number): number[] {
+export function interpolateLevels(anchors: (number | null)[], startLevel: number): number[] {
   const out = new Array(anchors.length).fill(0)
   let prevLevel = startLevel
   let prevIdx = -1
@@ -356,7 +356,7 @@ function interpolateLevels(anchors: (number | null)[], startLevel: number): numb
   return out
 }
 
-function pickRouteType(rng: RNG, frac: number): NodeType {
+export function pickRouteType(rng: RNG, frac: number): NodeType {
   const r = rng.next()
   // pesos: battle 28, trainer 22, catch 15, item 11, shop 8, trade 6, event 10
   if (r < 0.28) return 'battle'
@@ -369,7 +369,7 @@ function pickRouteType(rng: RNG, frac: number): NodeType {
   return 'event'
 }
 
-function buildRouteContent(
+export function buildRouteContent(
   type: NodeType, pool: SpeciesData[], level: number, frac: number, rng: RNG, usedEvents: Set<string>, difficulty: string, nextBoss: number = level + 99, catchPool: SpeciesData[] = pool, gen: number = 1,
 ): MapNode['content'] {
   switch (type) {
@@ -452,7 +452,7 @@ function synthTrainerContent(pool: SpeciesData[], level: number, rng: RNG, diffi
 }
 
 /** Conecta dos capas con aristas estilo Slay the Spire. */
-function connect(curr: MapNode[], next: MapNode[], rng: RNG): void {
+export function connect(curr: MapNode[], next: MapNode[], rng: RNG): void {
   if (next.length === 1) {
     for (const c of curr) c.next = [next[0].id]
     return

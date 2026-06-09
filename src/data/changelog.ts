@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.27',
+    date: '2026-06-09',
+    title: 'Modo Historia: Capítulo 1 jugable + Dossier',
+    changes: [
+      'El Capítulo 1 «El Archipiélago de Niebla» ya es jugable: travesía propia con Pokémon costeros, contrabandistas, marineros y guardias, que culmina en el jefe El Capitán del ferry clandestino.',
+      'Nuevo «Dossier clasificado» en el Modo Historia: la lista de Pokémon que los científicos convirtieron al tipo Sonoro (prototipos, modificados e inestables), con su transformación y su historia.',
+      'El Modo Historia no afecta a tus estadísticas ni récords normales (pero sí completa tu Pokédex).',
+    ],
+  },
+  {
     version: 'v6.26',
     date: '2026-06-09',
     title: '¡Nuevo Modo Historia! (1ª parte)',

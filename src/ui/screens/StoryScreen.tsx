@@ -8,8 +8,49 @@ import TypeBadge from '@/ui/components/TypeBadge'
 import SonoroBadge, { SonoroWave } from '@/ui/components/SonoroBadge'
 import { SONORO_GRADIENT } from '@/data/story/sonoro'
 import { CHAPTERS, KANTO_STARTERS } from '@/data/story/chapters'
+import { EXPERIMENTS, ROLE_ES, type Experiment, type ExpType } from '@/data/story/experiments'
+import type { PokemonType } from '@/types'
 
 type Phase = 'hub' | 'intro' | 'starter'
+
+function ResultBadge({ t }: { t: ExpType }) {
+  return t === 'sonoro' ? <SonoroBadge size="sm" /> : <TypeBadge type={t as PokemonType} size="sm" />
+}
+
+function DossierModal({ onClose }: { onClose: () => void }) {
+  const roles: Experiment['role'][] = ['prototipo', 'modificado', 'inestable']
+  return (
+    <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92%] overflow-y-auto no-scrollbar rounded-3xl border border-fuchsia-500/40 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <div className="font-extrabold inline-flex items-center gap-1.5"><SonoroWave className="w-5 h-5 text-fuchsia-300" /> Dossier clasificado</div>
+          <button className="text-slate-400 px-1" onClick={onClose}><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-2">Pokémon capturados por los científicos para inyectarles el gen del tipo Sonoro.</p>
+        {roles.map((role) => (
+          <div key={role} className="mb-3">
+            <div className="text-[11px] font-black uppercase tracking-wide text-fuchsia-300 mb-1 px-0.5">{ROLE_ES[role]}</div>
+            <div className="flex flex-col gap-1.5">
+              {EXPERIMENTS.filter((e) => e.role === role).map((e) => (
+                <div key={e.id} className="rounded-xl border border-slate-700 bg-slate-800/50 p-2 flex gap-2">
+                  <Sprite speciesId={e.id} className="w-12 h-12 object-contain shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1 flex-wrap text-[10px] text-slate-400">
+                      {e.original.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+                      <Icon name="arrowRight" className="w-3 h-3 text-slate-500" />
+                      {e.result.map((t, i) => <ResultBadge key={i} t={t} />)}
+                    </div>
+                    <div className="text-[11px] text-slate-300 mt-1">{e.lore}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function StoryScreen() {
   const { back, startRun } = useGame()
@@ -17,6 +58,7 @@ export default function StoryScreen() {
   const [phase, setPhase] = useState<Phase>('hub')
   const [line, setLine] = useState(0)
   const [starter, setStarter] = useState<number | null>(null)
+  const [dossier, setDossier] = useState(false)
 
   // --- Cinemática de introducción ---
   if (phase === 'intro') {
@@ -66,7 +108,7 @@ export default function StoryScreen() {
             })}
           </div>
           <Button full variant="primary" className="mt-1" disabled={starter === null}
-            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal' })}>
+            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal', story: chapter.id })}>
             <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> ¡Zarpar!</span>
           </Button>
         </div>
@@ -104,8 +146,12 @@ export default function StoryScreen() {
         <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4">
           <div className="flex items-center gap-2 mb-1.5"><SonoroBadge /> <span className="text-[11px] text-slate-400">tipo artificial</span></div>
           <p className="text-[12px] text-slate-300">Un tipo nacido en los laboratorios de la isla, no en la naturaleza. Sus frecuencias destrozan a los Pokémon… pero su inestabilidad puede volverse en su contra. Aún no ha sido liberado: lo descubrirás más adentro.</p>
+          <Button full variant="secondary" className="mt-2.5 !py-2" onClick={() => setDossier(true)}>
+            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="scroll" className="w-4 h-4" /> Dossier de experimentos</span>
+          </Button>
         </div>
       </div>
+      {dossier && <DossierModal onClose={() => setDossier(false)} />}
     </div>
   )
 }

@@ -850,10 +850,14 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   const durationMs = run.elapsedMs ?? 0
   const meta = await loadMeta()
   const won = run.status === 'won'
-  meta.totals.runs += 1
-  if (won) { meta.totals.wins += 1; useGame.setState({ totalWins: meta.totals.wins }) }
-  meta.totals.gymsDefeated += run.stats.gymsDefeated
-  meta.totals.pokemonCaught += run.stats.pokemonCaught
+  // El Modo Historia no contamina las estadísticas/récords normales (solo la Pokédex).
+  const story = !!run.story
+  if (!story) {
+    meta.totals.runs += 1
+    if (won) { meta.totals.wins += 1; useGame.setState({ totalWins: meta.totals.wins }) }
+    meta.totals.gymsDefeated += run.stats.gymsDefeated
+    meta.totals.pokemonCaught += run.stats.pokemonCaught
+  }
   // pokédex (+ shinies)
   const seen = new Set(meta.pokedexSeen)
   const caught = new Set(meta.pokedexCaught)
@@ -867,7 +871,7 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
   meta.pokedexSeen = [...seen]
   meta.pokedexCaught = [...caught]
   meta.pokedexShiny = [...shiny]
-  meta.bestRuns = [
+  if (!story) meta.bestRuns = [
     {
       date: Date.now(),
       mode: run.daily ? 'Reto diario' : run.monotype ? 'Monolocke' : run.random ? 'Random' : run.pools.length > 1 ? 'Multi-región' : 'Región',
@@ -884,9 +888,9 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     ...meta.bestRuns,
   ].slice(0, 30)
 
-  // Regiones ganadas y logros.
-  if (won && !meta.regionsWon.includes(run.region)) meta.regionsWon.push(run.region)
-  const newAchievements = checkAchievements(meta, run, won)
+  // Regiones ganadas y logros (no aplican al Modo Historia).
+  if (won && !story && !meta.regionsWon.includes(run.region)) meta.regionsWon.push(run.region)
+  const newAchievements = story ? [] : checkAchievements(meta, run, won)
   if (newAchievements.length) meta.achievements = [...new Set([...meta.achievements, ...newAchievements])]
 
   await saveMeta(meta)
