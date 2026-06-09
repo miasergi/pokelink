@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.33',
+    date: '2026-06-09',
+    title: 'Música lo-fi por modo',
+    changes: [
+      'Nuevo motor de música lo-fi (original, sintetizado): acordes suaves, bajo cálido, percusión sutil, crackle de vinilo y filtro cálido.',
+      'Una pista propia para cada ambiente: runs, Liga Pokémon y Modo Historia.',
+    ],
+  },
+  {
     version: 'v6.32',
     date: '2026-06-09',
     title: 'Capítulo 1: fondo de muelle en el mapa',
