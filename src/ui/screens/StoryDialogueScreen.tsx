@@ -21,9 +21,11 @@ export default function StoryDialogueScreen() {
     else storySceneDone() // pre-jefe -> empieza el combate
   }
 
+  const ch = CHAPTERS.find((c) => c.id === storyScene.chapter) ?? CHAPTERS[0]
+  const next = CHAPTERS.find((c) => c.id === ch.id + 1)
+
   // --- Capítulo completado (tras el outro) ---
   if (finished) {
-    const ch = CHAPTERS[0]
     return (
       <div className="flex flex-col flex-1 items-center justify-center p-6 gap-4 text-center relative overflow-hidden"
         style={{ background: `linear-gradient(rgba(2,6,23,0.6), rgba(2,6,23,0.85)), url(${ch.bg}) center/cover` }}>
@@ -31,11 +33,11 @@ export default function StoryDialogueScreen() {
         <SonoroWave className="w-16 h-16 text-fuchsia-300 animate-float" />
         <div className="text-[11px] uppercase tracking-[0.25em] text-fuchsia-300/80 font-bold relative">Capítulo completado</div>
         <div className="text-3xl font-black relative" style={{ backgroundImage: SONORO_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{ch.subtitle}</div>
-        <p className="text-sm text-slate-300 max-w-xs relative">Has cruzado el Archipiélago de Niebla. El ferry te lleva hacia lo prohibido… y algo en la isla ya ha notado tu llegada.</p>
+        <p className="text-sm text-slate-300 max-w-xs relative">Lo has logrado. Pero cuanto más te acercas al corazón de la isla, más fuerte resuena el peligro.</p>
         <Button variant="primary" className="mt-2 relative" onClick={storySceneDone}>
           <span className="inline-flex items-center justify-center gap-1.5">Continuar <Icon name="arrowRight" className="w-4 h-4" /></span>
         </Button>
-        <div className="text-[11px] text-slate-500 relative">Próximamente: Capítulo 2 — La Costa Prohibida</div>
+        <div className="text-[11px] text-slate-500 relative">{next ? `Desbloqueado: ${next.title} — ${next.subtitle}` : 'Has llegado al final de la historia disponible.'}</div>
       </div>
     )
   }
@@ -43,7 +45,7 @@ export default function StoryDialogueScreen() {
   // --- Diálogo ---
   return (
     <div className="flex flex-col flex-1 relative overflow-hidden select-none" onClick={advance}
-      style={{ background: `linear-gradient(rgba(2,6,23,0.5), rgba(2,6,23,0.84)), url(${CHAPTERS[0].bg}) center/cover` }}>
+      style={{ background: `linear-gradient(rgba(2,6,23,0.5), rgba(2,6,23,0.84)), url(${ch.bg}) center/cover` }}>
       <div className="absolute inset-0 pointer-events-none opacity-[0.06]" style={{ backgroundImage: SONORO_GRADIENT }} />
       <div className="flex-1 grid place-items-center p-6">
         <SonoroWave className="w-16 h-16 text-fuchsia-400/30 animate-pulse" />

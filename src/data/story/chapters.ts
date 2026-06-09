@@ -44,6 +44,24 @@ export const CHAPTERS: Chapter[] = [
       { speaker: 'Contrabandista', text: 'Elige bien. A partir de aquí, no hay vuelta atrás.' },
     ],
   },
+  {
+    id: 2,
+    title: 'Capítulo 2',
+    subtitle: 'La Costa Prohibida',
+    gen: 1,
+    bg: import.meta.env.BASE_URL + 'story/chapter2-bg.webp',
+    mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
+    synopsis:
+      'El ferry te deja en una playa fortificada: vallas electrificadas, focos y puestos de control abandonados. La tecnología de los científicos está por todas partes… y también sus primeros experimentos defectuosos. Infíltrate en el perímetro de seguridad.',
+    intro: [
+      { text: 'El ferry encalla en una cala oculta. El capitán no baja: solo señala hacia las luces de los focos que barren la niebla.' },
+      { speaker: 'El Capitán', text: 'Hasta aquí llego yo. Lo de ahí dentro… ya no es mar. Es de ellos.' },
+      { text: 'Vallas electrificadas. Cámaras. Carteles de "ACCESO RESTRINGIDO" oxidados por la sal.' },
+      { text: 'Y entre las rocas, algo se mueve mal: un Pokémon salvaje que tiembla y emite un chillido que no es suyo.', glitch: true },
+      { speaker: 'Voz por megafonía', text: 'Atención. Perímetro exterior comprometido. Unidades de seguridad, a sus puestos.', glitch: true },
+      { text: 'No hay vuelta atrás. Solo hacia dentro.' },
+    ],
+  },
 ]
 
 /** Iniciales de Kanto (de momento). */

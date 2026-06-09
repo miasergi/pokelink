@@ -13,7 +13,7 @@ describe('Modo Historia — Capítulo 1', () => {
   })
 
   it('el mapa termina en un único jefe (El Capitán, tipo champion)', () => {
-    const { map } = generateStoryMap(4, new RNG(7), 'normal')
+    const { map } = generateStoryMap(1, 4, new RNG(7), 'normal')
     const lastLayer = map.layers[map.layers.length - 1]
     expect(lastLayer).toHaveLength(1)
     const boss = map.nodes[lastLayer[0]]
@@ -27,5 +27,16 @@ describe('Modo Historia — Capítulo 1', () => {
     for (let l = 0; l < map.layers.length - 1; l++) {
       for (const id of map.layers[l]) expect(map.nodes[id].next.length).toBeGreaterThan(0)
     }
+  })
+
+  it('el Capítulo 2 genera su propio mapa y jefe', () => {
+    const run = createRun({ gen: 1, pools: [1], random: false, starterId: 1, difficulty: 'normal', story: 2, seed: 7 })
+    expect(run.region).toBe('La Costa Prohibida')
+    const last = run.map.layers[run.map.layers.length - 1]
+    const boss = run.map.nodes[last[0]]
+    expect(boss.type).toBe('champion')
+    if (boss.content.kind === 'trainer') expect(boss.content.trainer.name).toBe('Comandante Vega')
+    // el capítulo 2 es más largo que el 1
+    expect(run.map.totalLayers).toBeGreaterThan(7)
   })
 })

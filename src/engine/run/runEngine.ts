@@ -37,7 +37,7 @@ export interface NewRunConfig {
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
 
 /** Nombre de "región" mostrado para cada capítulo del Modo Historia. */
-const STORY_CHAPTERS: Record<number, string> = { 1: 'El Archipiélago de Niebla' }
+const STORY_CHAPTERS: Record<number, string> = { 1: 'El Archipiélago de Niebla', 2: 'La Costa Prohibida' }
 
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
@@ -45,7 +45,7 @@ export function createRun(config: NewRunConfig): RunState {
   // Runs antiguas/diario: `random` sin flags => randomiza todo (legacy).
   const randomFlags = config.random ? (config.randomFlags ?? ALL_RANDOM) : undefined
   const { map, rivalStarterId } = config.story
-    ? { map: generateStoryMap(config.starterId, rng, config.difficulty).map, rivalStarterId: config.starterId }
+    ? { map: generateStoryMap(config.story, config.starterId, rng, config.difficulty).map, rivalStarterId: config.starterId }
     : generateMap(pools, config.gen, config.starterId, rng, config.difficulty, { randomFlags, monotype: config.monotype })
   const starter = createInstance(config.starterId, 5, rng)
   const region = config.story ? STORY_CHAPTERS[config.story] ?? 'Modo Historia' : getGeneration(config.gen).region

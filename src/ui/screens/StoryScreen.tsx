@@ -53,12 +53,14 @@ function DossierModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function StoryScreen() {
-  const { back, startRun } = useGame()
-  const chapter = CHAPTERS[0]
+  const { back, startRun, storyCompleted } = useGame()
   const [phase, setPhase] = useState<Phase>('hub')
+  const [chapterId, setChapterId] = useState<number>(1)
+  const chapter = CHAPTERS.find((c) => c.id === chapterId) ?? CHAPTERS[0]
   const [line, setLine] = useState(0)
   const [starter, setStarter] = useState<number | null>(null)
   const [dossier, setDossier] = useState(false)
+  const unlocked = (id: number) => id === 1 || storyCompleted.includes(id - 1)
 
   // --- Cinemática de introducción ---
   if (phase === 'intro') {
@@ -132,15 +134,29 @@ export default function StoryScreen() {
           </div>
         </div>
 
-        {/* Tarjeta del Capítulo 1 */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
-          <div className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">{chapter.title}</div>
-          <div className="text-xl font-extrabold mb-2">{chapter.subtitle}</div>
-          <p className="text-sm text-slate-300">{chapter.synopsis}</p>
-          <Button full variant="primary" className="mt-3" onClick={() => { setLine(0); setPhase('intro') }}>
-            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> Comenzar capítulo</span>
-          </Button>
-        </div>
+        {/* Lista de capítulos */}
+        {CHAPTERS.map((ch) => {
+          const open = unlocked(ch.id)
+          const done = storyCompleted.includes(ch.id)
+          return (
+            <div key={ch.id} className={`rounded-2xl border p-4 ${open ? 'border-slate-700 bg-slate-800/60' : 'border-slate-800 bg-slate-900/50 opacity-70'}`}>
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">{ch.title}</div>
+                {done && <span className="text-[10px] font-black bg-emerald-500 text-black px-1.5 rounded-full inline-flex items-center gap-1"><Icon name="check" className="w-3 h-3" /> COMPLETADO</span>}
+                {!open && <span className="text-slate-500 inline-flex items-center gap-1 text-[11px]"><Icon name="lock" className="w-3.5 h-3.5" /> Bloqueado</span>}
+              </div>
+              <div className="text-xl font-extrabold mb-2">{ch.subtitle}</div>
+              <p className="text-sm text-slate-300">{ch.synopsis}</p>
+              {open ? (
+                <Button full variant="primary" className="mt-3" onClick={() => { setChapterId(ch.id); setStarter(null); setLine(0); setPhase('intro') }}>
+                  <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> {done ? 'Volver a jugar' : 'Comenzar capítulo'}</span>
+                </Button>
+              ) : (
+                <div className="mt-3 text-[11px] text-slate-500 inline-flex items-center gap-1.5"><Icon name="lock" className="w-3.5 h-3.5" /> Completa el {CHAPTERS.find((c) => c.id === ch.id - 1)?.title ?? 'capítulo anterior'} para desbloquearlo.</div>
+              )}
+            </div>
+          )
+        })}
 
         {/* El tipo Sonoro (teaser) */}
         <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4">

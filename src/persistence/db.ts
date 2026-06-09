@@ -26,6 +26,8 @@ interface MetaRecord {
   /** Liga Pokémon: campeonatos ganados y mejor fase alcanzada. */
   leagueChampionships?: number
   leagueBestStage?: string
+  /** Modo Historia: capítulos completados. */
+  storyCompleted?: number[]
 }
 
 const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
@@ -187,6 +189,7 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     pet: a.pet ?? b.pet ?? null,
     leagueChampionships: Math.max(a.leagueChampionships ?? 0, b.leagueChampionships ?? 0),
     leagueBestStage: bestStage(a.leagueBestStage, b.leagueBestStage),
+    storyCompleted: [...new Set([...(a.storyCompleted ?? []), ...(b.storyCompleted ?? [])])],
   }
 }
 

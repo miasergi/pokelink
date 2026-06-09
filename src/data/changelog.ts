@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.35',
+    date: '2026-06-09',
+    title: 'Capítulo 2 + selección de capítulos',
+    changes: [
+      '¡Nuevo Capítulo 2 «La Costa Prohibida»! Infíltrate en el perímetro de seguridad (guardias, técnicos, vallas electrificadas) hasta el Comandante Vega, con su escenario y fondos propios.',
+      'El Modo Historia ahora tiene selección de capítulos: completa uno para desbloquear el siguiente.',
+      'Arreglado: en la Liga, abrir el equipo de un entrenador desde la clasificación ya no aparece por debajo del modal.',
+    ],
+  },
+  {
     version: 'v6.34',
     date: '2026-06-09',
     title: 'Capítulo 1: fondo de ciudad portuaria + música por archivo',

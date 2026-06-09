@@ -261,7 +261,7 @@ function ChampionCard({ league, champ, onView }: { league: LeagueState; champ: n
 
 function TeamModal({ p, onClose }: { p: LeagueParticipant; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div className="w-full max-w-md max-h-[90%] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-3 animate-pop-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-2">
           {p.sprite && <img src={p.sprite} alt="" className="w-10 h-10 object-contain" />}

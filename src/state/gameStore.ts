@@ -24,7 +24,7 @@ import {
   leagueAchievements, playerBestStage, stageRank,
 } from '@/engine/league/league'
 import type { StoryLine } from '@/data/story/chapters'
-import { CHAPTER1_PREBOSS, CHAPTER1_OUTRO } from '@/data/story/chapter1'
+import { STORY_CONTENT } from '@/data/story/content'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
@@ -61,10 +61,11 @@ interface GameState {
   leagueBattle: LeagueBattle | null
   hasSavedLeague: boolean
   totalWins: number
+  storyCompleted: number[]
   startLeague: (team: PokemonInstance[], playerName: string, sprite: string) => void
   startLeagueWithRunTeam: (sprite: string) => void
   // --- Modo Historia ---
-  storyScene: { lines: StoryLine[]; kind: 'preboss' | 'outro'; nodeId?: string } | null
+  storyScene: { lines: StoryLine[]; kind: 'preboss' | 'outro'; chapter: number; nodeId?: string } | null
   storySceneDone: () => void
   resumeLeague: () => Promise<void>
   abandonLeague: () => Promise<void>
@@ -189,6 +190,7 @@ export const useGame = create<GameState>((set, get) => ({
   leagueBattle: null,
   hasSavedLeague: false,
   totalWins: 0,
+  storyCompleted: [],
   storyScene: null,
   lastSummary: null,
   battleSummary: null,
@@ -258,7 +260,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (get().cloudUser) void get().cloudSync()
     void loadMeta().then(async (m) => {
       if (m.alias) set({ alias: m.alias })
-      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins })
+      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins, storyCompleted: m.storyCompleted ?? [] })
       if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
     })
     const saved = await loadRun()
@@ -491,10 +493,10 @@ export const useGame = create<GameState>((set, get) => ({
     const node = enterNode(run, nodeId)
 
     if (isNodeBattle(node)) {
-      // Modo Historia: diálogo antes del jefe del capítulo (El Capitán).
-      if (run.story === 1 && node.type === 'champion') {
+      // Modo Historia: diálogo antes del jefe del capítulo.
+      if (run.story && STORY_CONTENT[run.story] && node.type === 'champion') {
         persist(run)
-        set({ run, storyScene: { lines: CHAPTER1_PREBOSS, kind: 'preboss', nodeId }, screen: { name: 'storyDialogue' }, history: [] })
+        set({ run, storyScene: { lines: STORY_CONTENT[run.story].preboss, kind: 'preboss', chapter: run.story, nodeId }, screen: { name: 'storyDialogue' }, history: [] })
         return
       }
       const result = startNodeBattle(run, node)
@@ -551,8 +553,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (summary.runWon) {
       void recordRunEnd(run).then((a) => { if (a.length) set({ newAchievements: a }) })
       // Modo Historia: outro + capítulo completado en vez de la pantalla de victoria.
-      if (run.story === 1) {
-        set({ run, lastSummary: summary, pendingBattle: null, storyScene: { lines: CHAPTER1_OUTRO, kind: 'outro' }, screen: { name: 'storyDialogue' }, history: [] })
+      if (run.story && STORY_CONTENT[run.story]) {
+        set({ run, lastSummary: summary, pendingBattle: null, storyScene: { lines: STORY_CONTENT[run.story].outro, kind: 'outro', chapter: run.story }, screen: { name: 'storyDialogue' }, history: [] })
       } else {
         set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
       }
@@ -891,6 +893,11 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     if (won) { meta.totals.wins += 1; useGame.setState({ totalWins: meta.totals.wins }) }
     meta.totals.gymsDefeated += run.stats.gymsDefeated
     meta.totals.pokemonCaught += run.stats.pokemonCaught
+  } else if (won && run.story) {
+    // Modo Historia: marca el capítulo como completado (desbloquea el siguiente).
+    const done = [...new Set([...(meta.storyCompleted ?? []), run.story])]
+    meta.storyCompleted = done
+    useGame.setState({ storyCompleted: done })
   }
   // pokédex (+ shinies)
   const seen = new Set(meta.pokedexSeen)
