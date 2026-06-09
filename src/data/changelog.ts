@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.30',
+    date: '2026-06-09',
+    title: 'Capítulo 1: diálogos del jefe y final',
+    changes: [
+      'Antes de enfrentarte a El Capitán aparece una escena de diálogo que da contexto al combate.',
+      'Al superar el capítulo se reproduce un epílogo y una pantalla de «Capítulo completado» que insinúa lo que viene.',
+    ],
+  },
+  {
     version: 'v6.29',
     date: '2026-06-09',
     title: 'Modo Historia: reinicio + dificultad del Capítulo 1',

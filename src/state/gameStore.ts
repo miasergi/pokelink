@@ -23,11 +23,13 @@ import {
   playerKnockoutMatch, recordKnockoutResult, advanceKnockoutRound,
   leagueAchievements, playerBestStage, stageRank,
 } from '@/engine/league/league'
+import type { StoryLine } from '@/data/story/chapters'
+import { CHAPTER1_PREBOSS, CHAPTER1_OUTRO } from '@/data/story/chapter1'
 import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, saveCloudMeta, submitGloryRun, type CloudUser } from '@/persistence/supabase'
 
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect' | 'randomSetup'
-  | 'leagueSetup' | 'league' | 'story'
+  | 'leagueSetup' | 'league' | 'story' | 'storyDialogue'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
   | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
 
@@ -61,6 +63,9 @@ interface GameState {
   totalWins: number
   startLeague: (team: PokemonInstance[], playerName: string, sprite: string) => void
   startLeagueWithRunTeam: (sprite: string) => void
+  // --- Modo Historia ---
+  storyScene: { lines: StoryLine[]; kind: 'preboss' | 'outro'; nodeId?: string } | null
+  storySceneDone: () => void
   resumeLeague: () => Promise<void>
   abandonLeague: () => Promise<void>
   startLeagueMatch: () => void
@@ -184,6 +189,7 @@ export const useGame = create<GameState>((set, get) => ({
   leagueBattle: null,
   hasSavedLeague: false,
   totalWins: 0,
+  storyScene: null,
   lastSummary: null,
   battleSummary: null,
   lastEventResult: null,
@@ -367,6 +373,22 @@ export const useGame = create<GameState>((set, get) => ({
     void clearLeague(); void saveLeague(league)
     set({ run: null, hasSavedRun: false, pendingBattle: null, league, hasSavedLeague: true, leagueBattle: null, screen: { name: 'league' }, history: [] })
   },
+  storySceneDone: () => {
+    const scene = get().storyScene
+    const cur = get().run
+    if (!scene) return
+    if (scene.kind === 'preboss' && scene.nodeId && cur) {
+      const run = cloneRun(cur)
+      const node = run.map.nodes[scene.nodeId]
+      const result = startNodeBattle(run, node)
+      set({ run, pendingBattle: { nodeId: scene.nodeId, result }, storyScene: null, screen: { name: 'battle' }, history: [] })
+      persist(run)
+    } else {
+      // Outro: capítulo completado -> limpiar run y volver al hub de la historia.
+      void clearRun()
+      set({ run: null, hasSavedRun: false, storyScene: null, screen: { name: 'story' }, history: [] })
+    }
+  },
   resumeLeague: async () => {
     const league = await loadLeague()
     if (league) set({ league, leagueBattle: null, screen: { name: 'league' }, history: [] })
@@ -469,6 +491,12 @@ export const useGame = create<GameState>((set, get) => ({
     const node = enterNode(run, nodeId)
 
     if (isNodeBattle(node)) {
+      // Modo Historia: diálogo antes del jefe del capítulo (El Capitán).
+      if (run.story === 1 && node.type === 'champion') {
+        persist(run)
+        set({ run, storyScene: { lines: CHAPTER1_PREBOSS, kind: 'preboss', nodeId }, screen: { name: 'storyDialogue' }, history: [] })
+        return
+      }
       const result = startNodeBattle(run, node)
       set({ run, pendingBattle: { nodeId, result }, screen: { name: 'battle' }, history: [] })
       persist(run)
@@ -522,7 +550,12 @@ export const useGame = create<GameState>((set, get) => ({
 
     if (summary.runWon) {
       void recordRunEnd(run).then((a) => { if (a.length) set({ newAchievements: a }) })
-      set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
+      // Modo Historia: outro + capítulo completado en vez de la pantalla de victoria.
+      if (run.story === 1) {
+        set({ run, lastSummary: summary, pendingBattle: null, storyScene: { lines: CHAPTER1_OUTRO, kind: 'outro' }, screen: { name: 'storyDialogue' }, history: [] })
+      } else {
+        set({ run, lastSummary: summary, pendingBattle: null, screen: { name: 'victory' }, history: [] })
+      }
     } else if (summary.runEnded) {
       // Salvavidas: revive 1 y continúa, SOLO al perder vs salvajes o entrenadores
       // normales (NUNCA contra jefes, rival, guardián ni Liga Pokémon).
