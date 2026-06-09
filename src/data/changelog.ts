@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.36',
+    date: '2026-06-09',
+    title: 'Modo Historia: nuevas ilustraciones de fondo',
+    changes: [
+      'Nuevo fondo del prólogo (la isla y su torre) en las cinemáticas del Capítulo 1.',
+      'Nuevo fondo del mapa del Capítulo 1: el puerto de Azulona. (Ambas imágenes optimizadas para que no pesen.)',
+    ],
+  },
+  {
     version: 'v6.35',
     date: '2026-06-09',
     title: 'Capítulo 2 + selección de capítulos',
