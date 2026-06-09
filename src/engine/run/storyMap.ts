@@ -37,7 +37,7 @@ export function generateStoryMap(starterId: number, rng: RNG, difficulty: string
   ]
   const ACE = CHAPTER1_BOSS.aceLevel
   const anchors = plan.map((p) => (p.boss ? ACE : null))
-  const levels = interpolateLevels(anchors, 4)
+  const levels = interpolateLevels(anchors, 5)
 
   const layers: string[][] = []
   const nodes: Record<string, MapNode> = {}

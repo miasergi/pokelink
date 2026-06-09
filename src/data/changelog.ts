@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.29',
+    date: '2026-06-09',
+    title: 'Modo Historia: reinicio + dificultad del Capítulo 1',
+    changes: [
+      'Corregido: al perder y reiniciar en el Modo Historia volvía a empezar una run de Kanto en vez del capítulo.',
+      'Rebajada la curva del Capítulo 1: El Capitán pasa de nivel 28 a 20 (más acorde a un primer capítulo).',
+    ],
+  },
+  {
     version: 'v6.28',
     date: '2026-06-09',
     title: 'Arreglo: el Capítulo 1 abría Kanto',

@@ -296,6 +296,7 @@ export const useGame = create<GameState>((set, get) => ({
       gen: run.gen, starterId: run.starterId, difficulty: run.difficulty,
       ...(keepSeed ? { seed: run.seed } : {}),
       ...(run.daily ? { daily: run.daily } : {}),
+      ...(run.story ? { story: run.story } : {}),
     })
   },
 

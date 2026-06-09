@@ -38,7 +38,7 @@ export const CHAPTER1_BOSS: { trainer: TrainerData; team: number[]; aceLevel: nu
     team: [],
   },
   team: [87, 91, 99, 121, 73, 130], // Dewgong, Cloyster, Kingler, Starmie, Tentacruel, Gyarados (ace)
-  aceLevel: 28,
+  aceLevel: 20,
 }
 
 // Narrativa: antes del jefe y al superar el capítulo.
