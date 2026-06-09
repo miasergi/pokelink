@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
+import { CHAPTERS } from '@/data/story/chapters'
 import { useSettings } from '@/state/settingsStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
 import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
@@ -81,8 +82,9 @@ export default function MapScreen() {
 
   const totalHeight = map.layers.length * ROW_H + 40
 
+  const storyBg = run.story ? CHAPTERS[run.story - 1]?.mapBg : undefined
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0" style={storyBg ? { background: `linear-gradient(rgba(2,6,23,0.5), rgba(2,6,23,0.78)), url(${storyBg}) center/cover` } : undefined}>
       <TopBar
         title={
           <span className="text-sm">

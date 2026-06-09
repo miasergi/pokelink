@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.32',
+    date: '2026-06-09',
+    title: 'Capítulo 1: fondo de muelle en el mapa',
+    changes: [
+      'El mapa de la run del Capítulo 1 tiene ahora su propio escenario de fondo: un muelle en la niebla que se adentra hacia la isla prohibida.',
+    ],
+  },
+  {
     version: 'v6.31',
     date: '2026-06-09',
     title: 'Capítulo 1: más fácil, con fondo y música propia',
