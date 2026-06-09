@@ -73,6 +73,7 @@ const ONBOARD_KEY = 'pokerogue:onboarded'
 
 export default function App() {
   const { screen, init, loaded } = useGame()
+  const storyMode = useGame((s) => !!s.run?.story)
   const [showIntro, setShowIntro] = useState(() => {
     try {
       return typeof localStorage !== 'undefined' && !localStorage.getItem(ONBOARD_KEY)
@@ -89,10 +90,11 @@ export default function App() {
   // Música de fondo según la pantalla.
   useEffect(() => {
     if (!music) { stopMusic(); return }
-    if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records' || screen.name === 'league' || screen.name === 'leagueSetup' || screen.name === 'story' || screen.name === 'storyDialogue') startMusic('map')
+    if (screen.name === 'story' || screen.name === 'storyDialogue') startMusic('story')
+    else if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records' || screen.name === 'league' || screen.name === 'leagueSetup') startMusic(storyMode ? 'story' : 'map')
     else if (screen.name === 'battle') startMusic('battle')
     else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover') stopMusic()
-  }, [screen.name, music])
+  }, [screen.name, music, storyMode])
 
   if (!loaded) {
     return (

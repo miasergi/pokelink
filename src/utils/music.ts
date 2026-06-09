@@ -9,7 +9,7 @@ let timer: number | null = null
 let current: Track | null = null
 let step = 0
 
-export type Track = 'map' | 'battle' | 'boss'
+export type Track = 'map' | 'battle' | 'boss' | 'story'
 
 function ac(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -27,8 +27,8 @@ function ac(): AudioContext | null {
 
 // Frecuencias de notas (Hz) por nombre simplificado.
 const N: Record<string, number> = {
-  C3: 130.8, D3: 146.8, E3: 164.8, G3: 196.0, A3: 220.0,
-  C4: 261.6, D4: 293.7, E4: 329.6, F4: 349.2, G4: 392.0, A4: 440.0, B4: 493.9, C5: 523.3,
+  A2: 110.0, C3: 130.8, D3: 146.8, E3: 164.8, F3: 174.6, G3: 196.0, A3: 220.0, Bb3: 233.1,
+  C4: 261.6, D4: 293.7, E4: 329.6, F4: 349.2, G4: 392.0, A4: 440.0, Bb4: 466.2, B4: 493.9, C5: 523.3, D5: 587.3,
 }
 
 // Secuencias (arpegios) por ambiente. Cada paso = una nota (o silencio null).
@@ -47,6 +47,12 @@ const SEQ: Record<Track, { bass: (string | null)[]; lead: (string | null)[]; bpm
     bass: ['C3', 'C3', 'D3', 'D3', 'E3', 'E3', 'G3', 'A3'],
     lead: ['C5', 'B4', 'G4', 'E4', 'F4', 'A4', 'G4', 'E4'],
     bpm: 148, wave: 'sawtooth',
+  },
+  // Modo Historia: ambiente lento, menor y enrarecido (niebla / frecuencias).
+  story: {
+    bass: ['A2', null, null, null, 'F3', null, null, null, 'A2', null, null, null, 'E3', null, 'Bb3', null],
+    lead: ['A4', null, 'C5', null, null, 'B4', null, null, 'D5', null, 'C5', null, null, 'E4', null, null],
+    bpm: 60, wave: 'sine',
   },
 }
 

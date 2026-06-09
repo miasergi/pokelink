@@ -67,7 +67,7 @@ export default function StoryScreen() {
     const advance = () => (last ? setPhase('starter') : setLine((i) => i + 1))
     return (
       <div className="flex flex-col flex-1 relative overflow-hidden select-none" onClick={advance}
-        style={{ background: 'radial-gradient(120% 80% at 50% 0%, rgba(124,58,237,0.18), rgba(2,6,23,0.96) 60%)' }}>
+        style={{ background: `linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.85)), url(${chapter.bg}) center/cover` }}>
         <div className="absolute inset-0 pointer-events-none opacity-[0.06]" style={{ backgroundImage: SONORO_GRADIENT }} />
         <div className="flex-1 grid place-items-center p-6">
           <SonoroWave className="w-16 h-16 text-fuchsia-400/30 animate-pulse" />
@@ -86,7 +86,7 @@ export default function StoryScreen() {
   // --- Elegir inicial (Kanto, de momento) ---
   if (phase === 'starter') {
     return (
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1" style={{ background: `linear-gradient(rgba(2,6,23,0.66), rgba(2,6,23,0.88)), url(${chapter.bg}) center/cover` }}>
         <TopBar title="Elige a tu compañero" left={<Button variant="ghost" onClick={() => setPhase('intro')}>‹</Button>} />
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
           <p className="text-sm text-slate-300 text-center">Será tu primer aliado en la travesía hacia Mistery Island.</p>
@@ -118,7 +118,7 @@ export default function StoryScreen() {
 
   // --- Hub del capítulo ---
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1" style={{ background: `linear-gradient(rgba(2,6,23,0.62), rgba(2,6,23,0.86)), url(${chapter.bg}) center/cover` }}>
       <TopBar title={<span className="inline-flex items-center gap-2"><SonoroWave className="w-5 h-5 text-fuchsia-300" /> Modo Historia</span>} left={<Button variant="ghost" onClick={back}>‹</Button>} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
         {/* Misterio: la isla prohibida */}

@@ -37,8 +37,8 @@ export const CHAPTER1_BOSS: { trainer: TrainerData; team: number[]; aceLevel: nu
     quote: '¿Crees que puedes llegar a la isla? Por encima de mi cadáver y de mi tripulación.',
     team: [],
   },
-  team: [87, 91, 99, 121, 73, 130], // Dewgong, Cloyster, Kingler, Starmie, Tentacruel, Gyarados (ace)
-  aceLevel: 20,
+  team: [99, 121, 73, 130], // Kingler, Starmie, Tentacruel, Gyarados (ace)
+  aceLevel: 12,
 }
 
 // Narrativa: antes del jefe y al superar el capítulo.

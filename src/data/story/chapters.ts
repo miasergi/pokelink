@@ -17,6 +17,8 @@ export interface Chapter {
   synopsis: string
   /** Generación cuyos Pokémon aparecen en la run del capítulo. */
   gen: number
+  /** Imagen de fondo del capítulo (modo historia). */
+  bg: string
   intro: StoryLine[]
 }
 
@@ -26,6 +28,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'Capítulo 1',
     subtitle: 'El Archipiélago de Niebla',
     gen: 1,
+    bg: import.meta.env.BASE_URL + 'story/chapter1-bg.webp',
     synopsis:
       'Islas menores rodeadas de aguas bravas y una niebla que lo devora todo. En algún punto del horizonte se esconde Mistery Island, donde la entrada está prohibida. Ábrete paso entre contrabandistas y guardias hasta el ferry clandestino.',
     intro: [

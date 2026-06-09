@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.31',
+    date: '2026-06-09',
+    title: 'Capítulo 1: más fácil, con fondo y música propia',
+    changes: [
+      'Bajada la dificultad del Capítulo 1: El Capitán pasa a nivel 12 y lleva 4 Pokémon (antes 6 a nivel 20).',
+      'Nuevo fondo ambiental del Modo Historia: el Archipiélago de Niebla con la isla prohibida brillando a lo lejos.',
+      'Música de fondo propia para el Modo Historia: un ambiente lento y enrarecido que pega con el misterio.',
+    ],
+  },
+  {
     version: 'v6.30',
     date: '2026-06-09',
     title: 'Capítulo 1: diálogos del jefe y final',

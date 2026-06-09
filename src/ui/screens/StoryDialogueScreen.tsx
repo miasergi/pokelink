@@ -26,7 +26,7 @@ export default function StoryDialogueScreen() {
     const ch = CHAPTERS[0]
     return (
       <div className="flex flex-col flex-1 items-center justify-center p-6 gap-4 text-center relative overflow-hidden"
-        style={{ background: 'radial-gradient(120% 80% at 50% 0%, rgba(124,58,237,0.22), rgba(2,6,23,0.96) 60%)' }}>
+        style={{ background: `linear-gradient(rgba(2,6,23,0.6), rgba(2,6,23,0.85)), url(${ch.bg}) center/cover` }}>
         <div className="absolute inset-0 pointer-events-none opacity-[0.07]" style={{ backgroundImage: SONORO_GRADIENT }} />
         <SonoroWave className="w-16 h-16 text-fuchsia-300 animate-float" />
         <div className="text-[11px] uppercase tracking-[0.25em] text-fuchsia-300/80 font-bold relative">Capítulo completado</div>
@@ -43,7 +43,7 @@ export default function StoryDialogueScreen() {
   // --- Diálogo ---
   return (
     <div className="flex flex-col flex-1 relative overflow-hidden select-none" onClick={advance}
-      style={{ background: 'radial-gradient(120% 80% at 50% 0%, rgba(124,58,237,0.18), rgba(2,6,23,0.96) 60%)' }}>
+      style={{ background: `linear-gradient(rgba(2,6,23,0.5), rgba(2,6,23,0.84)), url(${CHAPTERS[0].bg}) center/cover` }}>
       <div className="absolute inset-0 pointer-events-none opacity-[0.06]" style={{ backgroundImage: SONORO_GRADIENT }} />
       <div className="flex-1 grid place-items-center p-6">
         <SonoroWave className="w-16 h-16 text-fuchsia-400/30 animate-pulse" />
