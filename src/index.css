@@ -111,6 +111,14 @@ body {
 }
 .screen-enter { animation: screen-enter 0.22s ease-out; }
 
+/* Texto con interferencia sutil (estética del tipo Sonoro / Mistery Island) */
+@keyframes glitch-text {
+  0%, 92%, 100% { text-shadow: none; transform: translateX(0); }
+  93% { text-shadow: -1px 0 #06b6d4, 1px 0 #db2777; transform: translateX(0.5px); }
+  96% { text-shadow: 1px 0 #06b6d4, -1px 0 #db2777; transform: translateX(-0.5px); }
+}
+.glitch-text { animation: glitch-text 2.6s infinite steps(1); }
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);

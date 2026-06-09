@@ -6,6 +6,7 @@ import { CHANGELOG } from '@/data/changelog'
 import AccountModal from '@/ui/components/AccountModal'
 import Sprite from '@/ui/components/Sprite'
 import Icon from '@/ui/components/Icon'
+import { SonoroWave } from '@/ui/components/SonoroBadge'
 import RunTeamModal from '@/ui/components/RunTeamModal'
 import { formatDuration } from '@/ui/components/RunTimer'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   const [dailyWins, setDailyWins] = useState<BestRun[]>([])
   const [viewRun, setViewRun] = useState<BestRun | null>(null)
   const [leagueLocked, setLeagueLocked] = useState(false)
+  const [storyLocked, setStoryLocked] = useState(false)
   const today = dailyChallenge().date
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
   // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
@@ -82,6 +84,13 @@ export default function HomeScreen() {
           <span className="inline-flex items-center justify-center gap-1.5">
             <Icon name="liga" className="w-5 h-5" /> Liga Pokémon
             {totalWins > 0 ? (hasSavedLeague ? ' · continuar' : '') : <Icon name="lock" className="w-3.5 h-3.5 text-slate-400" />}
+          </span>
+        </Button>
+        <Button variant="secondary" full className={cloudUser ? '' : 'opacity-70'}
+          onClick={() => { if (cloudUser) navigate('story'); else setStoryLocked(true) }}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <SonoroWave className="w-4 h-4 text-fuchsia-300" /> Modo Historia
+            {!cloudUser && <Icon name="lock" className="w-3.5 h-3.5 text-slate-400" />}
           </span>
         </Button>
         <div className="grid grid-cols-3 gap-3">
@@ -209,6 +218,21 @@ export default function HomeScreen() {
               <Icon name="lock" className="w-4 h-4 shrink-0 text-slate-400" /> Necesitas <b>ganar al menos 1 partida</b> para desbloquearla.
             </div>
             <Button variant="primary" full className="mt-3" onClick={() => setLeagueLocked(false)}>Entendido</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modo Historia bloqueado: requiere sesión */}
+      {storyLocked && (
+        <div className="absolute inset-0 z-[75] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setStoryLocked(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-fuchsia-500/50 bg-slate-900 p-4 animate-pop-in text-center" onClick={(e) => e.stopPropagation()}>
+            <SonoroWave className="w-12 h-12 mx-auto text-fuchsia-300" />
+            <div className="font-extrabold text-fuchsia-300 text-lg mt-1 inline-flex items-center gap-1.5 justify-center"><Icon name="lock" className="w-4 h-4" /> Modo Historia</div>
+            <p className="text-sm text-slate-300 mt-2">Desentraña la conspiración de <b>Mistery Island</b> y el origen del tipo Sonoro, capítulo a capítulo. Tu progreso se guarda en tu cuenta.</p>
+            <div className="rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm mt-3 inline-flex items-center gap-1.5 justify-center w-full">
+              <Icon name="cloud" className="w-4 h-4 shrink-0 text-slate-400" /> Necesitas <b>iniciar sesión</b> para jugarlo.
+            </div>
+            <Button variant="primary" full className="mt-3" onClick={() => { setStoryLocked(false); setAccount(true) }}>Iniciar sesión</Button>
           </div>
         </div>
       )}

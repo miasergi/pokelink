@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.26',
+    date: '2026-06-09',
+    title: '¡Nuevo Modo Historia! (1ª parte)',
+    changes: [
+      'Modo Historia (requiere iniciar sesión): desentraña la conspiración de Mistery Island.',
+      'Capítulo 1 «El Archipiélago de Niebla»: cinemática de introducción con diálogos y elección de inicial de Kanto.',
+      'Se presenta el tipo Sonoro, un tipo artificial (de momento solo en la historia) con su propio color y onda.',
+    ],
+  },
+  {
     version: 'v6.25',
     date: '2026-06-09',
     title: 'Liga: cuadro de eliminatorias y marcadores',

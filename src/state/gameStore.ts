@@ -27,7 +27,7 @@ import { cloudEnabled, currentUser, signIn, signUp, signOut, loadCloudMeta, save
 
 export type ScreenName =
   | 'home' | 'modeSelect' | 'genSelect' | 'starterSelect' | 'randomSetup'
-  | 'leagueSetup' | 'league'
+  | 'leagueSetup' | 'league' | 'story'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
   | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
 
