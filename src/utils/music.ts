@@ -14,6 +14,25 @@ let step = 0
 
 export type Track = 'map' | 'battle' | 'boss' | 'story' | 'league'
 
+// --- Reproducción de ARCHIVOS (si existen) con respaldo sintetizado ---
+// Coloca pistas lo-fi LIBRES (CC0) en public/music/ con estos nombres y sonarán
+// automáticamente. Si no existen, suena la música sintetizada de respaldo.
+const BASE = import.meta.env.BASE_URL
+const FILES: Partial<Record<Track, string>> = {
+  map: BASE + 'music/runs.mp3',
+  league: BASE + 'music/league.mp3',
+  story: BASE + 'music/story.mp3',
+}
+let audioEl: HTMLAudioElement | null = null
+const fileFailed = new Set<Track>() // pistas cuyo archivo no existe -> usa sintetizado
+
+function playFile(track: Track, url: string) {
+  if (!audioEl) { audioEl = new Audio(); audioEl.loop = true; audioEl.volume = 0.5 }
+  audioEl.onerror = () => { fileFailed.add(track); if (current === track) startSynth(track) }
+  audioEl.src = url
+  void audioEl.play().catch(() => { /* autoplay bloqueado: sonará al siguiente gesto */ })
+}
+
 function ac(): AudioContext | null {
   if (typeof window === 'undefined') return null
   if (!ctx) {
@@ -178,20 +197,31 @@ function tick() {
   timer = window.setTimeout(tick, beat * 1000)
 }
 
-/** Inicia (o cambia) la música de fondo. Respeta el ajuste de música. */
-export function startMusic(track: Track) {
-  if (!useSettings.getState().music) return
-  if (current === track && timer !== null) return
-  stopMusic()
+/** Arranca la música sintetizada (respaldo). */
+function startSynth(track: Track) {
   if (!ac()) return
   if (lp) lp.frequency.value = SEQ[track].cutoff
   current = track
   step = 0
+  if (timer !== null) clearTimeout(timer)
   tick()
+}
+
+/** Inicia (o cambia) la música de fondo. Usa archivo si existe, si no, sintetizada. */
+export function startMusic(track: Track) {
+  if (!useSettings.getState().music) return
+  const playing = timer !== null || (audioEl !== null && !audioEl.paused)
+  if (current === track && playing) return
+  stopMusic()
+  current = track
+  const file = FILES[track]
+  if (file && !fileFailed.has(track)) { playFile(track, file); return }
+  startSynth(track)
 }
 
 export function stopMusic() {
   if (timer !== null) { clearTimeout(timer); timer = null }
+  if (audioEl) audioEl.pause()
   current = null
 }
 

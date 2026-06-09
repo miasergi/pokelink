@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.34',
+    date: '2026-06-09',
+    title: 'Capítulo 1: fondo de ciudad portuaria + música por archivo',
+    changes: [
+      'El mapa del Capítulo 1 usa ahora un fondo de ciudad portuaria con su muelle y ferris, fundido con el mar y la niebla.',
+      'La música puede usar archivos propios: deja pistas libres (CC0) en public/music/ (runs.mp3, league.mp3, story.mp3) y sonarán; si faltan, se mantiene la música sintetizada.',
+    ],
+  },
+  {
     version: 'v6.33',
     date: '2026-06-09',
     title: 'Música lo-fi por modo',
