@@ -198,6 +198,12 @@ export default function StoryScreen() {
             <span className="inline-flex items-center justify-center gap-1.5"><Icon name="scroll" className="w-4 h-4" /> Dossier de experimentos</span>
           </Button>
         </div>
+
+        {/* Créditos */}
+        <div className="text-center pb-2">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Modo Historia</div>
+          <div className="text-sm font-extrabold text-slate-300 mt-0.5">Desarrollado por «Scornelles»</div>
+        </div>
       </div>
       {dossier && <DossierModal onClose={() => setDossier(false)} />}
     </div>
