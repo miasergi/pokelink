@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.39',
+    date: '2026-06-11',
+    title: 'Ilustraciones propias para los capítulos 3-6',
+    changes: [
+      'Cada capítulo nuevo de la historia tiene ya su ambientación: el túnel del acuario de los Laboratorios Sumergidos, la caverna iluminada del Coro de los Inestables, la cámara de energía del Núcleo de Resonancia y la torre al crepúsculo de La Frecuencia Madre (fondos de cinemática y de mapa distintos por capítulo).',
+    ],
+  },
+  {
     version: 'v6.38',
     date: '2026-06-11',
     title: 'Gran tanda de mejoras: balance, objetos nuevos y la historia completa',

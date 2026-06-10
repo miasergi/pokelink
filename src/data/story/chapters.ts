@@ -62,13 +62,16 @@ export const CHAPTERS: Chapter[] = [
       { text: 'No hay vuelta atrás. Solo hacia dentro.' },
     ],
   },
+  // Fondos de los caps. 3-6: fotografías de Unsplash (licencia Unsplash, uso
+  // libre). Créditos: c3 Felipe Galvan/Zachary Spears · c4 Phạm Mạnh/tian
+  // dayong · c5 itsiken/Eury Escudero · c6 Kristaps Ungurs/Rémy Penet.
   {
     id: 3,
     title: 'Capítulo 3',
     subtitle: 'Los Laboratorios Sumergidos',
     gen: 1,
-    bg: import.meta.env.BASE_URL + 'story/chapter2-bg.webp',
-    mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
+    bg: import.meta.env.BASE_URL + 'story/chapter3-bg.webp',
+    mapBg: import.meta.env.BASE_URL + 'story/chapter3-map.webp',
     synopsis:
       'El ascensor del búnker desciende al nivel −3: pasillos blancos bajo el mar, jaulas insonorizadas y los primeros PROTOTIPOS del tipo Sonoro. La Dra. Lyra, jefa de bioacústica, prepara el «primer concierto» de sus criaturas.',
     intro: [
@@ -84,8 +87,8 @@ export const CHAPTERS: Chapter[] = [
     title: 'Capítulo 4',
     subtitle: 'El Coro de los Inestables',
     gen: 1,
-    bg: import.meta.env.BASE_URL + 'story/chapter2-bg.webp',
-    mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
+    bg: import.meta.env.BASE_URL + 'story/chapter4-bg.webp',
+    mapBg: import.meta.env.BASE_URL + 'story/chapter4-map.webp',
     synopsis:
       'Bajo los laboratorios hay cavernas naturales donde se «retira» a los experimentos fallidos. La roca amplifica sus ecos rotos. Algo, ahí abajo, los dirige como a un coro… y se hace llamar El Custodio.',
     intro: [
@@ -100,8 +103,8 @@ export const CHAPTERS: Chapter[] = [
     title: 'Capítulo 5',
     subtitle: 'El Núcleo de Resonancia',
     gen: 1,
-    bg: import.meta.env.BASE_URL + 'story/chapter2-bg.webp',
-    mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
+    bg: import.meta.env.BASE_URL + 'story/chapter5-bg.webp',
+    mapBg: import.meta.env.BASE_URL + 'story/chapter5-map.webp',
     synopsis:
       'El corazón de la isla: un reactor que late como un diapasón gigante y sintoniza a cada Pokémon con la frecuencia del proyecto. El Director Krell custodia la sala de control con los «modificados con éxito».',
     intro: [
@@ -116,8 +119,8 @@ export const CHAPTERS: Chapter[] = [
     title: 'Capítulo 6',
     subtitle: 'La Frecuencia Madre',
     gen: 1,
-    bg: import.meta.env.BASE_URL + 'story/chapter1-bg.webp',
-    mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
+    bg: import.meta.env.BASE_URL + 'story/chapter6-bg.webp',
+    mapBg: import.meta.env.BASE_URL + 'story/chapter6-map.webp',
     synopsis:
       'La torre de Mistery Island. Con el Núcleo apagado, el Arquitecto canaliza la frecuencia desde su origen: Meloetta, la «frecuencia madre», encerrada en lo alto. El capítulo final: libérala y silencia la isla para siempre.',
     intro: [
