@@ -4,7 +4,7 @@ import { useSettings, type BattleSpeed } from '@/state/settingsStore'
 import { getSpecies, getMove } from '@/data'
 import { effectivenessLabel, effectivenessColor } from '@/data/typechart'
 import type { BattleEvent, Side } from '@/engine/battle/types'
-import type { PokemonInstance, PokemonType } from '@/types'
+import type { ExtType, PokemonInstance } from '@/types'
 import Sprite from '@/ui/components/Sprite'
 import HpBar from '@/ui/components/HpBar'
 import { Button, Card, money } from '@/ui/components/kit'
@@ -16,10 +16,13 @@ import { STATUS_LABEL } from '@/engine/battle/status'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import { play, type Sfx } from '@/utils/sfx'
+import { monTypes } from '@/engine/team/leveling'
+import { SonoroWave } from '@/ui/components/SonoroBadge'
+import { SONORO_COLOR, SONORO_GRADIENT } from '@/data/story/sonoro'
 import { type Weather, WEATHER_ICON, WEATHER_ES } from '@/engine/battle/abilities'
 import { PLAYER_SPRITE } from '@/ui/playerSprite'
 
-interface AtkView { type: PokemonType; power: number }
+interface AtkView { type: ExtType; power: number }
 interface SideView {
   uid: string
   speciesId: number
@@ -33,6 +36,8 @@ interface SideView {
   heldItemId?: string | null
   moves: AtkView[]
   physical: boolean
+  /** Tipos efectivos (override Sonoro del Modo Historia incluido). */
+  types?: ExtType[]
 }
 interface MonView {
   speciesId: number
@@ -44,6 +49,8 @@ interface MonView {
   heldItemId?: string | null
   moves: AtkView[]
   physical: boolean
+  /** Tipos efectivos (override Sonoro del Modo Historia incluido). */
+  types?: ExtType[]
 }
 interface TeamSlot {
   uid: string
@@ -56,7 +63,7 @@ interface Fx {
   amount: number
   crit?: boolean
   eff?: number
-  moveType?: PokemonType
+  moveType?: ExtType
   self?: boolean
 }
 interface Frame {
@@ -65,7 +72,7 @@ interface Frame {
   message: string
   anim: Partial<Record<Side, 'hit' | 'heal' | 'faint'>>
   remaining: Record<Side, number>
-  acting?: { side: Side; moveType: PokemonType; moveName: string }
+  acting?: { side: Side; moveType: ExtType; moveName: string }
   fx?: Fx
   flash?: { color: string }
   sound?: Sfx
@@ -101,7 +108,7 @@ export default function BattleScreen() {
     const map = new Map<string, MonView>()
     if (!pendingBattle) return map
     const add = (mons: PokemonInstance[]) => {
-      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, physical: m.stats.atk >= m.stats.spa, moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
+      for (const m of mons) map.set(m.uid, { speciesId: m.speciesId, level: m.level, shiny: m.shiny, maxHp: m.stats.hp, currentHp: m.currentHp, status: m.status, heldItemId: m.heldItemId, physical: m.stats.atk >= m.stats.spa, types: monTypes(m), moves: m.moves.map((mv) => { const md = getMove(mv.moveId); return { type: md.type, power: md.power } }) })
     }
     add(playerMons); add(enemyMons)
     return map
@@ -256,10 +263,14 @@ export default function BattleScreen() {
                 <div
                   key={`mv-${idx}`}
                   className="fx-banner flex items-center gap-2 px-4 py-1.5 rounded-full shadow-lg border"
-                  style={{ background: `${TYPE_HEX[frame.acting.moveType]}ee`, borderColor: '#fff3' }}
+                  style={frame.acting.moveType === 'sonoro'
+                    ? { backgroundImage: SONORO_GRADIENT, borderColor: '#fff3' }
+                    : { background: `${TYPE_HEX[frame.acting.moveType]}ee`, borderColor: '#fff3' }}
                 >
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/90 px-1.5 py-0.5 rounded-full bg-black/25">
-                    <TypeIcon type={frame.acting.moveType} />{TYPE_ES[frame.acting.moveType]}
+                    {frame.acting.moveType === 'sonoro'
+                      ? <><SonoroWave className="w-3 h-3" />Sonoro</>
+                      : <><TypeIcon type={frame.acting.moveType} />{TYPE_ES[frame.acting.moveType]}</>}
                   </span>
                   <span className="font-extrabold text-sm text-white">{frame.acting.moveName}</span>
                 </div>
@@ -409,7 +420,7 @@ function SpriteFx({ side, fx, idx }: { side: Side; fx?: Fx; idx: number }) {
   const isNoEff = fx.kind === 'noEffect'
   const color = isHeal ? '#34d399' : fx.crit ? '#fb923c' : fx.self ? '#fca5a5' : '#f87171'
   // En "no afecta" el estallido es apagado/gris (el ataque rebota sin efecto).
-  const burst = isNoEff ? '#94a3b8' : fx.moveType ? TYPE_HEX[fx.moveType] : '#f87171'
+  const burst = isNoEff ? '#94a3b8' : fx.moveType ? (fx.moveType === 'sonoro' ? SONORO_COLOR : TYPE_HEX[fx.moveType]) : '#f87171'
   return (
     <div className="absolute inset-0 z-20 pointer-events-none grid place-items-center">
       {!isHeal && (
@@ -473,7 +484,7 @@ function InfoCard({ view, remaining, align }: { view: SideView; remaining: numbe
         <span className="text-xs text-slate-300 font-bold">Nv.{view.level}</span>
       </div>
       <div className={`flex items-center gap-1 my-1 ${align === 'right' ? 'justify-end' : ''}`}>
-        {sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+        {(view.types ?? sp.types).map((t) => <TypeBadge key={t} type={t} size="sm" />)}
         {held && (
           <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded px-1 py-0.5">
             {held.sprite && <img src={held.sprite} alt="" className="w-3.5 h-3.5" style={{ imageRendering: 'pixelated' }} />}
@@ -525,6 +536,7 @@ function buildFrames(
       uid, speciesId: d.speciesId, name: getSpecies(d.speciesId).displayName,
       level: d.level, shiny: d.shiny, currentHp: d.currentHp, maxHp: d.maxHp,
       status: d.status, fainted: d.currentHp <= 0, heldItemId: d.heldItemId, moves: d.moves, physical: d.physical,
+      types: d.types,
     }
   }
 
@@ -542,7 +554,7 @@ function buildFrames(
 
   // estado de movimiento en curso
   let lastAttacker: Side | null = null
-  const lastMoveType: Record<Side, PokemonType> = { player: 'normal', enemy: 'normal' }
+  const lastMoveType: Record<Side, ExtType> = { player: 'normal', enemy: 'normal' }
 
   const remaining = (side: Side) => teamCount[side].size - fainted[side].size
   const setSide = (side: Side, v: SideView) => { if (side === 'player') player = v; else enemy = v }
@@ -576,8 +588,8 @@ function buildFrames(
         const s = getSide(e.side)!
         message = `${s.name} usó ${e.moveName}.`
         lastAttacker = e.side
-        lastMoveType[e.side] = e.moveType as PokemonType
-        push({ acting: { side: e.side, moveType: e.moveType as PokemonType, moveName: e.moveName } })
+        lastMoveType[e.side] = e.moveType as ExtType
+        push({ acting: { side: e.side, moveType: e.moveType as ExtType, moveName: e.moveName } })
         break
       }
       case 'damage': {

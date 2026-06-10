@@ -12,6 +12,7 @@ import { commitElapsed } from '@/engine/run/playtime'
 import * as Party from '@/engine/run/party'
 import { getMegaForms, getSpecies, toBaseSpeciesId } from '@/data'
 import { checkAchievements } from '@/engine/run/achievements'
+import { applyStoryChapterRewards } from '@/engine/run/storyRewards'
 import { evolve, levelEvolutionTargets, evolutionBlockedByItem, cycleRegionalForm } from '@/engine/team/evolution'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
 import { saveRun, loadRun, clearRun, loadMeta, saveMeta, mergeMeta, recomputeTotals, saveLeague, loadLeague, clearLeague } from '@/persistence/db'
@@ -907,9 +908,11 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     const done = [...new Set([...(meta.storyCompleted ?? []), run.story])]
     meta.storyCompleted = done
     // Continuidad: guarda el equipo con el que TERMINASTE el capítulo (curado),
-    // para que el siguiente te ofrezca continuar con él.
-    const finalTeam = structuredClone(run.party)
+    // para que el siguiente te ofrezca continuar con él. Aplica además las
+    // recompensas narrativas (cap.1: el Lapras del Capitán; cap.3: muta a Sonoro).
+    let finalTeam = structuredClone(run.party)
     for (const p of finalTeam) { p.currentHp = p.stats.hp; p.status = 'none' }
+    finalTeam = applyStoryChapterRewards(run.story, finalTeam, run.seed)
     meta.storyTeams = { ...(meta.storyTeams ?? {}), [run.story]: finalTeam }
     useGame.setState({ storyCompleted: done, storyTeams: meta.storyTeams })
   }

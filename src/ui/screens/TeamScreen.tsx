@@ -11,7 +11,7 @@ import PartyList from '@/ui/components/PartyList'
 import { typeGradient } from '@/ui/theme/types'
 import { effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { TYPE_ATTACKS } from '@/data/typeAttacks'
-import { effectiveTier } from '@/engine/team/leveling'
+import { effectiveTier, monTypes } from '@/engine/team/leveling'
 import { attackCategory } from '@/engine/battle/damage'
 import { itemHasEffect, noEffectReason, displayStats } from '@/engine/team/itemEffect'
 import CompareModal from '@/ui/components/CompareModal'
@@ -170,7 +170,7 @@ export default function TeamScreen() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-extrabold truncate">{selSpecies.displayName}</div>
-                <div className="flex gap-1 mt-0.5">{selSpecies.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+                <div className="flex gap-1 mt-0.5">{monTypes(selMon).map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="text-xs text-slate-400">Nv.{selMon.level}</span>
@@ -250,7 +250,7 @@ export default function TeamScreen() {
                 // El nivel de potencia solo sube con el objeto "Mejora" (no por nivel).
                 const curTier = effectiveTier(selMon)
                 if (curTier >= 2) return null
-                const types = [...new Set(selSpecies.types)].slice(0, 2)
+                const types = [...new Set(monTypes(selMon))].slice(0, 2)
                 const ups = types.map((t) => { const tier = TYPE_ATTACKS[t][curTier + 1]; return `${tier.name} (Pot. ${tier.power})` })
                 return (
                   <div className="flex items-start gap-1.5">

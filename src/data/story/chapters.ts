@@ -132,5 +132,6 @@ export const CHAPTERS: Chapter[] = [
   },
 ]
 
-/** Iniciales de Kanto (de momento). */
-export const KANTO_STARTERS = [1, 4, 7]
+/** Compañeros iniciales del Modo Historia: Pichu o Pikachu (nada de iniciales
+ *  de Kanto; los fakemons llegarán más adelante). */
+export const STORY_STARTERS = [172, 25]

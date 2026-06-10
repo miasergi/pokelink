@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.40',
+    date: '2026-06-11',
+    title: '¡El tipo Sonoro entra en combate! + el Lapras del Capitán',
+    changes: [
+      'Modo Historia: desde el Capítulo 2 (ya en la isla) los experimentos del dossier — y sus líneas evolutivas completas (Whismur, Kricketot, Chingling, Noibat, Toxel…) — pelean con el tipo SONORO de verdad: eficacias, STAB, ataques propios (Chirrido → Vozarrón → Estruendo) y su insignia con degradado. ¡También puedes capturarlos!',
+      'Capítulo 1: El Capitán ahora lleva 3 Pokémon de agua con su Lapras como as… y al vencerle te deja a medio camino de la isla y TE REGALA su Lapras.',
+      'Capítulo 3: las cubas de bioacústica despiertan el gen dormido de tu Lapras, que muta a tipo Agua/Sonoro (con sus nuevos ataques).',
+      'Los compañeros iniciales del Modo Historia ahora son Pichu o Pikachu (se acabaron los iniciales de Kanto).',
+      'Créditos: Modo Historia desarrollado por «Scornelles».',
+    ],
+  },
+  {
     version: 'v6.39',
     date: '2026-06-11',
     title: 'Ilustraciones propias para los capítulos 3-6',

@@ -1,6 +1,12 @@
-import type { BaseStats, PokemonInstance, SpeciesData } from '@/types'
+import type { BaseStats, ExtType, PokemonInstance, SpeciesData } from '@/types'
 import { getSpecies, getMove } from '@/data'
 import { typeAttackId, tierForLevel, captureTier } from '@/data/typeAttacks'
+
+/** Tipos EFECTIVOS de una instancia: su override (gen Sonoro del Modo Historia)
+ *  o, si no lo hay, los de la especie. */
+export function monTypes(mon: PokemonInstance): ExtType[] {
+  return mon.typesOverride?.length ? mon.typesOverride : getSpecies(mon.speciesId).types
+}
 
 /** Nivel de potencia efectivo (0/1/2/3). FIJO: el que tenía al crearse/capturarse,
  *  más "Mejora" (hasta 2) y "Movimiento Z" (3). NO sube por subir de nivel.
@@ -16,11 +22,11 @@ export function applyCaptureTier(mon: PokemonInstance): void {
   refreshMoves(mon)
 }
 
-/** Reasigna el moveset estándar (ataque por tipo) al nivel de potencia actual. */
+/** Reasigna el moveset estándar (ataque por tipo) al nivel de potencia actual.
+ *  Usa los tipos EFECTIVOS (override Sonoro incluido). */
 export function refreshMoves(mon: PokemonInstance): void {
-  const sp = getSpecies(mon.speciesId)
   const tier = effectiveTier(mon)
-  const types = [...new Set(sp.types)].slice(0, 2)
+  const types = [...new Set(monTypes(mon))].slice(0, 2)
   mon.moves = types.map((type) => {
     const id = typeAttackId(type, tier)
     const m = getMove(id)

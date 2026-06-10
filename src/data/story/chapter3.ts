@@ -47,6 +47,9 @@ const PREBOSS: StoryLine[] = [
 const OUTRO: StoryLine[] = [
   { speaker: 'Dra. Lyra', text: 'Imposible… mis prototipos perfectos… ¿desafinando ante un aficionado?' },
   { text: 'Sobre su mesa, un mapa del subsuelo: bajo los laboratorios hay CAVERNAS naturales… llenas de marcas rojas: «INESTABLES — NO ABRIR».', glitch: true },
+  { text: 'Entonces lo oyes. Un canto grave y hermoso que no debería sonar aquí: tu Lapras responde a las máquinas de resonancia.', glitch: true },
+  { speaker: 'Dra. Lyra', text: 'Vaya, vaya… el espécimen del viejo capitán. Las cubas lo han RECONOCIDO. Su gen ya estaba sembrado; solo necesitaba… afinarse.', glitch: true },
+  { text: 'Tu Lapras tiembla un instante y, cuando vuelve a cantar, su voz suena distinta. Más profunda. Artificial. ¡Tu Lapras es ahora de tipo Agua/Sonoro!', glitch: true },
   { text: 'Desde las profundidades, como respuesta, sube un coro desacompasado de aullidos.', glitch: true },
 ]
 

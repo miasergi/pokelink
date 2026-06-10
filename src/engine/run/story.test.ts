@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { createRun } from './runEngine'
-import { generateStoryMap } from './storyMap'
+import { generateStoryMap, applySonoroGene } from './storyMap'
+import { applyStoryChapterRewards } from './storyRewards'
 import { createInstance } from '@/engine/team/instance'
+import { monTypes } from '@/engine/team/leveling'
+import { getMove, getSpecies } from '@/data'
+import { typeEffectiveness } from '@/data/typechart'
 import { RNG } from '@/utils/rng'
 
 describe('Modo Historia — Capítulo 1', () => {
@@ -72,5 +76,82 @@ describe('Modo Historia — capítulos 3-6 y continuidad', () => {
   it('la curva de cada capítulo empieza en su startLevel (no a nivel 5)', () => {
     const { map } = generateStoryMap(5, 1, new RNG(3), 'normal') // cap. 5: startLevel 33
     for (const id of map.layers[0]) expect(map.nodes[id].enemyLevel).toBeGreaterThanOrEqual(30)
+  })
+})
+
+describe('Modo Historia — tipo Sonoro en combate', () => {
+  it('applySonoroGene altera tipos y ataques (Exploud y su preevolución Whismur)', () => {
+    for (const id of [293, 295]) {
+      const mon = createInstance(id, 20, new RNG(1))
+      applySonoroGene(mon)
+      expect(monTypes(mon)).toEqual(['sonoro'])
+      // Su ataque pasa a ser de tipo Sonoro (sintético registrado en el catálogo).
+      expect(mon.moves.some((mv) => getMove(mv.moveId).type === 'sonoro')).toBe(true)
+    }
+  })
+
+  it('las eficacias del Sonoro se aplican con los tipos efectivos de la instancia', () => {
+    const mon = createInstance(295, 20, new RNG(1)) // Exploud: normal de fábrica
+    expect(typeEffectiveness('fighting', monTypes(mon))).toBe(2) // lucha vs normal
+    applySonoroGene(mon)
+    expect(typeEffectiveness('fighting', monTypes(mon))).toBe(1) // ya no es normal
+    expect(typeEffectiveness('steel', monTypes(mon))).toBe(2) // débil a acero
+    const sonoroMove = mon.moves.find((mv) => getMove(mv.moveId).type === 'sonoro')!
+    expect(typeEffectiveness(getMove(sonoroMove.moveId).type, getSpecies(54).types)).toBe(2) // vs Psyduck (agua)
+  })
+
+  it('en el cap. 1 (fuera de la isla) NO hay Sonoro; del cap. 2 en adelante sí aparece', () => {
+    const m1 = generateStoryMap(1, 25, new RNG(5), 'normal').map
+    for (const n of Object.values(m1.nodes)) {
+      const c = n.content
+      const mons = c.kind === 'wild' ? [c.enemy] : c.kind === 'trainer' ? c.team : c.kind === 'catch' ? c.offers : []
+      for (const mon of mons) expect(mon.typesOverride).toBeUndefined()
+    }
+    // Cap. 3 (laboratorios, lleno de prototipos): alguna instancia lleva el gen.
+    let found = false
+    for (let seed = 1; seed <= 5 && !found; seed++) {
+      const m3 = generateStoryMap(3, 25, new RNG(seed), 'normal').map
+      for (const n of Object.values(m3.nodes)) {
+        const c = n.content
+        const mons = c.kind === 'wild' ? [c.enemy] : c.kind === 'trainer' ? c.team : c.kind === 'catch' ? c.offers : []
+        if (mons.some((mon) => mon.typesOverride?.includes('sonoro'))) { found = true; break }
+      }
+    }
+    expect(found).toBe(true)
+  })
+
+  it('el Capitán lleva 3 Pokémon de agua y uno es Lapras (sano, sin gen Sonoro)', () => {
+    const { map } = generateStoryMap(1, 25, new RNG(7), 'normal')
+    const boss = map.nodes[map.layers[map.layers.length - 1][0]]
+    if (boss.content.kind !== 'trainer') throw new Error('jefe sin equipo')
+    const team = boss.content.team
+    expect(team).toHaveLength(3)
+    for (const m of team) expect(getSpecies(m.speciesId).types).toContain('water')
+    const lapras = team.find((m) => m.speciesId === 131)!
+    expect(lapras).toBeDefined()
+    expect(lapras.typesOverride).toBeUndefined()
+  })
+
+  it('recompensas: el cap. 1 regala el Lapras del Capitán y el cap. 3 lo muta a Sonoro', () => {
+    const team = [createInstance(25, 14, new RNG(2))]
+    const after1 = applyStoryChapterRewards(1, team, 99)
+    expect(after1).toHaveLength(2)
+    const lapras = after1.find((m) => m.speciesId === 131)!
+    expect(lapras).toBeDefined()
+    expect(monTypes(lapras)).toEqual(['water', 'ice']) // aún sano
+
+    const after3 = applyStoryChapterRewards(3, after1, 99)
+    const mutated = after3.find((m) => m.speciesId === 131)!
+    expect(monTypes(mutated)).toEqual(['water', 'sonoro'])
+    expect(mutated.moves.some((mv) => getMove(mv.moveId).type === 'sonoro')).toBe(true)
+  })
+
+  it('con el equipo lleno, el Lapras del cap. 1 sustituye al miembro de menor nivel', () => {
+    const rng = new RNG(3)
+    const team = [16, 19, 21, 41, 60, 66].map((id, i) => createInstance(id, 10 + i, rng))
+    const after = applyStoryChapterRewards(1, team, 7)
+    expect(after).toHaveLength(6)
+    expect(after.some((m) => m.speciesId === 131)).toBe(true)
+    expect(after.some((m) => m.speciesId === 16)).toBe(false) // el de nivel 10 salió
   })
 })

@@ -7,7 +7,7 @@ import Icon from '@/ui/components/Icon'
 import TypeBadge from '@/ui/components/TypeBadge'
 import SonoroBadge, { SonoroWave } from '@/ui/components/SonoroBadge'
 import { SONORO_GRADIENT } from '@/data/story/sonoro'
-import { CHAPTERS, KANTO_STARTERS } from '@/data/story/chapters'
+import { CHAPTERS, STORY_STARTERS } from '@/data/story/chapters'
 import { STORY_CONTENT } from '@/data/story/content'
 import { EXPERIMENTS, ROLE_ES, type Experiment, type ExpType } from '@/data/story/experiments'
 import type { PokemonType } from '@/types'
@@ -125,7 +125,7 @@ export default function StoryScreen() {
             </p>
           )}
           <div className="grid grid-cols-1 gap-3">
-            {KANTO_STARTERS.map((id) => {
+            {STORY_STARTERS.map((id) => {
               const sp = getSpecies(id)
               const sel = starter === id
               return (
@@ -193,7 +193,7 @@ export default function StoryScreen() {
         {/* El tipo Sonoro (teaser) */}
         <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4">
           <div className="flex items-center gap-2 mb-1.5"><SonoroBadge /> <span className="text-[11px] text-slate-400">tipo artificial</span></div>
-          <p className="text-[12px] text-slate-300">Un tipo nacido en los laboratorios de la isla, no en la naturaleza. Sus frecuencias destrozan a los Pokémon… pero su inestabilidad puede volverse en su contra. Aún no ha sido liberado: lo descubrirás más adentro.</p>
+          <p className="text-[12px] text-slate-300">Un tipo nacido en los laboratorios de la isla, no en la naturaleza. Desde que pisas la isla (Capítulo 2) los experimentos del proyecto COMBATEN con él: supereficaz contra Psíquico, Hielo y Agua, inútil contra Tierra… Y si capturas uno, el gen viaja contigo.</p>
           <Button full variant="secondary" className="mt-2.5 !py-2" onClick={() => setDossier(true)}>
             <span className="inline-flex items-center justify-center gap-1.5"><Icon name="scroll" className="w-4 h-4" /> Dossier de experimentos</span>
           </Button>

@@ -25,7 +25,8 @@ export const CHAPTER1_CLASSES: StoryClass[] = [
   { name: 'Guardia del perímetro', slug: 'blackbelt', pool: [66, 67, 56, 57, 106, 107] }, // Machop, Mankey, Hitmon
 ]
 
-// Jefe del capítulo: el capitán del ferry clandestino.
+// Jefe del capítulo: el capitán del ferry clandestino. 3 Pokémon de agua, con
+// su querido Lapras de ace (al ganar, te lo acaba regalando a medio camino).
 export const CHAPTER1_BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
   trainer: {
     id: 'story-captain',
@@ -37,7 +38,7 @@ export const CHAPTER1_BOSS: { trainer: TrainerData; team: number[]; aceLevel: nu
     quote: '¿Crees que puedes llegar a la isla? Por encima de mi cadáver y de mi tripulación.',
     team: [],
   },
-  team: [99, 121, 73, 130], // Kingler, Starmie, Tentacruel, Gyarados (ace)
+  team: [99, 130, 131], // Kingler, Gyarados, LAPRAS (ace, el del Capitán)
   aceLevel: 12,
 }
 
@@ -49,6 +50,9 @@ export const CHAPTER1_PREBOSS: StoryLine[] = [
 ]
 export const CHAPTER1_OUTRO: StoryLine[] = [
   { speaker: 'El Capitán', text: 'Está bien… está bien. Te llevaré. Pero recuerda que te avisé.' },
-  { text: 'Mientras el ferry se adentra en la niebla, un zumbido grave vibra en el casco. No viene del motor.', glitch: true },
-  { text: 'Algo en la isla está cantando. Y te ha oído llegar.', glitch: true },
+  { text: 'El ferry se adentra en la niebla. A medio camino, el Capitán apaga el motor y se queda mirando las luces de la isla.', glitch: true },
+  { speaker: 'El Capitán', text: 'Hasta aquí llego yo, chaval. Si me acerco más, no vuelvo a ver mi puerto. Sigue tú… con la marea a favor.' },
+  { speaker: 'El Capitán', text: 'Llévate a mi Lapras. Conoce estas aguas mejor que yo y… no soportaría que se quedara escuchando ESO conmigo.', glitch: true },
+  { text: '¡El Capitán te ha confiado a su Lapras! Se une a tu equipo para el resto de la travesía.' },
+  { text: 'Mientras Lapras te empuja hacia la costa, un zumbido grave vibra bajo el agua. Algo en la isla está cantando. Y os ha oído llegar.', glitch: true },
 ]

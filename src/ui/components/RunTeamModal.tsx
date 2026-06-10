@@ -7,6 +7,7 @@ import PowerDots from './PowerDots'
 import { typeGradient } from '@/ui/theme/types'
 import { formatDuration } from './RunTimer'
 import { shareText, buildShareText } from '@/utils/share'
+import { monTypes } from '@/engine/team/leveling'
 
 const DIFF_ES: Record<string, string> = { normal: 'Normal', hard: 'Difícil', nuzlocke: 'Nuzlocke' }
 
@@ -54,7 +55,7 @@ export default function RunTeamModal({ run, onClose }: { run: BestRun; onClose: 
                       <span className="text-[10px] text-slate-400 shrink-0">Nv.{mon.level}</span>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
-                      {sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+                      {monTypes(mon).map((t) => <TypeBadge key={t} type={t} size="sm" />)}
                       {held && (
                         <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded px-1">
                           {held.sprite && <img src={held.sprite} alt="" className="w-3 h-3" style={{ imageRendering: 'pixelated' }} />}

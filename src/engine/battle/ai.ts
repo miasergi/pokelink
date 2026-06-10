@@ -46,8 +46,9 @@ export function chooseMove(
       if (move.effect?.heal && hpFrac < 0.5) base = 90
       score = base * rng.float(0.85, 1.15)
     } else {
-      const eff = typeEffectiveness(move.type, defenderSpecies.types)
-      const stab = attackerSpecies.types.includes(move.type) ? 1.5 : 1
+      // Tipos EFECTIVOS (override Sonoro del Modo Historia incluido).
+      const eff = typeEffectiveness(move.type, defender.typesOverride?.length ? defender.typesOverride : defenderSpecies.types)
+      const stab = (attacker.typesOverride?.length ? attacker.typesOverride : attackerSpecies.types).includes(move.type) ? 1.5 : 1
       const statRatio =
         move.category === 'physical'
           ? attacker.stats.atk / Math.max(1, defender.stats.def)

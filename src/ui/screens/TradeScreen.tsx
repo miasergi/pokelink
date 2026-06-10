@@ -4,6 +4,7 @@ import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import EvolutionModal from '@/ui/components/EvolutionModal'
+import { monTypes } from '@/engine/team/leveling'
 
 export default function TradeScreen() {
   const { run, screen, doTrade, skipTrade, tradeReveal, closeTradeReveal } = useGame()
@@ -44,7 +45,7 @@ export default function TradeScreen() {
                 <Sprite speciesId={mon.speciesId} shiny={mon.shiny} variant="front" className="w-12 h-12 object-contain" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold">{sp.displayName} <span className="text-xs text-slate-400">Nv.{mon.level}</span></div>
-                  <div className="flex gap-1 mt-0.5">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
+                  <div className="flex gap-1 mt-0.5">{monTypes(mon).map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
                 </div>
                 <span className="text-cyan-300 font-bold text-sm">Cambiar ›</span>
               </button>

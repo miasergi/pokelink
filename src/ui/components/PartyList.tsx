@@ -7,6 +7,7 @@ import TypeBadge from './TypeBadge'
 import PowerDots from './PowerDots'
 import { typeGradient } from '@/ui/theme/types'
 import { tryGetItem } from '@/data/items'
+import { monTypes } from '@/engine/team/leveling'
 
 interface Props {
   party: PokemonInstance[]
@@ -135,7 +136,7 @@ export default function PartyList({ party, selectedUid, onSelect, onReorder, onU
                     <span className="font-bold text-sm truncate">{sp.displayName}</span>
                     <span className="text-[10px] text-slate-400 shrink-0">Nv.{mon.level}</span>
                   </div>
-                  <div className="flex gap-0.5 mt-0.5 min-w-0">{sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" shrink />)}</div>
+                  <div className="flex gap-0.5 mt-0.5 min-w-0">{monTypes(mon).map((t) => <TypeBadge key={t} type={t} size="sm" shrink />)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-1">

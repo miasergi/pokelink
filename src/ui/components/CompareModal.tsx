@@ -6,6 +6,7 @@ import { displayStats } from '@/engine/team/itemEffect'
 import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { typeGradient } from '@/ui/theme/types'
+import { monTypes } from '@/engine/team/leveling'
 
 /** Modal de comparación: elige un segundo Pokémon y ve ambos (arriba/abajo) con
  *  sus stats en 2 columnas; el mejor valor de cada stat en verde. */
@@ -67,7 +68,7 @@ function Mon({ mon, vs }: { mon: PokemonInstance; vs: PokemonInstance }) {
         <div className="min-w-0 flex-1">
           <div className="font-bold text-sm truncate">{sp.displayName}{mon.shiny && <span className="text-amber-300"> ✨</span>} <span className="text-[10px] text-slate-400">Nv.{mon.level}</span></div>
           <div className="flex items-center gap-1 mt-0.5">
-            {sp.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+            {monTypes(mon).map((t) => <TypeBadge key={t} type={t} size="sm" />)}
             {held && <span className="text-[9px] text-amber-200 bg-amber-500/15 border border-amber-500/30 rounded px-1 truncate max-w-[6rem]">{held.name}</span>}
           </div>
         </div>

@@ -3,7 +3,7 @@ import { getMove, getSpecies, getMegaForms } from '@/data'
 import { RNG } from '@/utils/rng'
 import { computeDamage, isPhysicalAttacker } from './damage'
 import { chooseMove } from './ai'
-import { expForLevel, expGain, levelFromExp } from '@/engine/team/leveling'
+import { expForLevel, expGain, levelFromExp, monTypes } from '@/engine/team/leveling'
 import { computeStats, refreshMoves } from '@/engine/team/leveling'
 import { typeEffectiveness } from '@/data/typechart'
 import { TYPE_BOOST_BY_ID } from '@/data/items'
@@ -173,6 +173,7 @@ export function runBattle(config: BattleConfig): BattleResult {
     t.mon.speciesId = t.speciesId
     t.mon.stats = t.stats
     t.mon.moves = t.moves
+    t.mon.typesOverride = t.typesOverride
     t.mon.currentHp = t.mon.currentHp <= 0 ? 0 : Math.max(1, Math.round(t.mon.stats.hp * frac))
   }
 
@@ -204,7 +205,7 @@ function applyStatItems(side: SideState): void {
 }
 
 // Transformaciones activas del combate en curso (Ditto). Reversibles al final.
-type TransformRec = { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves'] }
+type TransformRec = { mon: PokemonInstance; speciesId: number; stats: PokemonInstance['stats']; moves: PokemonInstance['moves']; typesOverride?: PokemonInstance['typesOverride'] }
 let activeTransforms: TransformRec[] = []
 
 /** Ditto se transforma en el Pokémon activo rival al entrar (también por relevo):
@@ -214,10 +215,11 @@ function maybeTransform(s: SideState, opp: SideState, events: BattleEvent[]): vo
   if (mon.speciesId !== DITTO_ID || mon.currentHp <= 0) return
   const target = active(opp)
   if (target.speciesId === DITTO_ID) return
-  activeTransforms.push({ mon, speciesId: mon.speciesId, stats: mon.stats, moves: mon.moves })
+  activeTransforms.push({ mon, speciesId: mon.speciesId, stats: mon.stats, moves: mon.moves, typesOverride: mon.typesOverride })
   const targetSp = getSpecies(target.speciesId)
   const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
   mon.speciesId = target.speciesId
+  mon.typesOverride = target.typesOverride ? [...target.typesOverride] : undefined // copia el gen Sonoro si lo hay
   mon.stats = computeStats(targetSp.baseStats, mon.ivs, mon.level, mon.bonus)
   mon.currentHp = Math.max(1, Math.round(mon.stats.hp * frac))
   refreshMoves(mon) // ataques de los tipos del rival, al tier de Ditto
@@ -343,7 +345,7 @@ function performMove(
   }
 
   // --- Inmunidades por habilidad (Levitación, Absorbe Agua, Superguarda...) ---
-  const baseEff = typeEffectiveness(move.type, defSpecies.types)
+  const baseEff = typeEffectiveness(move.type, monTypes(defender))
   const absorb = ABSORB[defender.ability]
   if (absorb && absorb.type === move.type) {
     events.push({ kind: 'ability', side: def.side, uid: defender.uid, ability: defender.ability, text: `¡${defSpecies.displayName} absorbe el ataque (${abilityName(defender.ability)})!` })
@@ -384,6 +386,7 @@ function performMove(
     const res = computeDamage({
       attacker, attackerSpecies: species,
       defender, defenderSpecies: defSpecies,
+      attackerTypes: monTypes(attacker), defenderTypes: monTypes(defender),
       move,
       atkStage: phys ? atk.stages.atk : atk.stages.spa,
       defStage: phys ? def.stages.def : def.stages.spd,
@@ -595,7 +598,7 @@ function endOfTurnResidual(s: SideState, events: BattleEvent[], ctx: BattleCtx):
   const magicGuard = mon.ability === 'magic-guard'
 
   // Clima: daño de tormenta de arena / curación por Cura Lluvia y Gélido
-  const types = getSpecies(mon.speciesId).types
+  const types = monTypes(mon)
   if (mon.currentHp > 0 && ctx.weather === 'sand' && !magicGuard && !SAND_IMMUNE.has(mon.ability) &&
       !types.includes('rock') && !types.includes('ground') && !types.includes('steel')) {
     const dmg = Math.max(1, Math.floor(max / 16))

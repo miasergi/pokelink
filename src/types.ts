@@ -7,6 +7,9 @@ export type PokemonType =
   | 'fighting' | 'poison' | 'ground' | 'flying' | 'psychic' | 'bug'
   | 'rock' | 'ghost' | 'dragon' | 'dark' | 'steel' | 'fairy'
 
+/** Tipo extendido: los 18 oficiales + el tipo ARTIFICIAL «Sonoro» (Modo Historia). */
+export type ExtType = PokemonType | 'sonoro'
+
 export type MoveCategory = 'physical' | 'special' | 'status'
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
@@ -49,7 +52,7 @@ export interface MoveData {
   id: number
   name: string
   displayName: string
-  type: PokemonType
+  type: ExtType
   category: MoveCategory
   power: number // 0 para status
   accuracy: number // 0..100 (0 = nunca falla)
@@ -130,6 +133,9 @@ export interface PokemonInstance {
   moveTier?: number
   /** mote opcional. */
   nickname?: string
+  /** Tipos efectivos que SUSTITUYEN a los de la especie (Modo Historia: el gen
+   *  Sonoro de los experimentos). Si falta, valen los de la especie. */
+  typesOverride?: ExtType[]
   shiny: boolean
 }
 

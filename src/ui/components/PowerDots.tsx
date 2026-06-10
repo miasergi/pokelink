@@ -1,12 +1,13 @@
-import type { PokemonType } from '@/types'
+import type { ExtType } from '@/types'
 import { TYPE_HEX } from '@/ui/theme/types'
+import { SONORO_COLOR } from '@/data/story/sonoro'
 import { isZMove, zCrystalSprite, Z_MOVE_NAMES } from '@/data/typeAttacks'
 
 /** Indicador de nivel de potencia del ataque (40/80/120) con 3 bolitas: las del
  *  color del tipo = nivel; el resto, blancas. Si es Movimiento Z (160), muestra
  *  el CRISTAL Z real del tipo del movimiento en vez de las bolitas. */
-export default function PowerDots({ type, power, size = 7 }: { type: PokemonType; power: number; size?: number }) {
-  const color = TYPE_HEX[type]
+export default function PowerDots({ type, power, size = 7 }: { type: ExtType; power: number; size?: number }) {
+  const color = type === 'sonoro' ? SONORO_COLOR : TYPE_HEX[type]
   if (isZMove(power)) {
     const px = size * 3
     return (

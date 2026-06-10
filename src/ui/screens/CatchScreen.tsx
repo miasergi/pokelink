@@ -9,6 +9,7 @@ import { typeGradient } from '@/ui/theme/types'
 import { MAX_PARTY } from '@/engine/run/party'
 import { loadMeta } from '@/persistence/db'
 import { POKEBALL } from '@/ui/components/nodeImage'
+import { monTypes } from '@/engine/team/leveling'
 
 export default function CatchScreen() {
   const { run, screen, doCatch } = useGame()
@@ -66,7 +67,7 @@ export default function CatchScreen() {
                       </div>
                       <div className="text-xs opacity-90 mt-0.5">Nivel {o.level}</div>
                       <div className="flex gap-1 mt-1">
-                        {sp.types.map((t) => <TypeBadge key={t} type={t} />)}
+                        {monTypes(o).map((t) => <TypeBadge key={t} type={t} />)}
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
                         <Stat label="PS" v={sp.baseStats.hp} />

@@ -29,6 +29,9 @@ export interface DamageContext {
   attackerSpecies: SpeciesData
   defender: PokemonInstance
   defenderSpecies: SpeciesData
+  /** Tipos EFECTIVOS (override Sonoro del Modo Historia). Si faltan, los de la especie. */
+  attackerTypes?: import('@/types').ExtType[]
+  defenderTypes?: import('@/types').ExtType[]
   move: MoveData
   atkStage: number // cambio de stat del atacante (atk o spa)
   defStage: number // cambio de stat del defensor (def o spd)
@@ -53,7 +56,7 @@ export interface DamageResult {
 export function computeDamage(ctx: DamageContext): DamageResult {
   const { attacker, attackerSpecies, defender, defenderSpecies, move, rng } = ctx
 
-  const effectiveness = typeEffectiveness(move.type, defenderSpecies.types)
+  const effectiveness = typeEffectiveness(move.type, ctx.defenderTypes ?? defenderSpecies.types)
   if (effectiveness === 0 || move.power <= 0) {
     return { damage: 0, effectiveness, crit: false }
   }
@@ -74,7 +77,7 @@ export function computeDamage(ctx: DamageContext): DamageResult {
   const critMult = crit ? 1.5 : 1
 
   // STAB (Adaptable -> x2)
-  const stab = attackerSpecies.types.includes(move.type) ? (ctx.adaptability ? 2 : 1.5) : 1
+  const stab = (ctx.attackerTypes ?? attackerSpecies.types).includes(move.type) ? (ctx.adaptability ? 2 : 1.5) : 1
 
   // Daño base
   const base =

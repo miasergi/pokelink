@@ -37,9 +37,10 @@ const MATRIX: Record<PokemonType, Record<PokemonType, number>> = {
   fairy:    { normal:N, fire:H, water:N, electric:N, grass:N, ice:N, fighting:T, poison:H, ground:N, flying:N, psychic:N, bug:N, rock:N, ghost:N, dragon:T, dark:T, steel:H, fairy:N },
 }
 
-// --- Tipo SONORO (artificial, Modo Historia). No entra en la unión global de
-//     tipos; se trata como caso especial. ---
-export type ExtType = PokemonType | 'sonoro'
+// --- Tipo SONORO (artificial, Modo Historia). No entra en la matriz de los 18
+//     tipos; se trata como caso especial. La unión vive en types.ts. ---
+export type { ExtType } from '@/types'
+import type { ExtType } from '@/types'
 
 // Ataque Sonoro VS tipo defensor (lo no listado = 1×).
 const SONORO_ATK: Partial<Record<ExtType, number>> = { psychic: T, ice: T, water: T, flying: H, fairy: H, steel: H, ground: Z }

@@ -5,7 +5,7 @@ import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
 import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
-import type { PokemonType } from '@/types'
+import { monTypes } from '@/engine/team/leveling'
 
 const CLASS_ES: Record<string, string> = {
   gym: 'Líder de Gimnasio', elite: 'Alto Mando', champion: 'Campeón', rival: 'Rival', trainer: 'Entrenador',
@@ -55,7 +55,7 @@ export default function NodePreview({
   const specialty = trainer?.specialtyType
 
   // Tipos presentes en el equipo del entrenador (para planificar)
-  const teamTypes = [...new Set(team.flatMap((m) => getSpecies(m.speciesId).types))] as PokemonType[]
+  const teamTypes = [...new Set(team.flatMap((m) => monTypes(m)))]
   const minLvl = team.length ? Math.min(...team.map((m) => m.level)) : node.enemyLevel
   const maxLvl = team.length ? Math.max(...team.map((m) => m.level)) : node.enemyLevel
   const simple = SIMPLE[node.type]

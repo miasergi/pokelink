@@ -1,10 +1,21 @@
-import type { TrainerData } from '@/types'
+import type { PokemonInstance, TrainerData } from '@/types'
 import { RNG } from '@/utils/rng'
 import { getSpecies } from '@/data'
 import { createInstance } from '@/engine/team/instance'
+import { refreshMoves } from '@/engine/team/leveling'
 import { buildRouteContent, connect, interpolateLevels, pickRouteType } from './mapGen'
 import { STORY_CONTENT, type ChapterContent } from '@/data/story/content'
+import { STORY_SONORO_TYPES } from '@/data/story/experiments'
 import type { MapNode, NodeContent, RunMap } from './types'
+
+/** Gen Sonoro (Modo Historia, cap. 2+): si la especie está en el dossier (o es
+ *  de su línea evolutiva), la instancia pasa a llevar los tipos alterados. */
+export function applySonoroGene(mon: PokemonInstance): void {
+  const types = STORY_SONORO_TYPES[mon.speciesId]
+  if (!types) return
+  mon.typesOverride = [...types]
+  refreshMoves(mon) // sus ataques pasan a ser de sus tipos efectivos (Sonoro incluido)
+}
 
 const SHOWDOWN = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
 
@@ -72,6 +83,18 @@ export function generateStoryMap(chapterId: number, starterId: number, rng: RNG,
 
   for (let i = 0; i < layers.length - 1; i++) {
     connect(layers[i].map((id) => nodes[id]), layers[i + 1].map((id) => nodes[id]), rng)
+  }
+
+  // --- Gen Sonoro (cap. 2+, ya dentro de la isla): los experimentos del dossier
+  //     aparecen con sus tipos alterados (enemigos, equipos de entrenador, jefe
+  //     y también las CAPTURAS: puedes obtener Pokémon de tipo Sonoro). ---
+  if (chapterId >= 2) {
+    for (const node of Object.values(nodes)) {
+      const c = node.content
+      if (c.kind === 'wild') applySonoroGene(c.enemy)
+      else if (c.kind === 'trainer') c.team.forEach(applySonoroGene)
+      else if (c.kind === 'catch') c.offers.forEach(applySonoroGene)
+    }
   }
 
   return { map: { layers, nodes, totalLayers: plan.length } }

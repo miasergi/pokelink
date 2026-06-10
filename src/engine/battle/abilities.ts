@@ -1,4 +1,4 @@
-import type { PokemonType } from '@/types'
+import type { ExtType, PokemonType } from '@/types'
 
 export type Weather = 'none' | 'sun' | 'rain' | 'sand' | 'snow'
 
@@ -71,7 +71,7 @@ export function weatherSpeedMult(ability: string, weather: Weather): number {
 }
 
 /** Clima -> multiplicador de daño por tipo de movimiento. */
-export function weatherDamageMult(weather: Weather, moveType: PokemonType): number {
+export function weatherDamageMult(weather: Weather, moveType: ExtType): number {
   if (weather === 'sun') return moveType === 'fire' ? 1.5 : moveType === 'water' ? 0.5 : 1
   if (weather === 'rain') return moveType === 'water' ? 1.5 : moveType === 'fire' ? 0.5 : 1
   return 1

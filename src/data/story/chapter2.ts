@@ -14,6 +14,7 @@ const POOL = [
   81, 82, 100, 101, 125, 137, // tecnología / eléctricos (Magnemite, Voltorb, Electabuzz, Porygon)
   88, 89, 109, 110, // residuos del laboratorio (Grimer, Koffing)
   41, 42, 66, 67, 58, 59, // guardias y patrullas (Zubat, Machop, Growlithe)
+  293, 294, 433, // primeros ESCAPADOS del proyecto (Whismur, Loudred, Chingling: tipo Sonoro)
 ]
 
 const CLASSES = [
