@@ -56,5 +56,6 @@ export const CHAPTER2: ChapterContent = {
   boss: BOSS,
   preboss: PREBOSS,
   outro: OUTRO,
+  startLevel: 10,
   layers: [{ width: 2 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3 }, { width: 2, heal: true }],
 }

@@ -33,7 +33,9 @@ export function generateStoryMap(chapterId: number, starterId: number, rng: RNG,
   const plan: { boss?: boolean; width?: number; heal?: boolean }[] = [...content.layers, { boss: true }]
   const ACE = content.boss.aceLevel
   const anchors = plan.map((p) => (p.boss ? ACE : null))
-  const levels = interpolateLevels(anchors, 5)
+  // Cada capítulo arranca a su nivel (continuidad: el cap. N empieza cerca de
+  // donde terminó el N−1) y la curva sube hasta el ace del jefe.
+  const levels = interpolateLevels(anchors, content.startLevel ?? 5)
 
   const layers: string[][] = []
   const nodes: Record<string, MapNode> = {}

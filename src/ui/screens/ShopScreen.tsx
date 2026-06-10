@@ -12,15 +12,18 @@ export default function ShopScreen() {
   if (node.content.kind !== 'shop') return null
   // La Megapiedra y el Movimiento Z solo se venden a partir de la 7ª medalla.
   const lateGame = run.stats.gymsDefeated >= 7
+  // La Supermejora solo se vende a partir de la 5ª medalla.
+  const midGame = run.stats.gymsDefeated >= 5
   // Nuzlocke: prohibido comprar pociones/objetos de curación.
   const noHeal = run.difficulty === 'nuzlocke'
   // Difícil y Nuzlocke: solo 1 compra por visita.
   const oneItemOnly = run.difficulty === 'hard' || run.difficulty === 'nuzlocke'
   const lockedOut = oneItemOnly && bought
-  // A partir de la 7ª medalla, toda tienda ofrece el Movimiento Z.
-  const baseStock = lateGame ? [...node.content.stock, 'z-move'] : node.content.stock
+  // Desde la 5ª medalla toda tienda ofrece la Supermejora; desde la 7ª, el Movimiento Z.
+  const baseStock = [...node.content.stock, ...(midGame ? ['super-upgrade'] : []), ...(lateGame ? ['z-move'] : [])]
   const stock = [...new Set(baseStock)].filter((id) => {
     if (id === 'mega-stone' && !lateGame) return false
+    if (id === 'super-upgrade' && !midGame) return false
     if (noHeal && (getItem(id).category === 'heal' || getItem(id).category === 'revive')) return false
     return true
   })

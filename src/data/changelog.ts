@@ -11,6 +11,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.38',
+    date: '2026-06-11',
+    title: 'Gran tanda de mejoras: balance, objetos nuevos y la historia completa',
+    changes: [
+      'Historia COMPLETA: 4 capítulos nuevos (Los Laboratorios Sumergidos, El Coro de los Inestables, El Núcleo de Resonancia y La Frecuencia Madre, con Meloetta y el Arquitecto como final del arco).',
+      'Continuidad entre capítulos: al empezar uno puedes CONTINUAR con el equipo con el que terminaste el anterior; si empiezas de cero, tu compañero llega al nivel de la zona (no a Nv. 5).',
+      'Balance: ya no salen Pokémon superevolucionados (Garchomp, Empoleon…) en el inicio de la aventura con entrenadores de tipos escasos.',
+      'Team Rocket ahora da +2 niveles, como promete la casilla (antes +1: no salía a cuenta).',
+      'Movimientos Z con nombre real por tipo (Hidrovórtice Abisal, Hecatombe Pírica, Gigavoltio Destructor…) y con su CRISTAL Z oficial como icono.',
+      'Objetos nuevos: Supermejora (potencia máxima directa, desde la 5ª medalla), Baya Zidra (cura el 50% al caer a media vida, 1 vez por combate, no se gasta), Metrónomo (+25% de daño acumulable por golpe), Gafas Elección (+50% At. Esp., solo especiales) y Cinta Fuerte (+50% Ataque, solo físicos).',
+      'Vidasfera mejorada: ahora DUPLICA el daño a cambio del 10% de PS por golpe.',
+      'Pociones con descuento por tamaño: Superpoción 700 ₽, Hiperpoción 1000 ₽ y Poción Máxima 1300 ₽ (la grande siempre sale más a cuenta que varias pequeñas).',
+      'Retirado el Pañuelo Veloz (la Garra Rápida ya hace su trabajo, mejor).',
+    ],
+  },
+  {
     version: 'v6.37',
     date: '2026-06-09',
     title: 'Eficacias del tipo Sonoro + fondo del Cap.1 atenuado',

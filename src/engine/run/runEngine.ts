@@ -32,12 +32,20 @@ export interface NewRunConfig {
   daily?: string
   /** Modo Historia: nº de capítulo (usa un mapa temático propio). */
   story?: number
+  /** Modo Historia: nivel inicial del compañero (acorde al capítulo). */
+  starterLevel?: number
+  /** Modo Historia: continuar con el equipo del capítulo anterior (en vez de
+   *  empezar con un inicial nuevo). */
+  party?: PokemonInstance[]
 }
 
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
 
 /** Nombre de "región" mostrado para cada capítulo del Modo Historia. */
-const STORY_CHAPTERS: Record<number, string> = { 1: 'El Archipiélago de Niebla', 2: 'La Costa Prohibida' }
+const STORY_CHAPTERS: Record<number, string> = {
+  1: 'El Archipiélago de Niebla', 2: 'La Costa Prohibida', 3: 'Los Laboratorios Sumergidos',
+  4: 'El Coro de los Inestables', 5: 'El Núcleo de Resonancia', 6: 'La Frecuencia Madre',
+}
 
 export function createRun(config: NewRunConfig): RunState {
   const rng = new RNG(config.seed)
@@ -47,7 +55,11 @@ export function createRun(config: NewRunConfig): RunState {
   const { map, rivalStarterId } = config.story
     ? { map: generateStoryMap(config.story, config.starterId, rng, config.difficulty).map, rivalStarterId: config.starterId }
     : generateMap(pools, config.gen, config.starterId, rng, config.difficulty, { randomFlags, monotype: config.monotype })
-  const starter = createInstance(config.starterId, 5, rng)
+  // Modo Historia: si vienes del capítulo anterior, sigues con TU equipo (curado
+  // y a pleno PS); si no, compañero nuevo al nivel del capítulo.
+  const carried = config.party?.length ? structuredClone(config.party) : null
+  if (carried) healParty(carried)
+  const starter = createInstance(config.starterId, config.starterLevel ?? 5, rng)
   const region = config.story ? STORY_CHAPTERS[config.story] ?? 'Modo Historia' : getGeneration(config.gen).region
 
   return {
@@ -67,7 +79,7 @@ export function createRun(config: NewRunConfig): RunState {
     map,
     currentNodeId: null,
     currentLayer: -1,
-    party: [starter],
+    party: carried ?? [starter],
     box: [],
     inventory: { potion: 3, revive: 1 },
     money: 1000,
@@ -249,7 +261,6 @@ export function applyBattleOutcome(
 
   // Team Rocket: el Pokémon secuestrado te ofrece unirse (tú decides en pantalla,
   // igual que con un legendario). No se añade aquí: lo gestiona finishBattle.
-  const isRocket = content.kind === 'trainer' && !!content.rescue
   if (content.kind === 'trainer' && content.rescue) {
     summary.rescueOffer = structuredClone(content.rescue)
   }
@@ -278,10 +289,11 @@ export function applyBattleOutcome(
   // y guardián +2; Alto Mando y Campeón +3. Solo a los que participaron.
   // Nuzlocke: tope de nivel = nivel del próximo jefe (no puedes pasarte).
   const cap = levelCap(run)
-  // Team Rocket solo da +1 (ya te llevas el Pokémon liberado: no chetar la casilla).
+  // Team Rocket da +2 como cualquier entrenador (antes +1: la casilla no salía a
+  // cuenta y la vista previa ya prometía "+2 niveles").
   const levelGain = node.type === 'battle' ? 1
     : (node.type === 'elite' || node.type === 'champion') ? 3
-    : isRocket ? 1 : 2
+    : 2
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

@@ -32,9 +32,31 @@ const BASE_ID = 900000
  *  Nivel 100 = nunca se aprende por subir de nivel. */
 export const Z_MOVE = { name: 'Movimiento Z', power: 160, level: 100 } as const
 
+/** Nombre OFICIAL del Movimiento Z de cada tipo (en vez del genérico "Movimiento Z"). */
+export const Z_MOVE_NAMES: Record<PokemonType, string> = {
+  normal: 'Carrera Arrolladora', fire: 'Hecatombe Pírica', water: 'Hidrovórtice Abisal',
+  electric: 'Gigavoltio Destructor', grass: 'Megatón Floral', ice: 'Crioaliento Despiadado',
+  fighting: 'Patada Certera Final', poison: 'Lanzamiento Ácido', ground: 'Barrena Telúrica',
+  flying: 'Vuelo Arrollador', psychic: 'Disruptor Psíquico', bug: 'Megavorágine',
+  rock: 'Apocalipsis Pétreo', ghost: 'Visitante de Ultratumba', dragon: 'Devastación Definitiva',
+  dark: 'Agujero Negro Aniquilador', steel: 'Colosal Martillo Acerado', fairy: 'Novaluz Fulminante',
+}
+
+/** Cristal Z de cada tipo (sprite REAL del objeto, repo de PokeAPI). */
+const Z_CRYSTAL_SLUG: Record<PokemonType, string> = {
+  normal: 'normalium-z', fire: 'firium-z', water: 'waterium-z', electric: 'electrium-z',
+  grass: 'grassium-z', ice: 'icium-z', fighting: 'fightinium-z', poison: 'poisonium-z',
+  ground: 'groundium-z', flying: 'flyinium-z', psychic: 'psychium-z', bug: 'buginium-z',
+  rock: 'rockium-z', ghost: 'ghostium-z', dragon: 'dragonium-z', dark: 'darkinium-z',
+  steel: 'steelium-z', fairy: 'fairium-z',
+}
+export function zCrystalSprite(type: PokemonType): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${Z_CRYSTAL_SLUG[type]}--held.png`
+}
+
 /** Datos del ataque de un tipo en un nivel de potencia (0/1/2/3). El 3 es el Z. */
 export function typeAttackTier(type: PokemonType, tier: number): TypeAttackTier {
-  if (tier >= 3) return { name: Z_MOVE.name, power: Z_MOVE.power, level: Z_MOVE.level }
+  if (tier >= 3) return { name: Z_MOVE_NAMES[type], power: Z_MOVE.power, level: Z_MOVE.level }
   return TYPE_ATTACKS[type][Math.max(0, Math.min(2, tier))]
 }
 

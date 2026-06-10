@@ -36,11 +36,12 @@ const TYPE_BOOST_ITEMS: ItemData[] = ALL_TYPES.map((type) => {
 
 // Catálogo ÁGIL pensado para roguelike: pocas categorías, decisiones rápidas.
 export const ITEMS: ItemData[] = [
-  // --- Pociones (escalonadas) ---
+  // --- Pociones (escalonadas, con descuento por tamaño: la grande siempre sale
+  //     más a cuenta que comprar varias pequeñas) ---
   { id: 'potion', name: 'Poción', category: 'heal', description: 'Cura el 25% de los PS de un Pokémon.', price: 400, sprite: ITEM_SPRITE('potion') },
-  { id: 'super-potion', name: 'Superpoción', category: 'heal', description: 'Cura el 50% de los PS de un Pokémon.', price: 800, sprite: ITEM_SPRITE('super-potion') },
-  { id: 'hyper-potion', name: 'Hiperpoción', category: 'heal', description: 'Cura el 75% de los PS de un Pokémon.', price: 1400, sprite: ITEM_SPRITE('hyper-potion') },
-  { id: 'max-potion', name: 'Poción Máxima', category: 'heal', description: 'Restaura el 100% de los PS de un Pokémon.', price: 2200, sprite: ITEM_SPRITE('max-potion') },
+  { id: 'super-potion', name: 'Superpoción', category: 'heal', description: 'Cura el 50% de los PS de un Pokémon. (Más barata que 2 Pociones.)', price: 700, sprite: ITEM_SPRITE('super-potion') },
+  { id: 'hyper-potion', name: 'Hiperpoción', category: 'heal', description: 'Cura el 75% de los PS de un Pokémon. (Más barata que 3 Pociones.)', price: 1000, sprite: ITEM_SPRITE('hyper-potion') },
+  { id: 'max-potion', name: 'Poción Máxima', category: 'heal', description: 'Restaura el 100% de los PS de un Pokémon. (Más barata que 4 Pociones.)', price: 1300, sprite: ITEM_SPRITE('max-potion') },
 
   // --- Revivir ---
   { id: 'revive', name: 'Revivir', category: 'revive', description: 'Revive con el 50% de los PS.', price: 1500, sprite: ITEM_SPRITE('revive') },
@@ -50,6 +51,7 @@ export const ITEMS: ItemData[] = [
   { id: 'rare-candy', name: 'Caramelo Raro', category: 'battle', description: 'Sube 3 niveles a un Pokémon (sube todas sus stats).', price: 2500, sprite: ITEM_SPRITE('rare-candy') },
   { id: 'super-candy', name: 'Supercaramelo', category: 'battle', description: 'Sube 5 niveles de golpe a un Pokémon.', price: 4000, sprite: ITEM_SPRITE('sweet-heart') },
   { id: 'upgrade', name: 'Mejora', category: 'battle', description: 'Sube el NIVEL de potencia del ataque de un Pokémon (40 → 80 → 120).', price: 4000, sprite: ITEM_SPRITE('ability-capsule') },
+  { id: 'super-upgrade', name: 'Supermejora', category: 'battle', description: 'Sube el ataque de un Pokémon DIRECTAMENTE a la potencia máxima (120), salte los niveles que salte. Solo en la tienda desde la 5ª medalla.', price: 7000, sprite: ITEM_SPRITE('ability-urge') },
   { id: 'z-move', name: 'Movimiento Z', category: 'battle', description: 'Otorga el MOVIMIENTO Z (potencia 160), el 4º y máximo nivel. El Pokémon debe estar ANTES a potencia máxima (120). Solo en la tienda desde la 7ª medalla.', price: 10000, sprite: LOCAL_ITEM('z-move.png') },
   { id: 'revive-charm', name: 'Salvavidas', category: 'special', description: 'Si pierdes contra un salvaje o un entrenador normal, revives a 1 Pokémon y continúas (no funciona contra jefes ni la Liga). Se usa solo.', price: 5000, sprite: ITEM_SPRITE('sacred-ash') },
 
@@ -58,11 +60,11 @@ export const ITEMS: ItemData[] = [
   { id: 'assault-vest', name: 'Chaleco Asalto', category: 'held', description: 'Sube un 50% AMBAS defensas (recibe menos daño).', price: 3500, sprite: ITEM_SPRITE('assault-vest') },
   { id: 'leftovers', name: 'Restos', category: 'held', description: 'Recupera un 10% de los PS cada turno.', price: 3000, sprite: ITEM_SPRITE('leftovers') },
   { id: 'shell-bell', name: 'Campana Concha', category: 'held', description: 'Te cura un 15% del daño que infliges con cada ataque.', price: 3000, sprite: ITEM_SPRITE('shell-bell') },
-  { id: 'life-orb', name: 'Vidasfera', category: 'held', description: 'Daño x1.3 a cambio de algo de PS.', price: 3000, sprite: ITEM_SPRITE('life-orb') },
+  { id: 'life-orb', name: 'Vidasfera', category: 'held', description: 'DUPLICA el daño de sus ataques (+100%), pero pierde un 10% de sus PS máximos con cada golpe que da.', price: 4000, sprite: ITEM_SPRITE('life-orb') },
   { id: 'focus-sash', name: 'Cinta Focus', category: 'held', description: 'Sobrevive con 1 PS a un golpe letal (una vez).', price: 2500, sprite: ITEM_SPRITE('focus-sash') },
   { id: 'rocky-helmet', name: 'Casco Dentado', category: 'held', description: 'Cada vez que te golpean, el atacante pierde un 10% de sus PS máximos.', price: 2000, sprite: ITEM_SPRITE('rocky-helmet') },
   { id: 'expert-belt', name: 'Banda Experto', category: 'held', description: 'DUPLICA el daño de tus ataques SUPEREFICACES (+100%).', price: 3000, sprite: ITEM_SPRITE('expert-belt') },
-  { id: 'quick-scarf', name: 'Pañuelo Veloz', category: 'held', description: 'DUPLICA la Velocidad (+100%); actúa antes en el turno.', price: 3000, sprite: ITEM_SPRITE('choice-scarf') },
+  // (Pañuelo Veloz retirado en v6.38: hacía lo mismo que la Garra Rápida pero peor.)
   { id: 'eviolite', name: 'Mineral Evo.', category: 'held', description: 'Sube un 50% AMBAS defensas, pero solo si el Pokémon aún PUEDE evolucionar.', price: 3000, sprite: ITEM_SPRITE('eviolite') },
   { id: 'super-mineral', name: 'Supermineral Evo.', category: 'held', description: 'DUPLICA todas las stats, pero solo si al Pokémon aún le quedan 2 evoluciones (1ª etapa).', price: 6500, sprite: ITEM_SPRITE('lustrous-orb') },
   { id: 'razor-claw', name: 'Garra Afilada', category: 'held', description: 'Duplica la probabilidad de golpe crítico.', price: 2500, sprite: ITEM_SPRITE('razor-claw') },
@@ -72,6 +74,10 @@ export const ITEMS: ItemData[] = [
   { id: 'kings-rock', name: 'Roca del Rey', category: 'held', description: 'Cada golpe tuyo tiene un 25% de amedrentar al enemigo (le hace perder su turno).', price: 3000, sprite: ITEM_SPRITE('kings-rock') },
   { id: 'lucky-egg', name: 'Huevo Suerte', category: 'held', description: 'Suma +1 nivel extra al Pokémon que lo lleve en cada combate.', price: 4000, sprite: ITEM_SPRITE('lucky-egg') },
   { id: 'quick-claw', name: 'Garra Rápida', category: 'held', description: 'El Pokémon que la lleva ataca SIEMPRE primero (ignora la Velocidad).', price: 3500, sprite: ITEM_SPRITE('quick-claw') },
+  { id: 'sitrus-berry', name: 'Baya Zidra', category: 'held', description: 'En combate, la PRIMERA vez que sus PS caen al 50% o menos, recupera la mitad de sus PS máximos (1 uso por combate; la baya no se gasta).', price: 2500, sprite: ITEM_SPRITE('sitrus-berry') },
+  { id: 'metronome', name: 'Metrónomo', category: 'held', description: 'Cada golpe que da aumenta el daño de sus siguientes ataques un 25% (acumulable hasta +100% por combate).', price: 3000, sprite: ITEM_SPRITE('metronome') },
+  { id: 'choice-specs', name: 'Gafas Elección', category: 'held', description: 'Sube un 50% el Ataque Especial. Solo pueden equiparlas Pokémon de categoría ESPECIAL.', price: 3500, sprite: ITEM_SPRITE('choice-specs') },
+  { id: 'muscle-band', name: 'Cinta Fuerte', category: 'held', description: 'Sube un 50% el Ataque. Solo pueden equiparla Pokémon de categoría FÍSICA.', price: 3500, sprite: ITEM_SPRITE('muscle-band') },
   { id: 'shiny-incense', name: 'Incienso Shiny', category: 'special', description: 'La PRÓXIMA casilla de captura te ofrecerá un Pokémon SHINY. Se gasta solo.', price: 8000, sprite: ITEM_SPRITE('lax-incense') },
   { id: 'metamorph', name: 'Metamorfosis', category: 'battle', description: 'Cambia entre las formas regionales de un Pokémon (Alola, Galar, Hisui, Paldea) y su forma normal. Se gasta al usarlo.', price: 4500, sprite: ITEM_SPRITE('reveal-glass') },
 

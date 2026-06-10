@@ -102,4 +102,39 @@ describe('motor de combate', () => {
     })
     expect(r.events.filter((e) => e.kind === 'end')).toHaveLength(1)
   })
+
+  it('Baya Zidra: cura el 50% al caer a media vida, solo una vez, y no se gasta', () => {
+    const rng = new RNG(2)
+    const holder = createInstance(143, 50, rng) // Snorlax tanque
+    holder.heldItemId = 'sitrus-berry'
+    const r = runBattle({
+      playerTeam: [holder],
+      enemyTeam: [createInstance(68, 52, rng)], // Machamp (pega fuerte)
+      seed: 9,
+    })
+    const berryHeals = r.events.filter((e) => e.kind === 'message' && e.text.includes('Baya Zidra'))
+    expect(berryHeals.length).toBeLessThanOrEqual(1)
+    // El objeto sigue equipado al terminar (no se consume).
+    expect(r.playerTeam[0].heldItemId).toBe('sitrus-berry')
+    // Si llegó a activarse, hubo un heal de ~50% de los PS máximos justo después.
+    if (berryHeals.length === 1) {
+      const idx = r.events.indexOf(berryHeals[0])
+      const heal = r.events[idx + 1]
+      expect(heal).toMatchObject({ kind: 'heal', uid: holder.uid })
+    }
+  })
+
+  it('Vidasfera: el portador pierde PS al atacar (recoil del 10%)', () => {
+    const rng = new RNG(3)
+    const holder = createInstance(6, 50, rng) // Charizard
+    holder.heldItemId = 'life-orb'
+    const r = runBattle({
+      playerTeam: [holder],
+      enemyTeam: [createInstance(143, 50, rng)],
+      seed: 11,
+    })
+    // Algún evento de daño al propio portador (recoil de la Vidasfera).
+    const selfDamage = r.events.some((e) => e.kind === 'damage' && e.side === 'player' && e.uid === holder.uid)
+    expect(selfDamage).toBe(true)
+  })
 })

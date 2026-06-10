@@ -28,6 +28,9 @@ interface MetaRecord {
   leagueBestStage?: string
   /** Modo Historia: capítulos completados. */
   storyCompleted?: number[]
+  /** Modo Historia: equipo con el que TERMINASTE cada capítulo (continuidad:
+   *  el siguiente capítulo te ofrece seguir con él). */
+  storyTeams?: Record<number, RunState['party']>
 }
 
 const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
@@ -190,7 +193,22 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     leagueChampionships: Math.max(a.leagueChampionships ?? 0, b.leagueChampionships ?? 0),
     leagueBestStage: bestStage(a.leagueBestStage, b.leagueBestStage),
     storyCompleted: [...new Set([...(a.storyCompleted ?? []), ...(b.storyCompleted ?? [])])],
+    // Equipos de historia: por capítulo, gana el equipo de mayor nivel medio
+    // (el más avanzado entre dispositivos).
+    storyTeams: mergeStoryTeams(a.storyTeams, b.storyTeams),
   }
+}
+
+function mergeStoryTeams(
+  a?: Record<number, RunState['party']>, b?: Record<number, RunState['party']>,
+): Record<number, RunState['party']> {
+  const avg = (t: RunState['party']) => t.reduce((s, p) => s + p.level, 0) / Math.max(1, t.length)
+  const out: Record<number, RunState['party']> = { ...(a ?? {}) }
+  for (const [k, team] of Object.entries(b ?? {})) {
+    const key = Number(k)
+    if (!out[key] || avg(team) > avg(out[key])) out[key] = team
+  }
+  return out
 }
 
 // ---- Copia de seguridad (export/import) ----

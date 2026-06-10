@@ -13,7 +13,8 @@ const MEGA_BASES = [...new Set(ALL_MEGAS.map((m) => m.baseId).filter((b): b is n
 // Objetos equipables fuertes para los rivales (variados, sin pociones/curativos).
 const HELD_POOL = [
   'choice-band', 'life-orb', 'assault-vest', 'leftovers', 'focus-sash', 'expert-belt',
-  'quick-scarf', 'razor-claw', 'kings-rock', 'rocky-helmet', 'double-glove', 'iron-ball', 'amulet-coin',
+  'razor-claw', 'kings-rock', 'rocky-helmet', 'double-glove', 'iron-ball', 'amulet-coin',
+  'sitrus-berry', 'metronome',
 ]
 
 export interface LeagueTrainerDef {

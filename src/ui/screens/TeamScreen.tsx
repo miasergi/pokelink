@@ -57,6 +57,7 @@ export default function TeamScreen() {
     if (id === 'rare-candy' || id === 'super-candy') did = `¡${name} subió de nivel! (era Nv.${before.lvl})`
     else if (id === 'metamorph') did = `¡${getSpecies(run.party.find((p) => p.uid === uid)!.speciesId).displayName} cambió de forma!`
     else if (id === 'upgrade') did = `¡Mejoraste la potencia del ataque de ${name}!`
+    else if (id === 'super-upgrade') did = `¡${name} alcanzó la potencia máxima (120)!`
     else if (item.category === 'revive') did = `¡${name} revivió!`
     else if (item.category === 'heal') did = `${name} recuperó PS.`
     flash(did, true, item.sprite)

@@ -42,8 +42,15 @@ export function tierPool(pool: SpeciesData[], level: number, difficulty: string 
   if (f.length < 6) {
     // Pocos en la ventana: elige los más cercanos al objetivo de potencia
     // (NO los más fuertes), para no sacar evolucionados fuera de tiempo.
+    // OJO: respetando el techo (+20% de margen). Antes, en pools pequeños
+    // (p.ej. el tipo de un entrenador: dragones/aceros de Sinnoh), "los 12 más
+    // cercanos" devolvía el pool ENTERO y salían Garchomp/Empoleon a nivel 8.
     const target = maxBst * 0.85
-    f = [...pool].sort((a, b) => Math.abs(bst(a) - target) - Math.abs(bst(b) - target)).slice(0, 12)
+    const capped = pool.filter((s) => bst(s) <= maxBst * 1.2)
+    // Solo si NADA queda bajo el techo (pool de solo evolucionados), usa las
+    // especies MÁS DÉBILES disponibles, nunca las más fuertes.
+    const source = capped.length ? capped : [...pool].sort((a, b) => bst(a) - bst(b)).slice(0, 3)
+    f = [...source].sort((a, b) => Math.abs(bst(a) - target) - Math.abs(bst(b) - target)).slice(0, 12)
   }
   return f.length ? f : pool
 }
@@ -58,7 +65,7 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG, difficult
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
 const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'max-potion', 'revive', 'max-revive']
-const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'quick-scarf', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'iron-ball', 'amulet-coin', 'kings-rock', 'lucky-egg', 'quick-claw']
+const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'iron-ball', 'amulet-coin', 'kings-rock', 'lucky-egg', 'quick-claw', 'sitrus-berry', 'metronome', 'choice-specs', 'muscle-band']
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
 const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 

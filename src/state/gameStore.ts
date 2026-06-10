@@ -62,6 +62,8 @@ interface GameState {
   hasSavedLeague: boolean
   totalWins: number
   storyCompleted: number[]
+  /** Modo Historia: equipo con el que terminaste cada capítulo (continuidad). */
+  storyTeams: Record<number, PokemonInstance[]>
   startLeague: (team: PokemonInstance[], playerName: string, sprite: string) => void
   startLeagueWithRunTeam: (sprite: string) => void
   // --- Modo Historia ---
@@ -191,6 +193,7 @@ export const useGame = create<GameState>((set, get) => ({
   hasSavedLeague: false,
   totalWins: 0,
   storyCompleted: [],
+  storyTeams: {},
   storyScene: null,
   lastSummary: null,
   battleSummary: null,
@@ -260,7 +263,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (get().cloudUser) void get().cloudSync()
     void loadMeta().then(async (m) => {
       if (m.alias) set({ alias: m.alias })
-      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins, storyCompleted: m.storyCompleted ?? [] })
+      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins, storyCompleted: m.storyCompleted ?? [], storyTeams: m.storyTeams ?? {} })
       if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
     })
     const saved = await loadRun()
@@ -270,7 +273,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily, story: config.story })
+    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily, story: config.story, starterLevel: config.starterLevel, party: config.party })
     run.startedAt = Date.now()
     run.elapsedMs = 0 // cronómetro de juego activo (no cuenta app cerrada)
     // Todas las runs empiezan con el MISMO dinero (1000 ₽). Sin bono de Pokédex.
@@ -305,6 +308,8 @@ export const useGame = create<GameState>((set, get) => ({
       ...(keepSeed ? { seed: run.seed } : {}),
       ...(run.daily ? { daily: run.daily } : {}),
       ...(run.story ? { story: run.story } : {}),
+      // Historia: reintentar conserva el nivel inicial del capítulo (no Nv. 5).
+      ...(run.story ? { starterLevel: STORY_CONTENT[run.story]?.startLevel ?? 5 } : {}),
     })
   },
 
@@ -703,6 +708,10 @@ export const useGame = create<GameState>((set, get) => ({
       const cur = effectiveTier(mon)
       if (cur >= 2) ok = false
       else { mon.moveTier = cur + 1; refreshMoves(mon); ok = true }
+    } else if (itemId === 'super-upgrade') {
+      // Supermejora: directo a la potencia máxima (120), salte lo que salte.
+      if (effectiveTier(mon) >= 2) ok = false
+      else { mon.moveTier = 2; refreshMoves(mon); ok = true }
     } else if (itemId === 'z-move') {
       // Movimiento Z: 4º nivel (160). Requiere estar ANTES a potencia máxima (120).
       if (effectiveTier(mon) !== 2) ok = false
@@ -897,7 +906,12 @@ async function recordRunEnd(run: RunState): Promise<string[]> {
     // Modo Historia: marca el capítulo como completado (desbloquea el siguiente).
     const done = [...new Set([...(meta.storyCompleted ?? []), run.story])]
     meta.storyCompleted = done
-    useGame.setState({ storyCompleted: done })
+    // Continuidad: guarda el equipo con el que TERMINASTE el capítulo (curado),
+    // para que el siguiente te ofrezca continuar con él.
+    const finalTeam = structuredClone(run.party)
+    for (const p of finalTeam) { p.currentHp = p.stats.hp; p.status = 'none' }
+    meta.storyTeams = { ...(meta.storyTeams ?? {}), [run.story]: finalTeam }
+    useGame.setState({ storyCompleted: done, storyTeams: meta.storyTeams })
   }
   // pokédex (+ shinies)
   const seen = new Set(meta.pokedexSeen)

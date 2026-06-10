@@ -8,6 +8,7 @@ import TypeBadge from '@/ui/components/TypeBadge'
 import SonoroBadge, { SonoroWave } from '@/ui/components/SonoroBadge'
 import { SONORO_GRADIENT } from '@/data/story/sonoro'
 import { CHAPTERS, KANTO_STARTERS } from '@/data/story/chapters'
+import { STORY_CONTENT } from '@/data/story/content'
 import { EXPERIMENTS, ROLE_ES, type Experiment, type ExpType } from '@/data/story/experiments'
 import type { PokemonType } from '@/types'
 
@@ -53,7 +54,7 @@ function DossierModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function StoryScreen() {
-  const { back, startRun, storyCompleted } = useGame()
+  const { back, startRun, storyCompleted, storyTeams } = useGame()
   const [phase, setPhase] = useState<Phase>('hub')
   const [chapterId, setChapterId] = useState<number>(1)
   const chapter = CHAPTERS.find((c) => c.id === chapterId) ?? CHAPTERS[0]
@@ -61,6 +62,10 @@ export default function StoryScreen() {
   const [starter, setStarter] = useState<number | null>(null)
   const [dossier, setDossier] = useState(false)
   const unlocked = (id: number) => id === 1 || storyCompleted.includes(id - 1)
+  // Continuidad: equipo con el que terminaste el capítulo anterior (si existe).
+  const prevTeam = chapter.id > 1 ? storyTeams[chapter.id - 1] : undefined
+  // Si empiezas de cero, el compañero llega al nivel del capítulo (no a Nv. 5).
+  const startLevel = STORY_CONTENT[chapter.id]?.startLevel ?? 5
 
   // --- Cinemática de introducción ---
   if (phase === 'intro') {
@@ -85,13 +90,40 @@ export default function StoryScreen() {
     )
   }
 
-  // --- Elegir inicial (Kanto, de momento) ---
+  // --- Compañero: continuar con tu equipo del capítulo anterior o empezar de cero ---
   if (phase === 'starter') {
     return (
       <div className="flex flex-col flex-1" style={{ background: `linear-gradient(rgba(2,6,23,0.66), rgba(2,6,23,0.88)), url(${chapter.bg}) center/cover` }}>
-        <TopBar title="Elige a tu compañero" left={<Button variant="ghost" onClick={() => setPhase('intro')}>‹</Button>} />
+        <TopBar title={prevTeam?.length ? 'Tu expedición continúa' : 'Elige a tu compañero'} left={<Button variant="ghost" onClick={() => setPhase('intro')}>‹</Button>} />
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
-          <p className="text-sm text-slate-300 text-center">Será tu primer aliado en la travesía hacia Mistery Island.</p>
+          {prevTeam?.length ? (
+            <>
+              {/* Continuidad: el equipo con el que terminaste el capítulo anterior */}
+              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-3">
+                <div className="text-[11px] font-black uppercase tracking-wide text-emerald-300 mb-1.5">Continuar la travesía</div>
+                <p className="text-[12px] text-slate-300 mb-2">Tu equipo del {CHAPTERS.find((c) => c.id === chapter.id - 1)?.title ?? 'capítulo anterior'} sigue contigo, curado y listo.</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {prevTeam.map((p) => (
+                    <div key={p.uid} className="flex flex-col items-center w-14">
+                      <Sprite speciesId={p.speciesId} className="w-12 h-12 object-contain" />
+                      <span className="text-[10px] text-slate-400">Nv. {p.level}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button full variant="primary"
+                  onClick={() => startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: prevTeam[0].speciesId, difficulty: 'normal', story: chapter.id, party: prevTeam })}>
+                  <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> Continuar con mi equipo</span>
+                </Button>
+              </div>
+              <div className="text-center text-[11px] text-slate-500">— o empieza de cero con un compañero nuevo (Nv. {startLevel}) —</div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-300 text-center">
+              {chapter.id > 1
+                ? `Cada capítulo es una expedición nueva: tu compañero llega al Nv. ${startLevel}, acorde a esta zona. (Si completas el capítulo anterior, podrás continuar con aquel equipo.)`
+                : 'Será tu primer aliado en la travesía hacia Mistery Island.'}
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-3">
             {KANTO_STARTERS.map((id) => {
               const sp = getSpecies(id)
@@ -109,9 +141,9 @@ export default function StoryScreen() {
               )
             })}
           </div>
-          <Button full variant="primary" className="mt-1" disabled={starter === null}
-            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal', story: chapter.id })}>
-            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> ¡Zarpar!</span>
+          <Button full variant={prevTeam?.length ? 'secondary' : 'primary'} className="mt-1" disabled={starter === null}
+            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal', story: chapter.id, starterLevel: startLevel })}>
+            <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> {prevTeam?.length ? 'Empezar de cero' : '¡Zarpar!'}</span>
           </Button>
         </div>
       </div>

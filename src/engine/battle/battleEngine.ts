@@ -37,6 +37,10 @@ interface SideState {
   switches: number
   /** Amedrentado este turno (Roca del Rey): pierde su acción si aún no actuó. */
   flinched: boolean
+  /** Baya Zidra ya consumida este combate (por uid). */
+  berryUsed: Set<string>
+  /** Metrónomo: golpes acumulados este combate (por uid). */
+  metronomeHits: Record<string, number>
 }
 
 const STRUGGLE: MoveData = {
@@ -233,6 +237,8 @@ function makeSide(side: Side, team: PokemonInstance[]): SideState {
     sashUsed: new Set(),
     switches: 0,
     flinched: false,
+    berryUsed: new Set(),
+    metronomeHits: {},
   }
 }
 
@@ -273,7 +279,6 @@ function effectiveSpeed(s: SideState, ctx: BattleCtx): number {
   const mon = active(s)
   let spe = mon.stats.spe * stageMul(s.stages.spe)
   if (mon.status === 'par') spe *= 0.5
-  if (mon.heldItemId === 'quick-scarf') spe *= 2 // Pañuelo Veloz (+100%)
   if (mon.heldItemId === 'iron-ball') spe *= 0.75 // Lastre de Hierro (-25%)
   spe *= weatherSpeedMult(mon.ability, ctx.weather)
   return spe
@@ -393,7 +398,9 @@ function performMove(
     let dmg = res.damage
     if (attacker.heldItemId === 'double-glove') dmg = Math.floor(dmg * (h === 0 ? 1 : 0.25)) // 1er golpe 100%, 2º 25%
     if (attacker.heldItemId === 'expert-belt' && res.effectiveness > 1) dmg = Math.floor(dmg * 2) // Banda Experto (+100%)
-    if (attacker.heldItemId === 'life-orb') dmg = Math.floor(dmg * 1.3)
+    if (attacker.heldItemId === 'life-orb') dmg = Math.floor(dmg * 2) // Vidasfera: DUPLICA el daño
+    // Metrónomo: +25% por cada golpe previo en este combate (tope +100%).
+    if (attacker.heldItemId === 'metronome') dmg = Math.floor(dmg * (1 + 0.25 * Math.min(4, atk.metronomeHits[attacker.uid] ?? 0)))
     crit = crit || res.crit
 
     // Cinta Focus / Robustez: sobrevive con 1 PS a un golpe letal desde PS máximos
@@ -461,8 +468,32 @@ function performMove(
     events.push({ kind: 'heal', side: atk.side, uid: attacker.uid, amount: heal, hpAfter: attacker.currentHp, maxHp: attacker.stats.hp })
   }
 
+  // Metrónomo: registra el golpe (encarece los siguientes ataques del portador).
+  if (attacker.heldItemId === 'metronome' && total > 0) {
+    atk.metronomeHits[attacker.uid] = (atk.metronomeHits[attacker.uid] ?? 0) + 1
+  }
+
+  // Baya Zidra: si alguien cayó al 50% o menos, se cura (1 vez por combate).
+  maybeSitrusBerry(def, events)
+  maybeSitrusBerry(atk, events) // el atacante pudo bajar por recoil/Vidasfera/Casco Dentado
+
   // Sin efectos secundarios: los ataques SOLO quitan vida (estandarización).
   void effectiveness
+}
+
+/** Baya Zidra: la PRIMERA vez que el portador queda al 50% de PS o menos (sin
+ *  debilitarse), recupera la mitad de sus PS máximos. No se gasta el objeto:
+ *  solo se agota su uso durante el combate en curso. */
+function maybeSitrusBerry(s: SideState, events: BattleEvent[]): void {
+  const mon = active(s)
+  if (mon.heldItemId !== 'sitrus-berry' || mon.currentHp <= 0) return
+  if (s.berryUsed.has(mon.uid)) return
+  if (mon.currentHp * 2 > mon.stats.hp) return
+  s.berryUsed.add(mon.uid)
+  const heal = Math.max(1, Math.floor(mon.stats.hp / 2))
+  mon.currentHp = Math.min(mon.stats.hp, mon.currentHp + heal)
+  events.push({ kind: 'message', text: `¡${getSpecies(mon.speciesId).displayName} se curó con su Baya Zidra!` })
+  events.push({ kind: 'heal', side: s.side, uid: mon.uid, amount: heal, hpAfter: mon.currentHp, maxHp: mon.stats.hp })
 }
 
 /** Multiplicador de daño ofensivo por habilidades + clima. */
@@ -479,6 +510,9 @@ function offenseMult(mon: PokemonInstance, move: MoveData, ctx: BattleCtx): numb
   // Objetos: de tipo (+50% a ese tipo) y Cinta Elección (+30% a todo).
   if (mon.heldItemId && TYPE_BOOST_BY_ID[mon.heldItemId] === move.type) m *= 1.5
   if (mon.heldItemId === 'choice-band') m *= 1.3
+  // Gafas Elección / Cinta Fuerte: +50% a la categoría que les corresponde.
+  if (mon.heldItemId === 'choice-specs' && !isPhysicalAttacker(mon)) m *= 1.5
+  if (mon.heldItemId === 'muscle-band' && isPhysicalAttacker(mon)) m *= 1.5
   if (mon.heldItemId === 'iron-ball') m *= 1.75 // Lastre de Hierro (+75%)
   m *= weatherDamageMult(ctx.weather, move.type)
   return m
@@ -587,6 +621,9 @@ function endOfTurnResidual(s: SideState, events: BattleEvent[], ctx: BattleCtx):
     s.stages.spe = Math.min(6, s.stages.spe + 1)
     events.push({ kind: 'statChange', side: s.side, uid: mon.uid, stat: 'spe', delta: 1 })
   }
+
+  // Baya Zidra: el daño residual (tormenta de arena) también puede activarla.
+  maybeSitrusBerry(s, events)
 }
 
 /** Procesa debilitados y reemplazos. Devuelve el ganador si el combate acaba. */

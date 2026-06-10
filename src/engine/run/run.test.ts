@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
-import { EVENTS } from './nodes'
+import { EVENTS, tierPool } from './nodes'
 import { createInstance } from '@/engine/team/instance'
 import { refreshMoves, applyCaptureTier } from '@/engine/team/leveling'
 import { itemHasEffect } from '@/engine/team/itemEffect'
@@ -172,8 +172,27 @@ describe('Movimiento Z (nivel 4, potencia 160)', () => {
   })
 })
 
+describe('tierPool: curva de potencia por nivel', () => {
+  it('un pool escaso (línea de Gible) no cuela a Garchomp en el early game', () => {
+    // Antes, con <6 especies en la ventana, el respaldo devolvía "las 12 más
+    // cercanas" del pool entero: en tipos escasos (dragón/acero de Sinnoh)
+    // salían Garchomp/Empoleon a nivel 8.
+    const pool = [443, 444, 445].map(getSpecies) // Gible, Gabite, Garchomp
+    for (const lvl of [5, 8, 12, 20]) {
+      const f = tierPool(pool, lvl)
+      expect(f.some((s) => s.id === 445)).toBe(false)
+    }
+  })
+
+  it('a nivel alto el pool sí incluye a los evolucionados finales', () => {
+    const pool = [443, 444, 445].map(getSpecies)
+    const f = tierPool(pool, 60)
+    expect(f.some((s) => s.id === 445)).toBe(true)
+  })
+})
+
 describe('Team Rocket: Pokémon secuestrado', () => {
-  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y solo +1 nivel', () => {
+  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y da +2 niveles', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 5 })
     const startLvl = run.party[0].level
     const partyN = run.party.length
@@ -190,8 +209,8 @@ describe('Team Rocket: Pokémon secuestrado', () => {
     // Se OFRECE (lo decide el jugador en pantalla, como un legendario): no se añade aún.
     expect(summary.rescueOffer?.speciesId).toBe(25)
     expect(run.party.length).toBe(partyN)
-    // Casilla de Team Rocket: solo +1 nivel (un entrenador normal daría +2).
-    expect(run.party[0].level).toBe(startLvl + 1)
+    // Casilla de Team Rocket: +2 niveles, como promete la vista previa.
+    expect(run.party[0].level).toBe(startLvl + 2)
   })
 })
 
