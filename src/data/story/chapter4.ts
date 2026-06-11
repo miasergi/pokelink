@@ -38,7 +38,7 @@ const BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
     team: [],
   },
   team: [200, 469, 131, 437, 330], // Misdreavus, Yanmega, Lapras, Bronzong, Flygon (ace)
-  aceLevel: 36,
+  aceLevel: 33,
 }
 
 const PREBOSS: StoryLine[] = [
@@ -58,6 +58,6 @@ export const CHAPTER4: ChapterContent = {
   boss: BOSS,
   preboss: PREBOSS,
   outro: OUTRO,
-  startLevel: 25,
+  startLevel: 24,
   layers: [{ width: 2 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 2, heal: true }],
 }

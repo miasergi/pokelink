@@ -145,6 +145,9 @@ export interface RunState {
   daily?: string
   /** Modo Historia: nº de capítulo (si esta run es de la historia). */
   story?: number
+  /** Gen Sonoro (desbloqueado al COMPLETAR la historia): los Pokémon del dossier
+   *  aparecen con su tipo Sonoro también en las runs normales. */
+  sonoro?: boolean
 }
 
 export interface OfferedItem {

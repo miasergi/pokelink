@@ -38,7 +38,7 @@ const BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
     team: [],
   },
   team: [462, 40, 730, 911, 849], // Magnezone, Wigglytuff, Primarina, Skeledirge, Toxtricity (ace)
-  aceLevel: 44,
+  aceLevel: 40,
 }
 
 const PREBOSS: StoryLine[] = [
@@ -58,6 +58,6 @@ export const CHAPTER5: ChapterContent = {
   boss: BOSS,
   preboss: PREBOSS,
   outro: OUTRO,
-  startLevel: 33,
+  startLevel: 31,
   layers: [{ width: 2 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 2, heal: true }],
 }

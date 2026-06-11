@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.42',
+    date: '2026-06-11',
+    title: 'Sincronización arreglada, historia con partida única y el Sonoro definitivo',
+    changes: [
+      'Arreglada la sincronización entre dispositivos: el progreso del Modo Historia (capítulos y equipos) hecho en el móvil ya aparece al entrar desde el PC y viceversa, y la nube se fusiona ANTES de cargar lo local al abrir la app.',
+      'Modo Historia con partida ÚNICA: si tienes una expedición a medias, el hub te ofrece CONTINUARLA; empezar otro capítulo avisa de que se borrará la anterior.',
+      'Tipo Sonoro definitivo: ahora es supereficaz contra TODO (2×, sin acumular en dobles tipos); a él solo le hacen daño extra el tipo Normal y otros Sonoro.',
+      'Niveles de la historia rebalanceados: jefes algo más suaves (Vega y Lyra con 4 Pokémon, escalera de niveles menos abrupta), capítulos 4-6 recortados (aces 33/40/46) y +2 niveles de ventaja si empiezas un capítulo de cero.',
+      '¡Recompensa final del Modo Historia! Al completar el último capítulo se desbloquea el «Gen Sonoro»: un modo activable en tus runs normales donde los Pokémon del dossier (y sus líneas evolutivas) aparecen y se capturan con su tipo Sonoro.',
+    ],
+  },
+  {
     version: 'v6.41',
     date: '2026-06-11',
     title: 'Equipo a la vista en la tienda + pulido del Modo Historia',

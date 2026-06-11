@@ -7,7 +7,7 @@ import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
 import { generateMap } from './mapGen'
-import { generateStoryMap } from './storyMap'
+import { generateStoryMap, applySonoroGene } from './storyMap'
 import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
@@ -37,6 +37,9 @@ export interface NewRunConfig {
   /** Modo Historia: continuar con el equipo del capítulo anterior (en vez de
    *  empezar con un inicial nuevo). */
   party?: PokemonInstance[]
+  /** Gen Sonoro (desbloqueado al completar la historia): aplica los tipos del
+   *  dossier a las runs normales. */
+  sonoro?: boolean
 }
 
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
@@ -61,6 +64,18 @@ export function createRun(config: NewRunConfig): RunState {
   if (carried) healParty(carried)
   const starter = createInstance(config.starterId, config.starterLevel ?? 5, rng)
   if (config.story) starter.locked = true // Historia: tu compañero es intransferible
+  // Gen Sonoro en runs normales: los Pokémon del dossier (y sus líneas) llevan
+  // sus tipos alterados en TODO el mapa (enemigos, entrenadores, capturas,
+  // rescates de Team Rocket) y también tu inicial si es uno de ellos.
+  if (config.sonoro && !config.story) {
+    applySonoroGene(starter)
+    for (const node of Object.values(map.nodes)) {
+      const c = node.content
+      if (c.kind === 'wild') applySonoroGene(c.enemy)
+      else if (c.kind === 'trainer') { c.team.forEach(applySonoroGene); if (c.rescue) applySonoroGene(c.rescue) }
+      else if (c.kind === 'catch') c.offers.forEach(applySonoroGene)
+    }
+  }
   const region = config.story ? STORY_CHAPTERS[config.story] ?? 'Modo Historia' : getGeneration(config.gen).region
 
   return {
@@ -76,6 +91,7 @@ export function createRun(config: NewRunConfig): RunState {
     seed: config.seed,
     daily: config.daily,
     story: config.story,
+    sonoro: config.sonoro,
     rngState: rng.getState(),
     map,
     currentNodeId: null,
@@ -405,6 +421,7 @@ export function resolveTrade(
   // El Pokémon recibido conserva el MISMO nivel de potencia del ataque que diste.
   newMon.moveTier = effectiveTier(traded)
   refreshMoves(newMon)
+  if (run.sonoro) applySonoroGene(newMon) // gen Sonoro activo: también en intercambios
   // El objeto que sostenía el Pokémon entregado vuelve a la mochila.
   if (traded.heldItemId) addItem(run, traded.heldItemId, 1)
   run.party[idx] = newMon
@@ -500,6 +517,7 @@ function randomPartyLevelMon(run: RunState, rng: RNG): PokemonInstance {
   const sp = rng.pick(tier)
   const mon = createInstance(sp.id, Math.max(2, avg), rng)
   applyCaptureTier(mon) // Pokémon obtenido: misma curva de potencia que una captura
+  if (run.sonoro) applySonoroGene(mon) // gen Sonoro activo: también en eventos (huevo, criador…)
   return mon
 }
 

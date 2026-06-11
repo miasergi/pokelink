@@ -95,7 +95,8 @@ describe('Modo Historia — tipo Sonoro en combate', () => {
     expect(typeEffectiveness('fighting', monTypes(mon))).toBe(2) // lucha vs normal
     applySonoroGene(mon)
     expect(typeEffectiveness('fighting', monTypes(mon))).toBe(1) // ya no es normal
-    expect(typeEffectiveness('steel', monTypes(mon))).toBe(2) // débil a acero
+    expect(typeEffectiveness('normal', monTypes(mon))).toBe(2) // solo Normal le pega fuerte
+    expect(typeEffectiveness('steel', monTypes(mon))).toBe(1) // el resto, daño normal
     const sonoroMove = mon.moves.find((mv) => getMove(mv.moveId).type === 'sonoro')!
     expect(typeEffectiveness(getMove(sonoroMove.moveId).type, getSpecies(54).types)).toBe(2) // vs Psyduck (agua)
   })
@@ -153,6 +154,18 @@ describe('Modo Historia — tipo Sonoro en combate', () => {
     expect(after).toHaveLength(6)
     expect(after.some((m) => m.speciesId === 131)).toBe(true)
     expect(after.some((m) => m.speciesId === 16)).toBe(false) // el de nivel 10 salió
+  })
+})
+
+describe('Gen Sonoro desbloqueado en runs normales', () => {
+  it('con sonoro:true los Pokémon del dossier llevan el gen también fuera de la historia', () => {
+    // Jigglypuff (39) está en el dossier (línea de Wigglytuff).
+    const run = createRun({ gen: 1, pools: [1], random: false, starterId: 39, difficulty: 'normal', sonoro: true, seed: 21 })
+    expect(run.sonoro).toBe(true)
+    expect(run.party[0].typesOverride).toEqual(['sonoro', 'fairy'])
+    // Sin el flag, nada.
+    const off = createRun({ gen: 1, pools: [1], random: false, starterId: 39, difficulty: 'normal', seed: 21 })
+    expect(off.party[0].typesOverride).toBeUndefined()
   })
 })
 

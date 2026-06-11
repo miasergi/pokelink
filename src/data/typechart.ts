@@ -42,15 +42,14 @@ const MATRIX: Record<PokemonType, Record<PokemonType, number>> = {
 export type { ExtType } from '@/types'
 import type { ExtType } from '@/types'
 
-// Ataque Sonoro VS tipo defensor (lo no listado = 1×).
-const SONORO_ATK: Partial<Record<ExtType, number>> = { psychic: T, ice: T, water: T, flying: H, fairy: H, steel: H, ground: Z }
-// Tipo atacante VS defensor Sonoro (lo no listado = 1×).
-const SONORO_DEF: Partial<Record<ExtType, number>> = { normal: T, steel: T, rock: T, flying: H, fairy: H }
+// El tipo Sonoro (v6.42, arma definitiva del proyecto):
+//  - ATACANDO: supereficaz contra TODO (2× plano; no se acumula en dobles tipos).
+//  - DEFENDIENDO: todo le afecta normal, salvo Normal y Sonoro (supereficaces).
 
 /** Multiplicador de un solo tipo atacante contra un solo tipo defensor. */
 function pairMult(atk: ExtType, def: ExtType): number {
-  if (atk === 'sonoro') return def === 'sonoro' ? N : (SONORO_ATK[def] ?? N)
-  if (def === 'sonoro') return SONORO_DEF[atk] ?? N
+  if (def === 'sonoro') return atk === 'normal' || atk === 'sonoro' ? T : N
+  if (atk === 'sonoro') return T
   return MATRIX[atk][def]
 }
 
@@ -59,6 +58,8 @@ export function typeEffectiveness(
   atkType: ExtType,
   defTypes: ExtType[],
 ): number {
+  // Sonoro atacando: SIEMPRE supereficaz (2× plano, sin acumular por doble tipo).
+  if (atkType === 'sonoro') return 2
   let mult = 1
   for (const d of defTypes) mult *= pairMult(atkType, d)
   return mult

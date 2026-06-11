@@ -25,6 +25,7 @@ export default function StarterSelectScreen() {
   const monotype = screen.params?.monotype as PokemonType | undefined
   const daily = screen.params?.daily as string | undefined
   const dailySeed = screen.params?.seed as number | undefined
+  const sonoro = screen.params?.sonoro as boolean | undefined
   // Selecciona hasta `n` ids distintos de un pool (aleatorio).
   const pickDistinct = (pool: SpeciesData[], n: number): number[] => {
     const picks: number[] = []
@@ -145,7 +146,7 @@ export default function StarterSelectScreen() {
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, randomFlags, monotype, starterId: selected, difficulty })}
+          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, randomFlags, monotype, sonoro, starterId: selected, difficulty })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>

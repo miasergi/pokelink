@@ -38,7 +38,7 @@ const BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
     team: [],
   },
   team: [295, 715, 849, 911, 648], // Exploud, Noivern, Toxtricity, Skeledirge, MELOETTA (ace)
-  aceLevel: 52,
+  aceLevel: 46,
 }
 
 const PREBOSS: StoryLine[] = [
@@ -59,6 +59,6 @@ export const CHAPTER6: ChapterContent = {
   boss: BOSS,
   preboss: PREBOSS,
   outro: OUTRO,
-  startLevel: 41,
+  startLevel: 38,
   layers: [{ width: 2 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3 }, { width: 3, heal: true }, { width: 3 }, { width: 3 }, { width: 2, heal: true }],
 }

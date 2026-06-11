@@ -36,8 +36,8 @@ const BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
     quote: 'Este perímetro no se cruza. Lo que protejo no debería existir… y tú tampoco saldrás de aquí.',
     team: [],
   },
-  team: [101, 89, 110, 82, 131], // Electrode, Muk, Weezing, Magneton, Lapras (ace: sujeto de pruebas)
-  aceLevel: 20,
+  team: [101, 89, 82, 131], // Electrode, Muk, Magneton, Lapras (ace: sujeto de pruebas)
+  aceLevel: 19,
 }
 
 const PREBOSS: StoryLine[] = [

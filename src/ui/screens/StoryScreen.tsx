@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGame } from '@/state/gameStore'
+import { loadRun } from '@/persistence/db'
 import { Button, TopBar } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
@@ -54,18 +55,26 @@ function DossierModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function StoryScreen() {
-  const { back, startRun, storyCompleted, storyTeams } = useGame()
+  const { back, startRun, resumeRun, storyCompleted, storyTeams } = useGame()
   const [phase, setPhase] = useState<Phase>('hub')
   const [chapterId, setChapterId] = useState<number>(1)
   const chapter = CHAPTERS.find((c) => c.id === chapterId) ?? CHAPTERS[0]
   const [line, setLine] = useState(0)
   const [starter, setStarter] = useState<number | null>(null)
   const [dossier, setDossier] = useState(false)
+  // UNA sola partida: si hay una run guardada (de historia o normal), empezar
+  // un capítulo la borra — se continúa desde aquí o se avisa antes de borrar.
+  const [savedRun, setSavedRun] = useState<{ story?: number; region: string } | null>(null)
+  const [confirmCh, setConfirmCh] = useState<number | null>(null)
+  useEffect(() => { void loadRun().then((r) => setSavedRun(r ? { story: r.story, region: r.region } : null)) }, [])
   const unlocked = (id: number) => id === 1 || storyCompleted.includes(id - 1)
   // Continuidad: equipo con el que terminaste el capítulo anterior (si existe).
   const prevTeam = chapter.id > 1 ? storyTeams[chapter.id - 1] : undefined
-  // Si empiezas de cero, el compañero llega al nivel del capítulo (no a Nv. 5).
+  // Si empiezas de cero, el compañero llega al nivel del capítulo (no a Nv. 5);
+  // en capítulos avanzados, +2 de ventaja por ir en solitario.
   const startLevel = STORY_CONTENT[chapter.id]?.startLevel ?? 5
+  const freshLevel = startLevel + (chapter.id > 1 ? 2 : 0)
+  const beginChapter = (id: number) => { setChapterId(id); setStarter(null); setLine(0); setConfirmCh(null); setPhase('intro') }
 
   // --- Cinemática de introducción ---
   if (phase === 'intro') {
@@ -115,12 +124,12 @@ export default function StoryScreen() {
                   <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> Continuar con mi equipo</span>
                 </Button>
               </div>
-              <div className="text-center text-[11px] text-slate-500">— o empieza de cero con un compañero nuevo (Nv. {startLevel}) —</div>
+              <div className="text-center text-[11px] text-slate-500">— o empieza de cero con un compañero nuevo (Nv. {freshLevel}) —</div>
             </>
           ) : (
             <p className="text-sm text-slate-300 text-center">
               {chapter.id > 1
-                ? `Cada capítulo es una expedición nueva: tu compañero llega al Nv. ${startLevel}, acorde a esta zona. (Si completas el capítulo anterior, podrás continuar con aquel equipo.)`
+                ? `Cada capítulo es una expedición nueva: tu compañero llega al Nv. ${freshLevel}, acorde a esta zona. (Si completas el capítulo anterior, podrás continuar con aquel equipo.)`
                 : 'Será tu primer aliado en la travesía hacia Mistery Island.'}
             </p>
           )}
@@ -142,7 +151,7 @@ export default function StoryScreen() {
             })}
           </div>
           <Button full variant={prevTeam?.length ? 'secondary' : 'primary'} className="mt-1" disabled={starter === null}
-            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal', story: chapter.id, starterLevel: startLevel })}>
+            onClick={() => starter !== null && startRun({ gen: chapter.gen, pools: [chapter.gen], random: false, starterId: starter, difficulty: 'normal', story: chapter.id, starterLevel: freshLevel })}>
             <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> {prevTeam?.length ? 'Empezar de cero' : '¡Zarpar!'}</span>
           </Button>
         </div>
@@ -166,6 +175,18 @@ export default function StoryScreen() {
           </div>
         </div>
 
+        {/* Expedición en curso: UNA sola partida; continúa desde aquí */}
+        {savedRun?.story && (
+          <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4">
+            <div className="text-[11px] uppercase tracking-wide text-amber-300 font-bold">📍 Expedición en curso</div>
+            <div className="text-lg font-extrabold mb-1">Capítulo {savedRun.story} · {CHAPTERS.find((c) => c.id === savedRun.story)?.subtitle ?? savedRun.region}</div>
+            <p className="text-[12px] text-slate-300 mb-2">Tu partida sigue donde la dejaste. Si empiezas otro capítulo, se borrará.</p>
+            <Button full variant="success" onClick={() => resumeRun()}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> Continuar la expedición</span>
+            </Button>
+          </div>
+        )}
+
         {/* Lista de capítulos */}
         {CHAPTERS.map((ch) => {
           const open = unlocked(ch.id)
@@ -180,9 +201,23 @@ export default function StoryScreen() {
               <div className="text-xl font-extrabold mb-2">{ch.subtitle}</div>
               <p className="text-sm text-slate-300">{ch.synopsis}</p>
               {open ? (
-                <Button full variant="primary" className="mt-3" onClick={() => { setChapterId(ch.id); setStarter(null); setLine(0); setPhase('intro') }}>
-                  <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> {done ? 'Volver a jugar' : 'Comenzar capítulo'}</span>
-                </Button>
+                confirmCh === ch.id ? (
+                  <div className="mt-3 rounded-xl border border-rose-500/50 bg-rose-500/10 p-3">
+                    <p className="text-[12px] text-rose-200 font-bold mb-2">
+                      ⚠️ {savedRun?.story
+                        ? `Tienes una expedición en curso (Capítulo ${savedRun.story}). Si empiezas, se BORRARÁ.`
+                        : `Tienes una partida en curso en ${savedRun?.region}. Si empiezas, se BORRARÁ.`}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="danger" className="flex-1" onClick={() => beginChapter(ch.id)}>Borrar y empezar</Button>
+                      <Button variant="secondary" className="flex-1" onClick={() => setConfirmCh(null)}>Cancelar</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button full variant="primary" className="mt-3" onClick={() => (savedRun ? setConfirmCh(ch.id) : beginChapter(ch.id))}>
+                    <span className="inline-flex items-center justify-center gap-1.5"><Icon name="play" className="w-4 h-4" /> {done ? 'Volver a jugar' : 'Comenzar capítulo'}</span>
+                  </Button>
+                )
               ) : (
                 <div className="mt-3 text-[11px] text-slate-500 inline-flex items-center gap-1.5"><Icon name="lock" className="w-3.5 h-3.5" /> Completa el {CHAPTERS.find((c) => c.id === ch.id - 1)?.title ?? 'capítulo anterior'} para desbloquearlo.</div>
               )}
@@ -193,7 +228,7 @@ export default function StoryScreen() {
         {/* El tipo Sonoro (teaser) */}
         <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4">
           <div className="flex items-center gap-2 mb-1.5"><SonoroBadge /> <span className="text-[11px] text-slate-400">tipo artificial</span></div>
-          <p className="text-[12px] text-slate-300">Un tipo nacido en los laboratorios de la isla, no en la naturaleza. Desde que pisas la isla (Capítulo 2) los experimentos del proyecto COMBATEN con él: supereficaz contra Psíquico, Hielo y Agua, inútil contra Tierra… Y si capturas uno, el gen viaja contigo.</p>
+          <p className="text-[12px] text-slate-300">Un tipo nacido en los laboratorios de la isla, no en la naturaleza. Desde que pisas la isla (Capítulo 2) los experimentos del proyecto COMBATEN con él: el arma definitiva, supereficaz contra TODO. Solo el tipo Normal (y otro Sonoro) le hace daño de verdad. Y si capturas uno, el gen viaja contigo.</p>
           <Button full variant="secondary" className="mt-2.5 !py-2" onClick={() => setDossier(true)}>
             <span className="inline-flex items-center justify-center gap-1.5"><Icon name="scroll" className="w-4 h-4" /> Dossier de experimentos</span>
           </Button>

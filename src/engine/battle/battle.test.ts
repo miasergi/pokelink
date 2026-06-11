@@ -21,26 +21,26 @@ describe('tabla de tipos', () => {
     expect(typeEffectiveness('ice', ['dragon', 'flying'])).toBe(4)
   })
 
-  it('tipo Sonoro — ataque', () => {
+  it('tipo Sonoro — ataque: supereficaz contra TODO (2x plano)', () => {
     expect(typeEffectiveness('sonoro', ['psychic'])).toBe(2)
     expect(typeEffectiveness('sonoro', ['ice'])).toBe(2)
-    expect(typeEffectiveness('sonoro', ['water'])).toBe(2)
-    expect(typeEffectiveness('sonoro', ['flying'])).toBe(0.5)
-    expect(typeEffectiveness('sonoro', ['fairy'])).toBe(0.5)
-    expect(typeEffectiveness('sonoro', ['steel'])).toBe(0.5)
-    expect(typeEffectiveness('sonoro', ['ground'])).toBe(0)
-    expect(typeEffectiveness('sonoro', ['normal'])).toBe(1)
+    expect(typeEffectiveness('sonoro', ['ground'])).toBe(2)
+    expect(typeEffectiveness('sonoro', ['normal'])).toBe(2)
+    expect(typeEffectiveness('sonoro', ['sonoro'])).toBe(2)
+    // Plano: contra doble tipo NO se acumula (2x, no 4x).
+    expect(typeEffectiveness('sonoro', ['steel', 'fairy'])).toBe(2)
   })
 
-  it('tipo Sonoro — defensa', () => {
+  it('tipo Sonoro — defensa: solo Normal y Sonoro le hacen daño extra', () => {
     expect(typeEffectiveness('normal', ['sonoro'])).toBe(2)
-    expect(typeEffectiveness('steel', ['sonoro'])).toBe(2)
-    expect(typeEffectiveness('rock', ['sonoro'])).toBe(2)
-    expect(typeEffectiveness('flying', ['sonoro'])).toBe(0.5)
-    expect(typeEffectiveness('fairy', ['sonoro'])).toBe(0.5)
+    expect(typeEffectiveness('steel', ['sonoro'])).toBe(1)
+    expect(typeEffectiveness('rock', ['sonoro'])).toBe(1)
+    expect(typeEffectiveness('flying', ['sonoro'])).toBe(1)
+    expect(typeEffectiveness('fairy', ['sonoro'])).toBe(1)
     expect(typeEffectiveness('water', ['sonoro'])).toBe(1)
-    // Sonoro vs Sonoro = neutro
-    expect(typeEffectiveness('sonoro', ['sonoro'])).toBe(1)
+    // En dobles tipos, el OTRO tipo sigue contando (Lapras mutado: agua/sonoro).
+    expect(typeEffectiveness('electric', ['water', 'sonoro'])).toBe(2)
+    expect(typeEffectiveness('fire', ['water', 'sonoro'])).toBe(0.5)
   })
 })
 

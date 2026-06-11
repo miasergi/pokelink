@@ -60,7 +60,7 @@ export function generateStoryMap(chapterId: number, starterId: number, rng: RNG,
     if (p.boss) {
       const specs = content.boss.team
       const n = specs.length
-      const team = specs.map((id, i) => createInstance(id, Math.max(5, ACE - (n - 1 - i) * 2), rng))
+      const team = specs.map((id, i) => createInstance(id, Math.max(5, ACE - (n - 1 - i) * 3), rng))
       const id = newId()
       nodes[id] = { id, layer: layerIdx, col: 0, type: 'champion', next: [], enemyLevel: ACE, content: { kind: 'trainer', trainer: content.boss.trainer, team }, cleared: false }
       ids.push(id)

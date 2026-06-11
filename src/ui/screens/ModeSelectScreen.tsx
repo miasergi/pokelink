@@ -18,7 +18,7 @@ const RANDOM_CATS: { key: keyof RandomFlags; label: string; desc: string }[] = [
 const TYPES = Object.keys(TYPE_ES) as PokemonType[]
 
 export default function ModeSelectScreen() {
-  const { navigate, back, screen } = useGame()
+  const { navigate, back, screen, storyCompleted } = useGame()
   const gen = (screen.params?.gen as number) ?? 1
   const region = getGeneration(gen).region
 
@@ -26,6 +26,9 @@ export default function ModeSelectScreen() {
   const [rand, setRand] = useState<RandomFlags>({ starters: false, wild: false, trainers: false, elite: false })
   const [monoOn, setMonoOn] = useState(false)
   const [mono, setMono] = useState<PokemonType | null>(null)
+  // Gen Sonoro: se desbloquea al COMPLETAR el Modo Historia (capítulo final).
+  const sonoroUnlocked = storyCompleted.includes(6)
+  const [sonoroOn, setSonoroOn] = useState(false)
 
   const anyRandom = rand.starters || rand.wild || rand.trainers || rand.elite
   const monotype = monoOn ? mono ?? undefined : undefined
@@ -152,6 +155,25 @@ export default function ModeSelectScreen() {
             </div>
           )}
         </div>
+
+        {/* --- Gen Sonoro (recompensa por completar el Modo Historia) --- */}
+        {sonoroUnlocked && (
+          <div className={`rounded-2xl px-4 py-3 border transition ${sonoroOn ? 'border-fuchsia-400' : 'border-slate-700/60'}`}
+            style={{ background: sonoroOn ? 'rgba(124,58,237,0.14)' : 'rgba(15,23,42,0.5)' }}>
+            <button onClick={() => setSonoroOn((v) => !v)} className="flex items-center gap-3 w-full text-left active:scale-[0.99] transition">
+              <div className="text-3xl">🔊</div>
+              <div className="flex-1">
+                <div className="font-extrabold" style={{ backgroundImage: 'linear-gradient(135deg, #7c3aed, #db2777, #06b6d4)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+                  Gen Sonoro {sonoroOn ? '· activado' : ''}
+                </div>
+                <div className="text-xs text-slate-400">Recompensa de Mistery Island: los Pokémon del dossier (Exploud, Noivern, Toxtricity… y sus líneas) aparecen con su tipo SONORO también en esta run.</div>
+              </div>
+              <span className={`w-11 h-6 rounded-full relative transition shrink-0 ${sonoroOn ? 'bg-fuchsia-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${sonoroOn ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="p-4 safe-bottom">
@@ -159,7 +181,7 @@ export default function ModeSelectScreen() {
           full
           variant="primary"
           disabled={blocked}
-          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype })}
+          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype, sonoro: sonoroOn || undefined })}
         >
           {blocked ? 'Elige un tipo para el Monolocke' : 'Continuar ›'}
         </Button>

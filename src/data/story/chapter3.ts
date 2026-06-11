@@ -35,8 +35,8 @@ const BOSS: { trainer: TrainerData; team: number[]; aceLevel: number } = {
     quote: 'La naturaleza afina despacio. Nosotros afinamos en semanas. Escucha a mis prototipos.',
     team: [],
   },
-  team: [82, 137, 402, 358, 295], // Magneton, Porygon, Kricketune, Chimecho, Exploud (ace)
-  aceLevel: 28,
+  team: [137, 402, 358, 295], // Porygon, Kricketune, Chimecho, Exploud (ace)
+  aceLevel: 26,
 }
 
 const PREBOSS: StoryLine[] = [

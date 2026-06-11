@@ -249,7 +249,14 @@ export const useGame = create<GameState>((set, get) => ({
     recomputeTotals(merged) // corrige contadores inflados por el antiguo bug
     await saveMeta(merged)
     await saveCloudMeta(merged)
-    set({ cloudBusy: false, alias: merged.alias || get().alias, dexCaught: merged.pokedexCaught.length, pet: merged.pet ?? get().pet, totalWins: merged.totals.wins })
+    // Refleja TODO lo fusionado en memoria (antes faltaban storyCompleted y
+    // storyTeams: el progreso de historia hecho en otro dispositivo no se veía
+    // hasta recargar la app).
+    set({
+      cloudBusy: false, alias: merged.alias || get().alias, dexCaught: merged.pokedexCaught.length,
+      pet: merged.pet ?? get().pet, totalWins: merged.totals.wins,
+      storyCompleted: merged.storyCompleted ?? [], storyTeams: merged.storyTeams ?? {},
+    })
   },
 
   navigate: (name, params) =>
@@ -261,12 +268,21 @@ export const useGame = create<GameState>((set, get) => ({
     }),
 
   init: async () => {
-    if (get().cloudUser) void get().cloudSync()
-    void loadMeta().then(async (m) => {
-      if (m.alias) set({ alias: m.alias })
-      set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins, storyCompleted: m.storyCompleted ?? [], storyTeams: m.storyTeams ?? {} })
-      if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
-    })
+    // PRIMERO la nube (si hay sesión): así lo hecho en otro dispositivo ya está
+    // fusionado cuando leemos la meta local. Antes ambas cargas corrían en
+    // paralelo y la local podía "pisar" en memoria lo recién sincronizado.
+    // Tope de 6 s para no bloquear el arranque sin conexión.
+    if (get().cloudUser) {
+      await Promise.race([
+        get().cloudSync().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 6000)),
+      ])
+      set({ cloudBusy: false })
+    }
+    const m = await loadMeta()
+    if (m.alias) set({ alias: m.alias })
+    set({ dexCaught: m.pokedexCaught.length, pet: m.pet ?? null, totalWins: m.totals.wins, storyCompleted: m.storyCompleted ?? [], storyTeams: m.storyTeams ?? {} })
+    if (recomputeTotals(m)) await saveMeta(m) // corrige contadores antiguos (offline)
     const saved = await loadRun()
     const savedLeague = await loadLeague()
     set({ loaded: true, hasSavedRun: !!saved, hasSavedLeague: !!savedLeague })
@@ -274,7 +290,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startRun: (config) => {
     const seed = config.seed ?? Math.floor(Math.random() * 2 ** 31)
-    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily, story: config.story, starterLevel: config.starterLevel, party: config.party })
+    const run = createRun({ pools: config.pools, random: config.random, randomFlags: config.randomFlags, monotype: config.monotype, difficulty: config.difficulty, gen: config.gen, starterId: config.starterId, seed, daily: config.daily, story: config.story, starterLevel: config.starterLevel, party: config.party, sonoro: config.sonoro })
     run.startedAt = Date.now()
     run.elapsedMs = 0 // cronómetro de juego activo (no cuenta app cerrada)
     // Todas las runs empiezan con el MISMO dinero (1000 ₽). Sin bono de Pokédex.
@@ -310,7 +326,9 @@ export const useGame = create<GameState>((set, get) => ({
       ...(run.daily ? { daily: run.daily } : {}),
       ...(run.story ? { story: run.story } : {}),
       // Historia: reintentar conserva el nivel inicial del capítulo (no Nv. 5).
-      ...(run.story ? { starterLevel: STORY_CONTENT[run.story]?.startLevel ?? 5 } : {}),
+      ...(run.story ? { starterLevel: (STORY_CONTENT[run.story]?.startLevel ?? 5) + (run.story > 1 ? 2 : 0) } : {}),
+      // Gen Sonoro activado: se conserva al reintentar.
+      ...(run.sonoro ? { sonoro: true } : {}),
     })
   },
 
