@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, Card, money, TopBar } from '@/ui/components/kit'
 import { getItem } from '@/data/items'
+import TeamPeekModal from '@/ui/components/TeamPeekModal'
 
 export default function ShopScreen() {
   const { run, screen, doBuy, doLeaveShop } = useGame()
   const [bought, setBought] = useState(false)
+  const [showTeam, setShowTeam] = useState(false)
   const nodeId = screen.params?.nodeId as string
   if (!run) return null
   const node = run.map.nodes[nodeId]
@@ -32,8 +34,18 @@ export default function ShopScreen() {
     <div className="flex flex-col flex-1">
       <TopBar
         title="Tienda"
-        right={<span className="text-amber-300 font-bold text-sm pr-1">{money(run.money)}</span>}
+        right={
+          <div className="flex items-center gap-2 pr-1">
+            {/* Consulta rápida del equipo (PS, objetos) para comprar con contexto */}
+            <button
+              className="text-[11px] font-bold bg-slate-700 text-slate-100 rounded-lg px-2 py-1 active:scale-95"
+              onClick={() => setShowTeam(true)}
+            >👥 Equipo</button>
+            <span className="text-amber-300 font-bold text-sm">{money(run.money)}</span>
+          </div>
+        }
       />
+      {showTeam && <TeamPeekModal team={run.party} onClose={() => setShowTeam(false)} />}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 grid gap-2.5 no-scrollbar">
         {stock.map((id) => {
           const item = getItem(id)

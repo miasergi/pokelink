@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.41',
+    date: '2026-06-11',
+    title: 'Equipo a la vista en la tienda + pulido del Modo Historia',
+    changes: [
+      'En cualquier tienda ahora tienes el botón «👥 Equipo»: consulta los PS, objetos y ataques de tu equipo sin salir, para comprar con cabeza.',
+      'Modo Historia: tu compañero inicial y el Lapras del Capitán son INTRANSFERIBLES (no se pueden intercambiar ni liberar para hacer hueco).',
+      'Modo Historia: la llegada a la Costa Prohibida (Cap. 2) ahora continúa de verdad el final del Capítulo 1: llegas a lomos del Lapras del Capitán.',
+    ],
+  },
+  {
     version: 'v6.40',
     date: '2026-06-11',
     title: '¡El tipo Sonoro entra en combate! + el Lapras del Capitán',

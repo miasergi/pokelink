@@ -112,9 +112,12 @@ export default function CatchScreen() {
         ) : (
           <div className="flex flex-col gap-2 mt-2">
             <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para hacer sitio? (desaparece para siempre)</p>
-            {run.party.map((p) => (
+            {run.party.filter((p) => !p.locked).map((p) => (
               <PokemonCard key={p.uid} mon={p} onClick={() => doCapture(p.uid)} />
             ))}
+            {run.party.some((p) => p.locked) && (
+              <p className="text-center text-[11px] text-slate-500">🔒 Tu compañero y el Lapras del Capitán son intransferibles.</p>
+            )}
             <Button full variant="ghost" onClick={() => setReplacing(false)}>Cancelar</Button>
           </div>
         )}

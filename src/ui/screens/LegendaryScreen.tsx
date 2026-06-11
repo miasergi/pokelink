@@ -43,9 +43,12 @@ export default function LegendaryScreen() {
         ) : (
           <div className="w-full max-w-sm flex flex-col gap-2">
             <p className="text-center text-sm text-rose-300">⚠️ ¿A quién <b>liberas</b> para quedarte {noun}? (desaparece para siempre; su objeto vuelve a la mochila)</p>
-            {run.party.map((p) => (
+            {run.party.filter((p) => !p.locked).map((p) => (
               <PokemonCard key={p.uid} mon={p} onClick={() => addLegendary(p.uid)} />
             ))}
+            {run.party.some((p) => p.locked) && (
+              <p className="text-center text-[11px] text-slate-500">🔒 Tu compañero y el Lapras del Capitán son intransferibles.</p>
+            )}
             <Button full variant="ghost" onClick={() => setReplacing(false)}>Cancelar</Button>
           </div>
         )}

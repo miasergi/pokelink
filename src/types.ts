@@ -136,6 +136,9 @@ export interface PokemonInstance {
   /** Tipos efectivos que SUSTITUYEN a los de la especie (Modo Historia: el gen
    *  Sonoro de los experimentos). Si falta, valen los de la especie. */
   typesOverride?: ExtType[]
+  /** Modo Historia: INTRANSFERIBLE (compañero inicial y el Lapras del Capitán).
+   *  No se puede intercambiar ni liberar para hacer hueco. */
+  locked?: boolean
   shiny: boolean
 }
 

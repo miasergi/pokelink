@@ -52,14 +52,14 @@ export const CHAPTERS: Chapter[] = [
     bg: import.meta.env.BASE_URL + 'story/chapter2-bg.webp',
     mapBg: import.meta.env.BASE_URL + 'story/chapter2-map.webp',
     synopsis:
-      'El ferry te deja en una playa fortificada: vallas electrificadas, focos y puestos de control abandonados. La tecnología de los científicos está por todas partes… y también sus primeros experimentos defectuosos. Infíltrate en el perímetro de seguridad.',
+      'El Lapras del Capitán te deja en una playa fortificada: vallas electrificadas, focos y puestos de control abandonados. La tecnología de los científicos está por todas partes… y también sus primeros experimentos defectuosos. Infíltrate en el perímetro de seguridad.',
     intro: [
-      { text: 'El ferry encalla en una cala oculta. El capitán no baja: solo señala hacia las luces de los focos que barren la niebla.' },
-      { speaker: 'El Capitán', text: 'Hasta aquí llego yo. Lo de ahí dentro… ya no es mar. Es de ellos.' },
+      { text: 'Con el ferry del Capitán ya tragado por la niebla a tu espalda, Lapras nada en silencio el último tramo, esquivando los focos que barren el agua.' },
+      { text: 'Te deja en una cala oculta y emite un canto bajo, inquieto. Hay algo en esta orilla que no le gusta nada.', glitch: true },
       { text: 'Vallas electrificadas. Cámaras. Carteles de "ACCESO RESTRINGIDO" oxidados por la sal.' },
       { text: 'Y entre las rocas, algo se mueve mal: un Pokémon salvaje que tiembla y emite un chillido que no es suyo.', glitch: true },
       { speaker: 'Voz por megafonía', text: 'Atención. Perímetro exterior comprometido. Unidades de seguridad, a sus puestos.', glitch: true },
-      { text: 'No hay vuelta atrás. Solo hacia dentro.' },
+      { text: 'El Capitán cumplió su parte. Ahora te toca a ti: no hay vuelta atrás. Solo hacia dentro.' },
     ],
   },
   // Fondos de los caps. 3-6: fotografías de Unsplash (licencia Unsplash, uso

@@ -60,6 +60,7 @@ export function createRun(config: NewRunConfig): RunState {
   const carried = config.party?.length ? structuredClone(config.party) : null
   if (carried) healParty(carried)
   const starter = createInstance(config.starterId, config.starterLevel ?? 5, rng)
+  if (config.story) starter.locked = true // Historia: tu compañero es intransferible
   const region = config.story ? STORY_CHAPTERS[config.story] ?? 'Modo Historia' : getGeneration(config.gen).region
 
   return {
@@ -355,6 +356,7 @@ export function catchPokemon(
   // equipado vuelve a la mochila (no se pierde).
   if (replaceUid) {
     const idx = run.party.findIndex((p) => p.uid === replaceUid)
+    if (idx >= 0 && run.party[idx].locked) return { caught: false, toBox: false } // intransferible
     if (idx >= 0) {
       if (run.party[idx].heldItemId) addItem(run, run.party[idx].heldItemId!, 1)
       run.party[idx] = mon
@@ -395,6 +397,7 @@ export function resolveTrade(
   if (node.content.kind !== 'trade') return null
   const idx = run.party.findIndex((p) => p.uid === monUid)
   if (idx < 0 || run.money < node.content.cost) return null
+  if (run.party[idx].locked) return null // intransferible (Modo Historia)
   const traded = run.party[idx]
   // Monolocke: el Pokémon recibido también es del tipo elegido.
   const pool = monotypePool(basePoolFor(run.pools), run.monotype)

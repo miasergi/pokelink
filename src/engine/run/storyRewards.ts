@@ -19,11 +19,16 @@ export function applyStoryChapterRewards(
   if (chapter === 1) {
     const lapras = createInstance(131, 13, new RNG(seed + 131), { shinyChance: 0 })
     lapras.nickname = 'Lapras del Capitán'
+    lapras.locked = true // regalo del Capitán: intransferible
     if (out.length < MAX_PARTY) out.push(lapras)
     else {
-      // Equipo lleno: el Lapras ocupa el sitio del miembro de menor nivel.
-      const idx = out.reduce((lo, m, i) => (m.level < out[lo].level ? i : lo), 0)
-      out[idx] = lapras
+      // Equipo lleno: el Lapras ocupa el sitio del miembro de menor nivel que
+      // NO sea intransferible (nunca echa a tu compañero inicial).
+      const candidates = out.map((m, i) => ({ m, i })).filter(({ m }) => !m.locked)
+      if (candidates.length) {
+        const lowest = candidates.reduce((lo, c) => (c.m.level < lo.m.level ? c : lo))
+        out[lowest.i] = lapras
+      }
     }
   }
   if (chapter === 3) {

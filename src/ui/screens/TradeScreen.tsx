@@ -35,10 +35,11 @@ export default function TradeScreen() {
         <div className="flex flex-col gap-2">
           {run.party.map((mon) => {
             const sp = getSpecies(mon.speciesId)
+            const locked = !!mon.locked
             return (
               <button
                 key={mon.uid}
-                disabled={!canAfford}
+                disabled={!canAfford || locked}
                 onClick={() => doTrade(mon.uid)}
                 className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-800/60 p-2.5 text-left active:scale-[0.98] transition disabled:opacity-40"
               >
@@ -47,7 +48,9 @@ export default function TradeScreen() {
                   <div className="font-bold">{sp.displayName} <span className="text-xs text-slate-400">Nv.{mon.level}</span></div>
                   <div className="flex gap-1 mt-0.5">{monTypes(mon).map((t) => <TypeBadge key={t} type={t} size="sm" />)}</div>
                 </div>
-                <span className="text-cyan-300 font-bold text-sm">Cambiar ›</span>
+                {locked
+                  ? <span className="text-slate-400 font-bold text-xs">🔒 Intransferible</span>
+                  : <span className="text-cyan-300 font-bold text-sm">Cambiar ›</span>}
               </button>
             )
           })}

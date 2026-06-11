@@ -602,6 +602,7 @@ export const useGame = create<GameState>((set, get) => ({
     const run = cloneRun(cur)
     if (replaceUid) {
       const idx = run.party.findIndex((p) => p.uid === replaceUid)
+      if (idx >= 0 && run.party[idx].locked) return // intransferible (Modo Historia)
       if (idx >= 0) {
         // El Pokémon que liberas para hacer hueco devuelve su objeto a la mochila.
         if (run.party[idx].heldItemId) addItem(run, run.party[idx].heldItemId!, 1)

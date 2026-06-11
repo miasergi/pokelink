@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createRun } from './runEngine'
+import { createRun, resolveTrade, catchPokemon } from './runEngine'
 import { generateStoryMap, applySonoroGene } from './storyMap'
 import { applyStoryChapterRewards } from './storyRewards'
 import { createInstance } from '@/engine/team/instance'
@@ -153,5 +153,44 @@ describe('Modo Historia — tipo Sonoro en combate', () => {
     expect(after).toHaveLength(6)
     expect(after.some((m) => m.speciesId === 131)).toBe(true)
     expect(after.some((m) => m.speciesId === 16)).toBe(false) // el de nivel 10 salió
+  })
+})
+
+describe('Modo Historia — intransferibles (compañero y Lapras del Capitán)', () => {
+  it('el compañero inicial de una run de historia nace intransferible (locked)', () => {
+    const run = createRun({ gen: 1, pools: [1], random: false, starterId: 25, difficulty: 'normal', story: 1, seed: 3 })
+    expect(run.party[0].locked).toBe(true)
+    // En una run normal, NO.
+    const normal = createRun({ gen: 1, pools: [1], random: false, starterId: 25, difficulty: 'normal', seed: 3 })
+    expect(normal.party[0].locked).toBeUndefined()
+  })
+
+  it('el Lapras regalado es intransferible y nunca expulsa a otro intransferible', () => {
+    const rng = new RNG(4)
+    const team = [25, 19, 21, 41, 60, 66].map((id, i) => createInstance(id, 10 + i, rng))
+    team[0].locked = true // tu Pikachu (nivel 10, el más bajo)
+    const after = applyStoryChapterRewards(1, team, 7)
+    const lapras = after.find((m) => m.speciesId === 131)!
+    expect(lapras.locked).toBe(true)
+    expect(after.some((m) => m.speciesId === 25)).toBe(true) // Pikachu sigue
+    expect(after.some((m) => m.speciesId === 19)).toBe(false) // salió el siguiente más bajo
+  })
+
+  it('un intransferible no se puede intercambiar ni liberar para capturar', () => {
+    const run = createRun({ gen: 1, pools: [1], random: false, starterId: 25, difficulty: 'normal', story: 1, seed: 9 })
+    run.money = 99999
+    const starter = run.party[0]
+    // Intercambio bloqueado.
+    const tradeNode = run.map.nodes[Object.keys(run.map.nodes)[0]]
+    tradeNode.content = { kind: 'trade', cost: 100 }
+    expect(resolveTrade(run, tradeNode, starter.uid)).toBeNull()
+    // Liberar para hacer hueco en una captura: bloqueado.
+    run.party = [starter, ...[19, 21, 41, 60, 66].map((id) => createInstance(id, 8, new RNG(2)))]
+    const offer = createInstance(54, 8, new RNG(5))
+    const catchNode = run.map.nodes[Object.keys(run.map.nodes)[1]]
+    catchNode.content = { kind: 'catch', offers: [offer] }
+    const res = catchPokemon(run, catchNode, true, offer.uid, starter.uid)
+    expect(res.caught).toBe(false)
+    expect(run.party.some((m) => m.uid === starter.uid)).toBe(true)
   })
 })
