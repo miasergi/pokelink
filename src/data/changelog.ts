@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.43',
+    date: '2026-07-13',
+    title: '¡Vuelve el año 2000! Llega la Cyber PokéBall',
+    changes: [
+      'NUEVO MODO: Cyber PokéBall — una recreación jugable del juguete de bolsillo del 2000, con su bola dibujada, pantalla LCD retro y sprites a color. Botón nuevo en Inicio.',
+      'Aventura completa en cualquiera de las 9 regiones: inicial a nivel 3 (en Kanto también Pikachu), equipo de solo 3 Pokémon con PC en el Centro, y los líderes de gimnasio, el rival y el Alto Mando REALES de la región elegida.',
+      'Mecánicas del juguete: radar de encuentros con anillos de cercanía, combate por TIMING (para el carrusel… ¡y no caigas en la cara triste!), minijuego de machacar ◄ ► para potenciar el golpe fuerte, y captura AGITANDO el móvil de verdad (o pulsando rápido en PC).',
+      'Cable Link online: publica tu equipo fantasma y combate contra los de otros jugadores, e intercambia Pokémon del modo entre cuentas (asíncrono, desde el Centro Pokémon → LINK).',
+      'Pokédex propia del modo (se sincroniza con tu cuenta), progreso independiente del juego principal y 3 logros nuevos: «Leyenda de bolsillo», «Dex de bolsillo» y «Cable Link».',
+    ],
+  },
+  {
     version: 'v6.42',
     date: '2026-06-11',
     title: 'Sincronización arreglada, historia con partida única y el Sonoro definitivo',

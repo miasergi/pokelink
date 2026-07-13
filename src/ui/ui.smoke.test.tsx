@@ -10,6 +10,9 @@ import MapScreen from '@/ui/screens/MapScreen'
 import TeamScreen from '@/ui/screens/TeamScreen'
 import PokedexScreen from '@/ui/screens/PokedexScreen'
 import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
+import CyberScreen from '@/ui/screens/CyberScreen'
+import { useCyber } from '@/state/cyberStore'
+import { createAdventure } from '@/engine/cyber/cyberEngine'
 
 describe('render de pantallas (smoke)', () => {
   it('App monta sin lanzar', () => {
@@ -20,6 +23,18 @@ describe('render de pantallas (smoke)', () => {
     useGame.setState({ loaded: true, screen: { name: 'starterSelect', params: { pools: [1], random: false, gen: 1 } } })
     expect(() => renderToString(createElement(HomeScreen))).not.toThrow()
     expect(() => renderToString(createElement(StarterSelectScreen))).not.toThrow()
+  })
+
+  it('Cyber PokéBall: título, mapa y centro renderizan', () => {
+    useGame.setState({ loaded: true, screen: { name: 'cyber' } })
+    expect(() => renderToString(createElement(CyberScreen))).not.toThrow()
+    const save = createAdventure(1, 25, 99)
+    useCyber.setState({ save, hasSave: true, phase: 'map' })
+    expect(() => renderToString(createElement(CyberScreen))).not.toThrow()
+    useCyber.setState({ phase: 'center' })
+    expect(() => renderToString(createElement(CyberScreen))).not.toThrow()
+    useCyber.setState({ phase: 'dex' })
+    expect(() => renderToString(createElement(CyberScreen))).not.toThrow()
   })
 
   it('pantallas dentro de una run renderizan', () => {

@@ -2,6 +2,7 @@
 // para guardar el progreso (meta) en la nube. Si no hay claves configuradas,
 // todo queda deshabilitado y el juego funciona en local.
 import type { MetaRecord } from './db'
+import type { PokemonInstance } from '@/types'
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -176,6 +177,160 @@ export async function fetchLeaderboard(opts: { region?: string; difficulty?: str
   } catch {
     return null
   }
+}
+
+// ---- Cyber PokéBall online (Cable Link): intercambios + combate fantasma ----
+// Tablas: cyber_trades, cyber_ghosts, cyber_battle_results (SQL en SUPABASE.md).
+
+/** fetch REST autenticado contra PostgREST. Devuelve null sin sesión/nube. */
+async function restFetch(path: string, init: RequestInit = {}): Promise<Response | null> {
+  if (!URL || !KEY) return null
+  const token = await validToken()
+  if (!token) return null
+  try {
+    return await fetch(`${URL}/rest/v1/${path}`, {
+      ...init,
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...(init.headers ?? {}),
+      },
+    })
+  } catch {
+    return null
+  }
+}
+
+export type CyberTradeStatus = 'open' | 'accepted' | 'completed' | 'closed' | 'cancelled'
+
+export interface CyberTradeRow {
+  id: number
+  owner_id: string
+  owner_alias: string
+  gen: number
+  offered: PokemonInstance
+  wanted_species: number | null
+  status: CyberTradeStatus
+  taker_id: string | null
+  taker_alias: string | null
+  counter: PokemonInstance | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CyberGhostRow {
+  user_id: string
+  gen: number
+  alias: string
+  team: PokemonInstance[]
+  badges: number
+  updated_at: string
+}
+
+/** Ofertas abiertas de otros jugadores (misma gen). */
+export async function cyberListOpenTrades(gen: number): Promise<CyberTradeRow[] | null> {
+  const user = currentUser()
+  const res = await restFetch(`cyber_trades?status=eq.open&gen=eq.${gen}&order=created_at.desc&limit=30`)
+  if (!res?.ok) return null
+  const rows = (await res.json()) as CyberTradeRow[]
+  return user ? rows.filter((r) => r.owner_id !== user.id) : rows
+}
+
+/** Mis intercambios (como dueño o como aceptante), recientes primero. */
+export async function cyberMyTrades(): Promise<CyberTradeRow[] | null> {
+  const user = currentUser()
+  if (!user) return null
+  const res = await restFetch(`cyber_trades?or=(owner_id.eq.${user.id},taker_id.eq.${user.id})&order=updated_at.desc&limit=20`)
+  if (!res?.ok) return null
+  return (await res.json()) as CyberTradeRow[]
+}
+
+export async function cyberCreateTrade(gen: number, offered: PokemonInstance, wantedSpecies: number | null, alias: string): Promise<boolean> {
+  const user = currentUser()
+  if (!user) return false
+  const res = await restFetch('cyber_trades', {
+    method: 'POST',
+    body: JSON.stringify({ owner_id: user.id, owner_alias: alias || 'Anónimo', gen, offered, wanted_species: wantedSpecies, status: 'open' }),
+  })
+  return !!res?.ok
+}
+
+/** Acepta una oferta abierta aportando tu Pokémon (open → accepted). */
+export async function cyberAcceptTrade(id: number, counter: PokemonInstance, alias: string): Promise<boolean> {
+  const user = currentUser()
+  if (!user) return false
+  const res = await restFetch(`cyber_trades?id=eq.${id}&status=eq.open`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'accepted', taker_id: user.id, taker_alias: alias || 'Anónimo', counter, updated_at: new Date().toISOString() }),
+  })
+  if (!res?.ok) return false
+  // PostgREST devuelve las filas afectadas: si otro se adelantó, viene vacío.
+  const rows = (await res.json()) as unknown[]
+  return rows.length > 0
+}
+
+/** Cambia el estado de un intercambio SOLO si sigue en `expected` (guarda
+ *  contra carreras con listas rancias: cancelar una oferta ya aceptada
+ *  perdería el Pokémon del otro jugador, y confirmar dos veces lo duplicaría).
+ *  Devuelve true únicamente si la fila realmente cambió. */
+export async function cyberSetTradeStatus(
+  id: number, status: CyberTradeStatus, expected: CyberTradeStatus,
+): Promise<boolean> {
+  const res = await restFetch(`cyber_trades?id=eq.${id}&status=eq.${expected}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
+  })
+  if (!res?.ok) return false
+  const rows = (await res.json()) as unknown[]
+  return rows.length > 0
+}
+
+/** El aceptante se retira de un trato 'accepted' que el dueño no confirma:
+ *  la oferta vuelve a 'open' y recupera su Pokémon. Guardado igual que arriba. */
+export async function cyberWithdrawTrade(id: number): Promise<boolean> {
+  const res = await restFetch(`cyber_trades?id=eq.${id}&status=eq.accepted`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'open', taker_id: null, taker_alias: null, counter: null, updated_at: new Date().toISOString() }),
+  })
+  if (!res?.ok) return false
+  const rows = (await res.json()) as unknown[]
+  return rows.length > 0
+}
+
+/** Publica/actualiza tu equipo fantasma de una gen (upsert por user+gen). */
+export async function cyberPublishGhost(gen: number, team: PokemonInstance[], badges: number, alias: string): Promise<boolean> {
+  const user = currentUser()
+  if (!user) return false
+  const res = await restFetch('cyber_ghosts', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ user_id: user.id, gen, alias: alias || 'Anónimo', team, badges, updated_at: new Date().toISOString() }),
+  })
+  return !!res?.ok
+}
+
+/** Equipos fantasma de otros jugadores de la misma gen. */
+export async function cyberFetchGhosts(gen: number, limit = 20): Promise<CyberGhostRow[] | null> {
+  const user = currentUser()
+  const res = await restFetch(`cyber_ghosts?gen=eq.${gen}&order=updated_at.desc&limit=${limit}`)
+  if (!res?.ok) return null
+  const rows = (await res.json()) as CyberGhostRow[]
+  return user ? rows.filter((r) => r.user_id !== user.id) : rows
+}
+
+/** Registra el resultado de un combate fantasma (reproducible por semilla). */
+export async function cyberSubmitResult(r: { ghost_id: string; gen: number; seed: number; challenger_won: boolean }): Promise<boolean> {
+  const user = currentUser()
+  if (!user) return false
+  const res = await restFetch('cyber_battle_results', {
+    method: 'POST',
+    body: JSON.stringify({ challenger_id: user.id, ghost_id: r.ghost_id, gen: r.gen, seed: r.seed, challenger_won: r.challenger_won }),
+  })
+  return !!res?.ok
 }
 
 /** Guarda (upsert) la meta del usuario en la nube. */

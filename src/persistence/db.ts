@@ -31,6 +31,14 @@ interface MetaRecord {
   /** Modo Historia: equipo con el que TERMINASTE cada capítulo (continuidad:
    *  el siguiente capítulo te ofrece seguir con él). */
   storyTeams?: Record<number, RunState['party']>
+  /** Cyber PokéBall: dex propia del modo (NO toca la Pokédex global). */
+  cyberDexSeen?: number[]
+  cyberDexCaught?: number[]
+  /** Cyber PokéBall: generaciones cuya aventura completaste (campeón batido). */
+  cyberCompleted?: number[]
+  /** Cyber PokéBall: intercambios y victorias fantasma online acumulados. */
+  cyberTrades?: number
+  cyberGhostWins?: number
 }
 
 const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
@@ -134,6 +142,20 @@ export async function clearLeague(): Promise<void> {
   await d.delete('runs', 'league')
 }
 
+// ---- Cyber PokéBall (aventura del juguete) ----
+export async function saveCyber(s: import('@/engine/cyber/types').CyberSave): Promise<void> {
+  const d = await db()
+  await d.put('runs', s, 'cyber')
+}
+export async function loadCyber(): Promise<import('@/engine/cyber/types').CyberSave | null> {
+  const d = await db()
+  return (await d.get('runs', 'cyber')) ?? null
+}
+export async function clearCyber(): Promise<void> {
+  const d = await db()
+  await d.delete('runs', 'cyber')
+}
+
 // ---- Meta-progresión ----
 const EMPTY_META: MetaRecord = {
   bestRuns: [],
@@ -196,6 +218,11 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     // Equipos de historia: por capítulo, gana el equipo de mayor nivel medio
     // (el más avanzado entre dispositivos).
     storyTeams: mergeStoryTeams(a.storyTeams, b.storyTeams),
+    cyberDexSeen: uni(a.cyberDexSeen ?? [], b.cyberDexSeen ?? []),
+    cyberDexCaught: uni(a.cyberDexCaught ?? [], b.cyberDexCaught ?? []),
+    cyberCompleted: uni(a.cyberCompleted ?? [], b.cyberCompleted ?? []),
+    cyberTrades: Math.max(a.cyberTrades ?? 0, b.cyberTrades ?? 0),
+    cyberGhostWins: Math.max(a.cyberGhostWins ?? 0, b.cyberGhostWins ?? 0),
   }
 }
 
@@ -217,7 +244,8 @@ function mergeStoryTeams(
 export async function exportData(): Promise<string> {
   const meta = await loadMeta()
   const run = await loadRun()
-  const json = JSON.stringify({ v: 1, meta, run })
+  const cyber = await loadCyber()
+  const json = JSON.stringify({ v: 1, meta, run, cyber })
   // base64 seguro para UTF-8
   return btoa(unescape(encodeURIComponent(json)))
 }
@@ -225,10 +253,17 @@ export async function exportData(): Promise<string> {
 export async function importData(code: string): Promise<boolean> {
   try {
     const json = decodeURIComponent(escape(atob(code.trim())))
-    const data = JSON.parse(json) as { meta?: MetaRecord; run?: RunState | null }
+    const data = JSON.parse(json) as {
+      meta?: MetaRecord
+      run?: RunState | null
+      cyber?: import('@/engine/cyber/types').CyberSave | null
+    }
     if (data.meta) await saveMeta({ ...structuredClone(EMPTY_META), ...data.meta })
     if (data.run) await saveRun(data.run)
     else await clearRun()
+    // Códigos antiguos (sin campo cyber) NO tocan la aventura Cyber local.
+    if (data.cyber) await saveCyber(data.cyber)
+    else if ('cyber' in data) await clearCyber()
     return true
   } catch {
     return false

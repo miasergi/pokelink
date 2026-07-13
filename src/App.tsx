@@ -36,6 +36,7 @@ const AccountScreen = lazy(() => import('@/ui/screens/AccountScreen'))
 const LeaderboardScreen = lazy(() => import('@/ui/screens/LeaderboardScreen'))
 const LegendaryScreen = lazy(() => import('@/ui/screens/LegendaryScreen'))
 const AchievementsScreen = lazy(() => import('@/ui/screens/AchievementsScreen'))
+const CyberScreen = lazy(() => import('@/ui/screens/CyberScreen'))
 
 const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
@@ -67,6 +68,7 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   leaderboard: LeaderboardScreen,
   legendary: LegendaryScreen,
   achievements: AchievementsScreen,
+  cyber: CyberScreen,
 }
 
 const ONBOARD_KEY = 'pokerogue:onboarded'
@@ -94,7 +96,7 @@ export default function App() {
     else if (screen.name === 'league' || screen.name === 'leagueSetup') startMusic('league')
     else if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records') startMusic(storyMode ? 'story' : 'map')
     else if (screen.name === 'battle') startMusic('battle')
-    else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover') stopMusic()
+    else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover' || screen.name === 'cyber') stopMusic()
   }, [screen.name, music, storyMode])
 
   if (!loaded) {

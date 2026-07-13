@@ -28,6 +28,8 @@ export default {
       },
       fontFamily: {
         display: ['"Baloo 2"', 'system-ui', 'sans-serif'],
+        // Fuente pixel del LCD de la Cyber PokéBall
+        lcd: ['"Press Start 2P"', 'monospace'],
       },
       keyframes: {
         shake: {

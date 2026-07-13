@@ -93,6 +93,12 @@ export default function HomeScreen() {
             {!cloudUser && <Icon name="lock" className="w-3.5 h-3.5 text-slate-400" />}
           </span>
         </Button>
+        <Button variant="secondary" full onClick={() => navigate('cyber')}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="pokeball" className="w-4 h-4 text-red-400" /> Cyber PokéBall
+            <span className="text-[9px] font-mono text-slate-500 border border-slate-700 rounded px-1">RETRO</span>
+          </span>
+        </Button>
         <div className="grid grid-cols-3 gap-3">
           <Button variant="secondary" onClick={() => navigate('pokedex')}>
             <span className="inline-flex items-center justify-center gap-1"><Icon name="pokedex" className="w-4 h-4" /> Pokédex</span>

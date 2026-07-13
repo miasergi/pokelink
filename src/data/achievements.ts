@@ -45,6 +45,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'league_finalist', title: 'Finalista', desc: 'Llega a la final de la Liga.', icon: 'trophy' },
   { id: 'league_champion', title: 'Rey de la Liga', desc: 'Gana la Liga Pokémon.', icon: 'liga' },
   { id: 'league_flawless', title: 'Imparable', desc: 'Gana la Liga sin perder ni un combate.', icon: 'liga' },
+  // --- Cyber PokéBall ---
+  { id: 'cyber_champion', title: 'Leyenda de bolsillo', desc: 'Completa una aventura Cyber PokéBall (derrota al campeón).', icon: 'pokeball' },
+  { id: 'cyber_dex50', title: 'Dex de bolsillo', desc: 'Captura 50 especies en el modo Cyber PokéBall.', icon: 'pokedex' },
+  { id: 'cyber_online', title: 'Cable Link', desc: 'Completa un intercambio o combate online en la Cyber PokéBall.', icon: 'cloud' },
 ]
 
 export const ACHIEVEMENT_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]))

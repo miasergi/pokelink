@@ -5,7 +5,8 @@ import { RNG } from '@/utils/rng'
 import { computeStats, expForLevel } from './leveling'
 
 let uidCounter = 0
-function nextUid(): string {
+/** uid único de instancia (también para Pokémon recibidos por Cable Link). */
+export function nextUid(): string {
   uidCounter += 1
   return `p${uidCounter}_${Date.now().toString(36)}`
 }
