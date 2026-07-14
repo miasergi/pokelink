@@ -24,7 +24,6 @@ import {
 } from '@/persistence/supabase'
 import { simulateGhostBattle } from '@/engine/cyber/ghost'
 import { play } from '@/utils/sfx'
-import { useShellControls } from './CyberShell'
 import { LcdTitle, LcdText, LcdButton, LcdSprite } from './lcd'
 
 type Tab = 'trades' | 'mine' | 'ghosts'
@@ -56,16 +55,6 @@ export function OnlineView() {
   const [ghostLog, setGhostLog] = useState<string[] | null>(null)
   const [collected, setCollected] = useState<Set<number>>(collectedSet)
   const gen = save?.gen
-
-  // El botón central cierra el sub-flujo activo, no te expulsa al mapa.
-  useShellControls({
-    onCenter: () => {
-      if (ghostLog) setGhostLog(null)
-      else if (pickFor !== null) setPickFor(null)
-      else goTo('map')
-    },
-    centerLabel: ghostLog || pickFor !== null ? 'CERRAR' : 'VOLVER',
-  }, [goTo, ghostLog, pickFor])
 
   const refresh = useCallback(async () => {
     if (gen == null || !currentUser()) return

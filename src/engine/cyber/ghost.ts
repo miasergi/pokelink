@@ -8,7 +8,7 @@ import { chooseMove } from '@/engine/battle/ai'
 import { computeDamage } from '@/engine/battle/damage'
 import { getMove } from '@/data'
 import { RNG } from '@/utils/rng'
-import { displayName } from './timingBattle'
+import { displayName } from './reelBattle'
 
 export interface GhostBattleResult {
   won: boolean

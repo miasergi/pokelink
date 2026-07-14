@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.44',
+    date: '2026-07-14',
+    title: 'Cyber PokéBall: la tragaperras de dos rodillos (rediseño a fondo)',
+    changes: [
+      '¡El combate ahora es el DE VERDAD! Dos rodillos enfrentados como en el juguete: el de la izquierda es tu ataque y el de la derecha el del rival. Se paran de uno en uno (el más rápido elige primero) y la mitad de quien está eligiendo parpadea. Ves tu tira entera, así que sabes qué viene… y qué caras tristes esquivar.',
+      'Combate CON ANIMACIONES: embestidas, números de daño flotantes, destellos en críticos y supereficaces, barras de PS que bajan de verdad y Pokémon que se desploman al debilitarse. La Poké Ball cae y tiembla al capturar.',
+      'Exploración nueva en PRIMERA PERSONA: arrastra el dedo para girar sobre el terreno (hierba, cueva, aguas) y avanza siguiendo el radar, que ahora se entiende: el punto te dice hacia dónde ir y los anillos, cuánto falta. Al llegar, agitas la bola.',
+      'ZONAS SECRETAS: al conseguir las 8 medallas se abren áreas ocultas con Pokémon LEGENDARIOS. Y hay una tercera que solo aparece cuando capturas uno de los dos primeros.',
+      'Todo se juega TOCANDO la pantalla: fuera los botones de la bola. El mapa es una rejilla táctil de destinos que se van iluminando con tus medallas.',
+    ],
+  },
+  {
     version: 'v6.43',
     date: '2026-07-13',
     title: '¡Vuelve el año 2000! Llega la Cyber PokéBall',

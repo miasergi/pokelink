@@ -5,22 +5,23 @@ import { getSpecies, speciesByGeneration } from '@/data'
 import { CYBER_SHOP } from '@/engine/cyber/cyberEngine'
 import { CYBER_PARTY_MAX } from '@/engine/cyber/types'
 import { play } from '@/utils/sfx'
-import { useShellControls } from './CyberShell'
 import { LcdTitle, LcdText, LcdButton, LcdSprite, LcdHpBar } from './lcd'
 
 // ---- Centro Pokémon ----
 export function CenterView() {
   const { save, healParty, buyItem, goTo } = useCyber()
   const [healed, setHealed] = useState(false)
-  useShellControls({
-    onCenter: () => { healParty(); play('heal'); setHealed(true) },
-    centerLabel: 'CURAR',
-  }, [healParty])
   if (!save) return null
   return (
     <div className="flex-1 flex flex-col gap-1.5 min-h-0">
       <LcdTitle>CENTRO POKÉMON</LcdTitle>
-      <LcdText dim center>{healed ? '¡EQUIPO RECUPERADO! ♪' : 'PULSA ● PARA CURAR'}</LcdText>
+      <LcdButton
+        active
+        onClick={() => { healParty(); play('heal'); setHealed(true) }}
+        className="text-center"
+      >
+        {healed ? '¡EQUIPO RECUPERADO! ♪' : '♥ CURAR EQUIPO'}
+      </LcdButton>
       <div className="flex justify-center gap-2">
         {save.party.map((m) => (
           <div key={m.uid} className="text-center">
@@ -64,12 +65,6 @@ export function PcView() {
   const [page, setPage] = useState(0)
   const perPage = 3
   const pages = Math.max(1, Math.ceil((save?.box.length ?? 0) / perPage))
-  useShellControls({
-    onLeft: () => setPage((p) => (p + pages - 1) % pages),
-    onRight: () => setPage((p) => (p + 1) % pages),
-    onCenter: () => goTo('center'),
-    centerLabel: 'VOLVER',
-  }, [pages, goTo])
   if (!save) return null
   const boxPage = save.box.slice(page * perPage, page * perPage + perPage)
   return (
@@ -98,6 +93,12 @@ export function PcView() {
           </LcdButton>
         ))}
       </div>
+      {pages > 1 && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <LcdButton onClick={() => setPage((p) => (p + pages - 1) % pages)} className="text-center">◄ PÁG</LcdButton>
+          <LcdButton onClick={() => setPage((p) => (p + 1) % pages)} className="text-center">PÁG ►</LcdButton>
+        </div>
+      )}
       <LcdButton active onClick={() => goTo('center')} className="text-center">◄ VOLVER</LcdButton>
     </div>
   )
@@ -109,12 +110,6 @@ export function DexView() {
   const species = useMemo(() => (save ? speciesByGeneration(save.gen) : []), [save?.gen])
   const [cursor, setCursor] = useState(0)
   const max = Math.max(0, species.length - 3)
-  useShellControls({
-    onLeft: () => setCursor((c) => Math.max(0, c - 3)),
-    onRight: () => setCursor((c) => Math.min(max, c + 3)),
-    onCenter: () => goTo('map'),
-    centerLabel: 'VOLVER',
-  }, [max, goTo])
   if (!save) return null
   const visible = species.slice(cursor, cursor + 3)
   const caught = save.dexCaught.length
@@ -136,7 +131,10 @@ export function DexView() {
           )
         })}
       </div>
-      <LcdText dim center>◄ ► PASA PÁGINA</LcdText>
+      <div className="grid grid-cols-2 gap-1.5">
+        <LcdButton onClick={() => setCursor((c) => Math.max(0, c - 3))} className="text-center">◄ ANTERIOR</LcdButton>
+        <LcdButton onClick={() => setCursor((c) => Math.min(max, c + 3))} className="text-center">SIGUIENTE ►</LcdButton>
+      </div>
       <LcdButton active onClick={() => goTo('map')} className="text-center">◄ VOLVER</LcdButton>
     </div>
   )
@@ -147,7 +145,6 @@ export function BagView() {
   const { save, useItem, goTo } = useCyber()
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
-  useShellControls({ onCenter: () => goTo('map'), centerLabel: 'VOLVER' }, [goTo])
   if (!save) return null
   const usable = ['potion', 'super-potion', 'revive'].filter((id) => (save.items[id] ?? 0) > 0)
   const labelOf: Record<string, string> = { potion: 'POCIÓN', 'super-potion': 'SUPERPOCIÓN', revive: 'REVIVIR', ball: 'POKÉ BALL' }
