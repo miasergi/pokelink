@@ -93,7 +93,7 @@ export function noEffectReason(itemId: string, mon: PokemonInstance, cap = 100):
   if (itemId === 'z-move') return effectiveTier(mon) >= 3 ? 'Ya tiene el Movimiento Z (160)' : 'Necesita estar a potencia máxima (120) primero'
   if (itemId === 'choice-specs') return 'Solo para Pokémon de categoría ESPECIAL'
   if (itemId === 'muscle-band') return 'Solo para Pokémon de categoría FÍSICA'
-  if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level >= cap ? 'Ya está en el tope de nivel' : ''
+  if (itemId === 'rare-candy' || itemId === 'super-candy') return mon.level >= cap ? (cap < 100 ? `En el tope de nivel de la zona (nv.${cap}): vence al próximo jefe para subirlo` : 'Ya está en el tope de nivel') : ''
   if (itemId === 'metamorph') return 'No tiene forma regional'
   if (itemId === 'mega-stone') return 'No puede megaevolucionar'
   if (item.category === 'evolution' && (mon.heldItemId === 'eviolite' || mon.heldItemId === 'super-mineral')) return 'No evoluciona mientras lleve ese mineral'

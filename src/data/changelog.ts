@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.45',
+    date: '2026-07-18',
+    title: 'La gran renivelada: rumbo al nivel 100 (y adiós al cheto de caramelos)',
+    changes: [
+      'El mapa ahora se juega POR TRAMOS: una pantalla por cada medalla, con una imagen del paisaje de la ruta (bosque, costa, volcán…) según el gimnasio al que te diriges. Usa las flechas de la cabecera para repasar tramos pasados o espiar los que vienen.',
+      'TOPE DE NIVEL POR MEDALLAS: nadie puede superar el nivel del próximo jefe + 5 (en Difícil +1 sobre su nivel real, en Nuzlocke +0, como siempre). Se acabó chetar a un solo Pokémon con caramelos y pasearse por la región: ahora el reto es de verdad.',
+      'A cambio, TODO tu equipo sube mucho más rápido: +2 niveles por combate salvaje, +3 por entrenadores y gimnasios y +4 en la Liga. Ya no hace falta ir dopando a uno: el equipo entero viaja pegado a la curva.',
+      'La curva llega al FINAL DE VERDAD: gimnasios de 8 a 67, Alto Mando 74–94 y el Campeón espera al NIVEL 100. Llegar a 100 ya no es un sueño: es el clímax de cada run completada.',
+      'Los Caramelos Raros y Supercaramelos siguen ahí, pero ahora sirven para lo que debían: poner al día a tus capturas nuevas hasta el tope de la zona.',
+    ],
+  },
+  {
     version: 'v6.44',
     date: '2026-07-14',
     title: 'Cyber PokéBall: la tragaperras de dos rodillos (rediseño a fondo)',

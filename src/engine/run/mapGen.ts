@@ -153,15 +153,20 @@ export function generateMap(
       plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
     }
   }
-  // Curva de niveles de jefes: rampa más firme en el medio-juego (no demasiado
-  // fácil) y ENTRADA SUAVE a la Liga (sin salto enorme): gym8=72 -> AM1=78.
-  const GYM_LEVELS = [8, 14, 21, 28, 36, 45, 53, 60]
-  const ELITE_LEVELS = [64, 70, 76, 82]
-  const CHAMPION_LEVEL = 88
+  // Curva de niveles de jefes: estirada hasta el CAMPEÓN A NIVEL 100 (v6.45).
+  // Con el tope de nivel por medallas (levelCap = próximo jefe + margen),
+  // llegar a 100 es el clímax natural de la run y el tramo final nunca se
+  // trivializa chetando a un solo Pokémon con caramelos.
+  // OJO: gym1 se queda en 8 para que la ENTRADA sea suave (con gym1=10 la
+  // interpolación ponía el primer combate a nv.6 contra tu inicial nv.5 y
+  // muchas runs morían en la primera ruta).
+  const GYM_LEVELS = [8, 15, 23, 32, 41, 50, 59, 67]
+  const ELITE_LEVELS = [74, 81, 88, 94]
+  const CHAMPION_LEVEL = 100
   // Rivales situados ENTRE gimnasios -> nivel acorde a su posición en el mapa.
-  // (El 2º rival va entre gym4=36 y gym5=45: debe quedar POR DEBAJO de 45.)
-  const RIVAL_LEVELS = [13, 41, 62]
-  const LEGENDARY_LEVEL = 57 // guardián entre gym6 y gym7
+  // (El 2º rival va entre gym4=41 y gym5=50: debe quedar POR DEBAJO de 50.)
+  const RIVAL_LEVELS = [13, 45, 70]
+  const LEGENDARY_LEVEL = 62 // guardián entre gym6 y gym7
 
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
   const pushRival = () => {

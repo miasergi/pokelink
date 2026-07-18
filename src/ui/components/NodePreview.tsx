@@ -20,17 +20,17 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
 const REWARD: Partial<Record<string, string>> = {
-  battle: '+1 nivel a todo tu equipo',
-  trainer: '+2 niveles a tu equipo + dinero',
-  rival: '+2 niveles + dinero',
+  battle: '+2 niveles a todo tu equipo',
+  trainer: '+3 niveles a tu equipo + dinero',
+  rival: '+3 niveles + dinero',
   catch: 'un Pokémon nuevo para tu equipo',
   item: '1 objeto a elegir',
   event: 'sorpresa (objeto, dinero o Pokémon)',
   trade: 'un Pokémon nuevo (+3 niveles)',
-  gym: '+2 niveles + medalla + objeto raro + dinero',
-  elite: '+3 niveles + objeto raro',
-  champion: '+3 niveles · ¡completar la región!',
-  legendary: '+2 niveles · ¡capturas al legendario!',
+  gym: '+3 niveles + medalla + objeto raro + dinero',
+  elite: '+4 niveles + objeto raro',
+  champion: '+4 niveles · ¡completar la región!',
+  legendary: '+3 niveles · ¡capturas al legendario!',
 }
 
 export default function NodePreview({

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome,
-  resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, isNodeBattle,
+  resolveHeal, catchPokemon, pickItem, buyItem, leaveShop, resolveEvent, isNodeBattle, levelCap,
 } from './runEngine'
 import { applyHealItem } from './party'
 import { gainLevel, refreshMoves, effectiveTier } from '@/engine/team/leveling'
@@ -35,9 +35,17 @@ function manageItems(run: RunState, beforeBoss: boolean) {
   while ((inv['upgrade'] || 0) > 0 && effectiveTier(lead(run)) < 2) {
     use('upgrade'); lead(run).moveTier = effectiveTier(lead(run)) + 1; refreshMoves(lead(run))
   }
-  // Caramelos al líder.
-  while (use('rare-candy')) for (let i = 0; i < 3; i++) gainLevel(lead(run))
-  while (use('super-candy')) for (let i = 0; i < 5; i++) gainLevel(lead(run))
+  // Caramelos repartidos: al Pokémon vivo de mayor nivel que aún esté bajo el
+  // tope por medallas (chetarlos todos al líder ya no funciona: levelCap).
+  const cap = levelCap(run)
+  const candyTarget = () => run.party.filter((p) => p.currentHp > 0 && p.level < cap).sort((a, b) => b.level - a.level)[0]
+  for (const [id, per] of [['rare-candy', 3], ['super-candy', 5]] as const) {
+    for (;;) {
+      const t = candyTarget()
+      if (!t || !use(id)) break
+      for (let i = 0; i < per; i++) if (t.level < cap) gainLevel(t)
+    }
+  }
   if (beforeBoss) {
     for (const [id, qty] of Object.entries(inv)) {
       const cat = getItem(id).category

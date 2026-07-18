@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade } from './runEngine'
+import { createRun, availableNextNodes, enterNode, startNodeBattle, applyBattleOutcome, resolveEvent, resolveTrade, levelCap } from './runEngine'
+import { mapSegments, activeSegment } from './segments'
 import { EVENTS, tierPool } from './nodes'
 import { createInstance } from '@/engine/team/instance'
 import { refreshMoves, applyCaptureTier } from '@/engine/team/leveling'
@@ -192,7 +193,7 @@ describe('tierPool: curva de potencia por nivel', () => {
 })
 
 describe('Team Rocket: Pokémon secuestrado', () => {
-  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y da +2 niveles', () => {
+  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y da +3 niveles', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 5 })
     const startLvl = run.party[0].level
     const partyN = run.party.length
@@ -209,8 +210,8 @@ describe('Team Rocket: Pokémon secuestrado', () => {
     // Se OFRECE (lo decide el jugador en pantalla, como un legendario): no se añade aún.
     expect(summary.rescueOffer?.speciesId).toBe(25)
     expect(run.party.length).toBe(partyN)
-    // Casilla de Team Rocket: +2 niveles, como promete la vista previa.
-    expect(run.party[0].level).toBe(startLvl + 2)
+    // Casilla de Team Rocket: +3 niveles (bonus de entrenador), como promete la vista previa.
+    expect(run.party[0].level).toBe(startLvl + 3)
   })
 })
 
@@ -335,5 +336,33 @@ describe('creación de run y mapa', () => {
       const summary = applyBattleOutcome(run, node, result)
       expect(typeof summary.won).toBe('boolean')
     }
+  })
+})
+
+describe('tramos del mapa (una pantalla por medalla)', () => {
+  it('una región tiene 8 tramos de gimnasio + el tramo final de la Liga', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 77 })
+    const segs = mapSegments(run.map)
+    expect(segs.length).toBe(9)
+    for (let i = 0; i < 8; i++) expect(segs[i].boss?.type).toBe('gym')
+    expect(segs[8].boss?.type).toBe('champion')
+    // los tramos cubren TODO el mapa sin huecos ni solapes
+    expect(segs[0].start).toBe(0)
+    for (let i = 1; i < segs.length; i++) expect(segs[i].start).toBe(segs[i - 1].end + 1)
+    expect(segs[8].end).toBe(run.map.layers.length - 1)
+    // al empezar, el tramo activo es el primero
+    expect(activeSegment(segs, run).index).toBe(0)
+    // si el primer gimnasio cae y estás en su capa, el activo pasa al 2º tramo
+    segs[0].boss!.cleared = true
+    run.currentLayer = segs[0].end
+    expect(activeSegment(segs, run).index).toBe(1)
+  })
+
+  it('el tope de nivel sube al vencer jefes (Normal: próximo jefe + 5)', () => {
+    const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 78 })
+    expect(levelCap(run)).toBe(13) // gym1 = 8 -> tope 13
+    const gym1 = Object.values(run.map.nodes).find((n) => n.type === 'gym' && n.bossIndex === 0)!
+    gym1.cleared = true
+    expect(levelCap(run)).toBe(20) // gym2 = 15 -> tope 20
   })
 })

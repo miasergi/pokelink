@@ -195,17 +195,22 @@ export interface BattleOutcomeSummary {
 // Botín variado compartido por jefes, nodos arriesgados y eventos de objeto.
 const BOSS_DROPS = GIFT_ITEMS
 
-/** Tope de nivel del equipo. En Nuzlocke, el nivel del próximo jefe sin vencer
- *  (no puedes sobrenivelar hasta derrotarlo). En el resto, sin tope (100). */
+/** Tope de nivel del equipo: el nivel del próximo jefe sin vencer (gimnasio,
+ *  Alto Mando o Campeón) más un margen por dificultad. El tope sube al ganar
+ *  cada medalla. Sin esto, apilar caramelos en un solo Pokémon lo dejaba muy
+ *  por encima de la curva y trivializaba la run entera (feedback de testers).
+ *  Normal +5 · Difícil +1 sobre el nivel EFECTIVO (×1.4) · Nuzlocke +0 (clásico). */
 export function levelCap(run: RunState): number {
-  if (run.difficulty !== 'nuzlocke') return 100
-  let cap = 100
+  let next = 100
   for (const n of Object.values(run.map.nodes)) {
     if ((n.type === 'gym' || n.type === 'elite' || n.type === 'champion') && !n.cleared) {
-      cap = Math.min(cap, n.enemyLevel)
+      next = Math.min(next, n.enemyLevel)
     }
   }
-  return cap
+  if (next >= 100) return 100
+  if (run.difficulty === 'nuzlocke') return next
+  if (run.difficulty === 'hard') return Math.min(100, Math.round(next * 1.4) + 1)
+  return Math.min(100, next + 5)
 }
 
 export function applyBattleOutcome(
@@ -302,15 +307,16 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: salvaje +1; entrenadores, gimnasios, rival
-  // y guardián +2; Alto Mando y Campeón +3. Solo a los que participaron.
-  // Nuzlocke: tope de nivel = nivel del próximo jefe (no puedes pasarte).
+  // Recompensa de nivel por casilla: salvaje +2; entrenadores, gimnasios, rival
+  // y guardián +3; Alto Mando y Campeón +4. Solo a los que participaron.
+  // Bonus GENEROSOS a propósito (v6.45): el equipo ENTERO debe seguir la curva
+  // de forma natural (antes +1/+2 se quedaban atrás y la única estrategia viable
+  // era chetar a UN Pokémon con caramelos). El tope por medallas (levelCap)
+  // impide pasarse: la generosidad no rompe la curva porque el tope la frena.
   const cap = levelCap(run)
-  // Team Rocket da +2 como cualquier entrenador (antes +1: la casilla no salía a
-  // cuenta y la vista previa ya prometía "+2 niveles").
-  const levelGain = node.type === 'battle' ? 1
-    : (node.type === 'elite' || node.type === 'champion') ? 3
-    : 2
+  const levelGain = node.type === 'battle' ? 2
+    : (node.type === 'elite' || node.type === 'champion') ? 4
+    : 3
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {
@@ -469,9 +475,12 @@ function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
       run.stats.pokemonCaught++
       return `¡Se unió ${getSpecies(mon.speciesId).displayName} a tu equipo!`
     }
-    case 'levelUp':
-      for (let i = 0; i < eff.amount; i++) for (const p of run.party) if (p.currentHp > 0) gainLevel(p)
+    case 'levelUp': {
+      // Respeta el tope de nivel por medallas (igual que el bonus de casilla).
+      const cap = levelCap(run)
+      for (let i = 0; i < eff.amount; i++) for (const p of run.party) if (p.currentHp > 0 && p.level < cap) gainLevel(p)
       return `¡Tu equipo subió ${eff.amount} nivel(es)!`
+    }
     case 'loseMoneyFrac': {
       const lost = Math.floor(run.money * eff.frac)
       if (lost <= 0) return 'No pasó nada.'
