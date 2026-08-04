@@ -4,7 +4,7 @@ import { CHAPTERS } from '@/data/story/chapters'
 import { useSettings } from '@/state/settingsStore'
 import { availableNextNodes } from '@/engine/run/runEngine'
 import { mapSegments, activeSegment } from '@/engine/run/segments'
-import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
+import { nodeDifficulty, isCombatNode, effectiveEnemyLevel } from '@/engine/run/difficulty'
 import NodeIcon, { NODE_META } from '@/ui/components/NodeIcon'
 import { IconCrown, IconTrophy, IconBadge } from '@/ui/components/icons'
 import { badgeSprite } from '@/ui/components/nodeImage'
@@ -200,7 +200,7 @@ export default function MapScreen() {
                   />
                   <span className="truncate">
                     {bossNode.cleared ? 'Medalla conseguida · ' : 'Hacia el gimnasio de '}
-                    <b>{bossTrainer.name}</b> · Nv.{bossNode.enemyLevel}
+                    <b>{bossTrainer.name}</b> · Nv.{effectiveEnemyLevel(bossNode, run.difficulty)}
                   </span>
                   {bossType && (
                     <span className="inline-flex items-center gap-0.5 font-bold" style={{ color: TYPE_HEX[bossType] }}>
@@ -212,8 +212,8 @@ export default function MapScreen() {
               ) : (
                 <span className="truncate">
                   {chapter
-                    ? <>Hacia el jefe del capítulo{bossNode ? <> · Nv.{bossNode.enemyLevel}</> : null}</>
-                    : <>Alto Mando y Campeón · hasta Nv.{bossNode?.enemyLevel ?? 100}</>}
+                    ? <>Hacia el jefe del capítulo{bossNode ? <> · Nv.{effectiveEnemyLevel(bossNode, run.difficulty)}</> : null}</>
+                    : <>Alto Mando y Campeón · hasta Nv.{bossNode ? effectiveEnemyLevel(bossNode, run.difficulty) : 100}</>}
                 </span>
               )}
             </div>
@@ -305,7 +305,7 @@ export default function MapScreen() {
                       {(node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'rival' || node.type === 'legendary') && (
                         <div className="flex flex-col items-center mt-0.5 leading-tight">
                           <span className="text-[8px] font-bold whitespace-nowrap" style={{ color: meta.color }}>
-                            Nv.{node.enemyLevel}
+                            Nv.{effectiveEnemyLevel(node, run.difficulty)}
                           </span>
                           {node.content.kind === 'trainer' && node.content.trainer.specialtyType && (
                             <span

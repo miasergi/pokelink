@@ -13,8 +13,10 @@ import type { MapNode, NodeType, RandomFlags, RunMap } from './types'
 
 // Clases de entrenador genéricas con retrato real (Pokémon Showdown).
 const SHOWDOWN_TRAINER = (slug: string) => `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`
-// Niveles extra de un nodo ARRIESGADO (suma fija, no multiplicador).
-const RISKY_LEVEL_BONUS = 4
+// Niveles extra de un nodo ARRIESGADO. Escala con el nivel y con techo: +4 fijo
+// era un +80% al principio de la run (un salvaje a nv.10 contra tu equipo a
+// nv.6 en la capa 4) y apenas un +6% cerca de la Liga.
+const riskyBonus = (level: number) => Math.max(1, Math.min(4, Math.round(level * 0.12)))
 // Especies base que tienen megaevolución (para garantizar mega en el Alto Mando).
 const MEGA_BASES: number[] = [...new Set(ALL_MEGAS.map((m) => m.baseId).filter((b): b is number => b != null))]
 // Cada clase de entrenador tiene una temática de tipo y SOLO lleva Pokémon de
@@ -233,10 +235,16 @@ export function generateMap(
         const type = c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length)
         const id = newId()
         // Nodo ARRIESGADO: combates con enemigo más fuerte y mejor botín.
-        // Suma unos NIVELES FIJOS (antes multiplicaba ×1.35, que se disparaba a
-        // alto nivel: un nv40 normal salía a 54).
+        // El extra escala con el nivel (ver `riskyBonus`): antes multiplicaba
+        // ×1.35 y se disparaba arriba; luego sumaba +4 fijos y se disparaba abajo.
         const risky = (type === 'battle' || type === 'trainer') && layerIdx > 1 && w > 1 && rng.chance(0.2)
-        const nodeLevel = risky ? level + RISKY_LEVEL_BONUS : level
+        // Nada de la ruta puede pisar al jefe al que lleva: el extra arriesgado
+        // se recorta para quedar SIEMPRE por debajo del próximo jefe. Sin esto,
+        // en Nuzlocke (donde el tope del equipo es el propio jefe) una casilla
+        // arriesgada podía exigir más nivel del que el jugador puede alcanzar.
+        const nodeLevel = risky
+          ? Math.max(level, Math.min(level + riskyBonus(level), nextBossLevel[layerIdx] - 1))
+          : level
         nodes[id] = {
           id, layer: layerIdx, col: c, type, next: [], enemyLevel: nodeLevel, risky,
           content: type === 'heal' ? { kind: 'heal' } : buildRouteContent(type, pool, nodeLevel, layerIdx / plan.length, rng, usedEvents, difficulty, nextBossLevel[layerIdx], acquirePool, gen),

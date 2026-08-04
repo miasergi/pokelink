@@ -12,6 +12,7 @@ import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
+import { effectiveEnemyLevel, enemyLevelBonus } from './difficulty'
 import { getGeneration } from '@/data/generations'
 import type { Difficulty, MapNode, RandomFlags, RunState } from './types'
 import type { PokemonType } from '@/types'
@@ -148,12 +149,14 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
     throw new Error('Nodo sin combate')
   }
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'legendary'
-  const hard = run.difficulty === 'hard'
 
-  // Difícil y Nuzlocke: Pokémon rivales (salvajes, entrenadores y jefes) a
-  // ×1.4 de nivel (con la nueva curva ya alta, ×1.5 saturaba todo a 100).
-  const tough = hard || run.difficulty === 'nuzlocke'
-  if (tough) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, Math.round(m.level * 1.4)))
+  // Difícil y Nuzlocke: los enemigos (salvajes, entrenadores y jefes) llevan
+  // unos niveles extra que suben con la curva pero con techo (v6.46). Antes era
+  // ×1.4, que se desalineaba de la curva del jugador (ver `enemyLevelBonus`).
+  // Se calcula sobre el nivel del NODO, no el de cada Pokémon: así todo el
+  // equipo enemigo sube lo mismo y no se ensancha su abanico de niveles.
+  const bonus = enemyLevelBonus(run.difficulty, node.enemyLevel)
+  if (bonus) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, m.level + bonus))
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
   // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles
@@ -195,22 +198,34 @@ export interface BattleOutcomeSummary {
 // Botín variado compartido por jefes, nodos arriesgados y eventos de objeto.
 const BOSS_DROPS = GIFT_ITEMS
 
-/** Tope de nivel del equipo: el nivel del próximo jefe sin vencer (gimnasio,
- *  Alto Mando o Campeón) más un margen por dificultad. El tope sube al ganar
- *  cada medalla. Sin esto, apilar caramelos en un solo Pokémon lo dejaba muy
- *  por encima de la curva y trivializaba la run entera (feedback de testers).
- *  Normal +5 · Difícil +1 sobre el nivel EFECTIVO (×1.4) · Nuzlocke +0 (clásico). */
+/** Margen del tope de nivel RESPECTO AL NIVEL EFECTIVO del próximo jefe. En
+ *  Difícil/Nuzlocke es más estrecho: llegas al jefe con menos colchón, y ese
+ *  hueco (3 y 5 niveles frente a Normal) ES parte de la dificultad.
+ *
+ *  NO debe ser negativo: probado con −2/−4, el tope dejaba al equipo por debajo
+ *  incluso de los salvajes de la ruta (cap 7 con salvajes a nv.8-11 antes del
+ *  primer gimnasio) y la run moría en la primera ruta sin margen de maniobra.
+ *  El tope está para que no cheten a uno con caramelos, no para asfixiar. */
+const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 2, nuzlocke: 0 }
+
+/** Tope de nivel del equipo: el nivel EFECTIVO del próximo jefe sin vencer
+ *  (gimnasio, Alto Mando o Campeón) más el margen de la dificultad. El tope
+ *  sube al ganar cada medalla. Sin esto, apilar caramelos en un solo Pokémon lo
+ *  dejaba muy por encima de la curva y trivializaba la run (feedback de testers).
+ *
+ *  Se calcula sobre el nivel EFECTIVO (el que ve el jugador en el mapa y el que
+ *  se pelea de verdad) para que "tope" y "nivel del líder" sean comparables:
+ *  antes el tope salía del nivel base y el líder se multiplicaba por 1.4, así
+ *  que los dos números no cuadraban en pantalla. */
 export function levelCap(run: RunState): number {
   let next = 100
   for (const n of Object.values(run.map.nodes)) {
     if ((n.type === 'gym' || n.type === 'elite' || n.type === 'champion') && !n.cleared) {
-      next = Math.min(next, n.enemyLevel)
+      next = Math.min(next, effectiveEnemyLevel(n, run.difficulty))
     }
   }
   if (next >= 100) return 100
-  if (run.difficulty === 'nuzlocke') return next
-  if (run.difficulty === 'hard') return Math.min(100, Math.round(next * 1.4) + 1)
-  return Math.min(100, next + 5)
+  return Math.max(5, Math.min(100, next + (CAP_MARGIN[run.difficulty] ?? 5)))
 }
 
 export function applyBattleOutcome(

@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.46',
+    date: '2026-08-04',
+    title: 'Difícil vuelve a ser difícil (y no imposible)',
+    changes: [
+      'ARREGLADO el desnivel de la dificultad Difícil: los enemigos iban multiplicados ×1.4, así que la separación crecía sin parar (+3 niveles en el primer gimnasio… pero +13 en el cuarto, +20 en el sexto y +27 en el octavo, con todo el Alto Mando clavado a nivel 100). A partir del 3er o 4º gimnasio la partida era matemáticamente imposible. Ahora el extra de nivel tiene techo: la curva del rival va PARALELA a la tuya de principio a fin.',
+      'El TOPE DE NIVEL y el nivel del líder ya cuadran: antes el tope se calculaba con el nivel base del jefe y el jefe se multiplicaba aparte, así que el mapa te decía "Nv.32", el tope decía "46" y peleabas contra un 45. Los niveles que ves en el mapa y en la ficha de cada casilla son ya los REALES que vas a pelear.',
+      'Las casillas ARRIESGADAS ya no son una trampa mortal al empezar: sumaban +4 niveles fijos, que sobre un rival de nivel 5 es un +80% y cerca de la Liga un +6%. Ahora el extra escala con la zona y nunca supera al gimnasio al que lleva esa ruta.',
+      'Nuzlocke: ninguna casilla puede pedirte ya más nivel del que el propio tope te deja alcanzar.',
+    ],
+  },
+  {
     version: 'v6.45',
     date: '2026-07-18',
     title: 'La gran renivelada: rumbo al nivel 100 (y adiós al cheto de caramelos)',

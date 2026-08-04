@@ -11,9 +11,9 @@ import type { Difficulty, RandomFlags } from '@/engine/run/types'
 import type { PokemonType, SpeciesData } from '@/types'
 
 const DIFFS: { id: Difficulty; label: string; desc: string }[] = [
-  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Los Pokémon suben de nivel por casilla (+1 salvaje, +2 entrenador/gimnasio, +3 Liga). Perder un combate = fin de la partida.' },
-  { id: 'hard', label: 'Difícil', desc: 'Pokémon rivales (salvajes, entrenadores y jefes) a ×1.4 de nivel. En la tienda solo puedes comprar 1 objeto por visita.' },
-  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Lo más difícil: enemigos a ×1.4; si un Pokémon se debilita lo PIERDES para siempre; no puedes subir de nivel más allá del próximo jefe; no puedes comprar pociones; 1 compra por tienda; al capturar solo se ofrece 1 Pokémon.' },
+  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Los Pokémon suben de nivel por casilla (+2 salvaje, +3 entrenador/gimnasio, +4 Liga) y tu tope es el nivel del próximo jefe +5. Perder un combate = fin de la partida.' },
+  { id: 'hard', label: 'Difícil', desc: 'Todos los enemigos (salvajes, entrenadores y jefes) llevan +3 niveles, aparecen especies más fuertes antes y tu tope se queda 2 niveles POR DEBAJO del próximo jefe. En la tienda solo puedes comprar 1 objeto por visita.' },
+  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Lo más difícil: enemigos con +5 niveles y tu tope 4 niveles por DEBAJO del próximo jefe; si un Pokémon se debilita lo PIERDES para siempre; no puedes comprar pociones; 1 compra por tienda; al capturar solo se ofrece 1 Pokémon.' },
 ]
 
 export default function StarterSelectScreen() {

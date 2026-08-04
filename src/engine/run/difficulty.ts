@@ -21,11 +21,41 @@ export function isCombatNode(node: MapNode): boolean {
   return COMBAT_TYPES.has(node.type)
 }
 
-/** Nivel enemigo EFECTIVO de una casilla (aplica el ×1.4 de Difícil/Nuzlocke,
- *  igual que el motor de combate). */
+/**
+ * Niveles EXTRA que llevan los enemigos según la dificultad: sube con el nivel
+ * pero con TECHO (`max`), nunca un multiplicador puro (v6.46).
+ *
+ * Historia del parámetro:
+ *  - ×1.4 (hasta v6.45) era un multiplicador y se desalineaba de la curva del
+ *    jugador, que sube por bonus fijos de casilla (+2/+3/+4) y por tanto sigue
+ *    la curva base. El enemigo, multiplicado, se separaba más y más: gym1 8→11
+ *    (+3), pero gym4 32→45 (+13) y gym8 67→94 (+27), con TODO el Alto Mando
+ *    saturado a 100. Diagnóstico: 0,2 gimnasios de media por run en Difícil
+ *    frente a 2,9 en Normal. No era más difícil, era imposible.
+ *  - Una suma fija (+3) arregla la deriva pero rompe la apertura: tu inicial es
+ *    nv.5 y el primer salvaje pasaba a nv.8, así que las runs morían en la
+ *    primera ruta antes de tener equipo (seguía dando 0,2 gimnasios).
+ *  - La rampa con techo cubre las dos cosas: casi nada al empezar (+1), el
+ *    hueco completo a media run y CONSTANTE a partir de ahí.
+ */
+const LEVEL_BONUS: Record<string, { rate: number; max: number }> = {
+  normal: { rate: 0, max: 0 },
+  hard: { rate: 0.12, max: 4 },
+  nuzlocke: { rate: 0.16, max: 6 },
+}
+
+/** Niveles extra del enemigo para un nivel base dado (ver `LEVEL_BONUS`). */
+export function enemyLevelBonus(difficulty: string, baseLevel: number): number {
+  const t = LEVEL_BONUS[difficulty]
+  if (!t || !t.rate) return 0
+  return Math.min(t.max, Math.round(baseLevel * t.rate))
+}
+
+/** Nivel enemigo EFECTIVO de una casilla (con el extra de Difícil/Nuzlocke,
+ *  igual que el motor de combate). Es la ÚNICA fuente de verdad: la UI debe
+ *  pintar esto, nunca `node.enemyLevel` en crudo. */
 export function effectiveEnemyLevel(node: MapNode, difficulty: string): number {
-  const tough = difficulty === 'hard' || difficulty === 'nuzlocke'
-  return tough ? Math.min(100, Math.round(node.enemyLevel * 1.4)) : node.enemyLevel
+  return Math.min(100, node.enemyLevel + enemyLevelBonus(difficulty, node.enemyLevel))
 }
 
 /** Dificultad de una casilla comparada con el nivel medio de tu equipo. Sirve

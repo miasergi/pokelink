@@ -4,7 +4,7 @@ import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
-import { nodeDifficulty, isCombatNode } from '@/engine/run/difficulty'
+import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, enemyLevelBonus } from '@/engine/run/difficulty'
 import { monTypes } from '@/engine/team/leveling'
 
 const CLASS_ES: Record<string, string> = {
@@ -56,8 +56,14 @@ export default function NodePreview({
 
   // Tipos presentes en el equipo del entrenador (para planificar)
   const teamTypes = [...new Set(team.flatMap((m) => monTypes(m)))]
-  const minLvl = team.length ? Math.min(...team.map((m) => m.level)) : node.enemyLevel
-  const maxLvl = team.length ? Math.max(...team.map((m) => m.level)) : node.enemyLevel
+  // Niveles REALES que vas a pelear: en Difícil/Nuzlocke los enemigos llevan un
+  // extra fijo. Al entrar en combate el motor ya sube las instancias, así que
+  // solo hay que sumarlo mientras la casilla siga sin superarse (si no, se
+  // contaría dos veces al revisar una casilla ya vencida).
+  const lvlBonus = node.cleared ? 0 : enemyLevelBonus(difficulty, node.enemyLevel)
+  const shown = (lv: number) => Math.min(100, lv + lvlBonus)
+  const minLvl = team.length ? shown(Math.min(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
+  const maxLvl = team.length ? shown(Math.max(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
   const simple = SIMPLE[node.type]
   const money = trainer
     ? trainer.reward.money
@@ -92,7 +98,7 @@ export default function NodePreview({
                 {team.length
                   ? `${team.length} Pokémon · Nv. ${minLvl}-${maxLvl}`
                   : node.type === 'battle'
-                    ? `Nv. ~${node.enemyLevel}`
+                    ? `Nv. ~${effectiveEnemyLevel(node, difficulty)}`
                     : ''}
               </span>
             </div>
