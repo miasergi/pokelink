@@ -6,7 +6,8 @@ import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import Icon from '@/ui/components/Icon'
 import type { PokemonType } from '@/types'
-import type { RandomFlags } from '@/engine/run/types'
+import type { Difficulty, RandomFlags } from '@/engine/run/types'
+import RunOptions from '@/ui/components/RunOptions'
 
 const RANDOM_CATS: { key: keyof RandomFlags; label: string; desc: string }[] = [
   { key: 'starters', label: 'Iniciales y capturables', desc: 'Tu inicial y los Pokémon que capturas' },
@@ -29,6 +30,8 @@ export default function ModeSelectScreen() {
   // Gen Sonoro: se desbloquea al COMPLETAR el Modo Historia (capítulo final).
   const sonoroUnlocked = storyCompleted.includes(6)
   const [sonoroOn, setSonoroOn] = useState(false)
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
+  const [freeLevel, setFreeLevel] = useState(false)
 
   const anyRandom = rand.starters || rand.wild || rand.trainers || rand.elite
   const monotype = monoOn ? mono ?? undefined : undefined
@@ -174,6 +177,13 @@ export default function ModeSelectScreen() {
             </button>
           </div>
         )}
+
+        {/* Dificultad y tope de nivel: todo lo que define la run se decide aquí,
+            antes de elegir compañero. */}
+        <RunOptions
+          difficulty={difficulty} onDifficulty={setDifficulty}
+          freeLevel={freeLevel} onFreeLevel={setFreeLevel}
+        />
       </div>
 
       <div className="p-4 safe-bottom">
@@ -181,7 +191,7 @@ export default function ModeSelectScreen() {
           full
           variant="primary"
           disabled={blocked}
-          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype, sonoro: sonoroOn || undefined })}
+          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype, sonoro: sonoroOn || undefined, difficulty, freeLevel })}
         >
           {blocked ? 'Elige un tipo para el Monolocke' : 'Continuar ›'}
         </Button>

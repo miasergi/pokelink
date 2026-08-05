@@ -62,8 +62,18 @@ describe('curva de nivel por dificultad', () => {
     // Enemigo más fuerte y menos colchón de nivel, en ese orden.
     expect(effectiveEnemyLevel(gym4(hard), 'hard')).toBeGreaterThan(effectiveEnemyLevel(gym4(normal), 'normal'))
     expect(effectiveEnemyLevel(gym4(nuz), 'nuzlocke')).toBeGreaterThan(effectiveEnemyLevel(gym4(hard), 'hard'))
-    expect(capBefore(hard, gym4(hard)) - effectiveEnemyLevel(gym4(hard), 'hard'))
-      .toBeLessThan(capBefore(normal, gym4(normal)) - effectiveEnemyLevel(gym4(normal), 'normal'))
+
+    // Colchón = cuánto puedes superar al AS del jefe. Tiene que MENGUAR al subir
+    // de dificultad. Estuvo aplanado (+5/+2/+0 con extras que se cancelaban:
+    // las tres daban el mismo tope absoluto y en Difícil ibas +2 sobre el as).
+    const slack = (r: RunState, d: Difficulty) => capBefore(r, gym4(r)) - effectiveEnemyLevel(gym4(r), d)
+    const sNormal = slack(normal, 'normal')
+    const sHard = slack(hard, 'hard')
+    const sNuz = slack(nuz, 'nuzlocke')
+    expect(sNormal).toBeGreaterThan(sHard)
+    expect(sHard).toBeGreaterThan(sNuz)
+    // En Difícil, como mucho IGUALAS al as: nunca por encima.
+    expect(sHard).toBeLessThanOrEqual(0)
   })
 
   it('ninguna casilla de ruta pide más nivel del que el tope permite tener', () => {

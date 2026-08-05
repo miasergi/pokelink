@@ -210,15 +210,22 @@ export interface BattleOutcomeSummary {
 // Botín variado compartido por jefes, nodos arriesgados y eventos de objeto.
 const BOSS_DROPS = GIFT_ITEMS
 
-/** Margen del tope de nivel RESPECTO AL NIVEL EFECTIVO del próximo jefe. En
- *  Difícil/Nuzlocke es más estrecho: llegas al jefe con menos colchón, y ese
- *  hueco (3 y 5 niveles frente a Normal) ES parte de la dificultad.
+/** Margen del tope de nivel RESPECTO AL NIVEL EFECTIVO del próximo jefe.
  *
- *  NO debe ser negativo: probado con −2/−4, el tope dejaba al equipo por debajo
- *  incluso de los salvajes de la ruta (cap 7 con salvajes a nv.8-11 antes del
- *  primer gimnasio) y la run moría en la primera ruta sin margen de maniobra.
- *  El tope está para que no cheten a uno con caramelos, no para asfixiar. */
-const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 2, nuzlocke: 0 }
+ *  Normal +5 (colchón cómodo) · Difícil 0 (como mucho IGUALAS al as del jefe,
+ *  nunca lo superas) · Nuzlocke −1 (llegas por debajo).
+ *
+ *  Difícil estuvo en +2 y se notaba: el equipo iba pegado al tope y por tanto
+ *  SIEMPRE dos niveles por encima del as, con sensación de ir sobrado. Además
+ *  las tres dificultades acababan dando el mismo tope en números absolutos
+ *  (el extra del enemigo y el margen se cancelaban), así que el dial no
+ *  diferenciaba nada.
+ *
+ *  −1 es el SUELO matemático, no un gusto: las casillas de ruta se interpolan
+ *  hasta el nivel del próximo jefe menos 1, así que con un margen más bajo
+ *  habría salvajes por encima del máximo que el jugador puede alcanzar y la run
+ *  sería imposible por construcción (lo cubre `balance.test.ts`). */
+const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 0, nuzlocke: -1 }
 
 /** Tope de nivel del equipo: el nivel EFECTIVO del próximo jefe sin vencer
  *  (gimnasio, Alto Mando o Campeón) más el margen de la dificultad. El tope

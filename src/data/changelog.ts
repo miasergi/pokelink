@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.49',
+    date: '2026-08-05',
+    title: 'El tope de nivel ahora TOPA de verdad',
+    changes: [
+      'ARREGLADO: en Difícil con tope activado seguías llegando a cada gimnasio 2 niveles POR ENCIMA del as del líder, así que se hacía sensación de ir sobrado. Peor aún: las tres dificultades acababan dando el mismo tope real, o sea que el ajuste no diferenciaba nada. Ahora en Difícil como mucho IGUALAS el nivel del as (nunca lo superas) y en Nuzlocke llegas 1 nivel por debajo. Normal sigue con sus 5 de colchón.',
+      'La dificultad y el tope de nivel se eligen ahora en la pantalla de CONFIGURACIÓN de la partida, junto a las regiones, el Modo Random y el Monolocke: todo lo que define la run se decide de una vez, antes de elegir compañero. La pantalla del inicial te recuerda lo elegido y puedes tocarlo para volver.',
+      'Las descripciones de cada dificultad dicen ahora exactamente cuánto puedes subir respecto al jefe, en vez de hablar en general.',
+    ],
+  },
+  {
     version: 'v6.48',
     date: '2026-08-05',
     title: 'Elige tu Pokémon, elige tu tope, y sprites al instante',

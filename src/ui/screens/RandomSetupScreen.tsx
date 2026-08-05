@@ -6,7 +6,8 @@ import { TYPE_ES } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import Icon from '@/ui/components/Icon'
 import type { PokemonType } from '@/types'
-import type { RandomFlags } from '@/engine/run/types'
+import type { Difficulty, RandomFlags } from '@/engine/run/types'
+import RunOptions from '@/ui/components/RunOptions'
 
 interface RolledConfig {
   gen: number
@@ -50,6 +51,8 @@ function rollConfig(): RolledConfig {
 export default function RandomSetupScreen() {
   const { navigate, back } = useGame()
   const [cfg, setCfg] = useState<RolledConfig>(rollConfig)
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
+  const [freeLevel, setFreeLevel] = useState(false)
   const region = getGeneration(cfg.gen).region
   const poolNames = cfg.pools.map((g) => getGeneration(g).region)
   const onCats = cfg.randomFlags ? RANDOM_LABELS.filter((c) => cfg.randomFlags![c.key]) : []
@@ -78,10 +81,17 @@ export default function RandomSetupScreen() {
               : <span className="text-slate-400">No</span>}
           </Row>
         </Card>
+
+        {/* El dado decide la región y el randomizado; la dificultad y el tope
+            los eliges tú, igual que en la configuración manual. */}
+        <RunOptions
+          difficulty={difficulty} onDifficulty={setDifficulty}
+          freeLevel={freeLevel} onFreeLevel={setFreeLevel}
+        />
       </div>
 
       <div className="p-4 safe-bottom flex flex-col gap-2">
-        <Button full variant="primary" onClick={() => navigate('starterSelect', { gen: cfg.gen, pools: cfg.pools, random: cfg.random, randomFlags: cfg.randomFlags, monotype: cfg.monotype })}>
+        <Button full variant="primary" onClick={() => navigate('starterSelect', { gen: cfg.gen, pools: cfg.pools, random: cfg.random, randomFlags: cfg.randomFlags, monotype: cfg.monotype, difficulty, freeLevel })}>
           Empezar ›
         </Button>
         <Button full variant="secondary" onClick={() => setCfg(rollConfig())}><span className="inline-flex items-center justify-center gap-2"><Icon name="dadoballs" className="w-8 h-5" /> Volver a tirar</span></Button>

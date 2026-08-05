@@ -8,14 +8,9 @@ import TypeBadge from '@/ui/components/TypeBadge'
 import { typeGradient, TYPE_ES } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import SpeciesSearchModal from '@/ui/components/SpeciesSearchModal'
+import { DIFFS } from '@/ui/components/RunOptions'
 import type { Difficulty, RandomFlags } from '@/engine/run/types'
 import type { PokemonType, SpeciesData } from '@/types'
-
-const DIFFS: { id: Difficulty; label: string; desc: string }[] = [
-  { id: 'normal', label: 'Normal', desc: 'Equilibrado. Los Pokémon suben de nivel por casilla (+1 salvaje, +2 entrenador, +5 jefes) y tu tope es el nivel del próximo jefe +5. Perder un combate = fin de la partida.' },
-  { id: 'hard', label: 'Difícil', desc: 'Los enemigos llevan hasta +3 niveles, aparecen especies más fuertes antes y tu tope se queda a solo 2 niveles del próximo jefe (en Normal son 5). Compras libremente en la tienda.' },
-  { id: 'nuzlocke', label: 'Nuzlocke', desc: 'Lo más difícil: enemigos con hasta +5 niveles y tu tope es EXACTAMENTE el nivel del próximo jefe; si un Pokémon se debilita lo PIERDES para siempre; no puedes comprar pociones; 1 compra por tienda; al capturar solo se ofrece 1 Pokémon.' },
-]
 
 export default function StarterSelectScreen() {
   const { back, screen, startRun } = useGame()
@@ -27,6 +22,10 @@ export default function StarterSelectScreen() {
   const daily = screen.params?.daily as string | undefined
   const dailySeed = screen.params?.seed as number | undefined
   const sonoro = screen.params?.sonoro as boolean | undefined
+  // Dificultad y tope se eligen en la pantalla ANTERIOR (RunOptions). El Reto
+  // diario los ignora: es el mismo mapa para todos y el ranking debe compararse.
+  const difficulty = (screen.params?.difficulty as Difficulty | undefined) ?? 'normal'
+  const freeLevel = (screen.params?.freeLevel as boolean | undefined) ?? false
   // Selecciona hasta `n` ids distintos de un pool (aleatorio).
   const pickDistinct = (pool: SpeciesData[], n: number): number[] => {
     const picks: number[] = []
@@ -60,9 +59,6 @@ export default function StarterSelectScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monotype, randomFlags?.starters, gen, pools.join(',')])
   const [selected, setSelected] = useState<number | null>(null)
-  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
-  // Nivel libre: el jugador decide si quiere el tope por medallas o subir sin freno.
-  const [freeLevel, setFreeLevel] = useState(false)
   const [searching, setSearching] = useState(false)
   // Inicial elegido a mano con el buscador (se muestra junto a los tres de serie).
   const [custom, setCustom] = useState<number | null>(null)
@@ -152,54 +148,24 @@ export default function StarterSelectScreen() {
           </div>
         </button>
 
-        {/* Dificultad (fija en Reto diario) */}
+        {/* Recordatorio de lo ya elegido en la pantalla anterior. */}
         {daily ? (
           <div className="mt-1 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 px-3 py-2 text-sm">
             🗓️ <b>Reto diario {daily}</b> — misma región y mapa para todo el mundo hoy. Dificultad Normal.
           </div>
         ) : (
-          <div className="mt-1">
-            <div className="text-xs font-bold text-slate-400 mb-1.5">Dificultad</div>
-            <div className="grid grid-cols-3 gap-2">
-              {DIFFS.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => setDifficulty(d.id)}
-                  className={`rounded-xl py-2 text-sm font-bold transition ${
-                    difficulty === d.id ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
+          <button
+            onClick={back}
+            className="mt-1 rounded-xl bg-slate-800/60 border border-slate-700 px-3 py-2 text-left active:scale-[0.99]"
+          >
+            <div className="text-[11px] text-slate-400">Configuración de la partida · toca para cambiar</div>
+            <div className="text-sm font-bold">
+              {DIFFS.find((d) => d.id === difficulty)?.label}
+              <span className="text-slate-500 mx-1.5">·</span>
+              {freeLevel ? 'Nivel libre' : 'Con tope de nivel'}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">{DIFFS.find((d) => d.id === difficulty)?.desc}</p>
-          </div>
+          </button>
         )}
-
-        {/* Tope de nivel: decisión del jugador, no imposición del juego. */}
-        <div className="mt-1">
-          <div className="text-xs font-bold text-slate-400 mb-1.5">Nivel de tu equipo</div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setFreeLevel(false)}
-              className={`rounded-xl py-2 text-sm font-bold transition ${!freeLevel ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'}`}
-            >
-              Con tope
-            </button>
-            <button
-              onClick={() => setFreeLevel(true)}
-              className={`rounded-xl py-2 text-sm font-bold transition ${freeLevel ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'}`}
-            >
-              Nivel libre
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1.5">
-            {freeLevel
-              ? 'Sin límite: tus Pokémon pueden subir hasta el nivel 100 cuando quieras. Puedes sobrelevelear y arrasar, pero el mérito de ganar también baja.'
-              : 'Tus Pokémon no pasan del nivel del próximo jefe (+5 en Normal, +2 en Difícil, justo el del jefe en Nuzlocke). Evita sobrelevelear y mantiene el reto parejo toda la run.'}
-          </p>
-        </div>
       </div>
 
       {searching && (
