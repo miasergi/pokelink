@@ -169,10 +169,53 @@ const EMPTY_META: MetaRecord = {
   pet: null,
 }
 
+// --- Copia de seguridad del progreso en localStorage -----------------------
+// IndexedDB y localStorage se purgan por caminos distintos: iOS/Safari borra la
+// IndexedDB de una PWA que no se abre en semanas, y ahí se iba TODO el progreso
+// (Pokédex, logros, récords). Este espejo es la red de seguridad: si la meta
+// vuelve vacía pero el respaldo tiene contenido, se restaura sola.
+const BACKUP_KEY = 'pokerogue:meta-backup'
+
+/** "Cuánto progreso" tiene una meta. Sirve para no pisar datos buenos con una
+ *  meta vacía, venga de donde venga. */
+function metaWeight(m: MetaRecord): number {
+  return m.totals.runs + m.totals.wins + m.pokedexCaught.length
+    + m.bestRuns.length + (m.achievements?.length ?? 0)
+}
+
+function readBackup(): MetaRecord | null {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(BACKUP_KEY)
+    if (!raw) return null
+    return { ...structuredClone(EMPTY_META), ...JSON.parse(raw) } as MetaRecord
+  } catch {
+    return null // respaldo corrupto: se ignora y se reescribirá al siguiente guardado
+  }
+}
+
+function writeBackup(meta: MetaRecord): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(meta))
+  } catch {
+    /* cuota llena o modo privado: el respaldo es opcional, nunca rompe el guardado */
+  }
+}
+
 export async function loadMeta(): Promise<MetaRecord> {
   const d = await db()
   const m = (await d.get('meta', 'meta')) as MetaRecord | undefined
-  if (!m) return structuredClone(EMPTY_META)
+  if (!m) {
+    // Sin meta en IndexedDB: si hay respaldo, se restaura (y se reescribe en
+    // IndexedDB para que el resto de la app lo vea con normalidad).
+    const backup = readBackup()
+    if (backup && metaWeight(backup) > 0) {
+      await d.put('meta', backup, 'meta')
+      return backup
+    }
+    return structuredClone(EMPTY_META)
+  }
   const meta = { ...structuredClone(EMPTY_META), ...m } // backfill de campos nuevos
   meta.bestRuns = dedupeRuns(meta.bestRuns) // limpia duplicados antiguos
   // Migra Pokédex: ids de megas/formas regionales -> especie base.
@@ -180,12 +223,25 @@ export async function loadMeta(): Promise<MetaRecord> {
   meta.pokedexSeen = toBase(meta.pokedexSeen)
   meta.pokedexCaught = toBase(meta.pokedexCaught)
   meta.pokedexShiny = toBase(meta.pokedexShiny)
+  // La meta existe pero está MÁS vacía que el respaldo: es el caso de una
+  // escritura a medias o de una fila de nube recién creada. Se recupera lo
+  // mejor de los dos en vez de dar por buena la versión pobre.
+  const backup = readBackup()
+  if (backup && metaWeight(backup) > metaWeight(meta)) {
+    const restored = mergeMeta(meta, backup)
+    await d.put('meta', restored, 'meta')
+    return restored
+  }
   return meta
 }
 
 export async function saveMeta(meta: MetaRecord): Promise<void> {
   const d = await db()
   await d.put('meta', meta, 'meta')
+  // Espejo de seguridad. Solo si NO empobrece el respaldo existente, para que un
+  // guardado defectuoso no arrastre también a la copia.
+  const backup = readBackup()
+  if (!backup || metaWeight(meta) >= metaWeight(backup)) writeBackup(meta)
 }
 
 export type { MetaRecord }

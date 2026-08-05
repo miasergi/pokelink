@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '@/state/gameStore'
-import { Button, Card } from '@/ui/components/kit'
+import { Button, Card, money } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import { typeGradient } from '@/ui/theme/types'
@@ -56,6 +56,12 @@ export default function VictoryScreen() {
               </div>
             )
           })}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-700/60 text-xs">
+          <div className="flex justify-between"><span className="text-slate-400">Combates</span><b>{run.stats.battlesWon}</b></div>
+          <div className="flex justify-between"><span className="text-slate-400">Capturas</span><b>{run.stats.pokemonCaught}</b></div>
+          <div className="flex justify-between"><span className="text-slate-400">Dinero ganado</span><b className="text-amber-300">{money(run.stats.moneyEarned ?? 0)}</b></div>
+          <div className="flex justify-between"><span className="text-slate-400">Sin gastar</span><b className="text-amber-300">{money(run.money)}</b></div>
         </div>
       </Card>
 

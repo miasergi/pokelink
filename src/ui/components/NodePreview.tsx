@@ -99,7 +99,9 @@ export default function NodePreview({
               <span className="text-xs text-slate-400">
                 {team.length
                   ? `${team.length} Pokémon · Nv. ${minLvl}-${maxLvl}`
-                  : node.type === 'battle'
+                  // El guardián legendario también es un enemigo con nivel: sin
+                  // esto era la única vista de combate que no lo enseñaba.
+                  : node.type === 'battle' || node.type === 'legendary'
                     ? `Nv. ~${effectiveEnemyLevel(node, difficulty)}`
                     : ''}
               </span>
@@ -163,7 +165,11 @@ export default function NodePreview({
                     <div key={i} className="rounded-xl bg-slate-900/60 p-1.5 flex flex-col items-center border border-slate-700/50">
                       <Sprite speciesId={mon.speciesId} variant="front" className="w-12 h-12 object-contain" />
                       <div className="text-[10px] font-semibold truncate w-full text-center">{sp.displayName}</div>
-                      <div className="text-[9px] text-slate-400">Nv.{mon.level}</div>
+                      {/* shown(): mismo extra de Difícil/Nuzlocke que la cabecera.
+                          En crudo, `mon.level` es el nivel ANTES de que el motor
+                          suba al equipo enemigo, y las tarjetas contradecían al
+                          rango "Nv. X-Y" de arriba. */}
+                      <div className="text-[9px] text-slate-400">Nv.{shown(mon.level)}</div>
                     </div>
                   )
                 })}

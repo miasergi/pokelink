@@ -21,6 +21,8 @@ import { getRegion } from '@/data/trainers/regions'
 
 const ROW_H = 124
 const NODE = 60
+/** Casillas cuya derrota acaba (o casi) la run: nunca se entra a ciegas. */
+const BOSS_TYPES = new Set(['gym', 'elite', 'champion', 'rival', 'legendary'])
 
 export default function MapScreen() {
   const { run, chooseNode, navigate, lastEventResult, clearEventResult, setPartyOrder } = useGame()
@@ -266,7 +268,10 @@ export default function MapScreen() {
                       key={id}
                       onClick={() => {
                         // Con "omitir info": entra directo si la casilla es accesible.
-                        if (skipNodeInfo && isReach && !node.cleared) chooseNode(id)
+                        // EXCEPCIÓN: los jefes SIEMPRE enseñan su equipo antes de
+                        // pelear. Perder contra un jefe acaba la run, así que
+                        // entrar a ciegas no es una comodidad, es una emboscada.
+                        if (skipNodeInfo && isReach && !node.cleared && !BOSS_TYPES.has(node.type)) chooseNode(id)
                         else setPreview(node)
                       }}
                       className="absolute flex flex-col items-center"

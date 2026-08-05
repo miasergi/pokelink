@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { Button, TopBar } from '@/ui/components/kit'
 import { STARTERS_BY_GEN } from '@/data/starters'
-import { getSpecies, threeStageStarterPool, basePoolFor } from '@/data'
+import { getSpecies, threeStageStarterPool, basePoolFor, encounterPoolFor } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { typeGradient, TYPE_ES } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
+import SpeciesSearchModal from '@/ui/components/SpeciesSearchModal'
 import type { Difficulty, RandomFlags } from '@/engine/run/types'
 import type { PokemonType, SpeciesData } from '@/types'
 
@@ -60,6 +61,26 @@ export default function StarterSelectScreen() {
   }, [monotype, randomFlags?.starters, gen, pools.join(',')])
   const [selected, setSelected] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
+  // Nivel libre: el jugador decide si quiere el tope por medallas o subir sin freno.
+  const [freeLevel, setFreeLevel] = useState(false)
+  const [searching, setSearching] = useState(false)
+  // Inicial elegido a mano con el buscador (se muestra junto a los tres de serie).
+  const [custom, setCustom] = useState<number | null>(null)
+
+  // Pool del buscador: CUALQUIER Pokémon no legendario de las regiones elegidas.
+  // Se probó limitarlo a formas base y era frustrante: buscar "Pikachu" en Kanto
+  // no daba nada (evoluciona de Pichu, que es de Johto). Si el jugador se toma
+  // la molestia de buscar uno concreto, que lo encuentre; elegir uno ya
+  // evolucionado es cosa suya. En Monolocke se respeta el tipo.
+  const searchPool = useMemo(() => {
+    const all = encounterPoolFor(pools).filter((s) => !s.isMega)
+    const byType = monotype ? all.filter((s) => s.types.includes(monotype)) : all
+    return byType.length ? byType : all
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pools.join(','), monotype])
+
+  // Los tres de serie + el buscado (si no estaba ya).
+  const shown = custom !== null && !starters.includes(custom) ? [...starters, custom] : starters
 
   return (
     <div className="flex flex-col flex-1">
@@ -75,7 +96,7 @@ export default function StarterSelectScreen() {
             🔒 <b className="inline-flex items-center gap-1">Monolocke de tipo <TypeIcon type={monotype} />{TYPE_ES[monotype]}</b> — solo podrás llevar Pokémon de este tipo (inicial, capturas, intercambios y eventos).
           </div>
         )}
-        {starters.map((id) => {
+        {shown.map((id) => {
           const sp = getSpecies(id)
           const isSel = selected === id
           return (
@@ -85,7 +106,11 @@ export default function StarterSelectScreen() {
               className={`rounded-2xl p-3 border-2 transition active:scale-[0.99] ${
                 isSel ? 'border-red-400 ring-2 ring-red-400/30' : 'border-slate-700/60'
               }`}
-              style={{ background: isSel ? typeGradient(sp.types) : 'rgba(15,23,42,0.6)' }}
+              // Velo oscuro sobre el degradado del tipo: con tipos claros
+              // (Eléctrico, Hielo, Hada) el texto blanco de las estadísticas se
+              // perdía. Ahora que el buscador da acceso a CUALQUIER Pokémon,
+              // esos tipos salen a menudo.
+              style={{ background: isSel ? `linear-gradient(rgba(2,6,23,0.45), rgba(2,6,23,0.45)), ${typeGradient(sp.types)}` : 'rgba(15,23,42,0.6)' }}
             >
               {(() => {
                 const phys = sp.baseStats.atk >= sp.baseStats.spa
@@ -116,6 +141,17 @@ export default function StarterSelectScreen() {
             </div>
           )
         })}
+        {/* Buscador: elegir un Pokémon concreto en vez de los tres de serie. */}
+        <button
+          onClick={() => setSearching(true)}
+          className="rounded-2xl border-2 border-dashed border-slate-600 py-3 text-sm font-bold text-slate-300 active:scale-[0.99]"
+        >
+          🔍 Buscar otro Pokémon…
+          <div className="text-[11px] font-normal text-slate-500 mt-0.5">
+            Escribe su nombre o su nº de Pokédex
+          </div>
+        </button>
+
         {/* Dificultad (fija en Reto diario) */}
         {daily ? (
           <div className="mt-1 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/40 px-3 py-2 text-sm">
@@ -140,13 +176,50 @@ export default function StarterSelectScreen() {
             <p className="text-[11px] text-slate-500 mt-1.5">{DIFFS.find((d) => d.id === difficulty)?.desc}</p>
           </div>
         )}
+
+        {/* Tope de nivel: decisión del jugador, no imposición del juego. */}
+        <div className="mt-1">
+          <div className="text-xs font-bold text-slate-400 mb-1.5">Nivel de tu equipo</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setFreeLevel(false)}
+              className={`rounded-xl py-2 text-sm font-bold transition ${!freeLevel ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'}`}
+            >
+              Con tope
+            </button>
+            <button
+              onClick={() => setFreeLevel(true)}
+              className={`rounded-xl py-2 text-sm font-bold transition ${freeLevel ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-300'}`}
+            >
+              Nivel libre
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1.5">
+            {freeLevel
+              ? 'Sin límite: tus Pokémon pueden subir hasta el nivel 100 cuando quieras. Puedes sobrelevelear y arrasar, pero el mérito de ganar también baja.'
+              : 'Tus Pokémon no pasan del nivel del próximo jefe (+5 en Normal, +2 en Difícil, justo el del jefe en Nuzlocke). Evita sobrelevelear y mantiene el reto parejo toda la run.'}
+          </p>
+        </div>
       </div>
+
+      {searching && (
+        <SpeciesSearchModal
+          pool={searchPool}
+          title={monotype ? `Inicial de tipo ${TYPE_ES[monotype]}` : 'Elige tu inicial'}
+          onPick={(id) => { setCustom(id); setSelected(id); setSearching(false) }}
+          onClose={() => setSearching(false)}
+        />
+      )}
       <div className="p-4 safe-bottom">
         <Button
           full
           variant="primary"
           disabled={selected === null}
-          onClick={() => selected !== null && startRun(daily ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily } : { gen, pools, random, randomFlags, monotype, sonoro, starterId: selected, difficulty })}
+          onClick={() => selected !== null && startRun(daily
+            // El Reto diario es el MISMO para todo el mundo: ni dificultad ni
+            // tope de nivel se tocan, o el ranking dejaría de ser comparable.
+            ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily }
+            : { gen, pools, random, randomFlags, monotype, sonoro, starterId: selected, difficulty, freeLevel })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build-data": "node scripts/build-data.mjs"
+    "build-data": "node scripts/build-data.mjs",
+    "fetch-sprites": "node scripts/fetch-sprites.mjs"
   },
   "dependencies": {
     "idb": "^8.0.0",

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from '@/state/gameStore'
-import { Button, Card } from '@/ui/components/kit'
+import { Button, Card, money } from '@/ui/components/kit'
 import { getSpecies } from '@/data'
 import Sprite from '@/ui/components/Sprite'
 import MemeOverlay from '@/ui/components/MemeOverlay'
@@ -26,6 +26,8 @@ export default function GameOverScreen() {
             <Stat label="Alto Mando" value={`${run.stats.eliteDefeated}/4`} />
             <Stat label="Combates ganados" value={run.stats.battlesWon} />
             <Stat label="Pokémon capturados" value={run.stats.pokemonCaught} />
+            <Stat label="Dinero ganado" value={money(run.stats.moneyEarned ?? 0)} />
+            <Stat label="Dinero sin gastar" value={money(run.money)} />
           </div>
         </Card>
 

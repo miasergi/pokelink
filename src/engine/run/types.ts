@@ -134,6 +134,9 @@ export interface RunState {
     gymsDefeated: number
     eliteDefeated: number
     turnsPlayed: number
+    /** Total INGRESADO en la run (no lo que te queda: lo que ganaste en total).
+     *  Opcional: las runs guardadas antes de v6.48 no lo tienen. */
+    moneyEarned?: number
   }
   /** Ancla de la SESIÓN en curso (timestamp). Al reanudar se reinicia a "ahora"
    *  para no contar el tiempo con la app cerrada. */
@@ -148,6 +151,9 @@ export interface RunState {
   /** Gen Sonoro (desbloqueado al COMPLETAR la historia): los Pokémon del dossier
    *  aparecen con su tipo Sonoro también en las runs normales. */
   sonoro?: boolean
+  /** Nivel LIBRE: sin tope por medallas, tus Pokémon suben hasta 100 cuando
+   *  quieras. Lo decide el jugador al empezar la run (ver `levelCap`). */
+  freeLevel?: boolean
 }
 
 export interface OfferedItem {

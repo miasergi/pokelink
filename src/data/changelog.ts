@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.48',
+    date: '2026-08-05',
+    title: 'Elige tu Pokémon, elige tu tope, y sprites al instante',
+    changes: [
+      'BUSCADOR DE INICIAL: además de los tres de siempre, ahora puedes empezar con el Pokémon que tú quieras. Escribe su nombre (o su número de Pokédex) y aparece al momento; da igual las tildes, los guiones o los símbolos raros: «mr mime», «flabebe» o «porygon z» encuentran lo que buscas.',
+      'TÚ DECIDES EL TOPE DE NIVEL: al empezar una partida eliges entre «Con tope» (tus Pokémon no pasan del nivel del próximo jefe, como hasta ahora) o «Nivel libre» (sin límite hasta el 100, si te apetece sobrelevelear y arrasar).',
+      'Los sprites ya no se descargan de un servidor externo: vienen con el juego. Aparecen al instante, funcionan sin conexión y no dependen de que un tercero esté disponible.',
+      'Los JEFES siempre enseñan su equipo antes del combate, aunque tengas activado «omitir información de casilla». Perder contra un jefe acaba la partida: no se entra a ciegas.',
+      'Al terminar una partida ves cuánto dinero ganaste en total (y cuánto te quedó sin gastar).',
+      'ARREGLADO: en Difícil y Nuzlocke, la ficha de un jefe se contradecía a sí misma — arriba ponía «Nv. 46-52» y las tarjetas de sus Pokémon, «Nv.43-49». Ahora todas muestran el nivel real que vas a pelear. La casilla del guardián legendario tampoco enseñaba su nivel.',
+      'Tu progreso (Pokédex, logros, récords) tiene ahora una copia de seguridad automática en el propio dispositivo: si el navegador borra los datos del juego, se restaura sola al volver a entrar.',
+    ],
+  },
+  {
     version: 'v6.47',
     date: '2026-08-05',
     title: 'El paisaje de cada ruta, y niveles con más sentido',

@@ -41,6 +41,9 @@ export interface NewRunConfig {
   /** Gen Sonoro (desbloqueado al completar la historia): aplica los tipos del
    *  dossier a las runs normales. */
   sonoro?: boolean
+  /** Nivel LIBRE: desactiva el tope por medallas y deja subir sin límite
+   *  (hasta 100). Lo elige el jugador al empezar la run. */
+  freeLevel?: boolean
 }
 
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
@@ -93,6 +96,7 @@ export function createRun(config: NewRunConfig): RunState {
     daily: config.daily,
     story: config.story,
     sonoro: config.sonoro,
+    freeLevel: config.freeLevel,
     rngState: rng.getState(),
     map,
     currentNodeId: null,
@@ -106,6 +110,14 @@ export function createRun(config: NewRunConfig): RunState {
     startedAt: config.seed, // ancla de sesión; se fija a Date.now() en startRun
     elapsedMs: 0, // tiempo de juego activo acumulado
   }
+}
+
+/** Suma dinero llevando la cuenta del TOTAL ingresado en la run (para el
+ *  resumen final). Los importes negativos restan del saldo pero no cuentan
+ *  como ingreso. Úsala siempre en vez de tocar `run.money` a mano. */
+export function addMoney(run: RunState, amount: number): void {
+  run.money = Math.max(0, run.money + amount)
+  if (amount > 0) run.stats.moneyEarned = (run.stats.moneyEarned ?? 0) + amount
 }
 
 /** Ejecuta una función con el RNG de la run y persiste su estado. */
@@ -218,6 +230,9 @@ const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 2, nuzlocke: 0 }
  *  antes el tope salía del nivel base y el líder se multiplicaba por 1.4, así
  *  que los dos números no cuadraban en pantalla. */
 export function levelCap(run: RunState): number {
+  // Nivel LIBRE (elección del jugador): sin tope, sube hasta 100 si quieres.
+  // Sobrelevelear pasa a ser una decisión suya, no algo que el juego impide.
+  if (run.freeLevel) return 100
   let next = 100
   for (const n of Object.values(run.map.nodes)) {
     if ((n.type === 'gym' || n.type === 'elite' || n.type === 'champion') && !n.cleared) {
@@ -294,7 +309,7 @@ export function applyBattleOutcome(
   if (run.party.some((p) => p.heldItemId === 'amulet-coin')) {
     summary.moneyGained = Math.round(summary.moneyGained * 1.5)
   }
-  run.money += summary.moneyGained
+  addMoney(run, summary.moneyGained)
 
   // Team Rocket: el Pokémon secuestrado te ofrece unirse (tú decides en pantalla,
   // igual que con un legendario). No se añade aquí: lo gestiona finishBattle.
@@ -351,7 +366,7 @@ export function applyBattleOutcome(
 
   // Guardián legendario: al vencerlo te ofrece unirse (tú decides en pantalla).
   if (node.type === 'legendary' && content.kind === 'wild') {
-    run.money += 2000
+    addMoney(run, 2000)
     summary.legendaryOffer = content.enemy
   }
 
@@ -469,7 +484,7 @@ export function resolveEvent(run: RunState, node: MapNode, optionIndex: number):
 function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
   switch (eff.kind) {
     case 'money':
-      run.money = Math.max(0, run.money + eff.amount)
+      addMoney(run, eff.amount)
       return eff.amount >= 0 ? `Recibes ${eff.amount} ₽.` : `Pierdes ${-eff.amount} ₽.`
     case 'heal':
       healParty(run.party)
@@ -507,7 +522,7 @@ function applyEventEffect(run: RunState, eff: EventEffect, rng: RNG): string {
     case 'gamble':
       if (run.money < eff.cost) return 'No tienes suficiente dinero.'
       run.money -= eff.cost
-      if (rng.chance(eff.chance)) { run.money += eff.win; return `¡Suerte! Ganas ${eff.win} ₽.` }
+      if (rng.chance(eff.chance)) { addMoney(run, eff.win); return `¡Suerte! Ganas ${eff.win} ₽.` }
       return 'No hubo suerte esta vez...'
     case 'risky':
       return applyEventEffect(run, rng.chance(eff.chance) ? eff.good : eff.bad, rng)

@@ -44,8 +44,23 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Los 2050 sprites propios NO se precachean: meterlos en el manifiesto
+        // haría la instalación del service worker enorme y lenta. Se cachean al
+        // vuelo con la regla CacheFirst de abajo, igual que antes hacíamos con
+        // los remotos — solo que ahora salen de nuestro propio dominio.
+        globIgnores: ['**/sprites/pokemon/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
+          {
+            // Sprites propios (public/sprites) -> cache-first, para offline.
+            urlPattern: ({ url }) => url.pathname.includes('/sprites/pokemon/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'local-sprites',
+              expiration: { maxEntries: 3000, maxAgeSeconds: 60 * 60 * 24 * 180 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // Sprites/artwork de PokeAPI -> cache-first para offline
             urlPattern: /^https:\/\/raw\.githubusercontent\.com\/PokeAPI\/sprites\/.*/i,
