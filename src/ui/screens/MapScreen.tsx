@@ -101,17 +101,11 @@ export default function MapScreen() {
   const bossNode = seg.boss
   const bossTrainer = bossNode?.content.kind === 'trainer' ? bossNode.content.trainer : null
   const bossType = bossTrainer?.specialtyType
-  const storyBg = chapter?.mapBg
+  // El fondo a pantalla completa (paisaje del tramo / capítulo) lo pinta App.tsx
+  // para TODAS las pantallas de la run; aquí solo queda la cabecera ilustrada.
 
   return (
     <div className="flex flex-col flex-1 min-h-0 relative">
-      {storyBg && (
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none overflow-hidden"
-          style={{ zIndex: -1, backgroundImage: `linear-gradient(rgba(2,6,23,0.66), rgba(2,6,23,0.82)), url(${storyBg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(3px) saturate(0.9)', transform: 'scale(1.06)' }}
-        />
-      )}
       <TopBar
         title={
           <span className="text-sm">

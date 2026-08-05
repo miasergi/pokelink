@@ -193,7 +193,7 @@ describe('tierPool: curva de potencia por nivel', () => {
 })
 
 describe('Team Rocket: Pokémon secuestrado', () => {
-  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y da +3 niveles', () => {
+  it('al ganar ofrece el Pokémon secuestrado (no se añade aún) y da +2 niveles', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 5 })
     const startLvl = run.party[0].level
     const partyN = run.party.length
@@ -210,8 +210,8 @@ describe('Team Rocket: Pokémon secuestrado', () => {
     // Se OFRECE (lo decide el jugador en pantalla, como un legendario): no se añade aún.
     expect(summary.rescueOffer?.speciesId).toBe(25)
     expect(run.party.length).toBe(partyN)
-    // Casilla de Team Rocket: +3 niveles (bonus de entrenador), como promete la vista previa.
-    expect(run.party[0].level).toBe(startLvl + 3)
+    // Casilla de Team Rocket: +2 niveles (bonus de entrenador), como promete la vista previa.
+    expect(run.party[0].level).toBe(startLvl + 2)
   })
 })
 

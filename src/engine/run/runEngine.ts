@@ -322,16 +322,18 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: salvaje +2; entrenadores, gimnasios, rival
-  // y guardián +3; Alto Mando y Campeón +4. Solo a los que participaron.
-  // Bonus GENEROSOS a propósito (v6.45): el equipo ENTERO debe seguir la curva
-  // de forma natural (antes +1/+2 se quedaban atrás y la única estrategia viable
-  // era chetar a UN Pokémon con caramelos). El tope por medallas (levelCap)
-  // impide pasarse: la generosidad no rompe la curva porque el tope la frena.
+  // Recompensa de nivel por casilla (v6.46): salvaje +1 · entrenador de ruta +2
+  // · JEFES +5 (gimnasio, rival, guardián, Alto Mando y Campeón).
+  // Los combates de ruta dan poco a propósito, pero el grueso de la curva se
+  // paga en los jefes, que son inevitables: así el equipo llega a nivel 100
+  // ante el Campeón sin necesidad de convertir el mapa en un pasillo de peleas
+  // (subir la frecuencia de combate a 75% se probó y hundía las runs, porque el
+  // jugador sobrevive precisamente esquivando combates). Solo suben los que
+  // participaron; el tope por medallas (levelCap) sigue poniendo el techo.
   const cap = levelCap(run)
-  const levelGain = node.type === 'battle' ? 2
-    : (node.type === 'elite' || node.type === 'champion') ? 4
-    : 3
+  const levelGain = node.type === 'battle' ? 1
+    : node.type === 'trainer' ? 2
+    : 5
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

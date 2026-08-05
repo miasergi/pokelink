@@ -40,8 +40,8 @@ export function isCombatNode(node: MapNode): boolean {
  */
 const LEVEL_BONUS: Record<string, { rate: number; max: number }> = {
   normal: { rate: 0, max: 0 },
-  hard: { rate: 0.12, max: 4 },
-  nuzlocke: { rate: 0.16, max: 6 },
+  hard: { rate: 0.12, max: 3 },
+  nuzlocke: { rate: 0.16, max: 5 },
 }
 
 /** Niveles extra del enemigo para un nivel base dado (ver `LEVEL_BONUS`). */

@@ -6,6 +6,7 @@ import Onboarding from '@/ui/components/Onboarding'
 import EvolutionModal from '@/ui/components/EvolutionModal'
 import EvoChoiceModal from '@/ui/components/EvoChoiceModal'
 import HomeScreen from '@/ui/screens/HomeScreen'
+import { useRunBackdrop } from '@/ui/components/runBackdrop'
 
 // Pantallas cargadas bajo demanda (code-splitting) para aligerar el arranque.
 const ModeSelectScreen = lazy(() => import('@/ui/screens/ModeSelectScreen'))
@@ -84,6 +85,7 @@ export default function App() {
     }
   })
 
+  const runBg = useRunBackdrop(screen.name)
   const music = useSettings((s) => s.music)
   useEffect(() => {
     void init()
@@ -111,19 +113,40 @@ export default function App() {
   // key por pantalla -> animación de entrada al cambiar de pantalla
   return (
     <>
-      {/* Fondo: patrón de Pokémon sutil (debajo de todo) */}
-      <div
-        aria-hidden
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: -10,
-          backgroundImage: `url(${import.meta.env.BASE_URL}bg-menu.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'invert(1) brightness(1.2)',
-          opacity: 0.05,
-        }}
-      />
+      {/* Fondo. Dentro de una run: el PAISAJE del tramo en el que estás (ruta
+          costera, cañón, zona industrial…), compartido por mapa, combate,
+          tienda y demás para que todo se sienta del mismo sitio. Fuera de una
+          run: el patrón de Pokémon sutil de siempre. */}
+      {runBg ? (
+        <div
+          key={runBg}
+          aria-hidden
+          className="fixed inset-0 pointer-events-none animate-fade-in"
+          style={{
+            zIndex: -10,
+            // El velo oscuro NO es decorativo: sin él la UI (texto claro sobre
+            // fondos con cielo) deja de leerse en las fotos más luminosas.
+            backgroundImage: `linear-gradient(rgba(2,6,23,0.68), rgba(2,6,23,0.86)), url(${runBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(2px) saturate(0.85)',
+            transform: 'scale(1.05)',
+          }}
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="fixed inset-0 pointer-events-none"
+          style={{
+            zIndex: -10,
+            backgroundImage: `url(${import.meta.env.BASE_URL}bg-menu.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'invert(1) brightness(1.2)',
+            opacity: 0.05,
+          }}
+        />
+      )}
       <div key={screen.name} className="flex flex-col flex-1 min-h-0 screen-enter relative">
         <Suspense fallback={<div className="flex-1 grid place-items-center"><div className="text-4xl animate-float">⚡</div></div>}>
           <Current />

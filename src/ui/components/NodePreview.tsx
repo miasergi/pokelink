@@ -19,18 +19,20 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   event: { title: 'Evento', desc: 'Un encuentro inesperado en el camino. Puede salir bien... o no.' },
   trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
+// OJO: estas cifras tienen que cuadrar con `levelGain` en runEngine.ts
+// (salvaje +1 · entrenador +2 · jefes +5).
 const REWARD: Partial<Record<string, string>> = {
-  battle: '+2 niveles a todo tu equipo',
-  trainer: '+3 niveles a tu equipo + dinero',
-  rival: '+3 niveles + dinero',
+  battle: '+1 nivel a todo tu equipo',
+  trainer: '+2 niveles a tu equipo + dinero',
+  rival: '+5 niveles + dinero',
   catch: 'un Pokémon nuevo para tu equipo',
   item: '1 objeto a elegir',
   event: 'sorpresa (objeto, dinero o Pokémon)',
   trade: 'un Pokémon nuevo (+3 niveles)',
-  gym: '+3 niveles + medalla + objeto raro + dinero',
-  elite: '+4 niveles + objeto raro',
-  champion: '+4 niveles · ¡completar la región!',
-  legendary: '+3 niveles · ¡capturas al legendario!',
+  gym: '+5 niveles + medalla + objeto raro + dinero',
+  elite: '+5 niveles + objeto raro',
+  champion: '+5 niveles · ¡completar la región!',
+  legendary: '+5 niveles · ¡capturas al legendario!',
 }
 
 export default function NodePreview({

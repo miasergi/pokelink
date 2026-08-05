@@ -18,8 +18,10 @@ export default function ShopScreen() {
   const midGame = run.stats.gymsDefeated >= 5
   // Nuzlocke: prohibido comprar pociones/objetos de curación.
   const noHeal = run.difficulty === 'nuzlocke'
-  // Difícil y Nuzlocke: solo 1 compra por visita.
-  const oneItemOnly = run.difficulty === 'hard' || run.difficulty === 'nuzlocke'
+  // Solo Nuzlocke limita a 1 compra por visita. En Difícil se compra libremente:
+  // el reto ahí es la curva de nivel, no racionar la tienda (el dinero ya la
+  // limita de por sí, y con 1 compra la tienda dejaba de ser una decisión).
+  const oneItemOnly = run.difficulty === 'nuzlocke'
   const lockedOut = oneItemOnly && bought
   // Desde la 5ª medalla toda tienda ofrece la Supermejora; desde la 7ª, el Movimiento Z.
   const baseStock = [...node.content.stock, ...(midGame ? ['super-upgrade'] : []), ...(lateGame ? ['z-move'] : [])]

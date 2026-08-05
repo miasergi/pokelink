@@ -371,7 +371,13 @@ export function interpolateLevels(anchors: (number | null)[], startLevel: number
 
 export function pickRouteType(rng: RNG, frac: number): NodeType {
   const r = rng.next()
-  // pesos: battle 28, trainer 22, catch 15, item 11, shop 8, trade 6, event 10
+  // pesos: battle 28, trainer 22, catch 15, item 11, shop 8, trade 6, event 10.
+  // OJO antes de tocarlos: se probó a subirlos a 40/35 para que el jugador
+  // ganara más niveles con el bonus reducido de v6.46, y hundió las runs (de 4
+  // a 0,8 gimnasios de media). Con 75% de casillas de combate el jugador pierde
+  // lo que de verdad le mantiene vivo: PODER ESQUIVAR peleas y dedicar capas a
+  // capturar, comprar y curarse. Los niveles que faltaban se compensan en el
+  // bonus de los JEFES (ver `levelGain`), que son inevitables de todos modos.
   if (r < 0.28) return 'battle'
   if (r < 0.5) return 'trainer'
   if (r < 0.65) return 'catch'

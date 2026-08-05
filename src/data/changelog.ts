@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.47',
+    date: '2026-08-05',
+    title: 'El paisaje de cada ruta, y niveles con más sentido',
+    changes: [
+      'TODA la run tiene ahora el PAISAJE del tramo de fondo: el cañón, el bosque, la costa o la zona industrial que toque según el gimnasio al que te diriges, y te acompaña en el mapa, el combate, las capturas y la tienda. Se acabó el fondo gris con el patrón de Pokémon mientras juegas.',
+      'Los combates de ruta suben menos nivel (+1 los salvajes, +2 los entrenadores) y los JEFES suben más (+5): el ritmo lo marcan los gimnasios, que son los que no puedes esquivar. Sigues llegando a nivel 100 ante el Campeón.',
+      'DIFÍCIL más justo: el extra de nivel de los enemigos baja de +4 a +3 (y de +6 a +5 en Nuzlocke).',
+      'DIFÍCIL: se acabó el límite de 1 compra por tienda. Compra lo que quieras y puedas pagar; el reto está en la curva de nivel, no en racionarte los objetos. (En Nuzlocke sigue habiendo 1 compra por visita.)',
+      'La vista previa de cada casilla ya dice los niveles correctos que vas a ganar (prometía las cifras antiguas).',
+    ],
+  },
+  {
     version: 'v6.46',
     date: '2026-08-04',
     title: 'Difícil vuelve a ser difícil (y no imposible)',

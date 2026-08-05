@@ -49,12 +49,19 @@ export default {
           '0%': { transform: 'translateY(0)', opacity: '1' },
           '100%': { transform: 'translateY(40px)', opacity: '0' },
         },
+        // Solo opacidad: el fondo de la run ya lleva su propio transform de
+        // escala, así que no puede animarse con 'pop-in' (lo pisaría).
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
         shake: 'shake 0.4s ease-in-out',
         'pop-in': 'pop-in 0.25s ease-out',
         float: 'float 3s ease-in-out infinite',
         faint: 'faint 0.6s ease-in forwards',
+        'fade-in': 'fade-in 0.5s ease-out',
       },
     },
   },
