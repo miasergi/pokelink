@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+// `?raw` (de Vite) en vez de node:fs: este proyecto compila con la librería del
+// navegador, así que importar módulos de Node aquí rompe `tsc -b`.
+import src from './music.ts?raw'
 
 /**
  * El secuenciador lee `bass[i]`, `chords[i]` y `lead[i]` con `i = step % steps`.
@@ -9,8 +10,6 @@ import { resolve } from 'node:path'
  * caza al editar las secuencias (que es justo cuando se cuelan descuadres).
  */
 describe('secuencias de música', () => {
-  const src = readFileSync(resolve(__dirname, 'music.ts'), 'utf8')
-
   it('cada pista declara tantos pasos como notas tiene', () => {
     // Extrae cada bloque `nombre: { ... },` de dentro de SEQ.
     const seqBlock = src.slice(src.indexOf('const SEQ'))
