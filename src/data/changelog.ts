@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.50',
+    date: '2026-08-06',
+    title: 'Mapas de verdad, líderes con equipo completo y más lo-fi',
+    changes: [
+      'EL MAPA YA ES UN MAPA: cada tramo se dibuja con el TERRENO de su bioma —hierba del bosque, arena del desierto, nieve del paso helado, roca del cañón, agua de la costa…— con maleza cerrando los lados y un sendero de tierra uniendo las casillas. Se acabó el fondo borroso.',
+      'DIFÍCIL, el arreglo de fondo: los líderes iban con 2-3 Pokémon mientras tú llevabas 6, así que peleabas 6 contra 3 y ganabas por número aunque los niveles cuadrasen. Ahora en Difícil y Nuzlocke traen EQUIPO COMPLETO (de 3 al principio a 6 al final), con Pokémon de su propio tipo, y sus niveles van mucho más apretados alrededor de su mejor Pokémon. Tu ventaja media pasa de +2,8 a −1,5 niveles.',
+      'Las casillas del mapa ahora son fichas claras con sombra, para que se lean sobre el terreno en vez de parecer agujeros.',
+      'Música lo-fi mejorada: bamboleo de cinta gastada, caja suave en los tiempos 2 y 4, y el tema de las runs pasa de 4 a 8 compases (antes se repetía cada 6 segundos).',
+    ],
+  },
+  {
     version: 'v6.49',
     date: '2026-08-05',
     title: 'El tope de nivel ahora TOPA de verdad',

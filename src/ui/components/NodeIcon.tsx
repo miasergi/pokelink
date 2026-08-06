@@ -47,15 +47,19 @@ export default function NodeIcon({
       style={{
         width: size,
         height: size,
-        border: `2px solid ${cleared ? '#475569' : meta.color}`,
+        border: `2px solid ${cleared ? '#94a3b8' : meta.color}`,
+        // Ficha CLARA, no oscura: el tablero ahora es el terreno del bioma
+        // (hierba, arena, nieve...) y sobre un suelo claro un círculo oscuro
+        // parecía un agujero. Así se lee como una ficha puesta sobre el mapa.
         background: cleared
-          ? '#16202e'
-          : `radial-gradient(circle at 50% 38%, ${meta.color}30, #0b1220 78%)`,
+          ? 'rgba(226,232,240,0.55)'
+          : `radial-gradient(circle at 50% 34%, #ffffff, ${meta.color}22 78%, ${meta.color}44)`,
+        // Sombra proyectada: asienta la ficha sobre el terreno en vez de flotar.
         boxShadow: active
-          ? `0 0 18px ${meta.color}, inset 0 0 10px ${meta.color}44`
+          ? `0 0 18px ${meta.color}, 0 2px 4px rgba(0,0,0,0.45)`
           : isBoss
-            ? `0 0 8px ${meta.color}66`
-            : 'none',
+            ? `0 0 10px ${meta.color}aa, 0 2px 4px rgba(0,0,0,0.45)`
+            : '0 2px 4px rgba(0,0,0,0.35)',
       }}
     >
       {stage < 2 && src ? (

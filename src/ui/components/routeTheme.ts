@@ -20,37 +20,68 @@ import type { MapSegment } from '@/engine/run/segments'
 // league=Allianz_Arena_in_Munich.
 const ROUTES = import.meta.env.BASE_URL + 'routes/'
 
+/** Paleta del TERRENO del tablero (el mapa se dibuja con tiles de estos
+ *  colores, no con una foto). `base`/`alt` son las dos tonalidades del damero
+ *  del suelo, `deco` las motitas de hierba/piedra y `edge` la maleza del borde. */
+export interface TerrainPalette {
+  base: string
+  alt: string
+  deco: string
+  edge: string
+  /** Color del sendero que une las casillas. */
+  path: string
+}
+
 export interface RouteTheme {
   /** Imagen de cabecera del tramo. */
   img: string
   /** Nombre evocador de la ruta ("Ruta costera", "Paso helado"...). */
   name: string
+  /** Colores con los que se dibuja el tablero de ese tramo. */
+  terrain: TerrainPalette
 }
 
-const T = (file: string, name: string): RouteTheme => ({ img: `${ROUTES}${file}.webp`, name })
+// Paletas de terreno. Cada bioma pinta su propio tablero: hierba en el bosque,
+// arena en el desierto, roca en el cañón, nieve en el paso helado...
+const P = (base: string, alt: string, deco: string, edge: string, path: string): TerrainPalette =>
+  ({ base, alt, deco, edge, path })
+const GRASS = P('#5fa855', '#569c4d', '#7cc06f', '#2f6b34', '#c8a970')
+const WOOD = P('#4a8f4a', '#428442', '#68ad63', '#255a2b', '#b8975f')
+const SAND = P('#d8bd7e', '#cfb173', '#e6d09a', '#a08248', '#b08c50')
+const ROCK = P('#a08d78', '#95826e', '#b8a793', '#6b5b4a', '#c2ab8a')
+const SNOW = P('#d8e4ec', '#cbd9e3', '#eef4f8', '#8fa6b5', '#a9bcc9')
+const LAVA = P('#8a5347', '#7d4a3f', '#a3695a', '#4d2b25', '#c98b5e')
+const URBAN = P('#8c93a3', '#828a9a', '#a3aab8', '#535a68', '#b9a98f')
+const WATER = P('#5aa9b8', '#51a0af', '#7cc3cf', '#2f6c78', '#d8c79a')
+const SWAMP = P('#6b7f52', '#62764a', '#84996a', '#3c4c2f', '#8f7f55')
+const CAVE = P('#6f6a80', '#666176', '#877f99', '#413d4e', '#9a8e78')
+const STONE = P('#b0a68f', '#a59b85', '#c6bda8', '#7a7160', '#c9b894')
+
+const T = (file: string, name: string, terrain: TerrainPalette): RouteTheme =>
+  ({ img: `${ROUTES}${file}.webp`, name, terrain })
 
 const THEME_BY_TYPE: Record<PokemonType, RouteTheme> = {
-  normal: T('meadow', 'Pradera abierta'),
-  fairy: T('meadow', 'Campos floridos'),
-  grass: T('forest', 'Bosque frondoso'),
-  bug: T('forest', 'Senda del bosque'),
-  water: T('coast', 'Ruta costera'),
-  ice: T('snow', 'Paso helado'),
-  fire: T('volcano', 'Senda volcánica'),
-  electric: T('city', 'Gran ciudad'),
-  rock: T('canyon', 'Cañón rocoso'),
-  ground: T('desert', 'Camino del desierto'),
-  fighting: T('waterfall', 'Cascada de entrenamiento'),
-  flying: T('cliffs', 'Acantilados ventosos'),
-  psychic: T('ruins', 'Ruinas ancestrales'),
-  ghost: T('nightforest', 'Bosque tenebroso'),
-  dark: T('nightforest', 'Senda nocturna'),
-  poison: T('swamp', 'Ciénaga tóxica'),
-  steel: T('factory', 'Zona industrial'),
-  dragon: T('cave', 'Gruta profunda'),
+  normal: T('meadow', 'Pradera abierta', GRASS),
+  fairy: T('meadow', 'Campos floridos', GRASS),
+  grass: T('forest', 'Bosque frondoso', WOOD),
+  bug: T('forest', 'Senda del bosque', WOOD),
+  water: T('coast', 'Ruta costera', WATER),
+  ice: T('snow', 'Paso helado', SNOW),
+  fire: T('volcano', 'Senda volcánica', LAVA),
+  electric: T('city', 'Gran ciudad', URBAN),
+  rock: T('canyon', 'Cañón rocoso', ROCK),
+  ground: T('desert', 'Camino del desierto', SAND),
+  fighting: T('waterfall', 'Cascada de entrenamiento', GRASS),
+  flying: T('cliffs', 'Acantilados ventosos', STONE),
+  psychic: T('ruins', 'Ruinas ancestrales', STONE),
+  ghost: T('nightforest', 'Bosque tenebroso', CAVE),
+  dark: T('nightforest', 'Senda nocturna', CAVE),
+  poison: T('swamp', 'Ciénaga tóxica', SWAMP),
+  steel: T('factory', 'Zona industrial', URBAN),
+  dragon: T('cave', 'Gruta profunda', CAVE),
 }
 
-export const LEAGUE_THEME: RouteTheme = T('league', 'Calle Victoria')
+export const LEAGUE_THEME: RouteTheme = T('league', 'Calle Victoria', STONE)
 
 /** Tema visual de un tramo: por el tipo del líder que lo cierra; el tramo
  *  final (Calle Victoria + Liga) tiene tema propio. */

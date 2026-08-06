@@ -76,6 +76,29 @@ describe('curva de nivel por dificultad', () => {
     expect(sHard).toBeLessThanOrEqual(0)
   })
 
+  it('en Difícil los jefes traen equipo completo y apretado', () => {
+    const hard = createRun({ pools: [1], random: false, difficulty: 'hard', gen: 1, starterId: 1, seed: 7 })
+    const normal = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 7 })
+    const gyms = (r: RunState) => bosses(r).filter((b) => b.type === 'gym')
+    const teamOf = (n: MapNode) => (n.content.kind === 'trainer' ? n.content.team : [])
+
+    for (const [i, g] of gyms(hard).entries()) {
+      const t = teamOf(g)
+      // Cuerpos: el jugador va con 6 y los rosters históricos son de 2-3. Sin
+      // esto, en Difícil se peleaba 6 contra 3 y el nivel daba igual.
+      expect(t.length).toBeGreaterThanOrEqual(Math.min(6, 3 + Math.floor(i * 0.5)))
+      // Abanico apretado: la media del equipo no puede quedar muy por debajo
+      // de su as, o tu equipo (pegado al tope) los supera a casi todos.
+      const ace = Math.max(...t.map((m) => m.level))
+      const avg = t.reduce((a, m) => a + m.level, 0) / t.length
+      expect(ace - avg).toBeLessThanOrEqual(3)
+    }
+    // Normal conserva los rosters canónicos: es el nivel accesible.
+    const n4 = teamOf(gyms(normal)[3])
+    const h4 = teamOf(gyms(hard)[3])
+    expect(h4.length).toBeGreaterThan(n4.length)
+  })
+
   it('ninguna casilla de ruta pide más nivel del que el tope permite tener', () => {
     // Incluye los nodos ARRIESGADOS: su extra también escala (antes +4 fijos
     // ponían un salvaje a nv.10 en la capa 4, con el equipo a nv.6).

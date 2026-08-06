@@ -271,16 +271,51 @@ export function generateMap(
       // boss: re-nivela el equipo a la curva (el ace queda en p.level)
       const id = newId()
       const ace = p.level ?? level
-      const specs = p.trainer!.team
+      const tough = difficulty === 'hard' || difficulty === 'nuzlocke'
+      let specs = p.trainer!.team
+
+      // --- Difícil / Nuzlocke: EQUIPO COMPLETO ---
+      // Los rosters históricos son cortos (Brock lleva 2) mientras el jugador va
+      // con 6: medido, en el 4º gimnasio era 5,8 contra 3. En un autobattler esa
+      // diferencia de CUERPOS pesa más que cualquier nivel, y era la razón real
+      // de que Difícil se ganara con comodidad. Aquí se rellena hasta un mínimo
+      // que crece con la medalla (3 al principio, 6 al final), con especies del
+      // TIPO del líder para no romper su temática.
+      if (tough) {
+        const minSize = p.type === 'gym'
+          ? Math.min(6, 3 + Math.floor((p.bossIndex ?? 0) * 0.5))
+          : (p.type === 'elite' || p.type === 'champion') ? 6 : specs.length
+        if (specs.length < minSize) {
+          const specialty = p.trainer!.specialtyType
+          const themed = specialty ? pool.filter((s) => s.types.includes(specialty) && !s.isMega) : []
+          const fillPool = tierPool(themed.length >= 4 ? themed : pool.filter((s) => !s.isMega), ace, difficulty)
+          const used = new Set(specs.map((s) => s.speciesId))
+          const extra: typeof specs = []
+          while (specs.length + extra.length < minSize) {
+            let sp = rng.pick(fillPool)
+            let tries = 0
+            while (used.has(sp.id) && tries++ < 10) sp = rng.pick(fillPool)
+            used.add(sp.id)
+            extra.push({ speciesId: sp.id, level: ace })
+          }
+          // Los de relleno van DELANTE: el as histórico sigue cerrando el equipo.
+          specs = [...extra, ...specs]
+        }
+      }
+
       const n = specs.length
+      // Abanico de niveles del equipo. En Difícil/Nuzlocke se aprieta a 1 nivel
+      // por hueco (en vez de 2): con 2, un equipo de 6 iba de as−10 a as, o sea
+      // que su media quedaba 5 niveles por debajo del as y tu equipo entero
+      // —pegado al tope— estaba por encima de casi todos ellos.
+      const gap = tough ? 1 : 2
       const team = specs.map((spec, i) =>
-        createInstance(spec.speciesId, Math.max(5, ace - (n - 1 - i) * 2), rng, {
+        createInstance(spec.speciesId, Math.max(5, ace - (n - 1 - i) * gap), rng, {
           moveIds: spec.moveIds,
           heldItemId: spec.heldItemId ?? null,
         }),
       )
       // --- Difícil / Nuzlocke: jefes más duros ---
-      const tough = difficulty === 'hard' || difficulty === 'nuzlocke'
       const aceMon = team[team.length - 1] // el de mayor nivel
       // Movimiento Z al mejor Pokémon: gimnasios desde la 6ª medalla + Alto Mando + Campeón.
       const lateBoss = (p.type === 'gym' && (p.bossIndex ?? 0) >= 5) || p.type === 'elite' || p.type === 'champion'

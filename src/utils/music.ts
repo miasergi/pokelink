@@ -92,12 +92,25 @@ interface TrackDef {
 }
 
 const SEQ: Record<Track, TrackDef> = {
-  // Runs: lo-fi cálido (Cmaj7 · Am7 · Fmaj7 · G7).
+  // Runs: lo-fi cálido, 8 compases (Cmaj7 · Am7 · Fmaj7 · G7 · Dm7 · G7 · Em7 · Am7).
+  // 32 pasos y no 16: a 76 bpm el bucle de 16 se repetía cada 6 segundos y
+  // cansaba enseguida, que es donde más tiempo pasa el jugador.
   map: {
-    bpm: 76, swing: 0.5, wave: 'sine', steps: 16, cutoff: 2300, perc: true,
-    bass: ['C2', null, 'G2', null, 'A2', null, 'E3', null, 'F2', null, 'C3', null, 'G2', null, 'D3', null],
-    chords: [['E4', 'G4', 'B4'], null, null, null, ['E4', 'A4', 'C5'], null, null, null, ['F4', 'A4', 'C5'], null, null, null, ['F4', 'G4', 'B4'], null, null, null],
-    lead: [null, null, 'G4', null, null, 'E4', null, null, 'A4', null, null, 'G4', null, 'E4', null, null],
+    bpm: 76, swing: 0.5, wave: 'sine', steps: 32, cutoff: 2300, perc: true,
+    bass: [
+      'C2', null, 'G2', null, 'A2', null, 'E3', null, 'F2', null, 'C3', null, 'G2', null, 'D3', null,
+      'D2', null, 'A2', null, 'G2', null, 'D3', null, 'E2', null, 'B2', null, 'A2', null, 'E3', null,
+    ],
+    chords: [
+      ['E4', 'G4', 'B4'], null, null, null, ['E4', 'A4', 'C5'], null, null, null,
+      ['F4', 'A4', 'C5'], null, null, null, ['F4', 'G4', 'B4'], null, null, null,
+      ['F4', 'A4', 'D5'], null, null, null, ['F4', 'G4', 'B4'], null, null, null,
+      ['E4', 'G4', 'B4'], null, null, null, ['E4', 'A4', 'C5'], null, null, null,
+    ],
+    lead: [
+      null, null, 'G4', null, null, 'E4', null, null, 'A4', null, null, 'G4', null, 'E4', null, null,
+      null, 'D5', null, null, 'C5', null, null, 'A4', null, null, 'B4', null, 'G4', null, null, null,
+    ],
   },
   // Liga: lo-fi algo más despierto (Dm9 · G7 · Cmaj7 · Am7).
   league: {
@@ -176,6 +189,36 @@ function hat(t0: number, gain = 0.12) {
   src.stop(t0 + 0.05)
 }
 
+/** Caja floja (rimshot) de lo-fi: ruido corto y apagado, en los tiempos 2 y 4. */
+function snare(t0: number, gain = 0.16) {
+  const c = ctx!
+  const len = c.sampleRate * 0.12
+  const buf = c.createBuffer(1, len, c.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len)
+  const src = c.createBufferSource()
+  src.buffer = buf
+  const bp = c.createBiquadFilter()
+  bp.type = 'bandpass'
+  bp.frequency.value = 1900
+  bp.Q.value = 0.8
+  const g = c.createGain()
+  g.gain.setValueAtTime(gain, t0)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.13)
+  src.connect(bp).connect(g).connect(master!)
+  src.start(t0)
+  src.stop(t0 + 0.14)
+}
+
+// WOBBLE DE CINTA: el rasgo que más "lo-fi" hace sonar a algo. Es la afinación
+// derivando muy despacio, como una cinta gastada. Se recalcula por paso y se
+// aplica como desafinado (en cents) a todo lo tonal del compás.
+let wobblePhase = 0
+function tapeWobble(): number {
+  wobblePhase += 0.055
+  return Math.sin(wobblePhase) * 7 + Math.sin(wobblePhase * 0.37) * 4
+}
+
 function tick() {
   if (!ctx || !current) return
   const seq = SEQ[current]
@@ -183,14 +226,18 @@ function tick() {
   const i = step % seq.steps
   const swungDelay = seq.swing && i % 2 === 1 ? beat * seq.swing * 0.34 : 0
   const t0 = ctx.currentTime + 0.05 + swungDelay
+  // El wobble solo en las pistas lo-fi: en combate desafinar suena a error.
+  const wob = seq.swing ? tapeWobble() : 0
   const b = seq.bass[i]
   const ch = seq.chords[i]
   const l = seq.lead[i]
-  if (b) note(N[b], t0, beat * 3.6, 'sine', 0.5)
-  if (ch) for (const cn of ch) { note(N[cn], t0, beat * 6, 'triangle', 0.14); note(N[cn], t0, beat * 6, 'sine', 0.09, 6) }
-  if (l) note(N[l], t0, beat * 1.6, seq.wave, 0.22)
+  if (b) note(N[b], t0, beat * 3.6, 'sine', 0.5, wob * 0.5)
+  if (ch) for (const cn of ch) { note(N[cn], t0, beat * 6, 'triangle', 0.14, wob); note(N[cn], t0, beat * 6, 'sine', 0.09, wob + 6) }
+  if (l) note(N[l], t0, beat * 1.6, seq.wave, 0.22, wob)
   if (seq.perc) {
     if (i % 4 === 0) kick(t0)
+    // Caja en 2 y 4 (solo lo-fi): sin ella el ritmo no se sostiene solo.
+    if (seq.swing && i % 8 === 4) snare(t0)
     if (i % 2 === 1) hat(t0, current === 'map' || current === 'league' ? 0.07 : 0.13)
   }
   step++

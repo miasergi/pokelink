@@ -12,6 +12,7 @@ import { segmentTheme } from '@/ui/components/routeTheme'
 import { ImgFallback } from '@/ui/components/kit'
 import PartyBar from '@/ui/components/PartyBar'
 import NodePreview from '@/ui/components/NodePreview'
+import MapTerrain from '@/ui/components/MapTerrain'
 import { TYPE_ES, TYPE_HEX } from '@/ui/theme/types'
 import TypeIcon from '@/ui/components/TypeIcon'
 import type { MapNode } from '@/engine/run/types'
@@ -227,7 +228,11 @@ export default function MapScreen() {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar">
         <div ref={wrapRef} className="relative mx-auto" style={{ height: totalHeight, width: '100%' }}>
-          {/* líneas de conexión (solo dentro del tramo visible) */}
+          {/* TABLERO: el terreno del bioma dibujado con tiles (hierba, arena,
+              nieve, roca...) según el tramo. Va debajo de sendas y casillas. */}
+          <MapTerrain palette={theme.terrain} width={width} height={totalHeight} seed={seg.index + 1} />
+
+          {/* sendero entre casillas (solo dentro del tramo visible) */}
           <svg className="absolute inset-0 pointer-events-none" width={width} height={totalHeight}>
             {map.layers.map((layerIds, li) =>
               inSeg(li) && li < seg.end
@@ -237,17 +242,24 @@ export default function MapScreen() {
                       const target = map.nodes[nx]
                       if (!inSeg(target.layer)) return null
                       const lit = node.cleared || reachable.has(id) || reachable.has(nx)
+                      const x1 = xOf(node.col, layerIds.length)
+                      const x2 = xOf(target.col, map.layers[li + 1].length)
+                      // Sendero de tierra sobre el terreno: trazo ancho del color
+                      // del bioma con un borde más oscuro, en vez de una línea
+                      // suelta. Los tramos aún no accesibles van punteados.
                       return (
-                        <line
-                          key={`${id}-${nx}`}
-                          x1={xOf(node.col, layerIds.length)}
-                          y1={yOf(li)}
-                          x2={xOf(target.col, map.layers[li + 1].length)}
-                          y2={yOf(li + 1)}
-                          stroke={node.cleared ? '#475569' : lit ? '#f59e0b88' : '#334155'}
-                          strokeWidth={2}
-                          strokeDasharray={node.cleared ? '0' : lit ? '0' : '4 4'}
-                        />
+                        <g key={`${id}-${nx}`} opacity={node.cleared ? 0.55 : lit ? 1 : 0.5}>
+                          <line
+                            x1={x1} y1={yOf(li)} x2={x2} y2={yOf(li + 1)}
+                            stroke={theme.terrain.edge} strokeWidth={9} strokeLinecap="round"
+                            strokeDasharray={lit ? '0' : '6 7'}
+                          />
+                          <line
+                            x1={x1} y1={yOf(li)} x2={x2} y2={yOf(li + 1)}
+                            stroke={theme.terrain.path} strokeWidth={5} strokeLinecap="round"
+                            strokeDasharray={lit ? '0' : '6 7'}
+                          />
+                        </g>
                       )
                     })
                   })
