@@ -94,10 +94,14 @@ const ROCKET_TEAMS: Record<number, number[]> = {
 function buildRocketContent(level: number, rng: RNG, gen: number, pool: SpeciesData[], difficulty: string): MapNode['content'] {
   const roster = ROCKET_TEAMS[gen] ?? ROCKET_TEAMS[1]
   const size = level < 15 ? 2 : 3
-  const team = roster.slice(0, size).map((id, i) => createInstance(id, Math.max(5, level + 1 - i * 2), rng))
+  // Team Rocket son los MALOS DE PACOTILLA del anime, no un jefe: iban un nivel
+  // POR ENCIMA de la zona y encima sumaban el Pokémon secuestrado, así que una
+  // casilla de entrenador normal escondía el combate más duro del tramo. Ahora
+  // van 2 niveles por debajo y el secuestrado también, que además es el premio.
+  const team = roster.slice(0, size).map((id, i) => createInstance(id, Math.max(5, level - 2 - i * 2), rng))
   // Pokémon "secuestrado": uno aleatorio acorde al nivel. Forma parte del equipo
   // (lo combates) y, si ganas, lo liberas. Guardamos una copia prístina (PS llenos).
-  const rescue = makeWild(pool, level, rng, difficulty)
+  const rescue = makeWild(pool, Math.max(2, level - 2), rng, difficulty)
   applyCaptureTier(rescue) // al liberarlo lo obtienes: misma curva que una captura
   team.push(structuredClone(rescue))
   const trainer: TrainerData = {
@@ -274,32 +278,33 @@ export function generateMap(
       const tough = difficulty === 'hard' || difficulty === 'nuzlocke'
       let specs = p.trainer!.team
 
-      // --- Difícil / Nuzlocke: EQUIPO COMPLETO ---
+      // --- Difícil / Nuzlocke: un par de acompañantes DE SU TIPO ---
       // Los rosters históricos son cortos (Brock lleva 2) mientras el jugador va
-      // con 6: medido, en el 4º gimnasio era 5,8 contra 3. En un autobattler esa
-      // diferencia de CUERPOS pesa más que cualquier nivel, y era la razón real
-      // de que Difícil se ganara con comodidad. Aquí se rellena hasta un mínimo
-      // que crece con la medalla (3 al principio, 6 al final), con especies del
-      // TIPO del líder para no romper su temática.
+      // con 6, y en un autobattler pelear 6 contra 2 lo decide todo. Se añade un
+      // relleno CORTO (el grueso de la dificultad son los niveles, no los
+      // cuerpos) y ESTRICTAMENTE del tipo del líder.
+      //
+      // OJO: nada de caer al pool general si el tipo escasea. Eso hacía que
+      // Lance (Dragón) o el Alto Mando salieran con Pokémon sin relación con su
+      // especialidad, que es justo lo que rompe la coherencia. Si no hay
+      // suficientes especies de su tipo en la región, se rellena MENOS.
       if (tough) {
-        const minSize = p.type === 'gym'
-          ? Math.min(6, 3 + Math.floor((p.bossIndex ?? 0) * 0.5))
-          : (p.type === 'elite' || p.type === 'champion') ? 6 : specs.length
-        if (specs.length < minSize) {
-          const specialty = p.trainer!.specialtyType
-          const themed = specialty ? pool.filter((s) => s.types.includes(specialty) && !s.isMega) : []
-          const fillPool = tierPool(themed.length >= 4 ? themed : pool.filter((s) => !s.isMega), ace, difficulty)
+        const target = p.type === 'gym'
+          ? Math.min(4, 2 + Math.floor((p.bossIndex ?? 0) * 0.4))
+          : (p.type === 'elite' || p.type === 'champion') ? Math.min(5, specs.length + 1) : specs.length
+        const specialty = p.trainer!.specialtyType
+        if (specialty && specs.length < target) {
+          const themed = pool.filter((s) => s.types.includes(specialty) && !s.isMega)
           const used = new Set(specs.map((s) => s.speciesId))
+          const avail = tierPool(themed, ace, difficulty).filter((s) => !used.has(s.id))
           const extra: typeof specs = []
-          while (specs.length + extra.length < minSize) {
-            let sp = rng.pick(fillPool)
-            let tries = 0
-            while (used.has(sp.id) && tries++ < 10) sp = rng.pick(fillPool)
-            used.add(sp.id)
+          while (specs.length + extra.length < target && avail.length) {
+            const idx = rng.int(0, avail.length - 1)
+            const [sp] = avail.splice(idx, 1) // sin repetir especie
             extra.push({ speciesId: sp.id, level: ace })
           }
           // Los de relleno van DELANTE: el as histórico sigue cerrando el equipo.
-          specs = [...extra, ...specs]
+          if (extra.length) specs = [...extra, ...specs]
         }
       }
 
@@ -438,7 +443,7 @@ export function buildRouteContent(
       // encima) del próximo jefe: con la variación de makeWild (+1), el tope
       // efectivo queda en jefe-1.
       const catchLevel = Math.max(2, Math.min(level, nextBoss - 2))
-      const count = difficulty === 'nuzlocke' ? 1 : 3
+      const count = 3
       const offers: PokemonInstance[] = []
       const used = new Set<number>()
       for (let k = 0; k < count; k++) {

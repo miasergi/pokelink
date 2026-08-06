@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.51',
+    date: '2026-08-06',
+    title: 'Jefes coherentes, Nuzlocke con vidas y botín con sentido',
+    changes: [
+      'ARREGLADO: en Difícil, los acompañantes que añadí a los líderes y al Alto Mando salían de cualquier tipo (a Lance le tocaban Pokémon sin nada de Dragón). Ahora son SIEMPRE de su especialidad, y si la región no tiene suficientes de ese tipo se rellena menos en vez de meter cualquier cosa.',
+      'Curva más dura: ganar a un jefe sube +3 niveles en vez de +5. Llegas al Campeón alrededor del nivel 92 en lugar de plantarte en el tope, así que la Liga exige de verdad.',
+      'NUZLOCKE REHECHO: ahora pelea con la MISMA dificultad que Difícil (mismos niveles, misma tienda, mismas capturas). Lo que lo hace Nuzlocke es que un Pokémon debilitado se pierde para siempre… y ahora eliges cuántas VIDAS quieres (0, 1, 2, 3 o 5): cada vida te deja perder un combate y seguir adelante.',
+      'Gafas Elección y Cinta Fuerte suben un 40% en vez de un 50%.',
+      'Team Rocket ya no es el combate más duro del tramo: iban por encima del nivel de la zona y encima sumaban el Pokémon secuestrado. Ahora van por debajo.',
+      'Las casillas de objeto pueden dar CUALQUIER objeto del juego, pero con coherencia: la Piedra Evolutiva sale desde el principio y con mucho peso (al empezar, evolucionar cambia la run más que unos niveles), el Supercaramelo se va a la segunda mitad, las pociones básicas dejan de salir camino de la Liga y las buenas aparecen a su tiempo.',
+      'Los fondos de ruta se ven de verdad: estaban tan oscurecidos y borrosos que no se reconocía el paisaje.',
+    ],
+  },
+  {
     version: 'v6.50',
     date: '2026-08-06',
     title: 'Mapas de verdad, líderes con equipo completo y más lo-fi',

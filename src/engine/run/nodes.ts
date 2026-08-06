@@ -64,10 +64,8 @@ export function makeWild(pool: SpeciesData[], level: number, rng: RNG, difficult
 
 // --- Pools de objetos por contexto (catálogo ágil) ---
 const TYPE_ITEMS = Object.keys(TYPE_BOOST_BY_ID)
-const HEAL_ITEMS = ['potion', 'super-potion', 'hyper-potion', 'max-potion', 'revive', 'max-revive']
 const GENERIC_HELD = ['leftovers', 'shell-bell', 'choice-band', 'assault-vest', 'life-orb', 'focus-sash', 'rocky-helmet', 'expert-belt', 'eviolite', 'super-mineral', 'razor-claw', 'double-glove', 'iron-ball', 'amulet-coin', 'kings-rock', 'lucky-egg', 'quick-claw', 'sitrus-berry', 'metronome', 'choice-specs', 'muscle-band']
 const HELD_ITEMS = [...GENERIC_HELD, ...TYPE_ITEMS]
-const BATTLE_ITEMS = ['rare-candy', 'super-candy', 'upgrade']
 
 /**
  * Pool VARIADO de objetos "regalo/botín" (recompensas de jefe, nodos
@@ -87,25 +85,82 @@ export const GIFT_ITEMS = [
 ]
 
 /** 3 objetos a elegir como recompensa. */
-export function itemChoices(rng: RNG, depthFrac: number): string[] {
-  const pool: string[] = []
-  // 1) SIEMPRE una mejora (caramelo, supercaramelo o Mejora de ataque).
-  pool.push(rng.pick(['rare-candy', 'upgrade', 'super-candy']))
-  // 2) Soporte (curación/revivir).
-  pool.push(rng.pick([...HEAL_ITEMS, 'revive-charm']))
-  // 3) Objeto equipable / piedra (Megapiedra solo muy avanzada la run, ~6 gimnasios).
-  const lastPool = depthFrac > 0.72 && rng.chance(0.3)
-    ? ['mega-stone']
-    : depthFrac > 0.3
-      ? ['evo-stone', ...HELD_ITEMS]
-      : [...HELD_ITEMS, 'upgrade']
-  pool.push(rng.pick(lastPool))
-  const set = [...new Set(pool)]
-  while (set.length < 3) {
-    const extra = rng.pick([...BATTLE_ITEMS, ...HELD_ITEMS, ...HEAL_ITEMS])
-    if (!set.includes(extra)) set.push(extra)
+/**
+ * A qué altura de la run (0 = salida, 1 = Campeón) se DESBLOQUEA cada objeto y
+ * con qué peso sale. Cualquier objeto puede tocar en cualquier casilla, pero
+ * con coherencia: nada de una Megapiedra en la primera ruta ni de pociones
+ * básicas camino de la Liga.
+ *
+ * La PIEDRA EVOLUTIVA sale desde el minuto uno y con peso alto: al principio
+ * hacer evolucionar a un Pokémon cambia la run mucho más que un puñado de
+ * niveles, y el Supercaramelo (que antes competía con ella en la primera
+ * ranura) queda relegado a la segunda mitad.
+ */
+const ITEM_GATE: Record<string, { from: number; to?: number; w: number }> = {
+  // Evolución
+  'evo-stone': { from: 0, w: 10 },
+  'mega-stone': { from: 0.72, w: 6 },
+  // Niveles / potencia
+  'rare-candy': { from: 0, w: 5 },
+  'super-candy': { from: 0.45, w: 5 },
+  upgrade: { from: 0, w: 6 },
+  'super-upgrade': { from: 0.5, w: 5 },
+  'z-move': { from: 0.6, w: 4 },
+  metamorph: { from: 0.35, w: 3 },
+  // Curación: las básicas se apagan al avanzar y las buenas aparecen después.
+  potion: { from: 0, to: 0.35, w: 6 },
+  'super-potion': { from: 0.1, to: 0.6, w: 6 },
+  'hyper-potion': { from: 0.35, to: 0.85, w: 6 },
+  'max-potion': { from: 0.6, w: 6 },
+  revive: { from: 0, to: 0.7, w: 5 },
+  'max-revive': { from: 0.5, w: 5 },
+  'revive-charm': { from: 0.3, w: 3 },
+  'shiny-incense': { from: 0.15, w: 2 },
+}
+
+/** Peso de un objeto equipable según la profundidad (los caros, más tarde). */
+function heldWeight(id: string, depth: number): number {
+  const price = ITEMS.find((i) => i.id === id)?.price ?? 1000
+  // Un objeto de 4000 ₽ no debería salir en la primera ruta.
+  const unlock = Math.min(0.7, price / 6000)
+  return depth >= unlock ? 4 : 0
+}
+
+/** Elige `n` ids distintos de una lista de pesos. */
+function pickWeighted(rng: RNG, entries: [string, number][], n: number): string[] {
+  const out: string[] = []
+  const pool = entries.filter(([, w]) => w > 0)
+  while (out.length < n && pool.length) {
+    const total = pool.reduce((a, [, w]) => a + w, 0)
+    let r = rng.next() * total
+    let idx = 0
+    for (let i = 0; i < pool.length; i++) { r -= pool[i][1]; if (r <= 0) { idx = i; break } }
+    out.push(pool[idx][0])
+    pool.splice(idx, 1)
   }
-  return set.slice(0, 3)
+  return out
+}
+
+/** Tres objetos a elegir en una casilla de objeto. Cualquiera puede salir
+ *  mientras encaje con el momento de la run (ver `ITEM_GATE`). */
+export function itemChoices(rng: RNG, depthFrac: number): string[] {
+  const d = Math.max(0, Math.min(1, depthFrac))
+  const entries: [string, number][] = []
+  for (const [id, g] of Object.entries(ITEM_GATE)) {
+    if (d < g.from || (g.to !== undefined && d > g.to)) continue
+    entries.push([id, g.w])
+  }
+  for (const id of HELD_ITEMS) {
+    const w = heldWeight(id, d)
+    if (w > 0) entries.push([id, w])
+  }
+  const picks = pickWeighted(rng, entries, 3)
+  // Respaldo por si la puerta dejara fuera casi todo (no debería pasar).
+  while (picks.length < 3) {
+    const extra = rng.pick(['potion', 'rare-candy', 'evo-stone', ...HELD_ITEMS])
+    if (!picks.includes(extra)) picks.push(extra)
+  }
+  return picks.slice(0, 3)
 }
 
 /** Stock de tienda. Pociones escalonadas según el momento de la run. */

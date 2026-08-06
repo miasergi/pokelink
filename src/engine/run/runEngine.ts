@@ -44,6 +44,9 @@ export interface NewRunConfig {
   /** Nivel LIBRE: desactiva el tope por medallas y deja subir sin límite
    *  (hasta 100). Lo elige el jugador al empezar la run. */
   freeLevel?: boolean
+  /** Nuzlocke: veces que puedes perder un combate sin que acabe la run. Lo
+   *  elige el jugador. Los Pokémon caídos se pierden igual, para siempre. */
+  lives?: number
 }
 
 const ALL_RANDOM: RandomFlags = { starters: true, wild: true, trainers: true, elite: true }
@@ -97,6 +100,7 @@ export function createRun(config: NewRunConfig): RunState {
     story: config.story,
     sonoro: config.sonoro,
     freeLevel: config.freeLevel,
+    lives: config.difficulty === 'nuzlocke' ? Math.max(0, config.lives ?? 2) : undefined,
     rngState: rng.getState(),
     map,
     currentNodeId: null,
@@ -191,6 +195,10 @@ export interface BattleOutcomeSummary {
   evoChoices: { uid: string; options: number[] }[]
   /** Nuzlocke: nombres de los Pokémon perdidos para siempre en este combate. */
   lost: string[]
+  /** Nuzlocke: perdiste el combate pero gastaste una vida y la run sigue. */
+  lifeUsed?: boolean
+  /** Nuzlocke: vidas que quedan tras gastar una. */
+  livesLeft?: number
   /** Nombre del legendario capturado al vencer su guardián. */
   caughtLegendary?: string
   /** Legendario que te ofrece unirse tras vencerlo (tú decides). */
@@ -225,7 +233,7 @@ const BOSS_DROPS = GIFT_ITEMS
  *  hasta el nivel del próximo jefe menos 1, así que con un margen más bajo
  *  habría salvajes por encima del máximo que el jugador puede alcanzar y la run
  *  sería imposible por construcción (lo cubre `balance.test.ts`). */
-const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 0, nuzlocke: -1 }
+const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 0, nuzlocke: 0 }
 
 /** Tope de nivel del equipo: el nivel EFECTIVO del próximo jefe sin vencer
  *  (gimnasio, Alto Mando o Campeón) más el margen de la dificultad. El tope
@@ -288,6 +296,16 @@ export function applyBattleOutcome(
   }
 
   if (result.winner !== 'player') {
+    // Nuzlocke: gastas una VIDA y sigues. Los caídos ya se han perdido para
+    // siempre arriba, así que continuar duele igual; la vida solo evita que la
+    // run muera de golpe. Sin vidas, se acabó.
+    if (run.difficulty === 'nuzlocke' && (run.lives ?? 0) > 0) {
+      run.lives = (run.lives ?? 0) - 1
+      healParty(run.party) // los supervivientes se recomponen para seguir
+      summary.lifeUsed = true
+      summary.livesLeft = run.lives
+      return summary
+    }
     // En un autobattler, perder = todo el equipo debilitado: fin de la run
     // (salvo que tengas un Salvavidas, que se gestiona en finishBattle).
     run.status = 'lost'
@@ -344,8 +362,8 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla (v6.46): salvaje +1 · entrenador de ruta +2
-  // · JEFES +5 (gimnasio, rival, guardián, Alto Mando y Campeón).
+  // Recompensa de nivel por casilla: salvaje +1 · entrenador de ruta +2
+  // · JEFES +3 (gimnasio, rival, guardián, Alto Mando y Campeón).
   // Los combates de ruta dan poco a propósito, pero el grueso de la curva se
   // paga en los jefes, que son inevitables: así el equipo llega a nivel 100
   // ante el Campeón sin necesidad de convertir el mapa en un pasillo de peleas
@@ -355,7 +373,7 @@ export function applyBattleOutcome(
   const cap = levelCap(run)
   const levelGain = node.type === 'battle' ? 1
     : node.type === 'trainer' ? 2
-    : 5
+    : 3
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

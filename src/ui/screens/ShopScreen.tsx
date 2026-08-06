@@ -17,11 +17,13 @@ export default function ShopScreen() {
   // La Supermejora solo se vende a partir de la 5ª medalla.
   const midGame = run.stats.gymsDefeated >= 5
   // Nuzlocke: prohibido comprar pociones/objetos de curación.
-  const noHeal = run.difficulty === 'nuzlocke'
+  // Nuzlocke ya no restringe la tienda: su dureza es la muerte permanente y las
+  // vidas, no racionar objetos (misma dificultad de combate que Difícil).
+  const noHeal = false
   // Solo Nuzlocke limita a 1 compra por visita. En Difícil se compra libremente:
   // el reto ahí es la curva de nivel, no racionar la tienda (el dinero ya la
   // limita de por sí, y con 1 compra la tienda dejaba de ser una decisión).
-  const oneItemOnly = run.difficulty === 'nuzlocke'
+  const oneItemOnly = false
   const lockedOut = oneItemOnly && bought
   // Desde la 5ª medalla toda tienda ofrece la Supermejora; desde la 7ª, el Movimiento Z.
   const baseStock = [...node.content.stock, ...(midGame ? ['super-upgrade'] : []), ...(lateGame ? ['z-move'] : [])]

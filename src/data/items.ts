@@ -76,8 +76,8 @@ export const ITEMS: ItemData[] = [
   { id: 'quick-claw', name: 'Garra Rápida', category: 'held', description: 'El Pokémon que la lleva ataca SIEMPRE primero (ignora la Velocidad).', price: 3500, sprite: ITEM_SPRITE('quick-claw') },
   { id: 'sitrus-berry', name: 'Baya Zidra', category: 'held', description: 'En combate, la PRIMERA vez que sus PS caen al 50% o menos, recupera la mitad de sus PS máximos (1 uso por combate; la baya no se gasta).', price: 2500, sprite: ITEM_SPRITE('sitrus-berry') },
   { id: 'metronome', name: 'Metrónomo', category: 'held', description: 'Cada golpe que da aumenta el daño de sus siguientes ataques un 25% (acumulable hasta +100% por combate).', price: 3000, sprite: ITEM_SPRITE('metronome') },
-  { id: 'choice-specs', name: 'Gafas Elección', category: 'held', description: 'Sube un 50% el Ataque Especial. Solo pueden equiparlas Pokémon de categoría ESPECIAL.', price: 3500, sprite: ITEM_SPRITE('choice-specs') },
-  { id: 'muscle-band', name: 'Cinta Fuerte', category: 'held', description: 'Sube un 50% el Ataque. Solo pueden equiparla Pokémon de categoría FÍSICA.', price: 3500, sprite: ITEM_SPRITE('muscle-band') },
+  { id: 'choice-specs', name: 'Gafas Elección', category: 'held', description: 'Sube un 40% el Ataque Especial. Solo pueden equiparlas Pokémon de categoría ESPECIAL.', price: 3500, sprite: ITEM_SPRITE('choice-specs') },
+  { id: 'muscle-band', name: 'Cinta Fuerte', category: 'held', description: 'Sube un 40% el Ataque. Solo pueden equiparla Pokémon de categoría FÍSICA.', price: 3500, sprite: ITEM_SPRITE('muscle-band') },
   { id: 'shiny-incense', name: 'Incienso Shiny', category: 'special', description: 'La PRÓXIMA casilla de captura te ofrecerá un Pokémon SHINY. Se gasta solo.', price: 8000, sprite: ITEM_SPRITE('lax-incense') },
   { id: 'metamorph', name: 'Metamorfosis', category: 'battle', description: 'Cambia entre las formas regionales de un Pokémon (Alola, Galar, Hisui, Paldea) y su forma normal. Se gasta al usarlo.', price: 4500, sprite: ITEM_SPRITE('reveal-glass') },
 

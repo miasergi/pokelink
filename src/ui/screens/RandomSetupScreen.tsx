@@ -53,6 +53,7 @@ export default function RandomSetupScreen() {
   const [cfg, setCfg] = useState<RolledConfig>(rollConfig)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [freeLevel, setFreeLevel] = useState(false)
+  const [lives, setLives] = useState(2)
   const region = getGeneration(cfg.gen).region
   const poolNames = cfg.pools.map((g) => getGeneration(g).region)
   const onCats = cfg.randomFlags ? RANDOM_LABELS.filter((c) => cfg.randomFlags![c.key]) : []
@@ -87,11 +88,12 @@ export default function RandomSetupScreen() {
         <RunOptions
           difficulty={difficulty} onDifficulty={setDifficulty}
           freeLevel={freeLevel} onFreeLevel={setFreeLevel}
+          lives={lives} onLives={setLives}
         />
       </div>
 
       <div className="p-4 safe-bottom flex flex-col gap-2">
-        <Button full variant="primary" onClick={() => navigate('starterSelect', { gen: cfg.gen, pools: cfg.pools, random: cfg.random, randomFlags: cfg.randomFlags, monotype: cfg.monotype, difficulty, freeLevel })}>
+        <Button full variant="primary" onClick={() => navigate('starterSelect', { gen: cfg.gen, pools: cfg.pools, random: cfg.random, randomFlags: cfg.randomFlags, monotype: cfg.monotype, difficulty, freeLevel, lives })}>
           Empezar ›
         </Button>
         <Button full variant="secondary" onClick={() => setCfg(rollConfig())}><span className="inline-flex items-center justify-center gap-2"><Icon name="dadoballs" className="w-8 h-5" /> Volver a tirar</span></Button>

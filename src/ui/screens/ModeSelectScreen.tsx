@@ -32,6 +32,7 @@ export default function ModeSelectScreen() {
   const [sonoroOn, setSonoroOn] = useState(false)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [freeLevel, setFreeLevel] = useState(false)
+  const [lives, setLives] = useState(2)
 
   const anyRandom = rand.starters || rand.wild || rand.trainers || rand.elite
   const monotype = monoOn ? mono ?? undefined : undefined
@@ -183,6 +184,7 @@ export default function ModeSelectScreen() {
         <RunOptions
           difficulty={difficulty} onDifficulty={setDifficulty}
           freeLevel={freeLevel} onFreeLevel={setFreeLevel}
+          lives={lives} onLives={setLives}
         />
       </div>
 
@@ -191,7 +193,7 @@ export default function ModeSelectScreen() {
           full
           variant="primary"
           disabled={blocked}
-          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype, sonoro: sonoroOn || undefined, difficulty, freeLevel })}
+          onClick={() => navigate('starterSelect', { gen, pools: [...pools].sort((a, b) => a - b), random: anyRandom, randomFlags: rand, monotype, sonoro: sonoroOn || undefined, difficulty, freeLevel, lives })}
         >
           {blocked ? 'Elige un tipo para el Monolocke' : 'Continuar ›'}
         </Button>

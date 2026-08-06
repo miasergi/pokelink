@@ -41,7 +41,9 @@ export function isCombatNode(node: MapNode): boolean {
 const LEVEL_BONUS: Record<string, { rate: number; max: number }> = {
   normal: { rate: 0, max: 0 },
   hard: { rate: 0.12, max: 3 },
-  nuzlocke: { rate: 0.16, max: 5 },
+  // Nuzlocke usa la MISMA curva que Difícil: su dureza propia es la muerte
+  // permanente y el número de vidas, no unos enemigos más altos.
+  nuzlocke: { rate: 0.12, max: 3 },
 }
 
 /** Niveles extra del enemigo para un nivel base dado (ver `LEVEL_BONUS`). */

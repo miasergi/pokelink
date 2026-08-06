@@ -125,12 +125,14 @@ export default function App() {
           style={{
             zIndex: -10,
             // El velo oscuro NO es decorativo: sin él la UI (texto claro sobre
-            // fondos con cielo) deja de leerse en las fotos más luminosas.
-            backgroundImage: `linear-gradient(rgba(2,6,23,0.68), rgba(2,6,23,0.86)), url(${runBg})`,
+            // fondos con cielo) deja de leerse en las fotos más luminosas. Pero
+            // estaba tan cargado (0.68/0.86 + desenfoque) que la ruta no se
+            // reconocía y el fondo parecía una mancha. Ahora se ve la foto.
+            backgroundImage: `linear-gradient(rgba(2,6,23,0.45), rgba(2,6,23,0.72)), url(${runBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(2px) saturate(0.85)',
-            transform: 'scale(1.05)',
+            filter: 'saturate(1.05)',
+            transform: 'scale(1.02)',
           }}
         />
       ) : (

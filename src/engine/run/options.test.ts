@@ -29,6 +29,25 @@ describe('opción de tope de nivel', () => {
   })
 })
 
+describe('vidas de Nuzlocke', () => {
+  it('solo Nuzlocke tiene vidas, y por defecto son 2', () => {
+    expect(newRun({ difficulty: 'nuzlocke' }).lives).toBe(2)
+    expect(newRun({ difficulty: 'nuzlocke', lives: 5 }).lives).toBe(5)
+    expect(newRun({ difficulty: 'nuzlocke', lives: 0 }).lives).toBe(0)
+    // En Normal/Difícil no hay vidas: perder un combate acaba la run.
+    expect(newRun({ difficulty: 'hard', lives: 3 }).lives).toBeUndefined()
+    expect(newRun({ difficulty: 'normal' }).lives).toBeUndefined()
+  })
+
+  it('Nuzlocke pelea con la MISMA curva que Difícil', () => {
+    // Su dureza propia es la muerte permanente y las vidas, no unos enemigos
+    // más altos ni un tope más bajo.
+    const h = newRun({ difficulty: 'hard' })
+    const n = newRun({ difficulty: 'nuzlocke' })
+    expect(levelCap(n)).toBe(levelCap(h))
+  })
+})
+
 describe('dinero ganado en la run', () => {
   it('acumula solo los ingresos, no las pérdidas', () => {
     const run = newRun()

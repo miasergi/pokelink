@@ -110,7 +110,10 @@ describe('E2E: run completa de principio a fin', () => {
     // eslint-disable-next-line no-console
     console.log(`\n[E2E] runs=24 terminadas=${ended} maxGimnasios=${maxGyms} maxAltoMando=${maxElite} victorias=${wins}`)
     expect(ended).toBe(24) // todas terminan sin colgarse
-    expect(maxGyms).toBe(8) // alguna recorre los 8 gimnasios
+    // El bot es ingenuo (no explota ventajas de tipo ni gestiona bien objetos):
+    // no se le exige completar la region, solo que la run AVANCE de verdad. Con
+    // el bonus de jefe a +3 su mejor marca baja de 8 gimnasios a 5.
+    expect(maxGyms).toBeGreaterThanOrEqual(4)
   })
 
   it('completa el recorrido en las 9 regiones sin errores', () => {

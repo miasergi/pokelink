@@ -513,9 +513,9 @@ function offenseMult(mon: PokemonInstance, move: MoveData, ctx: BattleCtx): numb
   // Objetos: de tipo (+50% a ese tipo) y Cinta Elección (+30% a todo).
   if (mon.heldItemId && TYPE_BOOST_BY_ID[mon.heldItemId] === move.type) m *= 1.5
   if (mon.heldItemId === 'choice-band') m *= 1.3
-  // Gafas Elección / Cinta Fuerte: +50% a la categoría que les corresponde.
-  if (mon.heldItemId === 'choice-specs' && !isPhysicalAttacker(mon)) m *= 1.5
-  if (mon.heldItemId === 'muscle-band' && isPhysicalAttacker(mon)) m *= 1.5
+  // Gafas Elección / Cinta Fuerte: +40% a la categoría que les corresponde.
+  if (mon.heldItemId === 'choice-specs' && !isPhysicalAttacker(mon)) m *= 1.4
+  if (mon.heldItemId === 'muscle-band' && isPhysicalAttacker(mon)) m *= 1.4
   if (mon.heldItemId === 'iron-ball') m *= 1.75 // Lastre de Hierro (+75%)
   m *= weatherDamageMult(ctx.weather, move.type)
   return m

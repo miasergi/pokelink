@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, levelCap } from './runEngine'
 import { effectiveEnemyLevel, enemyLevelBonus } from './difficulty'
+import { getSpecies } from '@/data'
 import type { Difficulty, MapNode, RunState } from './types'
 
 /**
@@ -61,7 +62,10 @@ describe('curva de nivel por dificultad', () => {
     const gym4 = (r: RunState) => bosses(r).filter((b) => b.type === 'gym')[3]
     // Enemigo más fuerte y menos colchón de nivel, en ese orden.
     expect(effectiveEnemyLevel(gym4(hard), 'hard')).toBeGreaterThan(effectiveEnemyLevel(gym4(normal), 'normal'))
-    expect(effectiveEnemyLevel(gym4(nuz), 'nuzlocke')).toBeGreaterThan(effectiveEnemyLevel(gym4(hard), 'hard'))
+    // Nuzlocke usa a propósito la MISMA curva de combate que Difícil: lo que lo
+    // hace más duro es la muerte permanente y el número de vidas, no unos
+    // enemigos más altos. Por eso aquí se compara con ">=" y no con ">".
+    expect(effectiveEnemyLevel(gym4(nuz), 'nuzlocke')).toBeGreaterThanOrEqual(effectiveEnemyLevel(gym4(hard), 'hard'))
 
     // Colchón = cuánto puedes superar al AS del jefe. Tiene que MENGUAR al subir
     // de dificultad. Estuvo aplanado (+5/+2/+0 con extras que se cancelaban:
@@ -71,32 +75,36 @@ describe('curva de nivel por dificultad', () => {
     const sHard = slack(hard, 'hard')
     const sNuz = slack(nuz, 'nuzlocke')
     expect(sNormal).toBeGreaterThan(sHard)
-    expect(sHard).toBeGreaterThan(sNuz)
+    expect(sHard).toBeGreaterThanOrEqual(sNuz) // Nuzlocke iguala a Difícil
     // En Difícil, como mucho IGUALAS al as: nunca por encima.
     expect(sHard).toBeLessThanOrEqual(0)
   })
 
-  it('en Difícil los jefes traen equipo completo y apretado', () => {
+  it('en Difícil los acompañantes del jefe son SIEMPRE de su tipo', () => {
     const hard = createRun({ pools: [1], random: false, difficulty: 'hard', gen: 1, starterId: 1, seed: 7 })
-    const normal = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 7 })
-    const gyms = (r: RunState) => bosses(r).filter((b) => b.type === 'gym')
     const teamOf = (n: MapNode) => (n.content.kind === 'trainer' ? n.content.team : [])
 
-    for (const [i, g] of gyms(hard).entries()) {
-      const t = teamOf(g)
-      // Cuerpos: el jugador va con 6 y los rosters históricos son de 2-3. Sin
-      // esto, en Difícil se peleaba 6 contra 3 y el nivel daba igual.
-      expect(t.length).toBeGreaterThanOrEqual(Math.min(6, 3 + Math.floor(i * 0.5)))
+    for (const b of bosses(hard)) {
+      if (b.content.kind !== 'trainer') continue
+      const specialty = b.content.trainer.specialtyType
+      if (!specialty) continue // el Campeón no tiene especialidad: lleva de todo
+      const t = teamOf(b)
+      // El as histórico cierra el equipo; los añadidos van delante y TIENEN que
+      // ser del tipo del líder. Antes, si la región tenía pocas especies de ese
+      // tipo, se caía al pool general y a Lance le salían Pokémon sin relación
+      // con Dragón. Nunca más: si no hay de su tipo, se rellena menos.
+      const filler = t.slice(0, t.length - b.content.trainer.team.length)
+      for (const m of filler) {
+        const types = getSpecies(m.speciesId).types
+        expect(types, `${b.content.trainer.name} (${specialty}) lleva ${getSpecies(m.speciesId).displayName}`)
+          .toContain(specialty)
+      }
       // Abanico apretado: la media del equipo no puede quedar muy por debajo
       // de su as, o tu equipo (pegado al tope) los supera a casi todos.
       const ace = Math.max(...t.map((m) => m.level))
       const avg = t.reduce((a, m) => a + m.level, 0) / t.length
       expect(ace - avg).toBeLessThanOrEqual(3)
     }
-    // Normal conserva los rosters canónicos: es el nivel accesible.
-    const n4 = teamOf(gyms(normal)[3])
-    const h4 = teamOf(gyms(hard)[3])
-    expect(h4.length).toBeGreaterThan(n4.length)
   })
 
   it('ninguna casilla de ruta pide más nivel del que el tope permite tener', () => {

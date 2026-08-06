@@ -26,6 +26,7 @@ export default function StarterSelectScreen() {
   // diario los ignora: es el mismo mapa para todos y el ranking debe compararse.
   const difficulty = (screen.params?.difficulty as Difficulty | undefined) ?? 'normal'
   const freeLevel = (screen.params?.freeLevel as boolean | undefined) ?? false
+  const lives = (screen.params?.lives as number | undefined) ?? 2
   // Selecciona hasta `n` ids distintos de un pool (aleatorio).
   const pickDistinct = (pool: SpeciesData[], n: number): number[] => {
     const picks: number[] = []
@@ -185,7 +186,7 @@ export default function StarterSelectScreen() {
             // El Reto diario es el MISMO para todo el mundo: ni dificultad ni
             // tope de nivel se tocan, o el ranking dejaría de ser comparable.
             ? { gen, pools: [gen], random: false, starterId: selected, difficulty: 'normal', seed: dailySeed, daily }
-            : { gen, pools, random, randomFlags, monotype, sonoro, starterId: selected, difficulty, freeLevel })}
+            : { gen, pools, random, randomFlags, monotype, sonoro, starterId: selected, difficulty, freeLevel, lives })}
         >
           {selected !== null ? `¡Empezar con ${getSpecies(selected).displayName}!` : 'Selecciona un inicial'}
         </Button>

@@ -154,6 +154,9 @@ export interface RunState {
   /** Nivel LIBRE: sin tope por medallas, tus Pokémon suben hasta 100 cuando
    *  quieras. Lo decide el jugador al empezar la run (ver `levelCap`). */
   freeLevel?: boolean
+  /** Nuzlocke: vidas que QUEDAN. Al perder un combate se gasta una y la run
+   *  continúa (los caídos siguen perdiéndose). A cero, se acabó. */
+  lives?: number
 }
 
 export interface OfferedItem {
