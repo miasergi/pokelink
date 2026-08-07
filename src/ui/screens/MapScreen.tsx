@@ -96,7 +96,7 @@ export default function MapScreen() {
   const inSeg = (layer: number) => layer >= seg.start && layer <= seg.end
 
   const isLastSeg = seg.index === segs.length - 1
-  const theme = segmentTheme(seg, isLastSeg)
+  const theme = segmentTheme(seg, isLastSeg, run.gen)
   const chapter = run.story ? CHAPTERS[run.story - 1] : undefined
   const headerImg = chapter?.mapBg ?? theme.img
   const headerName = chapter ? run.region : theme.name

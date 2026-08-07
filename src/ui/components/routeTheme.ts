@@ -83,10 +83,44 @@ const THEME_BY_TYPE: Record<PokemonType, RouteTheme> = {
 
 export const LEAGUE_THEME: RouteTheme = T('league', 'Calle Victoria', STONE)
 
-/** Tema visual de un tramo: por el tipo del líder que lo cierra; el tramo
- *  final (Calle Victoria + Liga) tiene tema propio. */
-export function segmentTheme(seg: MapSegment, isLast: boolean): RouteTheme {
-  if (isLast) return LEAGUE_THEME
+// ---------------------------------------------------------------------------
+// Localidades REALES de cada región (v6.52)
+//
+// Antes cada tramo se ilustraba con una foto de un paisaje real (una pradera de
+// la Toscana, el estadio del Bayern para la Liga...) elegida por el TIPO del
+// líder: quedaba fuera de tono y además Kanto y Paldea se veían igual. Ahora
+// cada tramo muestra la localidad de los JUEGOS donde está ese gimnasio, en el
+// orden de líderes de `src/data/trainers/genN.ts`, y la novena entrada es la
+// Liga. Imágenes en `public/routes/gen<N>/<tramo>.webp` (recortadas a 720×360
+// webp desde Bulbapedia; proyecto de fan sin ánimo de lucro). Para usar arte
+// propio basta sobrescribir esos ficheros.
+const ART = import.meta.env.BASE_URL + 'routes/'
+interface RegionPlace { name: string }
+const A = (name: string): RegionPlace => ({ name })
+
+const PLACES_BY_GEN: Record<number, RegionPlace[]> = {
+  1: [A('Ciudad Plateada'), A('Ciudad Celeste'), A('Ciudad Carmín'), A('Ciudad Azulona'), A('Ciudad Fucsia'), A('Ciudad Azafrán'), A('Isla Canela'), A('Ciudad Verde'), A('Meseta Añil')],
+  2: [A('Ciudad Malva'), A('Pueblo Azalea'), A('Ciudad Trigal'), A('Ciudad Iris'), A('Ciudad Orquídea'), A('Ciudad Olivo'), A('Pueblo Caoba'), A('Ciudad Endrino'), A('Calle Victoria')],
+  3: [A('Ciudad Férrica'), A('Pueblo Azuliza'), A('Ciudad Malvalona'), A('Pueblo Lavacalda'), A('Ciudad Petalia'), A('Ciudad Arborada'), A('Ciudad Algaria'), A('Arrecípolis'), A('Ciudad Colosalia')],
+  4: [A('Ciudad Pirita'), A('Ciudad Vetusta'), A('Ciudad Rocavelo'), A('Ciudad Pradera'), A('Ciudad Corazón'), A('Ciudad Canal'), A('Ciudad Puntaneva'), A('Ciudad Marina'), A('Liga de Sinnoh')],
+  5: [A('Ciudad Gres'), A('Ciudad Esmalte'), A('Ciudad Porcelana'), A('Ciudad Mayólica'), A('Ciudad Rayente'), A('Ciudad Loza'), A('Ciudad Ferrocén'), A('Ciudad Ópalo'), A('Liga de Teselia')],
+  6: [A('Ciudad Novarte'), A('Ciudad Relieve'), A('Ciudad Yantra'), A('Ciudad Fluxus'), A('Ciudad Luminalia'), A('Ciudad Fractal'), A('Ciudad Tulusa'), A('Ciudad Nieveria'), A('Liga de Kalos')],
+  7: [A('Cueva Bullente'), A('Colina Saltagua'), A('Área Volcánica del Wela'), A('Jungla Umbría'), A('Observatorio Hokulani'), A('Supermercado Abandonado'), A('Pueblo Marino'), A('Cañón Poni'), A('Monte Lanakila')],
+  8: [A('Pueblo Ladera'), A('Pueblo Amura'), A('Ciudad Pistón'), A('Pueblo Auriga'), A('Bosque Lúgubre'), A('Pueblo Plié'), A('Pueblo Crampón'), A('Ciudad Artejo'), A('Ciudad Puntera')],
+  9: [A('Cortondo'), A('Artazon'), A('Levincia'), A('Cascarrafa'), A('Medalí'), A('Montenevera'), A('Alfornada'), A('Monte Glaseado'), A('Mesagoza')],
+}
+
+/** Tema visual de un tramo: la localidad real de la región si la conocemos y,
+ *  si no (modo historia, regiones sin arte), el paisaje por TIPO de siempre.
+ *  El TERRENO del tablero sigue saliendo del tipo del líder: el bioma tiene que
+ *  casar con lo que peleas, no con la ciudad. */
+export function segmentTheme(seg: MapSegment, isLast: boolean, gen?: number): RouteTheme {
   const type = seg.boss?.content.kind === 'trainer' ? seg.boss.content.trainer.specialtyType : undefined
-  return (type && THEME_BY_TYPE[type]) || THEME_BY_TYPE.normal
+  const fallback = isLast ? LEAGUE_THEME : (type && THEME_BY_TYPE[type]) || THEME_BY_TYPE.normal
+  const places = gen ? PLACES_BY_GEN[gen] : undefined
+  // El tramo final (Calle Victoria + Liga) es siempre la última entrada.
+  const i = isLast ? (places?.length ?? 0) - 1 : seg.index
+  const place = places?.[i]
+  if (!place) return fallback
+  return { img: `${ART}gen${gen}/${i}.webp`, name: place.name, terrain: fallback.terrain }
 }

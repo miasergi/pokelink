@@ -4,7 +4,7 @@ import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
-import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, enemyLevelBonus } from '@/engine/run/difficulty'
+import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, nodeLevelBonus } from '@/engine/run/difficulty'
 import { monTypes } from '@/engine/team/leveling'
 
 const CLASS_ES: Record<string, string> = {
@@ -62,7 +62,7 @@ export default function NodePreview({
   // extra fijo. Al entrar en combate el motor ya sube las instancias, así que
   // solo hay que sumarlo mientras la casilla siga sin superarse (si no, se
   // contaría dos veces al revisar una casilla ya vencida).
-  const lvlBonus = node.cleared ? 0 : enemyLevelBonus(difficulty, node.enemyLevel)
+  const lvlBonus = node.cleared ? 0 : nodeLevelBonus(node, difficulty)
   const shown = (lv: number) => Math.min(100, lv + lvlBonus)
   const minLvl = team.length ? shown(Math.min(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
   const maxLvl = team.length ? shown(Math.max(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)

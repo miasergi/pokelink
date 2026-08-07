@@ -27,5 +27,5 @@ export function useRunBackdrop(screenName: string): string | null {
   if (run.story) return CHAPTERS[run.story - 1]?.mapBg ?? null
   const segs = mapSegments(run.map)
   const seg = activeSegment(segs, run)
-  return segmentTheme(seg, seg.index === segs.length - 1).img
+  return segmentTheme(seg, seg.index === segs.length - 1, run.gen).img
 }
