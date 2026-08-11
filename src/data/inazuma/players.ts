@@ -354,8 +354,8 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['r-recorte'],
   },
   {
-    id: 'sail-bluesea-game', name: 'Sail Bluesea (game)', team: 'shuriken', position: 'DEL', element: 'fuego', rarity: 1,
-    stats: { tiro: 62, control: 46, fisico: 25, defensa: 18, velocidad: 36, aguante: 21 },
+    id: 'sail-bluesea', name: 'Sail Bluesea', team: 'shuriken', position: 'DEL', element: 'fuego', rarity: 1,
+    stats: { tiro: 59, control: 42, fisico: 30, defensa: 19, velocidad: 33, aguante: 18 },
     techniques: ['t-tiro-raso'],
   },
   {
@@ -447,8 +447,8 @@ export const PLAYERS: PlayerBase[] = [
   },
   // ============================== KIRKWOOD
   {
-    id: 'john-neville-game', name: 'John Neville (game)', team: 'kirkwood', position: 'POR', element: 'fuego', rarity: 4,
-    stats: { tiro: 30, control: 44, fisico: 60, defensa: 101, velocidad: 39, aguante: 60 },
+    id: 'john-neville', name: 'John Neville', team: 'kirkwood', position: 'POR', element: 'fuego', rarity: 4,
+    stats: { tiro: 32, control: 47, fisico: 59, defensa: 98, velocidad: 44, aguante: 59 },
     techniques: ['p-mano-celestial', 'p-blocaje'],
     spirit: 'pegaso',
   },
@@ -468,8 +468,8 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['b-raices', 'b-entrada'],
   },
   {
-    id: 'ricky-clover-game', name: 'Ricky Clover (game)', team: 'kirkwood', position: 'DEF', element: 'montana', rarity: 3,
-    stats: { tiro: 30, control: 41, fisico: 72, defensa: 80, velocidad: 34, aguante: 42 },
+    id: 'ricky-clover', name: 'Ricky Clover', team: 'kirkwood', position: 'DEF', element: 'montana', rarity: 3,
+    stats: { tiro: 22, control: 42, fisico: 67, defensa: 78, velocidad: 37, aguante: 38 },
     techniques: ['b-raices', 'b-entrada'],
   },
   {
@@ -680,12 +680,6 @@ export function playersOfTeam(teamId: string): PlayerBase[] {
   return PLAYERS.filter((p) => p.team === teamId)
 }
 
-/**
- * Once con el que arranca cada instituto: su portero, cuatro defensas, cuatro
- * centrocampistas y dos delanteros, cogidos por orden de plantilla (los
- * primeros de la wiki son los titulares). Si a alguna línea le falta gente se
- * completa con lo que quede, para que siempre salgan 11.
- */
 export function squadCounts(teamId: string): { DEF: number; MED: number; DEL: number } {
   const own = playersOfTeam(teamId)
   const n = (pos: PlayerBase['position']) => own.filter((p) => p.position === pos).length
@@ -697,6 +691,11 @@ export function formationFor(teamId: string): string {
   return bestFormationFor(squadCounts(teamId)).id
 }
 
+/**
+ * Once con el que arranca cada instituto, según la formación que pueda
+ * alinear: las plantillas son las reales y cada equipo trae su reparto, así
+ * que un 4-4-2 fijo dejaba a varios con el once inválido de salida.
+ */
 export function startingSquad(teamId: string, formationId?: string): string[] {
   const own = playersOfTeam(teamId)
   const f = getFormation(formationId ?? formationFor(teamId))

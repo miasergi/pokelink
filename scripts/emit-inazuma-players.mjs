@@ -73,6 +73,9 @@ function techsFor(position, rarity) {
 
 const q = (s) => `'${s.replace(/'/g, "\\'")}'`
 
+const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 async function main() {
   const data = JSON.parse(await readFile(IN, 'utf8'))
 
@@ -88,6 +91,7 @@ async function main() {
   lines.push('// una escala comparable, así que se reparten por demarcación y por el puesto que')
   lines.push('// ocupa el jugador en la plantilla de la wiki (los primeros son los titulares).')
   lines.push('// Presupuesto por rareza: ★1≈200 ★2≈240 ★3≈285 ★4≈330 ★5≈375.')
+  lines.push("import { bestFormationFor, getFormation } from '@/data/inazuma/formations'")
   lines.push("import type { PlayerBase } from '@/engine/inazuma/types'")
   lines.push('')
   lines.push('export const PLAYERS: PlayerBase[] = [')
@@ -98,16 +102,20 @@ async function main() {
     let idx = 0
     for (const p of list) {
       if (!p.position || !p.element) continue
-      let id = p.id
+      // La wiki añade sufijos de desambiguación al nombre del doblaje
+      // («John Neville (game)»); fuera, que se ven en la carta del jugador.
+      const cleanName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim()
+      let id = slugify(cleanName)
+      const baseId = id
       let n = 2
-      while (seenIds.has(id)) id = `${p.id}-${n++}`
+      while (seenIds.has(id)) id = `${baseId}-${n++}`
       seenIds.add(id)
 
       const rarity = rarityFor(idx, teamId)
       const st = statsFor(p.position, rarity, id)
       const techs = techsFor(p.position, rarity)
       lines.push('  {')
-      lines.push(`    id: ${q(id)}, name: ${q(p.name)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)
+      lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)
       lines.push(`    stats: { tiro: ${st.tiro}, control: ${st.control}, fisico: ${st.fisico}, defensa: ${st.defensa}, velocidad: ${st.velocidad}, aguante: ${st.aguante} },`)
       lines.push(`    techniques: [${techs.map(q).join(', ')}],`)
       if (rarity >= 4) lines.push(`    spirit: ${q(SPIRIT[p.element])},`)
@@ -130,17 +138,28 @@ async function main() {
   lines.push('  return PLAYERS.filter((p) => p.team === teamId)')
   lines.push('}')
   lines.push('')
-  lines.push('/**')
-  lines.push(' * Once con el que arranca cada instituto: su portero, cuatro defensas, cuatro')
-  lines.push(' * centrocampistas y dos delanteros, cogidos por orden de plantilla (los')
-  lines.push(' * primeros de la wiki son los titulares). Si a alguna línea le falta gente se')
-  lines.push(' * completa con lo que quede, para que siempre salgan 11.')
-  lines.push(' */')
-  lines.push('export function startingSquad(teamId: string): string[] {')
+  lines.push('export function squadCounts(teamId: string): { DEF: number; MED: number; DEL: number } {')
   lines.push('  const own = playersOfTeam(teamId)')
+  lines.push("  const n = (pos: PlayerBase['position']) => own.filter((p) => p.position === pos).length")
+  lines.push("  return { DEF: n('DEF'), MED: n('MED'), DEL: n('DEL') }")
+  lines.push('}')
+  lines.push('')
+  lines.push('/** Formación que este instituto puede alinear con su plantilla real. */')
+  lines.push('export function formationFor(teamId: string): string {')
+  lines.push('  return bestFormationFor(squadCounts(teamId)).id')
+  lines.push('}')
+  lines.push('')
+  lines.push('/**')
+  lines.push(' * Once con el que arranca cada instituto, según la formación que pueda')
+  lines.push(' * alinear: las plantillas son las reales y cada equipo trae su reparto, así')
+  lines.push(' * que un 4-4-2 fijo dejaba a varios con el once inválido de salida.')
+  lines.push(' */')
+  lines.push('export function startingSquad(teamId: string, formationId?: string): string[] {')
+  lines.push('  const own = playersOfTeam(teamId)')
+  lines.push('  const f = getFormation(formationId ?? formationFor(teamId))')
   lines.push("  const line = (pos: PlayerBase['position'], n: number) =>")
   lines.push('    own.filter((p) => p.position === pos).slice(0, n).map((p) => p.id)')
-  lines.push("  const picked = [...line('POR', 1), ...line('DEF', 4), ...line('MED', 4), ...line('DEL', 2)]")
+  lines.push("  const picked = [...line('POR', 1), ...line('DEF', f.defs), ...line('MED', f.mids), ...line('DEL', f.fwds)]")
   lines.push('  if (picked.length < 11) {')
   lines.push('    const rest = own.filter((p) => !picked.includes(p.id)).map((p) => p.id)')
   lines.push('    picked.push(...rest.slice(0, 11 - picked.length))')
