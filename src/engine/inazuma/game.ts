@@ -2,7 +2,7 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { getPlayerBase, RAIMON_STARTING_XI } from '@/data/inazuma/players'
+import { getPlayerBase, startingSquad } from '@/data/inazuma/players'
 import { getTeam } from '@/data/inazuma/teams'
 import { DEFAULT_FORMATION } from '@/data/inazuma/formations'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -30,17 +30,20 @@ import type {
  * penalización a la tercera eliminatoria y el banquillo pasa a tener sentido.
  */
 const NINETY_MINUTES_COST = 34
+/** Niveles que pierde el banquillo respecto a quien juega. */
+export const BENCH_LEVEL_PENALTY = 1
 const REST_STAMINA = 12
 const REST_PT_FRACTION = 0.35
 
-export function createSave(seed: number): InazumaSave {
+export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
   const rng = new RNG(seed)
-  const roster = RAIMON_STARTING_XI.map((id, i) =>
+  const roster = startingSquad(teamId).map((id, i) =>
     createPlayer(id, START_LEVEL, { captain: i === 0 }))
-  const map = generateMap(rng)
+  const map = generateMap(rng, teamId)
   const lineup = autoLineup(roster, DEFAULT_FORMATION)
   return {
     seed,
+    teamId,
     rngState: rng.getState(),
     map,
     layer: 0,
@@ -142,7 +145,8 @@ export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup 
   const team = getTeam(teamId)
   const rivals = buildRivalTeam(teamId, node.level ?? 10, rng)
 
-  const home = sideFromActors('Raimon', '#e11d48', 'montana', true, lineup.all.map(actorFromPlayer))
+  const mineTeam = getTeam(save.teamId ?? 'raimon')
+  const home = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true, lineup.all.map(actorFromPlayer))
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
   return { match: createMatch({ seed: rng.getState(), home, away }, rng), rng, node }
@@ -165,7 +169,8 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
 
   const rng = nodeRng(save, node)
   const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng)
-  const mine = sideFromActors('Raimon', '#e11d48', 'montana', true, lineup.all.map(actorFromPlayer))
+  const mineTeam = getTeam(save.teamId ?? 'raimon')
+  const mine = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true, lineup.all.map(actorFromPlayer))
   const theirs = sideFromActors(node.title, '#64748b', 'montana', false, rivals.map(actorFromRival))
 
   return {
@@ -228,14 +233,13 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
-    // Sube de nivel TODA la plantilla, jueguen o no: el equipo entrena junto.
-    // Cuando solo subían los titulares, la fatiga te obligaba a rotar y rotar
-    // te diluía la plantilla — dos sistemas peleándose, y el banquillo era una
-    // trampa. Lo que distingue a un suplente es que llega FRESCO, no que sea
-    // más malo por no jugar.
+    // El banquillo también progresa, pero UN NIVEL MENOS que quien juega: si no
+    // subiera nada, rotar te diluiría la plantilla y el banquillo sería una
+    // trampa; si subiera igual, jugar no tendría premio. Un nivel de diferencia
+    // hace que rotar cueste algo real sin castigar por hacerlo.
     let next: PlayerInstance = levelUp(
       a ? { ...p, stamina: Math.max(0, a.stamina - NINETY_MINUTES_COST), pt: a.pt } : { ...p },
-      gained,
+      a ? gained : Math.max(0, gained - BENCH_LEVEL_PENALTY),
     )
     // Descanso entre eliminatorias: algo, pero nunca del todo.
     next = {
@@ -276,10 +280,12 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
     let next: PlayerInstance = a ? { ...p, stamina: a.stamina, pt: a.pt } : { ...p }
-    // El nivel se lo llevan SOLO los que han jugado la pachanga: es el incentivo
-    // para rotar al banquillo en las casillas de ruta y llegar al jefe con el
-    // once titular fresco.
-    if (levels && played.has(p.uid)) next = levelUp(next, levels)
+    // Igual que en los partidos: quien la disputa se lleva los niveles enteros
+    // y el resto uno menos. Así rotar en las pachangas sigue teniendo sentido
+    // (llegas fresco al jefe) sin que el banquillo se descuelgue.
+    if (levels) {
+      next = levelUp(next, played.has(p.uid) ? levels : Math.max(0, levels - BENCH_LEVEL_PENALTY))
+    }
     return next
   })
 

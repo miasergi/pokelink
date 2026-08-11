@@ -19,7 +19,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   objeto: { icon: '🎒', color: '#a78bfa', label: 'Objeto' },
   tecnica: { icon: '⚡', color: '#fbbf24', label: 'Técnica' },
   ojeador: { icon: '🔎', color: '#34d399', label: 'Ojeador' },
-  descanso: { icon: '🛌', color: '#f472b6', label: 'Descanso' },
+  rairai: { icon: '🍜', color: '#f472b6', label: 'Rai Rai' },
   tienda: { icon: '🛒', color: '#fcd34d', label: 'Tienda' },
   jefe: { icon: '⚔️', color: '#f87171', label: 'Instituto' },
   final: { icon: '🏆', color: '#fde047', label: 'FINAL' },

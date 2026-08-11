@@ -109,7 +109,7 @@ interface InazumaState {
 
   initInazuma: () => Promise<void>
   exitInazuma: () => void
-  newTournament: () => Promise<void>
+  newTournament: (teamId?: string) => Promise<void>
   continueTournament: () => void
   abandonTournament: () => Promise<void>
   goTo: (phase: InazumaPhase) => void
@@ -138,6 +138,7 @@ interface InazumaState {
 
   // plantilla
   setLineup: (uids: string[]) => void
+  swapPlayers: (a: string, b: string) => void
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string) => void
@@ -184,10 +185,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     useGame.getState().navigate('home')
   },
 
-  newTournament: async () => {
+  newTournament: async (teamId = 'raimon') => {
     stopTicker()
     const seed = Math.floor(Math.random() * 0xffffffff)
-    const save = createSave(seed)
+    const save = createSave(seed, teamId)
     rng = new RNG(seed)
     rng.setState(save.rngState)
     await saveInazuma(save)
@@ -229,8 +230,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       set({ matchNode: node, phase: 'preview' })
       return
     }
-    if (node.kind === 'tienda') {
-      set({ matchNode: node, phase: 'shop' })
+    if (node.kind === 'tienda' || node.kind === 'rairai') {
+      // El Rai Rai cura al entrar (es el centro Pokémon del modo) y ADEMÁS
+      // te deja comprar comida para llevar.
+      const next = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
+      if (node.kind === 'rairai') fullRest(next)
+      advanceLayer(next, node)
+      set({
+        save: next,
+        matchNode: node,
+        phase: 'shop',
+        message: node.kind === 'rairai' ? '¡Ramen para todos! Plantilla recuperada.' : null,
+      })
+      void persist(next, 'shop')
       return
     }
 
@@ -238,10 +250,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     let message: string | null = null
 
     switch (node.kind) {
-      case 'descanso':
-        fullRest(next)
-        message = 'Toda la plantilla vuelve a estar fresca: aguante y PT al máximo.'
-        break
+
       case 'objeto':
         if (node.itemId) {
           next.bag.push(node.itemId)
@@ -584,6 +593,33 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, get().phase)
   },
 
+  /**
+   * Intercambia dos jugadores arrastrando en el campo. Si los dos son
+   * titulares se reordena el once; si uno está en el banquillo, entra y sale
+   * el otro. Se valida DESPUÉS con `lineupError`, así que puedes dejar el once
+   * inválido a medias mientras recolocas — avisa, pero no te bloquea el gesto.
+   */
+  swapPlayers: (a, b) => {
+    const { save } = get()
+    if (!save || a === b) return
+    const ia = save.lineup.indexOf(a)
+    const ib = save.lineup.indexOf(b)
+    const lineup = save.lineup.slice()
+    if (ia >= 0 && ib >= 0) {
+      lineup[ia] = b
+      lineup[ib] = a
+    } else if (ia >= 0) {
+      lineup[ia] = b
+    } else if (ib >= 0) {
+      lineup[ib] = a
+    } else {
+      return
+    }
+    const next = { ...save, lineup }
+    set({ save: next })
+    void persist(next, get().phase)
+  },
+
   toggleStarter: (uid) => {
     const { save } = get()
     if (!save) return
@@ -647,6 +683,26 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       case 'masaje':
         roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: Math.min(100, p.stamina + 50) } : p))
         message = '+50 de aguante'
+        break
+      case 'ramen-rai-rai':
+        roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: Math.min(100, p.stamina + 60) } : p))
+        message = '+60 de aguante'
+        break
+      case 'ramen-especial':
+        roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: 100, pt: ptMax(p) } : p))
+        message = 'Como nuevo'
+        break
+      case 'gyoza':
+        roster = roster.map((p) => ({ ...p, stamina: Math.min(100, p.stamina + 30) }))
+        message = 'Gyozas para todos: +30 de aguante'
+        break
+      case 'banquete':
+        roster = roster.map((p) => ({ ...p, stamina: 100, pt: ptMax(p) }))
+        message = '¡Banquete! Toda la plantilla a tope'
+        break
+      case 'plan-intensivo':
+        roster = roster.map((p) => (p.uid === uid ? levelUp(p, 4) : p))
+        message = '+4 niveles'
         break
       case 'concentrado':
         roster = roster.map((p) => ({ ...p, pt: ptMax(p), stamina: Math.min(100, p.stamina + 60) }))

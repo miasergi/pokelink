@@ -6,6 +6,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerCard, PlayerRow, ElementChip, portraitUrl } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
+import PitchView from '@/ui/inazuma/PitchView'
 import { RivalLineup } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
@@ -14,7 +15,7 @@ import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/e
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
-import { ITEMS, getItem } from '@/data/inazuma/items'
+import { getItem, stockFor } from '@/data/inazuma/items'
 import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
@@ -22,7 +23,7 @@ import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode 
 // ---------------------------------------------------------------------------
 
 export function TitleView() {
-  const { hasSave, save, newTournament, continueTournament, abandonTournament, exitInazuma, goTo } = useInazuma()
+  const { hasSave, save, continueTournament, abandonTournament, exitInazuma, goTo } = useInazuma()
   const [confirm, setConfirm] = useState(false)
 
   return (
@@ -55,7 +56,7 @@ export function TitleView() {
             </div>
           </>
         )}
-        <Button variant="primary" full onClick={() => (hasSave ? setConfirm(true) : void newTournament())}>
+        <Button variant="primary" full onClick={() => (hasSave ? setConfirm(true) : goTo('teamSelect'))}>
           {hasSave ? 'Empezar torneo nuevo' : '¡Empezar el Football Frontier!'}
         </Button>
         <Button variant="secondary" full onClick={() => goTo('album')}>
@@ -72,7 +73,7 @@ export function TitleView() {
             <Icon name="warning" className="w-9 h-9 mx-auto text-rose-300" />
             <div className="font-extrabold text-rose-300 mt-1">¿Borrar el torneo actual?</div>
             <p className="text-sm text-slate-300 mt-2">Solo se guarda una partida. Empezar de cero borra la plantilla y el progreso.</p>
-            <Button variant="danger" full className="mt-3" onClick={() => { setConfirm(false); void abandonTournament().then(newTournament) }}>
+            <Button variant="danger" full className="mt-3" onClick={() => { setConfirm(false); void abandonTournament().then(() => goTo('teamSelect')) }}>
               Sí, empezar de cero
             </Button>
             <button className="text-xs text-slate-500 mt-2" onClick={() => setConfirm(false)}>Cancelar</button>
@@ -192,11 +193,14 @@ export function TeamCrest({ teamId, size = 32 }: { teamId?: string; size?: numbe
 }
 
 function SaveHeader({ save }: { save: InazumaSave }) {
+  // El nombre y el color salen del instituto ELEGIDO: estaban fijos al Raimon
+  // y la cabecera mentía en cuanto jugabas con otro equipo.
+  const team = TEAM_BY_ID.get(save.teamId ?? 'raimon')
   return (
     <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 py-2 flex items-center gap-2">
-      <span className="w-2.5 h-6 rounded-sm shrink-0 bg-rose-600" />
+      <span className="w-2.5 h-6 rounded-sm shrink-0" style={{ background: team?.color ?? '#e11d48' }} />
       <div className="min-w-0 flex-1">
-        <div className="font-extrabold text-sm leading-none">Instituto Raimon</div>
+        <div className="font-extrabold text-sm leading-none truncate">{team?.name ?? 'Instituto Raimon'}</div>
         <div className="text-[10px] text-slate-400 mt-0.5 tabular-nums">
           {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.goalsFor}:{save.goalsAgainst}
         </div>
@@ -321,8 +325,12 @@ function MatchupHint({ teamElement, lineup }: { teamElement: keyof typeof ELEMEN
 // ---------------------------------------------------------------------------
 
 export function SquadView() {
-  const { save, toggleStarter, goTo, equip, useConsumable, release, pendingTarget, applyToPlayer, cancelTarget } = useInazuma()
+  const {
+    save, toggleStarter, goTo, equip, useConsumable, release,
+    pendingTarget, applyToPlayer, cancelTarget, swapPlayers,
+  } = useInazuma()
   const [detail, setDetail] = useState<string | null>(null)
+  const [tab, setTab] = useState<'campo' | 'lista'>('campo')
   if (!save) return null
 
   const starters = save.lineup
@@ -345,6 +353,33 @@ export function SquadView() {
 
         <FormationPicker />
 
+        {/* Campo o lista. El campo es la vista natural; la lista sigue ahí para
+            equipar, traspasar y ver detalles con más sitio. */}
+        <div className="flex gap-1.5">
+          {(['campo', 'lista'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 rounded-xl border py-1.5 text-[12px] font-bold transition active:scale-95 ${
+                tab === t ? 'border-amber-500/70 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-800/60 text-slate-400'
+              }`}
+            >
+              {t === 'campo' ? '⚽ Alineación' : '☰ Lista'}
+            </button>
+          ))}
+        </div>
+
+        {err && <div className="text-[11px] text-rose-300">{err}</div>}
+
+        {tab === 'campo' && (
+          <PitchView
+            save={save}
+            onSwap={swapPlayers}
+            onTap={(uid) => (target ? applyToPlayer(uid) : setDetail(uid))}
+          />
+        )}
+
+        {tab === 'lista' && <>
         <div className="flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-widest text-slate-500">Once titular · {starters.length}/11</span>
           {err && <span className="text-[10px] text-rose-300">{err}</span>}
@@ -394,6 +429,8 @@ export function SquadView() {
           ))}
           {!bench.length && <div className="text-[11px] text-slate-600">Sin suplentes. Ficha en el ojeador.</div>}
         </div>
+
+        </>}
 
         <BagPanel save={save} onUse={useConsumable} onEquip={equip} />
       </div>
@@ -568,31 +605,68 @@ function PlayerDetail({
 // ---------------------------------------------------------------------------
 
 export function ShopView() {
-  const { save, buy, goTo } = useInazuma()
+  const { save, buy, goTo, matchNode } = useInazuma()
   if (!save) return null
+  const isRaiRai = matchNode?.kind === 'rairai'
+  const stock = stockFor(isRaiRai ? 'rairai' : 'tienda')
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
+
+      <div className="shrink-0 px-3 pt-3">
+        <div
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: isRaiRai ? '#f472b666' : '#fcd34d66',
+            background: isRaiRai
+              ? 'linear-gradient(130deg,#f472b622,rgba(15,23,42,.9) 60%)'
+              : 'linear-gradient(130deg,#fcd34d22,rgba(15,23,42,.9) 60%)',
+          }}
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-3xl leading-none">{isRaiRai ? '🍜' : '🛒'}</span>
+            <div className="min-w-0">
+              <div className="font-extrabold text-base leading-tight">
+                {isRaiRai ? 'Restaurante Rai Rai' : 'Tienda de deportes'}
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {isRaiRai
+                  ? 'La plantilla ya ha comido: aguante y PT al máximo. ¿Algo para llevar?'
+                  : 'Equipamiento, brebajes y manuales. El material bueno se paga.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
-        <div className="text-[11px] uppercase tracking-widest text-slate-500">Tienda de deportes</div>
-        {ITEMS.map((item) => {
+        {stock.map((item) => {
           const afford = save.coins >= item.price
           return (
             <Card key={item.id} className={`p-3 ${afford ? '' : 'opacity-50'}`} onClick={afford ? () => buy(item.id) : undefined}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl shrink-0">
+                  {item.kind === 'equipo' ? '🎽' : item.kind === 'manual' ? '📘' : item.kind === 'comida' ? '🍥' : '🧃'}
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-sm">{item.name}</div>
                   <div className="text-[11px] text-slate-400">{item.desc}</div>
                 </div>
-                <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">{item.price.toLocaleString('es-ES')} ₽</span>
+                <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
+                  {item.price.toLocaleString('es-ES')} ₽
+                </span>
               </div>
             </Card>
           )
         })}
       </div>
+
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
         <Button variant="secondary" onClick={() => goTo('squad')}>Vestuario</Button>
-        <Button variant="primary" full onClick={() => goTo('map')}>Salir de la tienda</Button>
+        <Button variant="primary" full onClick={() => goTo('map')}>
+          {isRaiRai ? 'Salir del Rai Rai' : 'Salir de la tienda'}
+        </Button>
       </div>
     </div>
   )

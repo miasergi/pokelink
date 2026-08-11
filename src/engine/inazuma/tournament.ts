@@ -15,13 +15,13 @@
 // cuadro de torneo, no un mapa. Se cambió por petición explícita del usuario
 // para que se pareciese al roguelike Pokémon.
 import type { RNG } from '@/utils/rng'
-import { BRACKET, getTeam } from '@/data/inazuma/teams'
+import { BRACKET, buildBracket, getTeam } from '@/data/inazuma/teams'
 import { ITEMS } from '@/data/inazuma/items'
 import { TECHNIQUES } from '@/data/inazuma/techniques'
 import type { InazumaMap, MapSegment, NodeKind, TournamentNode } from './types'
 
 /** Nivel del instituto que cierra cada tramo. */
-export const RIVAL_LEVELS = [6, 9, 12, 15, 18, 21, 24, 27]
+export const RIVAL_LEVELS = [6, 10, 14, 18, 22, 26, 30, 34]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
@@ -58,7 +58,7 @@ const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
   { kind: 'objeto', weight: 16 },
   { kind: 'tecnica', weight: 13 },
   { kind: 'ojeador', weight: 13 },
-  { kind: 'descanso', weight: 10 },
+  { kind: 'rairai', weight: 10 },
   { kind: 'tienda', weight: 6 },
 ]
 
@@ -73,7 +73,8 @@ function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
   return pool[pool.length - 1]?.kind ?? 'pachanga'
 }
 
-export function generateMap(rng: RNG): InazumaMap {
+export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
+  const bracket = buildBracket(playerTeamId)
   const layers: string[][] = []
   const nodes: Record<string, TournamentNode> = {}
   let layerIdx = 0
@@ -90,8 +91,8 @@ export function generateMap(rng: RNG): InazumaMap {
       for (let c = 0; c < NODES_PER_LAYER; c++) {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.
-        if (kind === 'descanso' || kind === 'tienda') used.add(kind)
-        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng)
+        if (kind === 'rairai' || kind === 'tienda') used.add(kind)
+        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket)
         nodes[node.id] = node
         ids.push(node.id)
       }
@@ -100,7 +101,7 @@ export function generateMap(rng: RNG): InazumaMap {
     }
 
     // --- jefe que cierra el tramo ---
-    const entry = BRACKET[seg]
+    const entry = bracket[seg]
     const team = getTeam(entry.teamId)
     const isFinal = seg === MATCH_ROUNDS - 1
     const boss: TournamentNode = {
@@ -173,6 +174,7 @@ export function availableNextNodes(map: InazumaMap, currentNodeId: string | null
 
 function buildRouteNode(
   id: string, kind: NodeKind, layer: number, col: number, seg: number, routeIndex: number, rng: RNG,
+  bracket: { teamId: string; name: string }[] = BRACKET,
 ): TournamentNode {
   const base: TournamentNode = { id, kind, layer, col, title: '', subtitle: '', reward: '', next: [] }
 
@@ -187,7 +189,7 @@ function buildRouteNode(
         ...base,
         risky,
         level,
-        teamId: BRACKET[seg].teamId,
+        teamId: bracket[seg].teamId,
         title: risky ? `${rival.name} · a cara de perro` : rival.name,
         subtitle: `Pachanga · nivel ${level}`,
         reward: risky ? '+3 niveles y 300 ₽ si ganas' : '+2 niveles si ganas',
@@ -213,8 +215,13 @@ function buildRouteNode(
     }
     case 'ojeador':
       return { ...base, title: 'Ojeador', subtitle: 'Tiene tres fichas sobre la mesa', reward: 'Fichas a un jugador nuevo' }
-    case 'descanso':
-      return { ...base, title: 'Descanso', subtitle: 'Baños, fisio y nada de balón', reward: 'Recupera aguante y PT' }
+    case 'rairai':
+      return {
+        ...base,
+        title: 'Restaurante Rai Rai',
+        subtitle: 'El ramen que levanta a cualquiera',
+        reward: 'Recupera aguante y PT · vende comida',
+      }
     case 'tienda':
       return { ...base, title: 'Tienda de deportes', subtitle: 'El material bueno se paga', reward: 'Compra equipamiento' }
     default:

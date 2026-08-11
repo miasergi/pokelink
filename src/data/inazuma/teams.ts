@@ -68,21 +68,33 @@ export function getTeam(id: string): TeamBase {
   return t
 }
 
-/**
- * Orden del cuadro del torneo. Cada entrada es una ronda de PARTIDO; entre dos
- * rondas de partido siempre hay un interludio (ojeador / entrenamiento /
- * descanso / tienda), que genera `tournament.ts`.
- */
-export const BRACKET: { teamId: string; name: string }[] = [
-  { teamId: 'occult', name: 'Primera ronda' },
-  { teamId: 'otaku', name: 'Segunda ronda' },
-  { teamId: 'wild', name: 'Tercera ronda' },
-  { teamId: 'shuriken', name: 'Octavos' },
-  { teamId: 'farm', name: 'Cuartos' },
-  { teamId: 'kirkwood', name: 'Repesca' },
-  { teamId: 'royal', name: 'Semifinal' },
-  { teamId: 'zeus', name: 'FINAL' },
+/** Nombres de las eliminatorias, de la primera a la final. */
+export const ROUND_NAMES = [
+  'Primera ronda', 'Segunda ronda', 'Tercera ronda', 'Octavos',
+  'Cuartos', 'Repesca', 'Semifinal', 'FINAL',
 ]
+
+/**
+ * Institutos que puedes elegir al empezar. Cada uno cambia la partida entera:
+ * con quién arrancas y, como tu equipo sale del cuadro, contra quién juegas.
+ */
+export const PLAYABLE_TEAMS = ['raimon', 'occult', 'royal']
+
+/**
+ * Cuadro del torneo: los OCHO institutos que no son el tuyo, ordenados de menos
+ * a más fuertes. Así, elegir equipo no solo cambia tu plantilla — también mete
+ * en el cuadro al que has descartado.
+ */
+export function buildBracket(playerTeamId: string): { teamId: string; name: string }[] {
+  const rivals = TEAMS
+    .filter((t) => t.id !== playerTeamId)
+    .sort((a, b) => a.power - b.power)
+    .slice(0, ROUND_NAMES.length)
+  return rivals.map((t, i) => ({ teamId: t.id, name: ROUND_NAMES[i] }))
+}
+
+/** Cuadro por defecto (jugando con el Raimon), para datos y tipos. */
+export const BRACKET = buildBracket('raimon')
 
 /** Nombres de relleno para completar los onces rivales que no llegan a 11. */
 export const FILLER_NAMES: string[] = [

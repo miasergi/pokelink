@@ -327,7 +327,7 @@ export interface ChainState {
  *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
  */
 export type NodeKind =
-  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'descanso' | 'tienda' | 'jefe' | 'final'
+  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'rairai' | 'tienda' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
@@ -412,7 +412,7 @@ export interface InazumaItem {
   amount?: number
   /** Consumibles: se gastan al usarlos desde la plantilla. */
   consumable?: boolean
-  kind: 'equipo' | 'consumible' | 'manual'
+  kind: 'equipo' | 'consumible' | 'manual' | 'comida'
 }
 
 // ---------------------------------------------------------------------------
@@ -420,12 +420,14 @@ export interface InazumaItem {
 // ---------------------------------------------------------------------------
 
 export type InazumaPhase =
-  | 'title' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
+  | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
   | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number
   rngState: number
+  /** Instituto con el que juegas. Define tu plantilla inicial y el cuadro. */
+  teamId: string
   /** Mapa completo de la partida, generado al empezar. */
   map: InazumaMap
   /** Capa en la que estás. Avanza una casilla por elección. */

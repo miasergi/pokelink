@@ -22,7 +22,7 @@ import {
   TECH_LEVEL_BONUS, techLevel, upgradeTechnique,
 } from './roster'
 import {
-  availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments, RIVAL_LEVELS,
+  availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
   ROUTE_LAYERS_PER_SEGMENT, TOTAL_LAYERS,
 } from './tournament'
 import { ROSTER_MAX, type InazumaSave, type MatchState, type TournamentNode } from './types'
@@ -229,19 +229,26 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
     // hay que llegar entero. Encadenarlas a ciegas rinde PEOR que ir al azar
     // (medido: el bot que siempre elegía pachanga caía antes que el tonto).
     const pick = (k: TournamentNode['kind']) => offer.find((n) => n.kind === k)
-    const myLevel = save.roster.filter((p) => save.lineup.includes(p.uid))
-      .reduce((a, p) => a + p.level, 0) / Math.max(1, save.lineup.length)
-    const nextBoss = RIVAL_LEVELS[Math.min(RIVAL_LEVELS.length - 1, bossIndexForLayer(save.layer))]
-    const underLevelled = myLevel < nextBoss + 2
-
     const node = !smart
       ? offer[0]
-      : (tired < 55 ? pick('descanso') : undefined)
-        ?? (underLevelled ? pick('pachanga') : undefined)
-        ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto') ?? pick('descanso')
+      // Desde que el banquillo también sube (un nivel menos), la pachanga
+      // renta SIEMPRE, no solo cuando vas corto: antes se jugaba solo si ibas
+      // por debajo del jefe y el bot se quedaba corto de nivel.
+      : (tired < 55 ? pick('rairai') : undefined)
+        ?? pick('pachanga')
+        ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto') ?? pick('rairai')
         ?? offer[0]
 
     if (smart) save.lineup = autoLineup(save.roster)
+
+    // La rotación es LA palanca del modo desde que el banquillo también sube:
+    // a las pachangas van los frescos (suben igual y así no gastas a los
+    // buenos) y al jefe salen los mejores.
+    if (smart) {
+      save.lineup = node.kind === 'pachanga'
+        ? freshLineup(save)
+        : autoLineup(save.roster, save.formation)
+    }
 
     switch (node.kind) {
       case 'jefe':
@@ -268,7 +275,7 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         if (s) applyPachangaResult(save, s, node)
         break
       }
-      case 'descanso':
+      case 'rairai':
         fullRest(save)
         break
       case 'objeto':
@@ -297,6 +304,30 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
     advanceLayer(save, node)
   }
   return report(true)
+}
+
+/**
+ * Once para una pachanga: el mismo reparto por líneas que `autoLineup` pero
+ * ordenando por AGUANTE en vez de por calidad. Los suplentes se llevan los
+ * niveles igual (uno menos), así que jugarlas con los frescos deja a las
+ * estrellas enteras para el instituto.
+ */
+function freshLineup(save: InazumaSave): string[] {
+  const f = FORMATIONS.find((x) => x.id === save.formation) ?? FORMATIONS[0]
+  const byPos = (pos: string) => save.roster
+    .filter((p) => getPlayerBase(p.baseId).position === pos)
+    .sort((a, b) => b.stamina - a.stamina)
+  const picked = [
+    ...byPos('POR').slice(0, 1),
+    ...byPos('DEF').slice(0, f.defs),
+    ...byPos('MED').slice(0, f.mids),
+    ...byPos('DEL').slice(0, f.fwds),
+  ]
+  if (picked.length < 11) {
+    const rest = save.roster.filter((p) => !picked.includes(p)).sort((a, b) => b.stamina - a.stamina)
+    picked.push(...rest.slice(0, 11 - picked.length))
+  }
+  return picked.slice(0, 11).map((p) => p.uid)
 }
 
 /** Juega una pachanga entera eligiendo siempre la mejor opción disponible. */
@@ -538,7 +569,10 @@ describe('torneo', () => {
     expect(smart.wins).toBeGreaterThan(0)
     // Se llega a mitad del cuadro de largo…
     expect(smart.avgDied).toBeGreaterThan(2.5)
-    // …y jugar con criterio tiene que NOTARSE.
-    expect(smart.avgDied).toBeGreaterThan(dumb.avgDied)
+    // …y jugar con criterio tiene que NOTARSE. Se mide en TÍTULOS, no en la
+    // ronda media de caída: rotar y administrar hace que llegues al final más
+    // veces, pero también que arriesgues más por el camino, así que la ronda
+    // media se mueve poco. Lo que sube claramente es cuántos torneos ganas.
+    expect(smart.wins).toBeGreaterThan(dumb.wins)
   })
 })

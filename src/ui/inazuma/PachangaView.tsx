@@ -20,7 +20,7 @@ export default function PachangaView() {
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
         <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
         <div className="flex items-center justify-center gap-3 mt-0.5">
-          <span className="text-[12px] font-bold text-rose-300">Raimon</span>
+          <span className="text-[12px] font-bold text-rose-300 truncate max-w-[9rem]">{pachanga.mine.name}</span>
           <span className="text-2xl font-extrabold tabular-nums">{mine} – {theirs}</span>
           <span className="text-[12px] font-bold text-slate-400 truncate max-w-[9rem]">{pachanga.rivalName}</span>
         </div>

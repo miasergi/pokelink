@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.57',
+    date: '2026-08-11',
+    title: 'Inazuma: eliges instituto, alineación arrastrable y Restaurante Rai Rai',
+    changes: [
+      'ELIGES CON QUÉ INSTITUTO JUEGAS: Raimon, Instituto Occult o Royal Academy. No es solo el escudo — cambia tu plantilla inicial y, como tu equipo SALE del cuadro, también contra quién te enfrentas. El que descartas entra en el torneo.',
+      'ALINEACIÓN SOBRE EL CAMPO, con arrastrar y soltar. Ves las líneas, quién ocupa cada puesto y el banquillo; arrastras un jugador sobre otro para intercambiarlos y un toque abre su ficha. Funciona con el dedo, no solo con ratón.',
+      'RESTAURANTE RAI RAI. La casilla de descanso pasa a ser el Rai Rai: al entrar te recupera aguante y PT de toda la plantilla (es el centro Pokémon del modo) y además vende comida para llevar — ramen, gyozas y el banquete de la casa.',
+      'TIENDA AMPLIADA: guantes de guardameta, botas doradas, la cinta del capitán, planes de entrenamiento intensivos… y los platos del Rai Rai aparte, que solo se venden allí.',
+      'EL BANQUILLO SUBE UN NIVEL MENOS que quien juega, en partidos y en pachangas. Antes subía igual y daba lo mismo a quién alinearas. Ahora rotar cuesta algo real sin castigarte por hacerlo: los rivales han subido a la vez (de 4 en 4 por eliminatoria) para que la curva siga apretando.',
+      'LOS FICHAJES YA NO CUESTAN DINERO. Son la recompensa de la casilla, como una captura; el dinero es solo para la tienda.',
+      'Arreglado: la cabecera y el marcador ponían siempre «Raimon» aunque jugaras con otro instituto.',
+    ],
+  },
+  {
     version: 'v6.56',
     date: '2026-08-11',
     title: 'Inazuma: formaciones, Espíritus Guerreros, estadísticas y álbum',

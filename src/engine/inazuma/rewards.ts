@@ -5,7 +5,7 @@ import type { RNG } from '@/utils/rng'
 import { ITEMS } from '@/data/inazuma/items'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import { signablePool, transferValue } from './roster'
+import { signablePool } from './roster'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
 import { beatenTeams, bossIndexForLayer } from './tournament'
 
@@ -58,7 +58,9 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
     kind: 'fichaje',
     id: `sign-${pick.id}`,
     title: `Fichar a ${pick.name}`,
-    desc: `${RARITY_STARS[pick.rarity]} · ${pick.position} · valor ${transferValue(pick, level).toLocaleString('es-ES')} ₽`,
+    // Los fichajes NO cuestan dinero: son la recompensa de la casilla, como
+    // una captura en el modo Pokémon. El dinero es solo para la tienda.
+    desc: `${RARITY_STARS[pick.rarity]} · ${pick.position} · nivel ${level}`,
     playerId: pick.id,
     level,
   }

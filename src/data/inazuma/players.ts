@@ -328,6 +328,26 @@ export const RAIMON_STARTING_XI: string[] = [
   'axel-blaze', 'erik-eagle',
 ]
 
+/**
+ * Plantilla con la que arrancas según el instituto elegido. Se coge su once
+ * completo; si a un equipo le faltan jugadores en la base, se rellena con los
+ * agentes libres para que siempre salgan 11.
+ */
+export function startingSquad(teamId: string): string[] {
+  if (teamId === 'raimon') return RAIMON_STARTING_XI
+  const own = playersOfTeam(teamId)
+  const need = (pos: PlayerBase['position'], n: number) =>
+    own.filter((p) => p.position === pos).slice(0, n).map((p) => p.id)
+  const picked = [...need('POR', 1), ...need('DEF', 4), ...need('MED', 4), ...need('DEL', 2)]
+  if (picked.length < 11) {
+    const rest = [...own, ...playersOfTeam('libre')]
+      .filter((p) => !picked.includes(p.id))
+      .map((p) => p.id)
+    picked.push(...rest.slice(0, 11 - picked.length))
+  }
+  return picked.slice(0, 11)
+}
+
 /** Jugadores de un instituto concreto. */
 export function playersOfTeam(teamId: string): PlayerBase[] {
   return PLAYERS.filter((p) => p.team === teamId)

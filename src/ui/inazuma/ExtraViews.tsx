@@ -6,9 +6,9 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl, ElementChip } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
+import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import { getSpirit } from '@/data/inazuma/spirits'
-import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { getTeam, TEAM_BY_ID, PLAYABLE_TEAMS } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
 import type { PlayerStats } from '@/engine/inazuma/types'
 
@@ -312,6 +312,93 @@ export function RivalLineup({ teamId, level }: { teamId: string; level: number }
       <p className="text-[10px] text-slate-600">
         El resto de su once son jugadores de relleno, más flojos que estos.
       </p>
+    </div>
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Elección de instituto
+// ---------------------------------------------------------------------------
+
+/**
+ * Con qué instituto juegas. No es solo el escudo: cambia tu plantilla inicial
+ * y, como tu equipo SALE del cuadro, también contra quién te enfrentas.
+ */
+export function TeamSelectView() {
+  const { newTournament, goTo } = useInazuma()
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2">
+        <div className="font-extrabold text-sm">Elige instituto</div>
+        <div className="text-[11px] text-slate-400">
+          Cambia con quién empiezas y a quién te enfrentas: el que descartas entra en el cuadro.
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+        {PLAYABLE_TEAMS.map((id) => {
+          const team = getTeam(id)
+          const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
+          const stars = squad.filter((p) => p.rarity >= 4)
+          const info = ELEMENT_INFO[team.element]
+          return (
+            <Card
+              key={id}
+              className="p-3"
+              onClick={() => void newTournament(id)}
+              style={{ background: `linear-gradient(130deg, ${team.color}2e, rgba(15,23,42,.9) 62%)` }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="w-11 h-11 shrink-0 grid place-items-center rounded-xl overflow-hidden border"
+                  style={{ borderColor: `${team.color}66`, background: `${team.color}22` }}
+                >
+                  <ImgFallback
+                    src={`${import.meta.env.BASE_URL}inazuma/teams/${id}.png`}
+                    className="w-full h-full object-contain"
+                    fallback={<span className="font-extrabold" style={{ color: team.color }}>{team.name[0]}</span>}
+                  />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold text-sm leading-tight">{team.name}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[10px]" style={{ color: info.color }}>{info.glyph} {info.label}</span>
+                    <span className="text-[10px] text-slate-500">·  {squad.length} jugadores</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] italic text-slate-400 mt-2">«{team.taunt}»</p>
+
+              {stars.length > 0 && (
+                <div className="mt-2 flex gap-1.5 flex-wrap">
+                  {stars.slice(0, 4).map((p) => (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/70 px-1.5 py-0.5 text-[10px]"
+                    >
+                      <span className="w-4 h-4 rounded-full overflow-hidden bg-slate-700 grid place-items-center">
+                        <ImgFallback
+                          src={portraitUrl(p.id)}
+                          className="w-full h-full object-cover"
+                          fallback={<span className="text-[7px]">{p.name[0]}</span>}
+                        />
+                      </span>
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )
+        })}
+      </div>
+
+      <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">
+        <Button variant="ghost" full onClick={() => goTo('title')}>Atrás</Button>
+      </div>
     </div>
   )
 }
