@@ -39,6 +39,11 @@ interface MetaRecord {
   /** Cyber PokéBall: intercambios y victorias fantasma online acumulados. */
   cyberTrades?: number
   cyberGhostWins?: number
+  /** Inazuma Rogue: Football Frontiers ganados y mejor ronda alcanzada. */
+  inazumaTitles?: number
+  inazumaBestRound?: number
+  /** Inazuma Rogue: ids de jugadores que has llegado a fichar (su «Pokédex»). */
+  inazumaSigned?: string[]
 }
 
 const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
@@ -154,6 +159,20 @@ export async function loadCyber(): Promise<import('@/engine/cyber/types').CyberS
 export async function clearCyber(): Promise<void> {
   const d = await db()
   await d.delete('runs', 'cyber')
+}
+
+// ---- Inazuma Rogue (roguelite de fútbol) ----
+export async function saveInazuma(s: import('@/engine/inazuma/types').InazumaSave): Promise<void> {
+  const d = await db()
+  await d.put('runs', s, 'inazuma')
+}
+export async function loadInazuma(): Promise<import('@/engine/inazuma/types').InazumaSave | null> {
+  const d = await db()
+  return (await d.get('runs', 'inazuma')) ?? null
+}
+export async function clearInazuma(): Promise<void> {
+  const d = await db()
+  await d.delete('runs', 'inazuma')
 }
 
 // ---- Meta-progresión ----
@@ -279,6 +298,9 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     cyberCompleted: uni(a.cyberCompleted ?? [], b.cyberCompleted ?? []),
     cyberTrades: Math.max(a.cyberTrades ?? 0, b.cyberTrades ?? 0),
     cyberGhostWins: Math.max(a.cyberGhostWins ?? 0, b.cyberGhostWins ?? 0),
+    inazumaTitles: Math.max(a.inazumaTitles ?? 0, b.inazumaTitles ?? 0),
+    inazumaBestRound: Math.max(a.inazumaBestRound ?? 0, b.inazumaBestRound ?? 0),
+    inazumaSigned: [...new Set([...(a.inazumaSigned ?? []), ...(b.inazumaSigned ?? [])])],
   }
 }
 
@@ -301,7 +323,8 @@ export async function exportData(): Promise<string> {
   const meta = await loadMeta()
   const run = await loadRun()
   const cyber = await loadCyber()
-  const json = JSON.stringify({ v: 1, meta, run, cyber })
+  const inazuma = await loadInazuma()
+  const json = JSON.stringify({ v: 1, meta, run, cyber, inazuma })
   // base64 seguro para UTF-8
   return btoa(unescape(encodeURIComponent(json)))
 }
@@ -313,6 +336,7 @@ export async function importData(code: string): Promise<boolean> {
       meta?: MetaRecord
       run?: RunState | null
       cyber?: import('@/engine/cyber/types').CyberSave | null
+      inazuma?: import('@/engine/inazuma/types').InazumaSave | null
     }
     if (data.meta) await saveMeta({ ...structuredClone(EMPTY_META), ...data.meta })
     if (data.run) await saveRun(data.run)
@@ -320,6 +344,9 @@ export async function importData(code: string): Promise<boolean> {
     // Códigos antiguos (sin campo cyber) NO tocan la aventura Cyber local.
     if (data.cyber) await saveCyber(data.cyber)
     else if ('cyber' in data) await clearCyber()
+    // Igual con Inazuma: los códigos anteriores a este modo no tocan su partida.
+    if (data.inazuma) await saveInazuma(data.inazuma)
+    else if ('inazuma' in data) await clearInazuma()
     return true
   } catch {
     return false

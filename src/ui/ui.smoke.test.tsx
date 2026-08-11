@@ -13,6 +13,12 @@ import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
 import CyberScreen from '@/ui/screens/CyberScreen'
 import { useCyber } from '@/state/cyberStore'
 import { createAdventure } from '@/engine/cyber/cyberEngine'
+import InazumaScreen from '@/ui/screens/InazumaScreen'
+import { useInazuma } from '@/state/inazumaStore'
+import { createSave, startMatch } from '@/engine/inazuma/game'
+import { advance, chooseOption } from '@/engine/inazuma/match'
+import { buildDraft } from '@/engine/inazuma/rewards'
+import { RNG } from '@/utils/rng'
 
 describe('render de pantallas (smoke)', () => {
   it('App monta sin lanzar', () => {
@@ -43,5 +49,49 @@ describe('render de pantallas (smoke)', () => {
     expect(() => renderToString(createElement(MapScreen))).not.toThrow()
     expect(() => renderToString(createElement(TeamScreen))).not.toThrow()
     expect(() => renderToString(createElement(PokedexScreen))).not.toThrow()
+  })
+
+  it('Inazuma Rogue: todas las fases renderizan y el partido se juega entero', () => {
+    useGame.setState({ loaded: true, screen: { name: 'inazuma' } })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+
+    const save = createSave(4242)
+    for (const phase of ['map', 'squad', 'shop', 'victory', 'gameover'] as const) {
+      useInazuma.setState({ save, hasSave: true, phase })
+      expect(() => renderToString(createElement(InazumaScreen)), phase).not.toThrow()
+    }
+
+    // Previa y partido: se juega hasta el pitido final pasando por al menos una
+    // jugada clave, que es donde vive el panel de decisión.
+    const node = save.offer[0]
+    useInazuma.setState({ save, matchNode: node, phase: 'preview' })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+
+    const setup = startMatch(save, node)
+    if ('error' in setup) throw new Error(setup.error)
+    let decisions = 0
+    let guard = 0
+    while (setup.match.phase !== 'finished' && guard++ < 5000) {
+      useInazuma.setState({ match: setup.match, feed: setup.match.events.slice(), phase: 'match' })
+      expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+      if (setup.match.phase === 'decision') {
+        decisions++
+        chooseOption(setup.match, setup.rng, setup.match.decision!.options[0].id)
+      } else {
+        advance(setup.match, setup.rng)
+      }
+    }
+    expect(setup.match.phase).toBe('finished')
+    expect(decisions).toBeGreaterThan(0)
+
+    // Y el resumen post-partido con sus cartas de recompensa.
+    useInazuma.setState({
+      save: { ...save, lastMatch: { rival: 'Instituto Occult', score: [2, 1], result: 'win', scorers: ['Axel Blaze'] } },
+      match: null,
+      draft: buildDraft(save, new RNG(1)),
+      draftPicks: 1,
+      phase: 'draft',
+    })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
   })
 })

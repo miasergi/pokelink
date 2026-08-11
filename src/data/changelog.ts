@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.53',
+    date: '2026-08-11',
+    title: 'INAZUMA ROGUE: un roguelite de fútbol dentro del juego',
+    changes: [
+      'NUEVO JUEGO — INAZUMA ROGUE. Coges al Instituto Raimon y cruzas el Football Frontier: ocho eliminatorias, una sola derrota y a casa. Entre partido y partido eliges qué hacer (ojear fichajes, entrenar, descansar o pasar por la tienda), y al ganar te llevas una carta de recompensa. Está dentro de la misma app pero es un juego aparte, con su propia partida guardada.',
+      'LOS PARTIDOS NO SE MIRAN, SE JUEGAN. El encuentro se narra minuto a minuto, pero se PARA en las jugadas clave y decides tú: ¿Tornado de Fuego gastando 20 PT, regate simple gratis, o se la pasas al compañero que tiene ventaja de elemento? Cada opción enseña sus estrellas de probabilidad antes de elegir. Si prefieres verlo sin tocar nada, el botón AUTO decide por ti.',
+      'FUEGO ▶ BOSQUE ▶ AIRE ▶ MONTAÑA ▶ FUEGO. El ciclo elemental de la saga, sin elemento dominante: la ventaja se gana eligiendo a quién pones en cada línea y a quién le pasas el balón, no fichando "al mejor". La previa del partido te dice cuántos de tus titulares llegan con el elemento a favor.',
+      'SUPERTÉCNICAS Y SUPERVIBRACIÓN. Mano Celestial, Pingüinos Emperador nº1, Ilusión, Muro de Piedra, El Fénix… cada una cuesta PT, así que no puedes tirarlas todas. Y encadenando jugadas buenas se llena la barra de Ruptura: al activarla, tres acciones gratis y con un 40 % más de potencia.',
+      'JUGAR 90 MINUTOS CANSA. Los titulares se desgastan partido a partido y rinden peor por debajo del 40 % de aguante; los suplentes suben de nivel igual que ellos y llegan frescos. Rotar la plantilla es una decisión de verdad, no un castigo.',
+      'LA PANTALLA DE INICIO, REORGANIZADA. Era una pila de seis botones donde convivían "Liga Pokémon" y "Ajustes" como si fueran lo mismo. Ahora hay dos niveles: arriba los cuatro JUEGOS en tarjetas (PokéRogue, Modo Historia, Inazuma Rogue y Cyber PokéBall), cada una avisando si tienes partida a medias, y abajo una barra discreta con Pokédex, Récords, Logros y Ajustes.',
+    ],
+  },
+  {
     version: 'v6.52',
     date: '2026-08-07',
     title: 'Las ciudades de los juegos y líderes que ya no te esperan',
