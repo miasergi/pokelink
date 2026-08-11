@@ -23,6 +23,13 @@ export const ITEMS: InazumaItem[] = [
   { id: 'cinta-cabeza', name: 'Cinta del Capitán', kind: 'equipo', desc: '+26 % Control. La cinta naranja de toda la vida.', price: 2200, stat: 'control', amount: 26 },
   { id: 'brazalete-capitan', name: 'Brazalete de Capitán', kind: 'equipo', desc: '+10 % a TODO. Solo hay uno en el torneo.', price: 4200, stat: 'tiro', amount: 10 },
 
+  // --- RAROS: caros, potentes y de aparición escasa en las casillas de objeto.
+  { id: 'botas-inazuma', name: 'Botas Inazuma', kind: 'raro', desc: '+40 % Velocidad. Dicen que dejan surco en la hierba.', price: 5200, stat: 'velocidad', amount: 40 },
+  { id: 'guante-dios', name: 'Guante del Guardián', kind: 'raro', desc: '+45 % Defensa. Para un portero que quiera ser un muro.', price: 5600, stat: 'defensa', amount: 45 },
+  { id: 'bota-oro-macizo', name: 'Bota de Oro Maciza', kind: 'raro', desc: '+45 % Tiro. Pesa una barbaridad y no le importa a nadie.', price: 5800, stat: 'tiro', amount: 45 },
+  { id: 'cinta-legendaria', name: 'Cinta Legendaria', kind: 'raro', desc: '+40 % Control. La llevaba alguien importante.', price: 5400, stat: 'control', amount: 40 },
+  { id: 'amuleto-relampago', name: 'Amuleto del Relámpago', kind: 'raro', desc: '+18 % a TODOS los atributos.', price: 7500, stat: 'tiro', amount: 18 },
+
   // --------------------------------------------------------- CONSUMIBLES ----
   { id: 'bebida-isotonica', name: 'Bebida isotónica', kind: 'consumible', desc: 'Recupera 40 PT a un jugador.', price: 350, consumable: true },
   { id: 'bebida-doble', name: 'Isotónica doble', kind: 'consumible', desc: 'Recupera TODOS los PT a un jugador.', price: 800, consumable: true },
@@ -58,4 +65,12 @@ export function stockFor(kind: 'tienda' | 'rairai'): InazumaItem[] {
   return kind === 'rairai'
     ? ITEMS.filter((i) => i.kind === 'comida')
     : ITEMS.filter((i) => i.kind !== 'comida')
+}
+
+/** Objetos que pueden salir en una casilla de objeto, según lo avanzado que vayas. */
+export function lootPool(progress: number): InazumaItem[] {
+  const rare = ITEMS.filter((i) => i.kind === 'raro')
+  const normal = ITEMS.filter((i) => i.kind === 'equipo' || i.kind === 'consumible' || i.kind === 'manual')
+  // Los raros solo aparecen de la mitad del cuadro en adelante.
+  return progress >= 3 ? [...normal, ...rare] : normal
 }

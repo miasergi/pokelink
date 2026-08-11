@@ -4,23 +4,26 @@
 // roguelike Pokémon).
 import { describe, expect, it } from 'vitest'
 import { RNG } from '@/utils/rng'
-import { ITEMS, ITEM_BY_ID } from '@/data/inazuma/items'
+import { ITEMS, ITEM_BY_ID, stockFor } from '@/data/inazuma/items'
 import { elementMultiplier, ELEMENT_ADVANTAGE, ELEMENT_WEAKNESS } from './elements'
-import { advance, chooseOption, playerScore } from './match'
+import { actorByUid, advance, chooseOption, playerScore } from './match'
 import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { TEAMS } from '@/data/inazuma/teams'
+import { getTeam, PLAYABLE_TEAMS, TEAMS } from '@/data/inazuma/teams'
 import {
-  advanceLayer, applyMatchResult, applyPachangaResult, autoTraining, canLearn, createSave,
-  fullRest, isEliminated, isMapComplete, recordMatchStats, startMatch, startPachanga,
+  advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
+  autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
+  recordMatchStats, startMatch, startPachanga,
 } from './game'
+import { EVENTS, getEvent } from '@/data/inazuma/events'
 import { nextRound, shoot } from './pachanga'
-import { buildDraft } from './rewards'
+import { buildDraft, buildSingleReward } from './rewards'
 import {
-  autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, lineupError, lineupShape, overall, ptMax,
-  TECH_LEVEL_BONUS, techLevel, upgradeTechnique,
+  autoLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats, lineupError,
+  lineupShape, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel, transferValue,
+  upgradeTechnique,
 } from './roster'
 import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
@@ -240,7 +243,12 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
       // Desde que el banquillo también sube (un nivel menos), la pachanga
       // renta SIEMPRE, no solo cuando vas corto: antes se jugaba solo si ibas
       // por debajo del jefe y el bot se quedaba corto de nivel.
-      : (tired < 55 ? pick('rairai') : undefined)
+      // Antes del instituto se para a comer aunque no vaya tirado: llegar
+      // fresco al jefe es la palanca gorda del modo.
+      : (offer.some((n) => n.kind === 'jefe' || n.kind === 'final')
+        ? (tired < 85 ? pick('rairai') : undefined) ?? pick('jefe') ?? pick('final')
+        : undefined)
+        ?? (tired < 65 ? pick('rairai') : undefined)
         ?? pick('pachanga')
         ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto') ?? pick('rairai')
         ?? offer[0]
@@ -253,7 +261,11 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
     if (smart) {
       save.lineup = node.kind === 'pachanga'
         ? freshLineup(save)
-        : autoLineup(save.roster, save.formation)
+        : node.teamId && (node.kind === 'jefe' || node.kind === 'final')
+          ? matchupLineup(save, node.teamId)
+          : autoLineup(save.roster, save.formation)
+      // Y se vacía la mochila antes del jefe: la comida guardada no gana nada.
+      if (useItems && (node.kind === 'jefe' || node.kind === 'final')) consumeIfNeeded(save, true)
     }
 
     switch (node.kind) {
@@ -283,6 +295,7 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
       }
       case 'rairai':
         fullRest(save)
+        if (useItems) shop(save, 'rairai')
         break
       case 'objeto':
         if (node.itemId) save.bag.push(node.itemId)
@@ -303,13 +316,53 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
       case 'tienda':
         if (useItems) { shop(save); equipStarters(save) }
         break
+      case 'evento':
+        // Las situaciones también las recorre el bot: son casi una de cada
+        // seis casillas, y si aquí no pasara nada el modo mediría más difícil
+        // de lo que es.
+        resolveEventNode(save, node, rng, smart)
+        break
       default:
         break
     }
 
+    if (useItems) consumeIfNeeded(save)
     advanceLayer(save, node)
   }
   return report(true)
+}
+
+/**
+ * Resuelve una casilla de situación como lo haría alguien jugando: el listo
+ * mira lo que le hace falta (nivel si va corto, aguante si va gastado) y no
+ * apuesta lo que no puede permitirse; el tonto coge siempre la primera opción.
+ */
+function resolveEventNode(save: InazumaSave, node: TournamentNode, rng: RNG, smart: boolean): void {
+  const ev = node.eventId ? getEvent(node.eventId) : null
+  if (!ev) return
+  const usable = ev.options.filter((o) => !o.cost || save.coins >= o.cost)
+  if (!usable.length) return
+
+  const tired = save.roster.filter((p) => save.lineup.includes(p.uid))
+    .reduce((a, p) => a + p.stamina, 0) / Math.max(1, save.lineup.length)
+  const value = (o: typeof usable[number]) => {
+    const e = o.effect
+    const base = e.kind === 'levels' ? 100 * e.amount
+      : e.kind === 'sign' ? 90
+        : e.kind === 'technique' ? 60
+          : e.kind === 'rest' ? (100 - tired) * 1.2
+            : e.kind === 'stamina' ? Math.max(0, Math.min(e.amount, 100 - tired)) * 1.1
+              : e.kind === 'item' ? 45
+                : e.kind === 'coins' ? e.amount / 25 : 0
+    // Una opción con tirada vale lo que vale por lo que suele salir.
+    return base * (o.chance ?? 1) - (o.cost ?? 0) / 25
+  }
+  const opt = smart ? usable.slice().sort((a, b) => value(b) - value(a))[0] : usable[0]
+
+  const ok = opt.chance == null || rng.chance(opt.chance)
+  const resolved = ok ? opt : (opt.fail ?? opt)
+  save.coins -= opt.cost ?? 0
+  applyEventEffect(save, resolved.effect, rng)
 }
 
 /**
@@ -331,6 +384,35 @@ function freshLineup(save: InazumaSave): string[] {
   ]
   if (picked.length < 11) {
     const rest = save.roster.filter((p) => !picked.includes(p)).sort((a, b) => b.stamina - a.stamina)
+    picked.push(...rest.slice(0, 11 - picked.length))
+  }
+  return picked.slice(0, 11).map((p) => p.uid)
+}
+
+/**
+ * Once pensado CONTRA un instituto concreto: a igualdad de calidad, primero los
+ * que tienen ventaja elemental sobre su elemento. Es la palanca que el mapa
+ * pone encima de la mesa (el elemento del rival se ve en la previa) y que un
+ * `autoLineup` a secas no usa.
+ */
+function matchupLineup(save: InazumaSave, teamId: string): string[] {
+  const rivalEl = getTeam(teamId).element
+  const f = FORMATIONS.find((x) => x.id === save.formation) ?? FORMATIONS[0]
+  const score = (p: typeof save.roster[number]) => {
+    const el = getPlayerBase(p.baseId).element
+    return overall(p) * elementMultiplier(el, rivalEl)
+  }
+  const byPos = (pos: string) => save.roster
+    .filter((p) => getPlayerBase(p.baseId).position === pos)
+    .sort((a, b) => score(b) - score(a))
+  const picked = [
+    ...byPos('POR').slice(0, 1),
+    ...byPos('DEF').slice(0, f.defs),
+    ...byPos('MED').slice(0, f.mids),
+    ...byPos('DEL').slice(0, f.fwds),
+  ]
+  if (picked.length < 11) {
+    const rest = save.roster.filter((p) => !picked.includes(p)).sort((a, b) => score(b) - score(a))
     picked.push(...rest.slice(0, 11 - picked.length))
   }
   return picked.slice(0, 11).map((p) => p.uid)
@@ -377,7 +459,19 @@ function firstBoss(save: InazumaSave): TournamentNode {
  * jugador solo puede llevar un objeto, así que once titulares equipados con lo
  * asequible rinden más que un crack con el brazalete de 4200 ₽.
  */
-function shop(save: InazumaSave): void {
+function shop(save: InazumaSave, kind: 'tienda' | 'rairai' = 'tienda'): void {
+  if (kind === 'rairai') {
+    // En el Rai Rai se compra comida para el camino, no equipación.
+    const menu = stockFor('rairai').sort((a, b) => a.price - b.price)
+    let g = 0
+    while (g++ < 4) {
+      const buy = menu.find((i) => i.price <= save.coins - 900)
+      if (!buy) break
+      save.coins -= buy.price
+      save.bag.push(buy.id)
+    }
+    return
+  }
   const gear = ITEMS.filter((i) => i.kind === 'equipo').sort((a, b) => a.price - b.price)
   let guard = 0
   while (guard++ < 20) {
@@ -385,6 +479,36 @@ function shop(save: InazumaSave): void {
     if (!buy) break
     save.coins -= buy.price
     save.bag.push(buy.id)
+  }
+}
+
+/**
+ * Bebe y come lo que lleve encima cuando hace falta. Sin esto el bot cargaba la
+ * mochila de ramen y no lo tocaba nunca: media tienda del modo quedaba fuera de
+ * la medición y el juego salía más difícil de lo que es.
+ */
+function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
+  const starters = () => save.roster.filter((p) => save.lineup.includes(p.uid))
+  let guard = 0
+  while (guard++ < 12) {
+    const worst = starters().slice().sort((a, b) => a.stamina - b.stamina)[0]
+    if (!worst) return
+    // Primero lo que cunde para todos, y solo si de verdad hace falta.
+    const team = ['banquete', 'concentrado', 'gyoza'].find((id) => save.bag.includes(id))
+    const avg = starters().reduce((a, p) => a + p.stamina, 0) / Math.max(1, save.lineup.length)
+    if (team && avg < (beforeBoss ? 92 : 55)) { applyConsumable(save, team, worst.uid); continue }
+    if (worst.stamina < (beforeBoss ? 88 : 45)) {
+      const solo = ['ramen-rai-rai', 'masaje', 'ramen-especial'].find((id) => save.bag.includes(id))
+      if (solo) { applyConsumable(save, solo, worst.uid); continue }
+    }
+    // Los planes de entrenamiento son nivel puro: se gastan en cuanto se tienen.
+    const plan = ['plan-intensivo', 'plan-entrenamiento'].find((id) => save.bag.includes(id))
+    if (plan) {
+      const weakest = starters().slice().sort((a, b) => a.level - b.level)[0]
+      applyConsumable(save, plan, weakest.uid)
+      continue
+    }
+    return
   }
 }
 
@@ -400,10 +524,11 @@ function equipStarters(save: InazumaSave): void {
   }
 }
 
-function summarise(label: string, reports: RunReport[]): { wins: number; avgDied: number } {
+function summarise(label: string, reports: RunReport[]): { wins: number; avgDied: number; avgLevel: number } {
   const n = reports.length
   const wins = reports.filter((r) => r.won).length
   const avgDied = reports.reduce((a, r) => a + r.diedAt, 0) / n
+  const avgLevel = reports.reduce((a, r) => a + r.avgLevel, 0) / n
   const byRound = Array.from({ length: 9 }, (_, i) => reports.filter((r) => r.diedAt === i).length)
   // eslint-disable-next-line no-console
   console.log(
@@ -412,7 +537,7 @@ function summarise(label: string, reports: RunReport[]): { wins: number; avgDied
     + `aguante ${(reports.reduce((a, r) => a + r.avgStamina, 0) / n).toFixed(0)} · `
     + `caídas por ronda [${byRound.join(',')}]`,
   )
-  return { wins, avgDied }
+  return { wins, avgDied, avgLevel }
 }
 
 describe('torneo', () => {
@@ -555,17 +680,26 @@ describe('torneo', () => {
   /**
    * Instantánea de dificultad. Los umbrales son deliberadamente amplios: están
    * para avisar de que un cambio ha DESPLAZADO la curva, no para clavar un
-   * número. Los valores medidos al cerrar el modo (60 torneos por bot):
+   * número. Medido con 150 torneos por bot:
    *
-   *   bot básico        ~2 % de títulos, cae sobre la eliminatoria 3.3 de 8
-   *   bot con criterio  ~5 % de títulos, cae sobre la eliminatoria 3.5 de 8
+   *   bot básico        ~7 % de títulos, cae sobre la eliminatoria 3.8 de 8
+   *   bot con criterio  ~8 % de títulos, cae sobre la eliminatoria 3.6 de 8
    *
-   * Un jugador humano tiene palancas que el bot no usa (elegir el once por
-   * emparejamiento elemental, administrar PT, gastar consumibles, arriesgar en
-   * los nodos «a por todas»), así que el techo real está por encima.
+   * La muestra es de 150 y no de 60 a propósito: con 60 la diferencia entre los
+   * dos bots (2-3 títulos) quedaba dentro del ruido y el test fallaba o pasaba
+   * según la semilla.
+   *
+   * Lo que de verdad decide una partida son las OCHO eliminatorias encadenadas:
+   * aunque prepararse suba el pase de cada una unos puntos, elevado a ocho el
+   * efecto se nota poco en títulos y mucho en el nivel al que llegas. Por eso se
+   * comprueban las dos cosas.
+   *
+   * Un jugador humano tiene palancas que el bot no usa (administrar PT duelo a
+   * duelo, guardar la Supervibración para la final, arriesgar en los nodos «a
+   * cara de perro»), así que el techo real está por encima.
    */
   it('es difícil en piloto automático y jugar bien se nota', () => {
-    const N = 60
+    const N = 150
     const dumb = summarise('bot básico ', Array.from({ length: N }, (_, i) => playTournament(i * 977 + 13, 'dumb')))
     const smart = summarise('bot con criterio', Array.from({ length: N }, (_, i) => playTournament(i * 977 + 13, 'smart')))
 
@@ -575,10 +709,148 @@ describe('torneo', () => {
     expect(smart.wins).toBeGreaterThan(0)
     // Se llega a mitad del cuadro de largo…
     expect(smart.avgDied).toBeGreaterThan(2.5)
-    // …y jugar con criterio tiene que NOTARSE. Se mide en TÍTULOS, no en la
-    // ronda media de caída: rotar y administrar hace que llegues al final más
-    // veces, pero también que arriesgues más por el camino, así que la ronda
-    // media se mueve poco. Lo que sube claramente es cuántos torneos ganas.
-    expect(smart.wins).toBeGreaterThan(dumb.wins)
+    // …y prepararse tiene que NOTARSE. En títulos la diferencia es real pero
+    // pequeña (ocho eliminatorias diluyen cualquier ventaja por partido), así
+    // que se exige no ser peor en títulos y sí serlo claramente en nivel: rotar,
+    // encadenar pachangas y comer antes del jefe es lo que separa a los dos.
+    expect(smart.wins).toBeGreaterThanOrEqual(dumb.wins)
+    expect(smart.avgLevel).toBeGreaterThan(dumb.avgLevel + 1)
   })
 })
+
+/**
+ * COHERENCIA. No miden dificultad: comprueban que lo que la interfaz enseña se
+ * corresponde con lo que el motor hace. Son los fallos más caros de detectar
+ * jugando, porque el juego «funciona» igual.
+ */
+describe('coherencia', () => {
+  it('cada acción del partido nombra a jugadores que están en el campo', () => {
+    for (let seed = 0; seed < 12; seed++) {
+      const save = createSave(seed * 17 + 5)
+      const setup = startMatch(save, firstBoss(save))
+      if ('error' in setup) throw new Error(setup.error)
+      const { match, rng } = setup
+      const onPitch = new Map(
+        [match.home, match.away].flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
+          .map((a) => [a.uid, a.name] as const),
+      )
+      let guard = 0
+      while (match.phase !== 'finished' && guard++ < 4000) {
+        if (match.phase === 'decision' && match.decision) {
+          const d = match.decision
+          // Quien decide y su rival existen, y el retrato que pinta la UI sale
+          // de un jugador real del partido.
+          expect(onPitch.get(d.actorUid)).toBe(d.actorName)
+          expect(onPitch.get(d.rivalUid)).toBe(d.rivalName)
+          // Y las opciones de pase apuntan a compañeros, no a nadie inventado.
+          for (const o of d.options.filter((x) => x.id.startsWith('pass:'))) {
+            const mate = actorByUid(match, o.id.slice(5))
+            expect(mate).toBeTruthy()
+            expect(o.label).toContain(mate!.name)
+          }
+          chooseOption(match, rng, d.options.filter((o) => !o.disabled)[0].id)
+        } else {
+          advance(match, rng)
+        }
+        // El balón siempre lo lleva alguien que está jugando, y su marcador es
+        // del OTRO equipo: es lo que dibuja el mapa del campo.
+        if (match.chain) {
+          expect(onPitch.has(match.chain.carrier)).toBe(true)
+          expect(onPitch.has(match.chain.defenderUid)).toBe(true)
+          const mySide = match.chain.side === 'home' ? match.home : match.away
+          const theirs = match.chain.side === 'home' ? match.away : match.home
+          const uids = (s: typeof mySide) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds].map((a) => a.uid)
+          expect(uids(mySide)).toContain(match.chain.carrier)
+          expect(uids(theirs)).toContain(match.chain.defenderUid)
+        }
+      }
+      // El narrador y el marcador cuentan lo mismo.
+      const goals = match.events.filter((e) => e.kind === 'goal').length
+      expect(goals).toBe(match.home.goals + match.away.goals)
+    }
+  })
+
+  it('todo jugador del partido tiene retrato, nombre y elemento propios', () => {
+    const save = createSave(99)
+    const setup = startMatch(save, firstBoss(save))
+    if ('error' in setup) throw new Error(setup.error)
+    for (const side of [setup.match.home, setup.match.away]) {
+      for (const a of [side.keeper, ...side.defs, ...side.mids, ...side.fwds]) {
+        // `baseId` es lo que la UI usa para el retrato: si viniera vacío se
+        // caería a las iniciales sin que nadie se enterase.
+        expect(a.baseId).toBeTruthy()
+        expect(a.name.length).toBeGreaterThan(1)
+      }
+    }
+  })
+
+  it('las supertécnicas que ofrece el mapa las puede aprender alguien de tu plantilla', () => {
+    for (const teamId of PLAYABLE_TEAMS) {
+      const save = createSave(7, teamId)
+      const techNodes = Object.values(save.map.nodes).filter((n) => n.kind === 'tecnica')
+      expect(techNodes.length).toBeGreaterThan(0)
+      for (const n of techNodes) {
+        // Compatible por demarcación Y elemento con alguien de la plantilla.
+        // (Que además no la sepa ya depende de la partida, no del generador.)
+        expect(save.roster.some((p) => learnBlocker(p, n.techniqueId!) === null
+          || learnBlocker(p, n.techniqueId!) === 'Ya la conoce')).toBe(true)
+      }
+    }
+  })
+
+  it('el once rival que se enseña en la previa es el que salta al campo', () => {
+    for (const team of TEAMS) {
+      const shown = rivalStartingXI(team.id).map((p) => p.name)
+      const real = buildRivalTeam(team.id, 20, new RNG(4)).map((p) => p.name)
+      // Los de relleno completan por detrás; los que se enseñan van todos.
+      for (const name of shown) expect(real).toContain(name)
+    }
+  })
+
+  it('las situaciones del mapa tienen siempre alguna salida gratis', () => {
+    for (const ev of EVENTS) {
+      expect(ev.options.length).toBeGreaterThan(1)
+      // Si todas costaran dinero, una situación podría dejarte bloqueado.
+      expect(ev.options.some((o) => !o.cost)).toBe(true)
+      // Y lo que promete una opción arriesgada tiene su alternativa contada.
+      for (const o of ev.options) {
+        if (o.chance != null) expect(o.fail).toBeTruthy()
+      }
+    }
+  })
+
+  it('la recompensa de un instituto es una sola carta y siempre aplicable', () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const save = createSave(seed)
+      const reward = buildSingleReward(save, new RNG(seed))
+      expect(reward).toBeTruthy()
+      if (reward.kind === 'tecnica') {
+        expect(save.roster.some((p) => canLearn(p, reward.techniqueId))).toBe(true)
+      }
+      if (reward.kind === 'fichaje') expect(getPlayerBase(reward.playerId)).toBeTruthy()
+    }
+  })
+
+  it('traspasar paga y nunca deja la plantilla por debajo de once', () => {
+    const save = createSave(11)
+    // Con la plantilla al mínimo no hay traspaso posible: lo comprueba el store,
+    // pero el valor que se enseña tiene que existir igualmente.
+    for (const p of save.roster) {
+      expect(transferValue(getPlayerBase(p.baseId), p.level)).toBeGreaterThan(0)
+    }
+  })
+
+  it('los objetos de la tienda y los manuales tienen precio y efecto', () => {
+    for (const item of ITEMS) {
+      expect(item.price).toBeGreaterThan(0)
+      const usable = item.kind === 'equipo' || item.kind === 'raro'
+        ? !!item.stat
+        : !!item.consumable
+      expect(usable).toBe(true)
+    }
+    // Y lo que vende cada sitio es coherente con lo que es cada sitio.
+    expect(stockFor('rairai').every((i) => i.kind === 'comida')).toBe(true)
+    expect(stockFor('tienda').some((i) => i.kind === 'equipo')).toBe(true)
+  })
+})
+

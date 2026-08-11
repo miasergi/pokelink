@@ -197,6 +197,8 @@ export interface Decision {
   /** uid del jugador que decide. */
   actorUid: string
   actorName: string
+  /** uid del rival al que se enfrenta, para pintar su retrato. */
+  rivalUid: string
   /** Nombre del rival al que se enfrenta. */
   rivalName: string
   rivalElement: Element
@@ -232,6 +234,8 @@ export interface RivalPlayer {
  */
 export interface Actor {
   uid: string
+  /** Id del `PlayerBase`: la UI lo necesita para pintar el retrato. */
+  baseId: string
   name: string
   position: Position
   element: Element
@@ -327,7 +331,7 @@ export interface ChainState {
  *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
  */
 export type NodeKind =
-  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'rairai' | 'tienda' | 'jefe' | 'final'
+  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
@@ -353,6 +357,8 @@ export interface TournamentNode {
   /** Contenido ya sorteado al generar el mapa (para que la previa no mienta). */
   itemId?: string
   techniqueId?: string
+  /** Situación de la casilla de evento (id de `EVENTS`). */
+  eventId?: string
   /** Casilla arriesgada: rival más fuerte, premio doble. */
   risky?: boolean
 }
@@ -412,7 +418,7 @@ export interface InazumaItem {
   amount?: number
   /** Consumibles: se gastan al usarlos desde la plantilla. */
   consumable?: boolean
-  kind: 'equipo' | 'consumible' | 'manual' | 'comida'
+  kind: 'equipo' | 'consumible' | 'manual' | 'comida' | 'raro'
 }
 
 // ---------------------------------------------------------------------------
@@ -421,7 +427,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number

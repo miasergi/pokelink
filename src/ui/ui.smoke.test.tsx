@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { renderToString } from 'react-dom/server'
+import { createRoot } from 'react-dom/client'
+import { act } from 'react-dom/test-utils'
 import { createElement } from 'react'
 import { useGame } from '@/state/gameStore'
 import { createRun } from '@/engine/run/runEngine'
@@ -16,10 +18,39 @@ import { createAdventure } from '@/engine/cyber/cyberEngine'
 import InazumaScreen from '@/ui/screens/InazumaScreen'
 import { useInazuma } from '@/state/inazumaStore'
 import { createSave, startMatch, startPachanga } from '@/engine/inazuma/game'
-import { advance, chooseOption } from '@/engine/inazuma/match'
+import { actorByUid, advance, chooseOption } from '@/engine/inazuma/match'
 import { nextRound, shoot } from '@/engine/inazuma/pachanga'
-import { buildDraft } from '@/engine/inazuma/rewards'
+import { buildSingleReward } from '@/engine/inazuma/rewards'
 import { RNG } from '@/utils/rng'
+import { rivalStartingXI } from '@/engine/inazuma/roster'
+import { getPlayerBase } from '@/data/inazuma/players'
+import { EVENTS } from '@/data/inazuma/events'
+import { techniqueStock } from '@/data/inazuma/techniques'
+
+// jsdom no trae ni `scrollIntoView` ni `ResizeObserver`, y el tablero del mapa
+// y la retransmisión los usan para medirse.
+Element.prototype.scrollIntoView = () => {}
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver
+
+/**
+ * Monta un componente DE VERDAD y devuelve su texto. Hace falta montar (y no
+ * `renderToString`) para que los componentes lean el estado actual del store:
+ * en servidor, zustand entrega el estado inicial.
+ */
+function mount(Comp: () => JSX.Element | null): string {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  act(() => { root.render(createElement(Comp)) })
+  const out = host.textContent ?? ''
+  act(() => { root.unmount() })
+  host.remove()
+  return out
+}
 
 describe('render de pantallas (smoke)', () => {
   it('App monta sin lanzar', () => {
@@ -52,18 +83,29 @@ describe('render de pantallas (smoke)', () => {
     expect(() => renderToString(createElement(PokedexScreen))).not.toThrow()
   })
 
-  it('Inazuma Rogue: todas las fases renderizan y el partido se juega entero', () => {
+  /**
+   * OJO con `renderToString`: con un store de zustand devuelve el estado
+   * INICIAL, así que por muchas fases que se pusieran en el store se acababa
+   * pintando la pantalla de título una y otra vez. Este bloque monta de verdad
+   * (createRoot + act) y comprueba el TEXTO que sale, que es lo único que
+   * demuestra que la vista corresponde al estado del motor.
+   */
+  it('Inazuma Rogue: cada fase pinta lo suyo y el partido cuenta lo que pasa', () => {
     useGame.setState({ loaded: true, screen: { name: 'inazuma' } })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
-
     const save = createSave(4242)
+
     for (const phase of ['map', 'squad', 'shop', 'bag', 'stats', 'album', 'victory', 'gameover'] as const) {
       useInazuma.setState({ save, hasSave: true, phase })
-      expect(() => renderToString(createElement(InazumaScreen)), phase).not.toThrow()
+      expect(() => mount(InazumaScreen), phase).not.toThrow()
     }
 
-    // Con mochila llena y estadísticas, que es cuando esas pantallas tienen algo
-    // que pintar.
+    // La tienda vende material Y manuales de supertécnica, con su precio.
+    useInazuma.setState({ save, matchNode: null, phase: 'shop' })
+    const shop = mount(InazumaScreen)
+    expect(shop).toContain('Manuales de supertécnica')
+    for (const t of techniqueStock(save.seed, 0)) expect(shop).toContain(t.name)
+
+    // Mochila con contenido: objetos y supertécnicas, cada una con su nombre.
     useInazuma.setState({
       save: {
         ...save,
@@ -73,17 +115,20 @@ describe('render de pantallas (smoke)', () => {
       },
       phase: 'bag',
     })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    const bag = mount(InazumaScreen)
+    expect(bag).toContain('Botas Rayo')
+    expect(bag).toContain('Tornado de Fuego')
+
     useInazuma.setState({ phase: 'stats' })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
-    useInazuma.setState({ save, phase: 'map' })
+    expect(mount(InazumaScreen)).toContain(getPlayerBase(save.roster[0].baseId).name)
 
     // El mapa de un tramo avanzado, para que se pinten casillas pasadas,
     // actuales y futuras a la vez.
     useInazuma.setState({ save: { ...save, layer: 6 }, phase: 'map' })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    expect(() => mount(InazumaScreen)).not.toThrow()
+    useInazuma.setState({ save, phase: 'map' })
 
-    // Pachanga: se juega entera y se pinta en cada ronda.
+    // Pachanga: se juega entera y en cada ronda se ve quién tira y quién para.
     const pachNode = save.map.layers[0].map((id) => save.map.nodes[id]).find((n) => n.kind === 'pachanga')!
     const ps = startPachanga(save, pachNode)
     if ('error' in ps) throw new Error(ps.error)
@@ -91,31 +136,49 @@ describe('render de pantallas (smoke)', () => {
     let pGuard = 0
     while (ps.pachanga.phase !== 'finished' && pGuard++ < 50) {
       useInazuma.setState({ pachanga: ps.pachanga, matchNode: pachNode, phase: 'pachanga' })
-      expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
-      if (ps.pachanga.phase === 'decision') shoot(ps.pachanga, ps.rng, ps.pachanga.options[0].id)
+      const html = mount(InazumaScreen)
+      if (ps.pachanga.phase === 'decision' && ps.pachanga.pending) {
+        expect(html).toContain(ps.pachanga.pending.shooter.name)
+        expect(html).toContain(ps.pachanga.pending.keeper.name)
+        shoot(ps.pachanga, ps.rng, ps.pachanga.options[0].id)
+      }
       nextRound(ps.pachanga, ps.rng)
     }
     expect(ps.pachanga.phase).toBe('finished')
     useInazuma.setState({ pachanga: ps.pachanga, phase: 'pachanga' })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    expect(() => mount(InazumaScreen)).not.toThrow()
     useInazuma.setState({ pachanga: null })
 
-    // Previa y partido: se juega hasta el pitido final pasando por al menos una
-    // jugada clave, que es donde vive el panel de decisión.
+    // Previa del instituto: su once, en formato alineación.
     const node = Object.values(save.map.nodes).find((n) => n.kind === 'jefe')!
     useInazuma.setState({ save, matchNode: node, phase: 'preview' })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    const preview = mount(InazumaScreen)
+    for (const p of rivalStartingXI(node.teamId!)) {
+      expect(preview).toContain(p.name.split(' ')[0])
+    }
 
+    // Partido: el campo tiene que contar la MISMA jugada que el motor.
     const setup = startMatch(save, node)
     if ('error' in setup) throw new Error(setup.error)
     let decisions = 0
     let guard = 0
     while (setup.match.phase !== 'finished' && guard++ < 5000) {
       useInazuma.setState({ match: setup.match, feed: setup.match.events.slice(), phase: 'match' })
-      expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+      const html = mount(InazumaScreen)
+      if (setup.match.chain) {
+        // En el campo caben los nombres de pila; el completo va en la narración
+        // y en el panel de decisión.
+        const carrier = actorByUid(setup.match, setup.match.chain.carrier)!
+        const marker = actorByUid(setup.match, setup.match.chain.defenderUid)!
+        expect(html).toContain(carrier.name.split(' ')[0])
+        expect(html).toContain(marker.name.split(' ')[0])
+      }
       if (setup.match.phase === 'decision') {
         decisions++
-        chooseOption(setup.match, setup.rng, setup.match.decision!.options[0].id)
+        const d = setup.match.decision!
+        expect(html).toContain(d.actorName)
+        expect(html).toContain(d.rivalName)
+        chooseOption(setup.match, setup.rng, d.options[0].id)
       } else {
         advance(setup.match, setup.rng)
       }
@@ -123,14 +186,23 @@ describe('render de pantallas (smoke)', () => {
     expect(setup.match.phase).toBe('finished')
     expect(decisions).toBeGreaterThan(0)
 
-    // Y el resumen post-partido con sus cartas de recompensa.
+    // Situación: la escena y todas sus opciones.
+    useInazuma.setState({
+      save, match: null, matchNode: { ...node, kind: 'evento', eventId: EVENTS[0].id }, phase: 'evento',
+    })
+    const ev = mount(InazumaScreen)
+    expect(ev).toContain(EVENTS[0].title)
+    for (const o of EVENTS[0].options) expect(ev).toContain(o.label)
+
+    // Y la recompensa post-instituto: UNA carta, no tres.
     useInazuma.setState({
       save: { ...save, lastMatch: { rival: 'Instituto Occult', score: [2, 1], result: 'win', scorers: ['Axel Blaze'] } },
       match: null,
-      draft: buildDraft(save, new RNG(1)),
+      matchNode: null,
+      draft: [buildSingleReward(save, new RNG(1))],
       draftPicks: 1,
       phase: 'draft',
     })
-    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    expect(() => mount(InazumaScreen)).not.toThrow()
   })
 })

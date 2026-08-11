@@ -19,6 +19,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   objeto: { icon: '🎒', color: '#a78bfa', label: 'Objeto' },
   tecnica: { icon: '⚡', color: '#fbbf24', label: 'Técnica' },
   ojeador: { icon: '🔎', color: '#34d399', label: 'Ojeador' },
+  evento: { icon: '❓', color: '#c084fc', label: 'Situación' },
   rairai: { icon: '🍜', color: '#f472b6', label: 'Rai Rai' },
   tienda: { icon: '🛒', color: '#fcd34d', label: 'Tienda' },
   jefe: { icon: '⚔️', color: '#f87171', label: 'Instituto' },
@@ -196,9 +197,9 @@ export function NodePreview({
   const gap = node.level != null ? node.level - myLevel : 0
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-end p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div
-        className="w-full rounded-3xl border bg-slate-900 p-4 animate-pop-in safe-bottom"
+        className="w-full max-w-sm max-h-[88svh] overflow-y-auto no-scrollbar rounded-3xl border bg-slate-900 p-4 animate-pop-in"
         style={{ borderColor: `${meta.color}66` }}
         onClick={(e) => e.stopPropagation()}
       >

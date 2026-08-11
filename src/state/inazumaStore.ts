@@ -13,17 +13,18 @@ import { clearInazuma, loadInazuma, loadMeta, saveInazuma, saveMeta } from '@/pe
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
 import { getItem } from '@/data/inazuma/items'
+import { getEvent } from '@/data/inazuma/events'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { getTechnique } from '@/data/inazuma/techniques'
+import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
 import {
-  advanceLayer, applyMatchResult, applyPachangaResult, canLearn, createSave, fullRest,
-  isEliminated, isMapComplete, startMatch, startPachanga,
+  advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult, canLearn,
+  createSave, fullRest, isEliminated, isMapComplete, startMatch, startPachanga,
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
-import { buildDraft, buildScoutOffer } from '@/engine/inazuma/rewards'
+import { buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
-  autoLineup, canUpgradeTechnique, createPlayer, levelUp, lineupError, ptMax, upgradeTechnique,
+  autoLineup, createPlayer, levelUp, lineupError, transferValue,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -58,7 +59,10 @@ const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'bag', 'stats', 'al
 async function persist(save: InazumaSave, phase: InazumaPhase) {
   if (!SAFE_PHASES.includes(phase)) return
   if (rng) save.rngState = rng.getState()
-  await saveInazuma(save)
+  // Guardar es «lo mejor que se pueda»: si no hay IndexedDB (modo privado de
+  // algunos navegadores, tests) la partida sigue en memoria y no se tumba la
+  // pantalla por ello.
+  await saveInazuma(save).catch(() => {})
 }
 
 /** Meta-progresión del modo. Es read-modify-write, así que va en cola. */
@@ -77,7 +81,9 @@ export function persistInazumaMeta(extra: { title?: boolean; round?: number; sig
     if (currentUser()) await saveCloudMeta(meta).catch(() => {})
     // Mismo patrón que el resto de modos: el aviso se pinta en Inicio.
     if (ach.length) useGame.setState((g) => ({ newAchievements: [...g.newAchievements, ...ach] }))
-  })
+  // Si no hay almacenamiento, la meta-progresión se pierde pero la partida
+  // sigue: nunca debe romper la cola ni dejar un rechazo suelto.
+  }).catch(() => {})
   return metaQueue
 }
 
@@ -135,6 +141,7 @@ interface InazumaState {
   pickDraft: (optionId: string) => void
   applyToPlayer: (uid: string) => void
   cancelTarget: () => void
+  resolveEvent: (optionIndex: number) => void
 
   // plantilla
   setLineup: (uids: string[]) => void
@@ -148,6 +155,7 @@ interface InazumaState {
   resumePausedMatch: () => void
   release: (uid: string) => void
   buy: (itemId: string) => void
+  buyTechnique: (techId: string) => void
 }
 
 export const useInazuma = create<InazumaState>((set, get) => ({
@@ -266,6 +274,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
           message = `${getTechnique(node.techniqueId)?.name} guardada en la mochila.`
         }
         break
+      case 'evento':
+        // La situación se resuelve en su propia pantalla: hay que elegir.
+        set({ save: next, matchNode: node, phase: 'evento' })
+        return
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
         advanceLayer(next, node)
@@ -429,7 +441,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
     set({
       save: next,
-      draft: buildDraft(next, getRng(next)),
+      // Una sola carta, al azar: se probó con tres a elegir y cortaba el ritmo
+      // justo después del partido.
+      draft: [buildSingleReward(next, getRng(next))],
       draftPicks: 1,
       phase: 'draft',
       match: null,
@@ -502,6 +516,37 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   },
 
   cancelTarget: () => set({ pendingTarget: null }),
+
+  /**
+   * Resuelve una situación del mapa. Las opciones con `chance` pueden salir mal
+   * — es lo que las hace decisiones y no menús.
+   */
+  resolveEvent: (optionIndex) => {
+    const { save, matchNode } = get()
+    if (!save || !matchNode?.eventId) return
+    const ev = getEvent(matchNode.eventId)
+    const opt = ev?.options[optionIndex]
+    if (!ev || !opt) return
+    if (opt.cost && save.coins < opt.cost) { set({ message: 'No te llega el presupuesto.' }); return }
+
+    const r = getRng(save)
+    const ok = opt.chance == null || r.chance(opt.chance)
+    const resolved = ok ? opt : (opt.fail ?? opt)
+
+    const next: InazumaSave = {
+      ...save,
+      roster: save.roster.slice(),
+      bag: save.bag.slice(),
+      techniqueBag: save.techniqueBag.slice(),
+      cleared: save.cleared.slice(),
+      coins: save.coins - (opt.cost ?? 0),
+    }
+    const { signed } = applyEventEffect(next, resolved.effect, r)
+    if (signed) void persistInazumaMeta({ signed: [signed] })
+    advanceLayer(next, matchNode)
+    set({ save: next, matchNode: null, phase: 'map', message: resolved.outcome })
+    void persist(next, 'map')
+  },
 
   /** Cambia de formación y recoloca el once para que cuadre con ella. */
   setFormation: (id) => {
@@ -665,84 +710,13 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   useConsumable: (itemId, uid) => {
     const { save } = get()
     if (!save) return
-    const i = save.bag.indexOf(itemId)
-    if (i < 0) return
-    const bag = save.bag.slice()
-    bag.splice(i, 1)
-    let roster = save.roster.slice()
-    let message = ''
-    switch (itemId) {
-      case 'bebida-isotonica':
-        roster = roster.map((p) => (p.uid === uid ? { ...p, pt: Math.min(ptMax(p), p.pt + 40) } : p))
-        message = '+40 PT'
-        break
-      case 'bebida-doble':
-        roster = roster.map((p) => (p.uid === uid ? { ...p, pt: ptMax(p) } : p))
-        message = 'Depósito de PT lleno'
-        break
-      case 'masaje':
-        roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: Math.min(100, p.stamina + 50) } : p))
-        message = '+50 de aguante'
-        break
-      case 'ramen-rai-rai':
-        roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: Math.min(100, p.stamina + 60) } : p))
-        message = '+60 de aguante'
-        break
-      case 'ramen-especial':
-        roster = roster.map((p) => (p.uid === uid ? { ...p, stamina: 100, pt: ptMax(p) } : p))
-        message = 'Como nuevo'
-        break
-      case 'gyoza':
-        roster = roster.map((p) => ({ ...p, stamina: Math.min(100, p.stamina + 30) }))
-        message = 'Gyozas para todos: +30 de aguante'
-        break
-      case 'banquete':
-        roster = roster.map((p) => ({ ...p, stamina: 100, pt: ptMax(p) }))
-        message = '¡Banquete! Toda la plantilla a tope'
-        break
-      case 'plan-intensivo':
-        roster = roster.map((p) => (p.uid === uid ? levelUp(p, 4) : p))
-        message = '+4 niveles'
-        break
-      case 'concentrado':
-        roster = roster.map((p) => ({ ...p, pt: ptMax(p), stamina: Math.min(100, p.stamina + 60) }))
-        message = 'Toda la plantilla recuperada'
-        break
-      case 'plan-entrenamiento':
-        roster = roster.map((p) => (p.uid === uid ? levelUp(p, 2) : p))
-        message = '+2 niveles'
-        break
-      case 'mejora': {
-        const target = roster.find((p) => p.uid === uid)
-        const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
-        if (!target || !up) {
-          set({ message: 'Ese jugador no tiene ninguna técnica que se pueda mejorar más.' })
-          return
-        }
-        roster = roster.map((p) => (p.uid === uid ? upgradeTechnique(p, up) : p))
-        const t = getTechnique(up)
-        message = `${t?.name} mejorada (+25 % de potencia)`
-        break
-      }
-      case 'manual-avanzado': {
-        const target = roster.find((p) => p.uid === uid)
-        const evolvable = target?.techniques.map((t) => getTechnique(t)).find((t) => t?.evolvesTo)
-        if (!target || !evolvable?.evolvesTo) {
-          set({ message: 'Ese jugador no tiene ninguna técnica que pueda evolucionar.' })
-          return
-        }
-        const to = evolvable.evolvesTo
-        roster = roster.map((p) => (p.uid === uid
-          ? { ...p, techniques: p.techniques.map((t) => (t === evolvable.id ? to : t)) }
-          : p))
-        message = `${evolvable.name} → ${getTechnique(to)?.name}`
-        break
-      }
-      default:
-        return
-    }
-    const next = { ...save, bag, roster }
-    set({ save: next, message })
+    const next: InazumaSave = { ...save, bag: save.bag.slice(), roster: save.roster.slice() }
+    // El efecto vive en el motor (`applyConsumable`), no aquí: los tests de
+    // balance también consumen objetos, y duplicar la tabla en dos sitios es
+    // la forma más rápida de que dejen de medir el juego real.
+    const res = applyConsumable(next, itemId, uid)
+    if (!res.ok) { set({ message: res.message }); return }
+    set({ save: next, message: res.message })
     void persist(next, get().phase)
   },
 
@@ -760,8 +734,32 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     const roster = save.roster.filter((x) => x.uid !== uid)
     const lineup = save.lineup.filter((u) => u !== uid)
-    const next = { ...save, roster, lineup: lineup.length ? lineup : autoLineup(roster, save.formation) }
-    set({ save: next, message: `${getPlayerBase(p.baseId).name} deja el equipo.` })
+    // Traspasar PAGA: antes solo borraba al jugador, que es todo coste y ningún
+    // motivo para hacerlo.
+    const fee = transferValue(getPlayerBase(p.baseId), p.level)
+    const next = {
+      ...save,
+      roster,
+      coins: save.coins + fee,
+      lineup: lineup.length ? lineup : autoLineup(roster, save.formation),
+    }
+    set({
+      save: next,
+      message: `${getPlayerBase(p.baseId).name} traspasado por ${fee.toLocaleString('es-ES')} ₽.`,
+    })
+    void persist(next, get().phase)
+  },
+
+  /** Compra un manual: la técnica va a la MOCHILA, no a un jugador. */
+  buyTechnique: (techId) => {
+    const { save } = get()
+    if (!save) return
+    const t = getTechnique(techId)
+    if (!t) return
+    const price = techniquePrice(t)
+    if (save.coins < price) { set({ message: 'No te llega el presupuesto.' }); return }
+    const next = { ...save, coins: save.coins - price, techniqueBag: [...save.techniqueBag, techId] }
+    set({ save: next, message: `${t.name} a la mochila.` })
     void persist(next, get().phase)
   },
 
@@ -803,6 +801,7 @@ function closeDraft(
   void persist(save, 'map')
 }
 
+/** Aplica el efecto de una situación al save. Muta `save`. */
 /** Dónde estás del mapa, para la cabecera. */
 export function currentPlaceName(save: InazumaSave | null): string {
   return save ? layerName(save.layer) : ''

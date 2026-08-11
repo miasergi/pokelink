@@ -14,7 +14,14 @@
 // La curva se rebajó al pasar a plantillas REALES de 14 jugadores: antes los
 // rivales eran 3-5 jugadores con nombre y el resto relleno flojo, y al darles
 // un once entero de verdad la primera eliminatoria se llevaba por delante al
-// 30 % de las partidas. Ahora arranca en 0.72 y llega a 1.26.
+// 30 % de las partidas.
+//
+// Segundo ajuste, midiendo eliminatoria a eliminatoria: con la cola en 1.26 los
+// tres últimos institutos eran un muro (48 % de pase contra Zeus incluso con 28
+// niveles de ventaja), y como hay que encadenar OCHO, el título salía en el 6 %
+// de las partidas jugando bien o jugando mal — o sea, decidido por la suerte y
+// no por lo que haces. Ahora la cola llega a 1.16: siguen siendo duros, pero
+// prepararse se nota. Rango 0.72 → 1.16.
 import type { TeamBase } from '@/engine/inazuma/types'
 
 export const TEAMS: TeamBase[] = [
@@ -49,17 +56,17 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.07,
+    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.04,
     taunt: 'Quemamos el campo entero si hace falta.',
     lineup: [],
   },
   {
-    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.15,
+    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.09,
     taunt: 'El fútbol es una ciencia. Y vosotros no habéis estudiado.',
     lineup: [],
   },
   {
-    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.26,
+    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.16,
     taunt: 'Los dioses no pierden contra unos críos.',
     lineup: [],
   },

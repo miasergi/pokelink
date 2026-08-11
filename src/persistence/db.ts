@@ -104,8 +104,28 @@ export function recomputeTotals(meta: MetaRecord): boolean {
   return true
 }
 
+/** Almacén en memoria con lo justo que se usa de `idb`: get, put y delete. */
+let memory: Promise<IDBPDatabase> | null = null
+function memoryDb(): Promise<IDBPDatabase> {
+  if (!memory) {
+    const data = new Map<string, unknown>()
+    const k = (store: string, key: string) => `${store}/${key}`
+    memory = Promise.resolve({
+      get: async (store: string, key: string) => data.get(k(store, key)),
+      put: async (store: string, value: unknown, key: string) => { data.set(k(store, key), value) },
+      delete: async (store: string, key: string) => { data.delete(k(store, key)) },
+    } as unknown as IDBPDatabase)
+  }
+  return memory
+}
+
 let dbPromise: Promise<IDBPDatabase> | null = null
 function db(): Promise<IDBPDatabase> {
+  // Sin IndexedDB (tests en jsdom, modo privado de algunos navegadores) se
+  // devuelve un almacén DE MENTIRA en memoria en vez de reventar: la partida
+  // funciona igual, simplemente no sobrevive a recargar. Es preferible a que
+  // cada `void save(...)` deje un rechazo suelto por ahí.
+  if (typeof indexedDB === 'undefined') return memoryDb()
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, VERSION, {
       upgrade(database) {

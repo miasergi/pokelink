@@ -6,6 +6,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import MatchView from '@/ui/inazuma/MatchView'
 import PachangaView from '@/ui/inazuma/PachangaView'
 import BagView from '@/ui/inazuma/BagView'
+import EventView from '@/ui/inazuma/EventView'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
 } from '@/ui/inazuma/ExtraViews'
@@ -29,6 +30,7 @@ export default function InazumaScreen() {
       case 'squad': return <SquadView />
       case 'shop': return <ShopView />
       case 'bag': return <BagView />
+      case 'evento': return <EventView />
       case 'stats': return <StatsView />
       case 'album': return <AlbumView />
       case 'teamSelect': return <TeamSelectView />

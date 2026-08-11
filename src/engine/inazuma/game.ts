@@ -6,12 +6,18 @@ import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/playe
 import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
-  autoLineup, buildLineup, buildRivalTeam, createPlayer, effectiveStats,
-  levelUp, ptMax, START_LEVEL,
+  autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
+  levelUp, ptMax, START_LEVEL, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, participants, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
+import { buildScoutOffer, learnableByRoster } from './rewards'
+import { lootPool } from '@/data/inazuma/items'
+import {
+  ROSTER_MAX,
+} from './types'
+import type { EventEffect } from '@/data/inazuma/events'
 import type {
   Actor, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats,
   RivalPlayer, TournamentNode,
@@ -71,6 +77,7 @@ function actorFromPlayer(p: PlayerInstance): Actor {
   const base = getPlayerBase(p.baseId)
   return {
     uid: p.uid,
+    baseId: base.id,
     name: base.name,
     position: base.position,
     element: base.element,
@@ -90,6 +97,7 @@ function actorFromRival(r: RivalPlayer, i: number): Actor {
   const max = Math.round(45 + r.stats.aguante * 0.75)
   return {
     uid: `rv${i}`,
+    baseId: r.baseId,
     name: r.name,
     position: r.position,
     element: r.element,
@@ -351,10 +359,152 @@ export function autoTraining(save: InazumaSave, levels = 3, count = 2): string[]
 
 /** ¿Puede este jugador aprender una técnica más? (hay 4 huecos) */
 export function canLearn(p: PlayerInstance, techId: string): boolean {
+  return learnBlocker(p, techId) === null
+}
+
+/**
+ * Por qué NO puede aprenderla, o `null` si sí puede. Devuelve el motivo para
+ * que la mochila lo enseñe en vez de dejar la opción muerta sin explicación.
+ *
+ * Dos condiciones: la técnica tiene que ser de su DEMARCACIÓN (un portero no
+ * aprende tiros) y de su ELEMENTO (un jugador de Fuego no lanza una técnica de
+ * Aire) — esto último a petición expresa tras probar el juego.
+ */
+export function learnBlocker(p: PlayerInstance, techId: string): string | null {
   const t = getTechnique(techId)
-  if (!t) return false
-  if (p.techniques.includes(techId)) return false
-  const pos = getPlayerBase(p.baseId).position
-  const kind = pos === 'POR' ? 'parada' : pos === 'DEF' ? 'bloqueo' : pos === 'MED' ? 'regate' : 'tiro'
-  return t.kind === kind
+  if (!t) return 'Técnica desconocida'
+  if (p.techniques.includes(techId)) return 'Ya la conoce'
+  const base = getPlayerBase(p.baseId)
+  const kind = base.position === 'POR' ? 'parada'
+    : base.position === 'DEF' ? 'bloqueo'
+      : base.position === 'MED' ? 'regate' : 'tiro'
+  if (t.kind !== kind) return `Es de ${t.kind}, y él es ${base.position}`
+  if (t.element !== base.element) return `Es de ${t.element}, y él es de ${base.element}`
+  return null
+}
+
+/**
+ * Aplica el resultado de una SITUACIÓN (casilla de evento). Vive aquí, en el
+ * motor, y no en el store, porque los tests de balance también recorren esas
+ * casillas: si el efecto viviera en la UI, el bot pasaría por ellas sin recibir
+ * nada y el modo mediría más difícil de lo que es.
+ *
+ * Muta `save` (que el llamante ya ha clonado) y devuelve el fichaje, si lo
+ * hubo, para que el store lo apunte en el álbum.
+ */
+export function applyEventEffect(save: InazumaSave, effect: EventEffect, r: RNG): { signed?: string } {
+  switch (effect.kind) {
+    case 'coins':
+      save.coins += effect.amount
+      break
+    case 'item': {
+      const id = effect.itemId ?? r.pick(lootPool(bossIndexForLayer(save.layer))).id
+      save.bag.push(id)
+      break
+    }
+    case 'technique': {
+      // Del conjunto que alguien de la plantilla pueda aprender: si no, el
+      // premio se queda en la mochila para siempre.
+      const usable = learnableByRoster(save)
+      const pool = effect.element ? usable.filter((t) => t.element === effect.element) : usable
+      save.techniqueBag.push(r.pick(pool.length ? pool : usable).id)
+      break
+    }
+    case 'levels':
+      save.roster = save.roster.map((p) => levelUp(p, effect.amount))
+      break
+    case 'stamina':
+      save.roster = save.roster.map((p) => ({
+        ...p,
+        stamina: Math.max(0, Math.min(100, p.stamina + effect.amount)),
+      }))
+      break
+    case 'rest':
+      fullRest(save)
+      break
+    case 'sign': {
+      if (save.roster.length >= ROSTER_MAX) { save.coins += 800; break }
+      const offer = buildScoutOffer(save, r).find((o) => o.kind === 'fichaje')
+      if (offer?.kind === 'fichaje') {
+        save.roster = [...save.roster, createPlayer(offer.playerId, offer.level)]
+        return { signed: offer.playerId }
+      }
+      break
+    }
+    default:
+      break
+  }
+  return {}
+}
+
+/**
+ * Gasta un objeto de la mochila. Muta `save` (ya clonado por el llamante) y
+ * devuelve qué contar. Vive en el motor porque el bot de balance también bebe
+ * y come: si la tabla de efectos estuviera en el store, los tests medirían un
+ * juego en el que los consumibles no existen.
+ */
+export function applyConsumable(
+  save: InazumaSave, itemId: string, uid: string,
+): { ok: boolean; message: string } {
+  const i = save.bag.indexOf(itemId)
+  if (i < 0) return { ok: false, message: 'No llevas eso encima.' }
+
+  const one = (fn: (p: PlayerInstance) => PlayerInstance) => {
+    save.roster = save.roster.map((p) => (p.uid === uid ? fn(p) : p))
+  }
+  const all = (fn: (p: PlayerInstance) => PlayerInstance) => { save.roster = save.roster.map(fn) }
+  const spend = (message: string) => {
+    save.bag = save.bag.filter((_, k) => k !== i)
+    return { ok: true, message }
+  }
+
+  switch (itemId) {
+    case 'bebida-isotonica':
+      one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + 40) }))
+      return spend('+40 PT')
+    case 'bebida-doble':
+      one((p) => ({ ...p, pt: ptMax(p) }))
+      return spend('Depósito de PT lleno')
+    case 'masaje':
+      one((p) => ({ ...p, stamina: Math.min(100, p.stamina + 50) }))
+      return spend('+50 de aguante')
+    case 'ramen-rai-rai':
+      one((p) => ({ ...p, stamina: Math.min(100, p.stamina + 60) }))
+      return spend('+60 de aguante')
+    case 'ramen-especial':
+      one((p) => ({ ...p, stamina: 100, pt: ptMax(p) }))
+      return spend('Como nuevo')
+    case 'gyoza':
+      all((p) => ({ ...p, stamina: Math.min(100, p.stamina + 30) }))
+      return spend('Gyozas para todos: +30 de aguante')
+    case 'banquete':
+      all((p) => ({ ...p, stamina: 100, pt: ptMax(p) }))
+      return spend('¡Banquete! Toda la plantilla a tope')
+    case 'concentrado':
+      all((p) => ({ ...p, pt: ptMax(p), stamina: Math.min(100, p.stamina + 60) }))
+      return spend('Toda la plantilla recuperada')
+    case 'plan-entrenamiento':
+      one((p) => levelUp(p, 2))
+      return spend('+2 niveles')
+    case 'plan-intensivo':
+      one((p) => levelUp(p, 4))
+      return spend('+4 niveles')
+    case 'mejora': {
+      const target = save.roster.find((p) => p.uid === uid)
+      const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
+      if (!target || !up) return { ok: false, message: 'Ese jugador no tiene ninguna técnica que se pueda mejorar más.' }
+      one((p) => upgradeTechnique(p, up))
+      return spend(`${getTechnique(up)?.name} mejorada (+25 % de potencia)`)
+    }
+    case 'manual-avanzado': {
+      const target = save.roster.find((p) => p.uid === uid)
+      const evolvable = target?.techniques.map((t) => getTechnique(t)).find((t) => t?.evolvesTo)
+      if (!target || !evolvable?.evolvesTo) return { ok: false, message: 'Ese jugador no tiene ninguna técnica que pueda evolucionar.' }
+      const to = evolvable.evolvesTo
+      one((p) => ({ ...p, techniques: p.techniques.map((t) => (t === evolvable.id ? to : t)) }))
+      return spend(`${evolvable.name} → ${getTechnique(to)?.name}`)
+    }
+    default:
+      return { ok: false, message: 'Eso no se usa así.' }
+  }
 }

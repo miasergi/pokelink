@@ -10,12 +10,16 @@ import PitchView from '@/ui/inazuma/PitchView'
 import { RivalLineup } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { buildLineup, lineupError, overall } from '@/engine/inazuma/roster'
+import { buildLineup, lineupError, overall, ptMax, transferValue } from '@/engine/inazuma/roster'
+import { SQUAD_SIZE } from '@/engine/inazuma/types'
+
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
+import { techniquePrice, techniqueStock } from '@/data/inazuma/techniques'
+import { bossIndexForLayer } from '@/engine/inazuma/tournament'
 import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
@@ -247,6 +251,12 @@ export function PreviewView() {
   const { save, matchNode, confirmMatch, goTo } = useInazuma()
   if (!save || !matchNode) return null
   const team = getTeam(matchNode.teamId ?? 'occult')
+  // En una pachanga el rival es el equipo de barrio de la casilla, NO el
+  // instituto del tramo: ese solo presta su elemento para el aviso táctico.
+  // Enseñar «Instituto Occult» en una pachanga contra la «Peña del parque» era
+  // la incoherencia más gorda de la previa.
+  const isBoss = matchNode.kind === 'jefe' || matchNode.kind === 'final'
+  const rivalName = isBoss ? team.name : matchNode.title
   const lineup = buildLineup(save.roster, save.lineup)
   const err = lineupError(save.roster, save.lineup, save.formation)
 
@@ -259,9 +269,11 @@ export function PreviewView() {
           style={{ background: `linear-gradient(150deg, ${team.color}33, rgba(15,23,42,0.9) 60%)` }}
         >
           <div className="text-[11px] uppercase tracking-widest text-slate-400">{matchNode.subtitle}</div>
-          <div className="text-xl font-extrabold mt-1">{team.name}</div>
+          <div className="text-xl font-extrabold mt-1">{rivalName}</div>
           <div className="mt-1.5 flex justify-center"><ElementChip element={team.element} /></div>
-          <p className="text-[12px] italic text-slate-400 mt-2">«{team.taunt}»</p>
+          {isBoss
+            ? <p className="text-[12px] italic text-slate-400 mt-2">«{team.taunt}»</p>
+            : <p className="text-[12px] text-slate-500 mt-2">{matchNode.reward}</p>}
         </div>
 
         {/* Aviso de emparejamiento elemental: es LA decisión táctica del modo */}
@@ -448,10 +460,56 @@ export function SquadView() {
           bag={save.bag}
           onClose={() => setDetail(null)}
           onEquip={(item) => equip(detail, item)}
+          blocked={save.roster.length <= SQUAD_SIZE}
           onRelease={() => { release(detail); setDetail(null) }}
         />
       )}
     </div>
+  )
+}
+
+/**
+ * Manuales de supertécnica a la venta. Van a la MOCHILA, no a un jugador: se
+ * enseñan luego a quien encaje por demarcación y elemento.
+ */
+function TechniqueStock() {
+  const { save, buyTechnique } = useInazuma()
+  if (!save) return null
+  // Un puñado fijo por partida (según la semilla), para que la tienda tenga
+  // identidad y no sea un catálogo infinito.
+  const offer = techniqueStock(save.seed, bossIndexForLayer(save.layer))
+  if (!offer.length) return null
+
+  return (
+    <>
+      <div className="text-[11px] uppercase tracking-widest text-slate-500">Manuales de supertécnica</div>
+      {offer.map((t) => {
+        const info = ELEMENT_INFO[t.element]
+        const price = techniquePrice(t)
+        const afford = save.coins >= price
+        return (
+          <Card
+            key={t.id}
+            className={`p-3 ${afford ? '' : 'opacity-50'}`}
+            onClick={afford ? () => buyTechnique(t.id) : undefined}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl shrink-0" style={{ color: info.color }}>{info.glyph}</span>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-sm" style={{ color: info.color }}>{t.name}</div>
+                <div className="text-[11px] text-slate-400">
+                  {t.kind} · {info.label} · potencia {t.power} · {t.cost} PT
+                </div>
+              </div>
+              <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
+                {price.toLocaleString('es-ES')} ₽
+              </span>
+            </div>
+          </Card>
+        )
+      })}
+      <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-1">Material</div>
+    </>
   )
 }
 
@@ -539,20 +597,36 @@ function BagPanel({
 }
 
 function PlayerDetail({
-  player, bag, onClose, onEquip, onRelease,
+  player, bag, blocked, onClose, onEquip, onRelease,
 }: {
   player: PlayerInstance
   bag: string[]
+  /** true si la plantilla está en el mínimo y no se puede traspasar a nadie. */
+  blocked?: boolean
   onClose: () => void
   onEquip: (itemId: string | undefined) => void
   onRelease: () => void
 }) {
   const base = getPlayerBase(player.baseId)
   const gear = bag.filter((id) => getItem(id)?.kind === 'equipo')
+  const fee = transferValue(base, player.level)
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
         <PlayerCard player={player} />
+
+        {/* Las dos barras de la carta no se explican solas. En el playtest los
+            PT fueron lo más confuso del modo, así que se cuentan aquí mismo. */}
+        <div className="mt-2 rounded-xl border border-slate-700/70 bg-slate-800/40 px-2.5 py-2 text-[10px] text-slate-400 leading-relaxed">
+          <b className="text-sky-300">PT {Math.round(player.pt)}/{ptMax(player)}</b> — la gasolina de las
+          supertécnicas. Cada una cuesta lo que pone en su ficha y se descuenta al usarla. Sin PT
+          suficientes solo te queda el tiro sencillo. Se recuperan comiendo en el Rai Rai, con
+          bebidas y al terminar cada instituto. El depósito crece con el aguante.
+          <br />
+          <b className="text-emerald-300">AGU {Math.round(player.stamina)}/100</b> — el desgaste del
+          partido. Por debajo del 40 % rinde peor en todos los duelos.
+        </div>
+
         <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Supertécnicas</div>
         <div className="flex flex-col gap-1 mt-1">
           {player.techniques.map((id) => {
@@ -588,7 +662,13 @@ function PlayerDetail({
 
         <div className="mt-3 flex gap-2">
           <Button variant="primary" full onClick={onClose}>Cerrar</Button>
-          {!player.captain && <Button variant="danger" onClick={onRelease}>Traspasar</Button>}
+          {/* Se enseña la cifra ANTES de pulsar: un botón de traspaso sin
+              precio es una decisión a ciegas. */}
+          {!player.captain && !blocked && (
+            <Button variant="danger" onClick={onRelease}>
+              Traspasar · {fee.toLocaleString('es-ES')} ₽
+            </Button>
+          )}
         </div>
         {/* `getTeam` LANZA con un id desconocido, así que aquí se consulta el
             mapa directamente: una ficha de jugador no debe poder tumbar la UI. */}
@@ -641,6 +721,8 @@ export function ShopView() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
+        {!isRaiRai && <TechniqueStock />}
+
         {stock.map((item) => {
           const afford = save.coins >= item.price
           return (

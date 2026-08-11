@@ -81,3 +81,26 @@ export const KIND_LABEL: Record<Technique['kind'], string> = {
   bloqueo: 'Bloqueo',
   parada: 'Parada',
 }
+
+/** Lo que cuesta un manual de supertécnica: proporcional a su potencia. */
+export function techniquePrice(t: Technique): number {
+  return Math.round(500 + t.power * 22)
+}
+
+/**
+ * Manuales a la venta. Es un surtido FIJO por partida (depende de la semilla)
+ * que se renueva según avanzas: si la tienda ofreciera el catálogo entero,
+ * comprar dejaría de ser una decisión y sería una lista de la compra.
+ */
+export function techniqueStock(seed: number, progress: number): Technique[] {
+  const maxPower = 55 + progress * 12
+  const pool = TECHNIQUES.filter((t) => t.power <= maxPower && !t.evolvesTo)
+  const out: Technique[] = []
+  let h = (seed ^ (progress * 2654435761)) >>> 0
+  for (let i = 0; i < 4 && pool.length; i++) {
+    h = (Math.imul(h ^ (h >>> 15), 2246822507) >>> 0)
+    const pick = pool[h % pool.length]
+    if (!out.includes(pick)) out.push(pick)
+  }
+  return out
+}

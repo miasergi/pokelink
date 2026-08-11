@@ -12,7 +12,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { canLearn } from '@/engine/inazuma/game'
+import { learnBlocker } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
@@ -35,7 +35,9 @@ export default function BagView() {
   const eligible = (p: PlayerInstance): string | null => {
     if (!pending) return null
     if (pending.kind === 'tech') {
-      return canLearn(p, pending.id) ? null : 'No es de su demarcación'
+      // El motivo REAL (demarcación o elemento), no un mensaje genérico: si a
+      // un delantero de fuego no le cabe una técnica de bosque, hay que decirlo.
+      return learnBlocker(p, pending.id)
     }
     if (pending.id === 'mejora') {
       return p.techniques.some((t) => canUpgradeTechnique(p, t)) ? null : 'Sin técnicas que mejorar'
@@ -145,7 +147,9 @@ export default function BagView() {
               {pending.kind === 'tech' ? getTechnique(pending.id)?.name : getItem(pending.id)?.name}
             </div>
             <p className="text-[11px] text-slate-400 text-center mb-2">
-              {pending.kind === 'tech' ? 'Elige quién la aprende' : 'Elige a quién se lo das'}
+              {pending.kind === 'tech'
+                ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
+                : 'Elige a quién se lo das'}
             </p>
             <div className="overflow-y-auto no-scrollbar flex flex-col gap-1.5">
               {save.roster.map((p) => {

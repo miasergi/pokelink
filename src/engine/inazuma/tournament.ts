@@ -16,16 +16,18 @@
 // para que se pareciese al roguelike Pokémon.
 import type { RNG } from '@/utils/rng'
 import { BRACKET, buildBracket, getTeam } from '@/data/inazuma/teams'
-import { ITEMS } from '@/data/inazuma/items'
+import { lootPool } from '@/data/inazuma/items'
+import { EVENTS } from '@/data/inazuma/events'
 import { TECHNIQUES } from '@/data/inazuma/techniques'
-import type { InazumaMap, MapSegment, NodeKind, TournamentNode } from './types'
+import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
+import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from './types'
 
 /** Nivel del instituto que cierra cada tramo. */
 export const RIVAL_LEVELS = [6, 10, 14, 18, 22, 26, 30, 34]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
-export const ROUTE_LAYERS_PER_SEGMENT = 3
+export const ROUTE_LAYERS_PER_SEGMENT = 4
 /** Casillas ofrecidas por capa de ruta. */
 const NODES_PER_LAYER = 3
 
@@ -54,11 +56,12 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
  * principal de nivel, igual que los combates salvajes en el modo Pokémon.
  */
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
-  { kind: 'pachanga', weight: 42 },
-  { kind: 'objeto', weight: 16 },
-  { kind: 'tecnica', weight: 13 },
-  { kind: 'ojeador', weight: 13 },
-  { kind: 'rairai', weight: 10 },
+  { kind: 'pachanga', weight: 34 },
+  { kind: 'evento', weight: 16 },
+  { kind: 'objeto', weight: 14 },
+  { kind: 'tecnica', weight: 11 },
+  { kind: 'ojeador', weight: 11 },
+  { kind: 'rairai', weight: 8 },
   { kind: 'tienda', weight: 6 },
 ]
 
@@ -92,7 +95,7 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.
         if (kind === 'rairai' || kind === 'tienda') used.add(kind)
-        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket)
+        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket, playerTeamId)
         nodes[node.id] = node
         ids.push(node.id)
       }
@@ -113,7 +116,8 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
       level: RIVAL_LEVELS[seg],
       title: team.name,
       subtitle: `${entry.name} · nivel medio ${RIVAL_LEVELS[seg]}`,
-      reward: `${prizeMoney(seg)} ₽ + carta de fichaje`,
+      // La recompensa dejó de ser un menú de tres cartas: ahora cae una al azar.
+      reward: `${prizeMoney(seg)} ₽ + una recompensa`,
       next: [],
     }
     nodes[boss.id] = boss
@@ -175,6 +179,7 @@ export function availableNextNodes(map: InazumaMap, currentNodeId: string | null
 function buildRouteNode(
   id: string, kind: NodeKind, layer: number, col: number, seg: number, routeIndex: number, rng: RNG,
   bracket: { teamId: string; name: string }[] = BRACKET,
+  playerTeamId = 'raimon',
 ): TournamentNode {
   const base: TournamentNode = { id, kind, layer, col, title: '', subtitle: '', reward: '', next: [] }
 
@@ -196,15 +201,33 @@ function buildRouteNode(
       }
     }
     case 'objeto': {
-      const item = rng.pick(ITEMS.filter((i) => i.kind === 'equipo' || i.kind === 'consumible'))
-      return { ...base, itemId: item.id, title: 'Material tirado', subtitle: 'Alguien se dejó algo aquí', reward: item.name }
+      const item = rng.pick(lootPool(seg))
+      const rare = item.kind === 'raro'
+      return {
+        ...base,
+        itemId: item.id,
+        title: rare ? '¡Algo brillante!' : 'Material tirado',
+        subtitle: rare ? 'Esto no se ve todos los días' : 'Alguien se dejó algo aquí',
+        reward: item.name,
+      }
+    }
+    case 'evento': {
+      const ev = rng.pick(EVENTS)
+      return { ...base, eventId: ev.id, title: ev.title, subtitle: 'Situación', reward: 'Depende de lo que elijas' }
     }
     case 'tecnica': {
       // Técnicas de potencia acorde al tramo: ni la definitiva en la ruta 1 ni
       // una básica en semifinales.
+      //
+      // Y, sobre todo, técnicas que ALGUIEN de tu plantilla pueda aprender:
+      // desde que hacen falta demarcación Y elemento, sortear del catálogo
+      // entero regalaba casillas muertas (un tiro de bosque a un equipo que no
+      // tiene delanteros de bosque no es un premio, es un adorno).
       const target = 45 + seg * 9
-      const pool = TECHNIQUES.filter((t) => Math.abs(t.power - target) <= 25)
-      const tech = rng.pick(pool.length ? pool : TECHNIQUES)
+      const fits = teachableTo(playerTeamId)
+      const pool = TECHNIQUES.filter((t) => fits(t) && Math.abs(t.power - target) <= 25)
+      const wide = TECHNIQUES.filter(fits)
+      const tech = rng.pick(pool.length ? pool : wide.length ? wide : TECHNIQUES)
       return {
         ...base,
         techniqueId: tech.id,
@@ -227,6 +250,28 @@ function buildRouteNode(
     default:
       return { ...base, title: 'Casilla', subtitle: '', reward: '' }
   }
+}
+
+/**
+ * ¿Puede aprenderla alguien del instituto con el que juegas? Se mira sobre la
+ * plantilla INICIAL, que es la única que el mapa conoce al generarse; con los
+ * fichajes posteriores solo puede ampliarse, nunca reducirse.
+ */
+function teachableTo(teamId: string): (t: Technique) => boolean {
+  // MISMA plantilla que monta `createSave` (formación incluida): si aquí se
+  // mirase una lista más ancha, el mapa ofrecería técnicas para jugadores que
+  // no tienes.
+  const squad = startingSquad(teamId, formationFor(teamId)).map(getPlayerBase)
+  const combos = new Set(squad.map((p) => `${KIND_FOR_POSITION[p.position]}|${p.element}`))
+  // Y las que ya se saben de salida no cuentan: repetir una técnica que ya
+  // lleva el único jugador que podría aprenderla es una casilla vacía.
+  const known = new Set(squad.flatMap((p) => p.techniques))
+  return (t) => combos.has(`${t.kind}|${t.element}`) && !known.has(t.id)
+}
+
+/** Qué clase de técnica usa cada demarcación (espejo de `learnBlocker`). */
+const KIND_FOR_POSITION: Record<string, Technique['kind']> = {
+  POR: 'parada', DEF: 'bloqueo', MED: 'regate', DEL: 'tiro',
 }
 
 /** Rivales de pachanga: equipos de barrio, sin escudo ni entidad propia. */

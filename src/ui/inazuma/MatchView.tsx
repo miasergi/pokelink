@@ -10,8 +10,11 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
-import { playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
-import type { MatchEvent, MatchState } from '@/engine/inazuma/types'
+import MatchPitch from '@/ui/inazuma/MatchPitch'
+import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
+import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import { ImgFallback } from '@/ui/components/kit'
+import type { Actor, MatchEvent, MatchState } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
@@ -30,6 +33,7 @@ export default function MatchView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <Scoreboard match={match} />
+      {!finished && <MatchPitch match={match} />}
 
       {/* Narración. `justify-end` para que se lea como una retransmisión: las
           jugadas nuevas aparecen justo encima del panel de decisión en lugar de
@@ -41,7 +45,7 @@ export default function MatchView() {
 
       {/* Panel de decisión o controles */}
       {match.phase === 'decision' && match.decision ? (
-        <DecisionPanel decision={match.decision} onPick={decide} />
+        <DecisionPanel decision={match.decision} match={match} onPick={decide} />
       ) : finished ? (
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90">
           <div className="text-center mb-2">
@@ -228,25 +232,35 @@ function Banner({ text, tone }: { text: string; tone: 'neutral' | 'burst' }) {
 // ---------------------------------------------------------------------------
 
 function DecisionPanel({
-  decision, onPick,
+  decision, match, onPick,
 }: {
   decision: NonNullable<MatchState['decision']>
+  match: MatchState
   onPick: (id: string) => void
 }) {
-  const rivalInfo = ELEMENT_INFO[decision.rivalElement]
+  const actor = actorByUid(match, decision.actorUid)
+  const rival = actorByUid(match, decision.rivalUid)
   return (
     <div className="shrink-0 border-t border-amber-500/40 bg-slate-900 p-3 safe-bottom animate-pop-in">
-      <div className="flex items-baseline gap-2 mb-0.5">
+      <div className="flex items-baseline gap-2 mb-1">
         <span className="text-[10px] tabular-nums text-amber-300 font-bold">{decision.minute}′</span>
         <span className="text-sm font-extrabold text-amber-200">{decision.headline}</span>
       </div>
-      <div className="text-[11px] text-slate-400 mb-2">
-        <b className="text-slate-200">{decision.actorName}</b>
-        {decision.mode === 'ataque' ? ' se la juega contra ' : ' tiene enfrente a '}
-        <b className="text-slate-200">{decision.rivalName}</b>{' '}
-        <span style={{ color: rivalInfo.color }}>{rivalInfo.glyph}</span>
+
+      {/* Cara a cara: quién decide y contra quién. El texto solo daba nombres,
+          y con 22 jugadores en el campo un nombre no basta para reconocer a
+          nadie. */}
+      <div className="mb-2 flex items-center gap-2">
+        <Mugshot actor={actor} name={decision.actorName} />
+        <div className="text-center px-1">
+          <div className="text-[10px] font-extrabold text-slate-500">VS</div>
+          <div className="text-[9px] text-slate-500 whitespace-nowrap">
+            {decision.mode === 'ataque' ? 'ataca' : 'para el tiro'}
+          </div>
+        </div>
+        <Mugshot actor={rival} name={decision.rivalName} right />
       </div>
-      <div className="flex flex-col gap-1.5 max-h-[42vh] overflow-y-auto no-scrollbar">
+      <div className="flex flex-col gap-1.5 max-h-[38svh] overflow-y-auto no-scrollbar">
         {decision.options.map((o) => {
           const el = o.element ? ELEMENT_INFO[o.element] : null
           const isBurst = o.id === 'burst'
@@ -262,6 +276,12 @@ function DecisionPanel({
               }`}
               style={el && !isBurst ? { borderColor: `${el.color}66` } : undefined}
             >
+              {/* Los pases enseñan la cara del que recibe: la gracia de pasar
+                  es elegir a QUIÉN, y eso no se lee en una lista de nombres. */}
+              {o.id.startsWith('pass:') && (() => {
+                const mate = actorByUid(match, o.id.slice(5))
+                return mate ? <Mugshot actor={mate} name={mate.name} tiny /> : null
+              })()}
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-[13px] truncate" style={el && !isBurst ? { color: el.color } : undefined}>
                   {o.label}
@@ -273,6 +293,46 @@ function DecisionPanel({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Retrato + nombre + elemento. Se usa en el cara a cara de la jugada clave y en
+ * las opciones de pase.
+ */
+export function Mugshot({ actor, name, right, tiny }: {
+  actor?: Actor
+  name: string
+  right?: boolean
+  tiny?: boolean
+}) {
+  const info = ELEMENT_INFO[actor?.element ?? 'aire']
+  const size = tiny ? 'w-8 h-8' : 'w-11 h-11'
+  return (
+    <div className={`flex items-center gap-1.5 min-w-0 ${tiny ? '' : 'flex-1'} ${right ? 'flex-row-reverse text-right' : ''}`}>
+      <div
+        className={`${size} shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-800`}
+        style={{ borderColor: info.color }}
+      >
+        <ImgFallback
+          src={portraitUrl(actor?.baseId ?? '')}
+          className="w-full h-full object-cover"
+          alt={name}
+          fallback={<span className="text-[10px] font-extrabold" style={{ color: info.color }}>
+            {name.slice(0, 2).toUpperCase()}
+          </span>}
+        />
+      </div>
+      {!tiny && (
+        <div className="min-w-0">
+          <div className="text-[12px] font-bold truncate">{name}</div>
+          <div className="text-[10px]" style={{ color: info.color }}>
+            {info.glyph} {info.label}
+            {actor && <span className="text-slate-500"> · {actor.pt} PT</span>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

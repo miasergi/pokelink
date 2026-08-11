@@ -41,6 +41,20 @@ function weightedPick<T>(items: T[], weight: (t: T) => number, rng: RNG): T | un
   return items[items.length - 1]
 }
 
+const KIND_FOR_POSITION: Record<string, string> = {
+  POR: 'parada', DEF: 'bloqueo', MED: 'regate', DEL: 'tiro',
+}
+
+/** Técnicas que ALGUIEN de tu plantilla podría aprender ahora mismo. */
+export function learnableByRoster(save: InazumaSave) {
+  const combos = new Set(save.roster.map((p) => {
+    const b = getPlayerBase(p.baseId)
+    return `${KIND_FOR_POSITION[b.position]}|${b.element}`
+  }))
+  const out = TECHNIQUES.filter((t) => combos.has(`${t.kind}|${t.element}`))
+  return out.length ? out : TECHNIQUES
+}
+
 /** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
@@ -82,8 +96,18 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
 }
 
 /**
- * Las cartas post-partido: una de fichaje (si queda alguien), una de mejora y
- * una comodín. Siempre se ofrecen tres cosas distintas entre sí.
+ * UNA recompensa al azar tras ganar un instituto. Antes se elegía entre tres, y
+ * jugando se vio que rompía el ritmo: acababas de jugar 90 minutos y te
+ * plantaban otro menú. Al azar sorprende y se lee de un vistazo.
+ */
+export function buildSingleReward(save: InazumaSave, rng: RNG): DraftOption {
+  return rng.pick(buildDraft(save, rng))
+}
+
+/**
+ * La baraja de recompensas: una de fichaje (si queda alguien), una de mejora y
+ * una comodín, distintas entre sí. `buildSingleReward` saca UNA de aquí; el
+ * ojeador sigue repartiendo tres, porque ahí elegir jugador ES la casilla.
  */
 export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
   const out: DraftOption[] = []
@@ -105,8 +129,11 @@ export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
       levels: 4,
     })
   } else {
+    // Solo técnicas que alguien de la plantilla pueda aprender: hacen falta
+    // demarcación Y elemento, así que sortear del catálogo entero ofrecía
+    // cartas imposibles de usar.
     const tech = weightedPick(
-      TECHNIQUES.filter((t) => t.power >= 40 && t.power <= 60 + prog * 9),
+      learnableByRoster(save).filter((t) => t.power >= 40 && t.power <= 60 + prog * 9),
       (t) => 1 / (1 + Math.abs(t.power - (45 + prog * 7)) / 20),
       rng,
     )

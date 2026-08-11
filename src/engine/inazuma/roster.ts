@@ -81,8 +81,11 @@ export function effectiveStats(p: PlayerInstance): Stats {
     // lo mismo en la primera ronda que en la final.
     // El Brazalete de Capitán es el único que toca todos los atributos; el
     // modelo genérico de `InazumaItem` solo guarda uno, así que va aparte.
-    if (item.id === 'brazalete-capitan') {
-      for (const k of Object.keys(s) as (keyof Stats)[]) s[k] = Math.round(s[k] * 1.1)
+    // Los objetos «a todo» no caben en el modelo genérico de `InazumaItem`
+    // (que guarda un solo atributo), así que van aparte.
+    if (item.id === 'brazalete-capitan' || item.id === 'amuleto-relampago') {
+      const mult = 1 + (item.amount ?? 10) / 100
+      for (const k of Object.keys(s) as (keyof Stats)[]) s[k] = Math.round(s[k] * mult)
     } else if (item.stat && item.amount) {
       s[item.stat] = Math.round(s[item.stat] * (1 + item.amount / 100))
     }
@@ -260,7 +263,7 @@ const FILLER_TECHS: Record<Position, string[]> = {
 const RIVAL_SHAPE: Position[] = ['POR', 'DEF', 'DEF', 'DEF', 'DEF', 'MED', 'MED', 'MED', 'MED', 'DEL', 'DEL']
 
 /** Once rival por líneas: 1 portero, 4 defensas, 4 medios y 2 delanteros. */
-function rivalStartingXI(teamId: string): PlayerBase[] {
+export function rivalStartingXI(teamId: string): PlayerBase[] {
   const own = playersOfTeam(teamId)
   const line = (pos: Position, n: number) => own.filter((p) => p.position === pos).slice(0, n)
   const picked = [...line('POR', 1), ...line('DEF', 4), ...line('MED', 4), ...line('DEL', 2)]

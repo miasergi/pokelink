@@ -476,6 +476,7 @@ function buildDecision(
     mode,
     actorUid: actor.uid,
     actorName: actor.name,
+    rivalUid: rival.uid,
     rivalName: rival.name,
     rivalElement: rival.element,
     headline: mode === 'defensa' ? '¡Disparo a puerta!' : STEP_HEADLINE[step],
@@ -638,4 +639,13 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
 export function playerScore(m: MatchState): [number, number] {
   const mine = playerSide(m)
   return [sideOf(m, mine).goals, sideOf(m, otherSide(mine)).goals]
+}
+
+/** Busca a cualquier jugador del partido por uid, sea del bando que sea. */
+export function actorByUid(m: MatchState, uid: string): Actor | undefined {
+  for (const side of [m.home, m.away]) {
+    const hit = [side.keeper, ...side.defs, ...side.mids, ...side.fwds].find((a) => a.uid === uid)
+    if (hit) return hit
+  }
+  return undefined
 }
