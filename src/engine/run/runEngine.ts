@@ -141,11 +141,28 @@ export function availableNextNodes(run: RunState): MapNode[] {
   return cur.next.map((id) => run.map.nodes[id])
 }
 
+/** Casillas que NO son combate: dan el bonus de VIAJE (ver `enterNode`). */
+const TRAVEL_NODES = new Set(['catch', 'item', 'shop', 'trade', 'event', 'heal'])
+
 export function enterNode(run: RunState, nodeId: string): MapNode {
   const node = run.map.nodes[nodeId]
   run.currentNodeId = nodeId
   run.currentLayer = node.layer
   run.stats.turnsPlayed++
+  // Bonus de VIAJE: +1 nivel al equipo por pisar una casilla que no es combate
+  // (tienda, objeto, captura, intercambio, evento, Centro Pokémon).
+  //
+  // Los combates pagan aparte (salvaje +1 · entrenador +2 · Team Rocket y jefes
+  // +3, ver `applyBattleOutcome`). Sin esto, la mitad del recorrido no daba
+  // NADA y la curva de jefes (+9 por gimnasio desde nv.14) quedaba fuera de
+  // alcance: del inicial nv.5 al primer gimnasio hay 6 casillas y solo se
+  // ganaban ~4 niveles, así que llegabas a nv.9 contra un líder de 14 y la run
+  // se acababa ahí (0,1 gimnasios de media en la simulación). El tope por
+  // medallas sigue poniendo el techo.
+  if (TRAVEL_NODES.has(node.type) && !node.cleared) {
+    const cap = levelCap(run)
+    for (const mon of run.party) if (mon.level < cap) gainLevel(mon)
+  }
   return node
 }
 
@@ -362,13 +379,10 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: salvaje +2 · entrenador de ruta +3
-  // · JEFES +4 (gimnasio, rival, guardián, Alto Mando y Campeón).
-  // Subieron un punto en v6.52 con la curva de jefes (+9 por gimnasio desde
-  // nv.14): con +1/+2/+3 el equipo ganaba ~0,75 niveles por casilla y la curva
-  // pide ~1,3, así que se descolgaba un poco más en cada tramo y las runs se
-  // acababan antes del 2º gimnasio. El tope por medallas sigue poniendo el
-  // techo, así que ser generoso aquí no descontrola nada.
+  // Recompensa de nivel por casilla: salvaje +1 · entrenador de ruta +2
+  // · TEAM ROCKET y JEFES +3 (gimnasio, rival, guardián, Alto Mando, Campeón).
+  // Team Rocket cuenta como jefe aquí (van 3 Pokémon + el secuestrado) aunque
+  // ocupe una casilla de entrenador normal.
   // Los combates de ruta dan poco a propósito, pero el grueso de la curva se
   // paga en los jefes, que son inevitables: así el equipo llega a nivel 100
   // ante el Campeón sin necesidad de convertir el mapa en un pasillo de peleas
@@ -376,9 +390,10 @@ export function applyBattleOutcome(
   // jugador sobrevive precisamente esquivando combates). Solo suben los que
   // participaron; el tope por medallas (levelCap) sigue poniendo el techo.
   const cap = levelCap(run)
-  const levelGain = node.type === 'battle' ? 2
-    : node.type === 'trainer' ? 3
-    : 4
+  const isRocket = content.kind === 'trainer' && !!content.rescue
+  const levelGain = node.type === 'battle' ? 1
+    : node.type === 'trainer' ? (isRocket ? 3 : 2)
+    : 3
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

@@ -17,7 +17,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       'LAS RUTAS SON DE LOS JUEGOS: cada tramo se ilustra con la localidad REAL donde está ese gimnasio —Ciudad Plateada, Ciudad Malva, Ciudad Férrica, Cortondo…— en las nueve regiones, y el último tramo con su Calle Victoria o su Liga. Se acabaron las fotos de paisajes reales que no pintaban nada (una pradera de la Toscana en Kanto, un estadio de fútbol en la Liga). La cabecera del mapa dice además a qué ciudad vas.',
       'LOS LÍDERES SUBEN a la curva del pokelike original: el primer gimnasio pasa de nivel 8 a 14 y cada uno suma +9 (23, 32, 41, 50, 59, 68 y 77 el octavo). El Alto Mando remata en 84-97 y el Campeón cierra a 100.',
-      'Sigues empezando a NIVEL 5, que es donde está la gracia, pero la primera ruta ya no reparte esos 9 niveles en línea recta: arranca pegada a tu nivel (4, 5, 6, 7) y el repecho llega al final (9, 11) justo antes del gimnasio, cuando ya tienes equipo. Y cada casilla da un nivel más que antes (salvaje +2, entrenador +3, jefes +4) para que puedas seguir el ritmo de la curva nueva.',
+      'Sigues empezando a NIVEL 5, que es donde está la gracia, pero la primera ruta ya no reparte esos 9 niveles en línea recta: arranca pegada a tu nivel (4, 5, 6, 7) y el repecho llega al final (9, 11) justo antes del gimnasio, cuando ya tienes equipo.',
+      'Los combates siguen dando lo de siempre (salvaje +1, entrenador +2, Team Rocket y jefes +3), pero AHORA CADA CASILLA CUENTA: tienda, objeto, captura, intercambio, evento y Centro Pokémon dan +1 nivel al equipo por pisarlas. Antes la mitad del recorrido no daba nada y con la curva nueva era imposible llegar al nivel de los líderes. El tope por medallas sigue mandando.',
       'Los Pokémon salvajes que salen en cada zona ya no dependen del NÚMERO de nivel sino de por dónde vas en la región, así que en la primera ruta siguen apareciendo Pokémon de primera ruta aunque ahora vayan a nivel 10.',
     ],
   },

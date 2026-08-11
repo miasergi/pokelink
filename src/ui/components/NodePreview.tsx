@@ -19,21 +19,26 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   event: { title: 'Evento', desc: 'Un encuentro inesperado en el camino. Puede salir bien... o no.' },
   trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
-// OJO: estas cifras tienen que cuadrar con `levelGain` en runEngine.ts
-// (salvaje +2 · entrenador +3 · jefes +4).
+// OJO: estas cifras tienen que cuadrar con `levelGain` (combate) y con el bonus
+// de VIAJE de `enterNode` (+1 en las casillas que no son combate) en
+// runEngine.ts. Combate: salvaje +1 · entrenador +2 · Team Rocket y jefes +3.
 const REWARD: Partial<Record<string, string>> = {
-  battle: '+2 niveles a todo tu equipo',
-  trainer: '+3 niveles a tu equipo + dinero',
-  rival: '+4 niveles + dinero',
-  catch: 'un Pokémon nuevo para tu equipo',
-  item: '1 objeto a elegir',
-  event: 'sorpresa (objeto, dinero o Pokémon)',
-  trade: 'un Pokémon nuevo (+3 niveles)',
-  gym: '+4 niveles + medalla + objeto raro + dinero',
-  elite: '+4 niveles + objeto raro',
-  champion: '+4 niveles · ¡completar la región!',
-  legendary: '+4 niveles · ¡capturas al legendario!',
+  battle: '+1 nivel a todo tu equipo',
+  trainer: '+2 niveles a tu equipo + dinero',
+  rival: '+3 niveles + dinero',
+  catch: 'un Pokémon nuevo para tu equipo · +1 nivel',
+  item: '1 objeto a elegir · +1 nivel',
+  shop: '+1 nivel (y compras lo que necesites)',
+  heal: 'PS al máximo · +1 nivel',
+  event: 'sorpresa (objeto, dinero o Pokémon) · +1 nivel',
+  trade: 'un Pokémon nuevo, con +3 niveles · +1 nivel al equipo',
+  gym: '+3 niveles + medalla + objeto raro + dinero',
+  elite: '+3 niveles + objeto raro',
+  champion: '+3 niveles · ¡completar la región!',
+  legendary: '+3 niveles · ¡capturas al legendario!',
 }
+/** Team Rocket ocupa una casilla de entrenador pero paga como un jefe. */
+const ROCKET_REWARD = '+3 niveles + el Pokémon secuestrado + dinero'
 
 export default function NodePreview({
   node, canEnter = true, onEnter, onClose, partyAvgLevel = 0, difficulty = 'normal',
@@ -138,7 +143,7 @@ export default function NodePreview({
             <div>
               <div className="text-[11px] text-amber-300 font-bold">Recompensa</div>
               <div className="text-sm">
-                {REWARD[node.type]}
+                {rescue ? ROCKET_REWARD : REWARD[node.type]}
                 {money > 0 && <span className="text-amber-300 font-bold"> · +{money.toLocaleString('es')} ₽</span>}
               </div>
             </div>
