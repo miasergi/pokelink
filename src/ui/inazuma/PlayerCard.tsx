@@ -175,14 +175,22 @@ export function StatGrid({ stats }: { stats: Stats }) {
   )
 }
 
-/** Ficha reducida para el once y las listas largas. */
+/**
+ * Ficha reducida para el once y las listas largas.
+ *
+ * OJO con `right`: esta fila ES un `<button>`, así que NO se le puede pasar
+ * otro botón dentro (HTML inválido; React avisa con validateDOMNesting y el
+ * clic interior deja de ser fiable). Si necesitas una acción al lado, pon el
+ * botón como HERMANO de la fila, no dentro. Ver `SquadView`.
+ */
 export function PlayerRow({
-  player, onClick, right, dimmed,
+  player, onClick, right, dimmed, className = '',
 }: {
   player: PlayerInstance
   onClick?: () => void
   right?: React.ReactNode
   dimmed?: boolean
+  className?: string
 }) {
   const base = getPlayerBase(player.baseId)
   const info = ELEMENT_INFO[base.element]
@@ -192,7 +200,7 @@ export function PlayerRow({
       disabled={!onClick}
       className={`w-full flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/50 px-2 py-1.5 text-left transition ${
         onClick ? 'active:scale-[0.98]' : ''
-      } ${dimmed ? 'opacity-45' : ''}`}
+      } ${dimmed ? 'opacity-45' : ''} ${className}`}
     >
       <div
         className="w-9 h-9 shrink-0 rounded-lg overflow-hidden grid place-items-center border"

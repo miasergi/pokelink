@@ -315,11 +315,14 @@ function executeDuel(
       text: `¡${defender.name} lo detiene! ${defSide.name} respira.`,
     })
   } else {
+    // Escueto A PROPÓSITO: la línea del duelo que acaba de salir ya cuenta QUIÉN
+    // ha robado el balón («Bruno Cid le roba la cartera a Sam Kincaid»). Antes
+    // esta repetía el nombre del defensor y la jugada se narraba dos veces.
     out.push({
       kind: 'turnover',
       minute: m.minute,
       side: otherSide(chain.side),
-      text: `${defender.name} corta y el balón cambia de manos.`,
+      text: `Balón para ${defSide.name}.`,
     })
   }
   exhaustionCheck(m, out, attacker)
@@ -360,7 +363,9 @@ function duelText(
   const el = effectivenessLabel(eff)
   const tail = el ? ` ${el}` : ''
   const move = atkTech ? `¡${atkTech.name.toUpperCase()}!` : ''
-  const block = defTech ? ` ${def.name} responde con ${defTech.name}.` : ''
+  // Solo el nombre de la técnica: la frase principal ya ha dicho quién defiende,
+  // y añadir «Fulano responde con…» repetía el nombre dos veces en la misma línea.
+  const block = defTech ? ` ¡${defTech.name.toUpperCase()}!` : ''
   if (step === 'construccion') {
     return success
       ? `${atk.name} se saca a ${def.name} de encima. ${move}${tail}`

@@ -207,7 +207,11 @@ export function autoLineup(roster: PlayerInstance[]): string[] {
 
 /** ¿Es un once legal? (11 jugadores exactos y exactamente un portero). */
 export function lineupError(roster: PlayerInstance[], uids: string[]): string | null {
-  if (uids.length !== 11) return `Te faltan ${11 - uids.length} jugadores en el once`
+  if (uids.length > 11) return `Te sobran ${uids.length - 11} en el once`
+  if (uids.length < 11) {
+    const n = 11 - uids.length
+    return n === 1 ? 'Te falta 1 jugador en el once' : `Te faltan ${n} jugadores en el once`
+  }
   const byUid = new Map(roster.map((p) => [p.uid, p]))
   const keepers = uids.filter((u) => {
     const p = byUid.get(u)

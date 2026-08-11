@@ -27,8 +27,10 @@ export default function MatchView() {
     <div className="flex flex-col flex-1 min-h-0">
       <Scoreboard match={match} />
 
-      {/* Narración */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-3 py-2 flex flex-col gap-1.5">
+      {/* Narración. `justify-end` para que se lea como una retransmisión: las
+          jugadas nuevas aparecen justo encima del panel de decisión en lugar de
+          dejar media pantalla en blanco al principio del partido. */}
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-3 py-2 flex flex-col justify-end gap-1.5">
         {feed.slice(-40).map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
         <div ref={bottom} />
       </div>

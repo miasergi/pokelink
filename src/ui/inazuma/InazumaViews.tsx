@@ -300,21 +300,23 @@ export function SquadView() {
           <span className="text-[11px] uppercase tracking-widest text-slate-500">Once titular · {starters.length}/11</span>
           {err && <span className="text-[10px] text-rose-300">{err}</span>}
         </div>
+        {/* El botón de rotación va COMO HERMANO de la fila, no dentro: la fila
+            ya es un <button> y anidarlos es HTML inválido. */}
         <div className="flex flex-col gap-1.5">
           {starters.map((p) => (
-            <PlayerRow
-              key={p.uid}
-              player={p}
-              onClick={() => (target ? applyToPlayer(p.uid) : setDetail(p.uid))}
-              right={
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleStarter(p.uid) }}
-                  className="text-[10px] rounded-md border border-slate-600 px-1.5 py-0.5 text-slate-400"
-                >
-                  banquillo
-                </button>
-              }
-            />
+            <div key={p.uid} className="flex items-stretch gap-1.5">
+              <PlayerRow
+                player={p}
+                className="flex-1 min-w-0"
+                onClick={() => (target ? applyToPlayer(p.uid) : setDetail(p.uid))}
+              />
+              <button
+                onClick={() => toggleStarter(p.uid)}
+                className="shrink-0 w-16 rounded-xl border border-slate-600 bg-slate-800/50 text-[10px] text-slate-400 active:scale-95 transition"
+              >
+                banquillo
+              </button>
+            </div>
           ))}
         </div>
 
@@ -326,20 +328,20 @@ export function SquadView() {
         </p>
         <div className="flex flex-col gap-1.5">
           {bench.map((p) => (
-            <PlayerRow
-              key={p.uid}
-              player={p}
-              dimmed
-              onClick={() => (target ? applyToPlayer(p.uid) : setDetail(p.uid))}
-              right={
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleStarter(p.uid) }}
-                  className="text-[10px] rounded-md border border-emerald-600/60 text-emerald-300 px-1.5 py-0.5"
-                >
-                  al once
-                </button>
-              }
-            />
+            <div key={p.uid} className="flex items-stretch gap-1.5">
+              <PlayerRow
+                player={p}
+                dimmed
+                className="flex-1 min-w-0"
+                onClick={() => (target ? applyToPlayer(p.uid) : setDetail(p.uid))}
+              />
+              <button
+                onClick={() => toggleStarter(p.uid)}
+                className="shrink-0 w-16 rounded-xl border border-emerald-600/60 bg-emerald-500/10 text-[10px] text-emerald-300 active:scale-95 transition"
+              >
+                al once
+              </button>
+            </div>
           ))}
           {!bench.length && <div className="text-[11px] text-slate-600">Sin suplentes. Ficha en el ojeador.</div>}
         </div>

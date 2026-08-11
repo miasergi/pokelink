@@ -123,7 +123,10 @@ export default function HomeScreen() {
     ))))
   }, [dailyOpen, today])
   return (
-    <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom relative">
+    // `justify-center`, no `justify-between`: al pasar la cabecera a `shrink-0`
+    // para el hub, el `between` separaba logo y tarjetas a los dos extremos y
+    // en pantallas altas quedaba medio móvil de vacío en medio.
+    <div className="flex flex-col flex-1 items-center justify-center p-6 safe-top safe-bottom relative overflow-y-auto no-scrollbar">
       {/* Botón de nube / cuenta (arriba, centrado) */}
       <button
         onClick={() => setAccount(true)}
