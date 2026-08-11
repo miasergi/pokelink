@@ -6,13 +6,13 @@ import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier, appl
 import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
-import { generateMap } from './mapGen'
+import { generateMap, START_LEVEL } from './mapGen'
 import { generateStoryMap, applySonoroGene } from './storyMap'
 import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
-import { effectiveEnemyLevel, nodeLevelBonus, bossLevelExtra } from './difficulty'
+import { effectiveEnemyLevel, enemyLevelBonus } from './difficulty'
 import { getGeneration } from '@/data/generations'
 import type { Difficulty, MapNode, RandomFlags, RunState } from './types'
 import type { PokemonType } from '@/types'
@@ -69,7 +69,7 @@ export function createRun(config: NewRunConfig): RunState {
   // y a pleno PS); si no, compañero nuevo al nivel del capítulo.
   const carried = config.party?.length ? structuredClone(config.party) : null
   if (carried) healParty(carried)
-  const starter = createInstance(config.starterId, config.starterLevel ?? 5, rng)
+  const starter = createInstance(config.starterId, config.starterLevel ?? START_LEVEL, rng)
   if (config.story) starter.locked = true // Historia: tu compañero es intransferible
   // Gen Sonoro en runs normales: los Pokémon del dossier (y sus líneas) llevan
   // sus tipos alterados en TODO el mapa (enemigos, entrenadores, capturas,
@@ -171,7 +171,7 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   // ×1.4, que se desalineaba de la curva del jugador (ver `enemyLevelBonus`).
   // Se calcula sobre el nivel del NODO, no el de cada Pokémon: así todo el
   // equipo enemigo sube lo mismo y no se ensancha su abanico de niveles.
-  const bonus = nodeLevelBonus(node, run.difficulty)
+  const bonus = enemyLevelBonus(run.difficulty, node.enemyLevel)
   if (bonus) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, m.level + bonus))
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
@@ -220,20 +220,20 @@ const BOSS_DROPS = GIFT_ITEMS
 
 /** Margen del tope de nivel RESPECTO AL NIVEL EFECTIVO del próximo jefe.
  *
- *  Normal +5 (colchón cómodo). En Difícil/Nuzlocke el margen es NEGATIVO y vale
- *  justo el extra de jefe (`bossLevelExtra`): llegas al gimnasio por DEBAJO del
- *  as, entre 1 nivel (gym1, apertura suave) y 5 (recta final y Liga).
+ *  Normal +5 (colchón cómodo) · Difícil 0 (como mucho IGUALAS al as del jefe,
+ *  nunca lo superas) · Nuzlocke −1 (llegas por debajo).
  *
- *  Por qué así y no un número fijo: el tope se calcula desde el nivel del
- *  próximo jefe, así que subir la curva de jefes subía también el tope y no
- *  cambiaba nada. Restando el extra, el tope se queda en la curva base + la
- *  rampa normal de Difícil y TODO lo que suban los jefes es hueco real.
+ *  Difícil estuvo en +2 y se notaba: el equipo iba pegado al tope y por tanto
+ *  SIEMPRE dos niveles por encima del as, con sensación de ir sobrado. Además
+ *  las tres dificultades acababan dando el mismo tope en números absolutos
+ *  (el extra del enemigo y el margen se cancelaban), así que el dial no
+ *  diferenciaba nada.
  *
- *  Ojo al bajarlo más: las casillas de ruta se interpolan hasta el nivel del
- *  próximo jefe menos 1, así que un margen por debajo de −(extra) pondría
- *  salvajes por encima del máximo alcanzable (lo cubre `balance.test.ts`). */
-const capMargin = (difficulty: string, bossLevel: number): number =>
-  difficulty === 'normal' ? 5 : -bossLevelExtra(difficulty, bossLevel)
+ *  −1 es el SUELO matemático, no un gusto: las casillas de ruta se interpolan
+ *  hasta el nivel del próximo jefe menos 1, así que con un margen más bajo
+ *  habría salvajes por encima del máximo que el jugador puede alcanzar y la run
+ *  sería imposible por construcción (lo cubre `balance.test.ts`). */
+const CAP_MARGIN: Record<string, number> = { normal: 5, hard: 0, nuzlocke: 0 }
 
 /** Tope de nivel del equipo: el nivel EFECTIVO del próximo jefe sin vencer
  *  (gimnasio, Alto Mando o Campeón) más el margen de la dificultad. El tope
@@ -248,16 +248,14 @@ export function levelCap(run: RunState): number {
   // Nivel LIBRE (elección del jugador): sin tope, sube hasta 100 si quieres.
   // Sobrelevelear pasa a ser una decisión suya, no algo que el juego impide.
   if (run.freeLevel) return 100
-  let next = Infinity
-  let base = 0 // nivel BASE de ese jefe (el margen depende de él)
+  let next = 100
   for (const n of Object.values(run.map.nodes)) {
     if ((n.type === 'gym' || n.type === 'elite' || n.type === 'champion') && !n.cleared) {
-      const eff = effectiveEnemyLevel(n, run.difficulty)
-      if (eff < next) { next = eff; base = n.enemyLevel }
+      next = Math.min(next, effectiveEnemyLevel(n, run.difficulty))
     }
   }
-  if (!base) return 100 // sin jefes pendientes (historia, mapas sin Liga...)
-  return Math.max(5, Math.min(100, next + capMargin(run.difficulty, base)))
+  if (next >= 100) return 100
+  return Math.max(5, Math.min(100, next + (CAP_MARGIN[run.difficulty] ?? 5)))
 }
 
 export function applyBattleOutcome(
@@ -364,8 +362,13 @@ export function applyBattleOutcome(
     summary.bossDefeated = content.kind === 'trainer' ? content.trainer.name : 'el guardián'
   }
 
-  // Recompensa de nivel por casilla: salvaje +1 · entrenador de ruta +2
-  // · JEFES +3 (gimnasio, rival, guardián, Alto Mando y Campeón).
+  // Recompensa de nivel por casilla: salvaje +2 · entrenador de ruta +3
+  // · JEFES +4 (gimnasio, rival, guardián, Alto Mando y Campeón).
+  // Subieron un punto en v6.52 con la curva de jefes (+9 por gimnasio desde
+  // nv.14): con +1/+2/+3 el equipo ganaba ~0,75 niveles por casilla y la curva
+  // pide ~1,3, así que se descolgaba un poco más en cada tramo y las runs se
+  // acababan antes del 2º gimnasio. El tope por medallas sigue poniendo el
+  // techo, así que ser generoso aquí no descontrola nada.
   // Los combates de ruta dan poco a propósito, pero el grueso de la curva se
   // paga en los jefes, que son inevitables: así el equipo llega a nivel 100
   // ante el Campeón sin necesidad de convertir el mapa en un pasillo de peleas
@@ -373,9 +376,9 @@ export function applyBattleOutcome(
   // jugador sobrevive precisamente esquivando combates). Solo suben los que
   // participaron; el tope por medallas (levelCap) sigue poniendo el techo.
   const cap = levelCap(run)
-  const levelGain = node.type === 'battle' ? 1
-    : node.type === 'trainer' ? 2
-    : 3
+  const levelGain = node.type === 'battle' ? 2
+    : node.type === 'trainer' ? 3
+    : 4
   // Huevo Suerte: +1 nivel extra por combate al Pokémon que lo lleve.
   const boxBonus = (mon: PokemonInstance) => mon.heldItemId === 'lucky-egg' ? 1 : 0
   for (const mon of run.party) {

@@ -4,7 +4,7 @@ import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
-import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, nodeLevelBonus } from '@/engine/run/difficulty'
+import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, enemyLevelBonus } from '@/engine/run/difficulty'
 import { monTypes } from '@/engine/team/leveling'
 
 const CLASS_ES: Record<string, string> = {
@@ -20,19 +20,19 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
 // OJO: estas cifras tienen que cuadrar con `levelGain` en runEngine.ts
-// (salvaje +1 · entrenador +2 · jefes +5).
+// (salvaje +2 · entrenador +3 · jefes +4).
 const REWARD: Partial<Record<string, string>> = {
-  battle: '+1 nivel a todo tu equipo',
-  trainer: '+2 niveles a tu equipo + dinero',
-  rival: '+5 niveles + dinero',
+  battle: '+2 niveles a todo tu equipo',
+  trainer: '+3 niveles a tu equipo + dinero',
+  rival: '+4 niveles + dinero',
   catch: 'un Pokémon nuevo para tu equipo',
   item: '1 objeto a elegir',
   event: 'sorpresa (objeto, dinero o Pokémon)',
   trade: 'un Pokémon nuevo (+3 niveles)',
-  gym: '+5 niveles + medalla + objeto raro + dinero',
-  elite: '+5 niveles + objeto raro',
-  champion: '+5 niveles · ¡completar la región!',
-  legendary: '+5 niveles · ¡capturas al legendario!',
+  gym: '+4 niveles + medalla + objeto raro + dinero',
+  elite: '+4 niveles + objeto raro',
+  champion: '+4 niveles · ¡completar la región!',
+  legendary: '+4 niveles · ¡capturas al legendario!',
 }
 
 export default function NodePreview({
@@ -62,7 +62,7 @@ export default function NodePreview({
   // extra fijo. Al entrar en combate el motor ya sube las instancias, así que
   // solo hay que sumarlo mientras la casilla siga sin superarse (si no, se
   // contaría dos veces al revisar una casilla ya vencida).
-  const lvlBonus = node.cleared ? 0 : nodeLevelBonus(node, difficulty)
+  const lvlBonus = node.cleared ? 0 : enemyLevelBonus(difficulty, node.enemyLevel)
   const shown = (lv: number) => Math.min(100, lv + lvlBonus)
   const minLvl = team.length ? shown(Math.min(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
   const maxLvl = team.length ? shown(Math.max(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)

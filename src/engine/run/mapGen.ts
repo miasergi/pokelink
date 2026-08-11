@@ -114,6 +114,15 @@ function buildRocketContent(level: number, rng: RNG, gen: number, pool: SpeciesD
   return { kind: 'trainer', trainer, team, rescue }
 }
 
+/** Nivel del inicial y arranque de la interpolación de la ruta (v6.52).
+ *
+ *  Sube de 5 a 10 junto con la curva de jefes (gym1 8→14): si el primer
+ *  gimnasio pide 14, la ruta que lleva hasta él tiene que empezar cerca. Con el
+ *  inicial a nv.5 la capa 4 ya pedía nv.10 con el equipo a nv.6 y las runs
+ *  morían antes del primer gimnasio (0,1 gimnasios de media en la simulación,
+ *  frente a 0,7-0,8 de la curva anterior). */
+export const START_LEVEL = 10
+
 interface LayerPlan {
   kind: 'route' | 'boss' | 'heal' | 'legendary'
   width?: number
@@ -159,20 +168,20 @@ export function generateMap(
       plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
     }
   }
-  // Curva de niveles de jefes: estirada hasta el CAMPEÓN A NIVEL 100 (v6.45).
-  // Con el tope de nivel por medallas (levelCap = próximo jefe + margen),
-  // llegar a 100 es el clímax natural de la run y el tramo final nunca se
-  // trivializa chetando a un solo Pokémon con caramelos.
-  // OJO: gym1 se queda en 8 para que la ENTRADA sea suave (con gym1=10 la
-  // interpolación ponía el primer combate a nv.6 contra tu inicial nv.5 y
-  // muchas runs morían en la primera ruta).
-  const GYM_LEVELS = [8, 15, 23, 32, 41, 50, 59, 67]
-  const ELITE_LEVELS = [74, 81, 88, 94]
+  // Curva de niveles de jefes (v6.52): la del pokelike original — el 1er
+  // gimnasio a nv.14 y +9 en cada uno hasta el 8º a nv.77. Los gimnasios de
+  // antes (8→67) se quedaban cortos: como el tope del equipo sale del nivel
+  // del próximo jefe, toda la run transcurría en números bajos.
+  // El Alto Mando remata la subida y el CAMPEÓN cierra a nivel 100.
+  const GYM_LEVELS = [14, 23, 32, 41, 50, 59, 68, 77]
+  const ELITE_LEVELS = [84, 89, 94, 97]
   const CHAMPION_LEVEL = 100
-  // Rivales situados ENTRE gimnasios -> nivel acorde a su posición en el mapa.
-  // (El 2º rival va entre gym4=41 y gym5=50: debe quedar POR DEBAJO de 50.)
-  const RIVAL_LEVELS = [13, 45, 70]
-  const LEGENDARY_LEVEL = 62 // guardián entre gym6 y gym7
+  // Rivales y guardián situados ENTRE jefes -> nivel acorde a su posición en el
+  // mapa (rival 1 entre gym1 y gym2, rival 2 entre gym5 y gym6, rival 3 antes
+  // del Alto Mando; el guardián legendario entre gym7 y gym8). Los anclas
+  // tienen que quedar ESTRICTAMENTE crecientes en el orden del recorrido.
+  const RIVAL_LEVELS = [19, 55, 81]
+  const LEGENDARY_LEVEL = 72
 
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
   const pushRival = () => {
@@ -208,7 +217,7 @@ export function generateMap(
   const anchors: (number | null)[] = plan.map((p) =>
     (p.kind === 'boss' || p.kind === 'legendary') ? p.level ?? null : null,
   )
-  const levels = interpolateLevels(anchors, 5)
+  const levels = interpolateLevels(anchors, START_LEVEL)
 
   // Nivel del PRÓXIMO jefe en cada capa (para no ofrecer capturas con nivel
   // pegado al jefe que viene).

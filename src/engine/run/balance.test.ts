@@ -45,9 +45,8 @@ describe('curva de nivel por dificultad', () => {
     for (const diff of ['normal', 'hard', 'nuzlocke'] as Difficulty[]) {
       const run = createRun({ pools: [1], random: false, difficulty: diff, gen: 1, starterId: 1, seed: 7 })
       const gaps = bosses(run).map((b) => effectiveEnemyLevel(b, diff) - capBefore(run, b))
-      // El hueco que te saca el jefe está ACOTADO (en Difícil es el extra de
-      // jefe: de +1 en el gym1 a +5 en la Liga; en Normal es negativo).
-      for (const g of gaps) expect(g).toBeLessThanOrEqual(5)
+      // El tope tiene que dejarte SIEMPRE llegar al jefe, en toda la run.
+      for (const g of gaps) expect(g).toBeLessThanOrEqual(2)
       // Y la separación tiene que ser plana: entre el primer jefe y el último
       // no puede abrirse una brecha (con ×1.4 se abría más de 25 niveles).
       const drift = Math.max(...gaps) - Math.min(...gaps)
@@ -77,20 +76,8 @@ describe('curva de nivel por dificultad', () => {
     const sNuz = slack(nuz, 'nuzlocke')
     expect(sNormal).toBeGreaterThan(sHard)
     expect(sHard).toBeGreaterThanOrEqual(sNuz) // Nuzlocke iguala a Difícil
-    // En Difícil llegas por DEBAJO del as, nunca empatado (v6.52): el extra de
-    // jefe no se traslada al tope, así que el líder saca un hueco real.
-    expect(sHard).toBeLessThan(0)
-  })
-
-  it('los jefes de Difícil van por encima del tope, pero el hueco no se dispara', () => {
-    const run = createRun({ pools: [1], random: false, difficulty: 'hard', gen: 1, starterId: 1, seed: 7 })
-    const gaps = bosses(run).map((b) => effectiveEnemyLevel(b, 'hard') - capBefore(run, b))
-    // Apertura suave (ahí es donde morían las runs) y recta final exigente.
-    expect(gaps[0]).toBeGreaterThan(0)
-    expect(gaps[0]).toBeLessThanOrEqual(2)
-    expect(Math.max(...gaps)).toBeGreaterThanOrEqual(4)
-    // Monótono no decreciente: el juego no se ablanda al avanzar.
-    for (let i = 1; i < gaps.length; i++) expect(gaps[i]).toBeGreaterThanOrEqual(gaps[i - 1])
+    // En Difícil, como mucho IGUALAS al as: nunca por encima.
+    expect(sHard).toBeLessThanOrEqual(0)
   })
 
   it('en Difícil los acompañantes del jefe son SIEMPRE de su tipo', () => {
