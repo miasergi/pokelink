@@ -1,7 +1,7 @@
 // Plantilla: crear jugadores, escalarlos por nivel, calcular PT y aplicar
 // fatiga y objetos. Todo son funciones PURAS — el store solo las orquesta.
 import type { RNG } from '@/utils/rng'
-import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
@@ -259,6 +259,15 @@ const FILLER_TECHS: Record<Position, string[]> = {
 /** Reparto de un once rival: 1 POR, 4 DEF, 4 MED, 2 DEL. */
 const RIVAL_SHAPE: Position[] = ['POR', 'DEF', 'DEF', 'DEF', 'DEF', 'MED', 'MED', 'MED', 'MED', 'DEL', 'DEL']
 
+/** Once rival por líneas: 1 portero, 4 defensas, 4 medios y 2 delanteros. */
+function rivalStartingXI(teamId: string): PlayerBase[] {
+  const own = playersOfTeam(teamId)
+  const line = (pos: Position, n: number) => own.filter((p) => p.position === pos).slice(0, n)
+  const picked = [...line('POR', 1), ...line('DEF', 4), ...line('MED', 4), ...line('DEL', 2)]
+  if (picked.length < 11) picked.push(...own.filter((p) => !picked.includes(p)).slice(0, 11 - picked.length))
+  return picked.slice(0, 11)
+}
+
 /** Espíritu del jugador base, para pasarlo al partido. */
 export function spiritOf(baseId: string): string | undefined {
   return getPlayerBase(baseId).spirit
@@ -271,7 +280,11 @@ export function spiritOf(baseId: string): string | undefined {
  */
 export function buildRivalTeam(teamId: string, level: number, rng: RNG): RivalPlayer[] {
   const team = getTeam(teamId)
-  const named = team.lineup.map((id) => getPlayerBase(id))
+  // Su once sale de su plantilla REAL (14 jugadores por instituto) y se arma
+  // POR LÍNEAS, igual que el tuyo. Cogerlos «los 11 primeros de la lista» era
+  // asimétrico (a ellos les tocaban siempre los mejores y a ti no) y además
+  // podía dejarles sin portero.
+  const named = rivalStartingXI(teamId)
   const out: RivalPlayer[] = named.map((b) => toRival(b, level, team.power))
 
   const needed = RIVAL_SHAPE.slice()

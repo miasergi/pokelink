@@ -6,7 +6,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl, ElementChip } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import { getSpirit } from '@/data/inazuma/spirits'
 import { getTeam, TEAM_BY_ID, PLAYABLE_TEAMS } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
@@ -270,8 +270,7 @@ export function markOnboarded(): void {
 // ---------------------------------------------------------------------------
 
 export function RivalLineup({ teamId, level }: { teamId: string; level: number }) {
-  const team = getTeam(teamId)
-  const named = team.lineup.map((id) => getPlayerBase(id))
+  const named = playersOfTeam(teamId).slice(0, 11)
 
   return (
     <div className="flex flex-col gap-1.5">

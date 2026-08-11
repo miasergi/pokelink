@@ -46,3 +46,18 @@ export const DEFAULT_FORMATION = '4-4-2'
 export function getFormation(id: string | undefined): Formation {
   return FORMATION_BY_ID.get(id ?? DEFAULT_FORMATION) ?? FORMATIONS[0]
 }
+
+/**
+ * Formación que un equipo puede alinear DE VERDAD con los jugadores que tiene.
+ *
+ * Hace falta porque las plantillas son las reales de la serie y cada instituto
+ * viene con un reparto distinto: el Raimon tiene seis defensas y tres
+ * centrocampistas, así que empezarlo en 4-4-2 dejaba el once inválido de
+ * salida. Se coge la primera formación que cubra las tres líneas y, si ninguna
+ * encaja, la que menos huecos deje.
+ */
+export function bestFormationFor(counts: { DEF: number; MED: number; DEL: number }): Formation {
+  const gap = (f: Formation) =>
+    Math.max(0, f.defs - counts.DEF) + Math.max(0, f.mids - counts.MED) + Math.max(0, f.fwds - counts.DEL)
+  return [...FORMATIONS].sort((a, b) => gap(a) - gap(b))[0]
+}

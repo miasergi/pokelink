@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.58',
+    date: '2026-08-11',
+    title: 'Inazuma: plantillas REALES, 126 jugadores y nueve institutos completos',
+    changes: [
+      'TODOS LOS EQUIPOS, COMPLETOS Y DE VERDAD. Los nueve institutos pasan de tener tres o cuatro jugadores con nombre (y el resto relleno inventado) a los CATORCE de su plantilla real. 126 jugadores en total.',
+      'POSICIONES Y ELEMENTOS CORRECTOS. Estaban puestos a ojo y muchos no cuadraban. Ahora salen del dato real de cada personaje, así que Mark Evans es portero de Montaña porque lo es. Los nombres también son los del doblaje europeo, tal cual.',
+      'CADA INSTITUTO JUEGA COMO PUEDE. Al ser plantillas reales, cada uno viene con su reparto: el Raimon tiene seis defensas y tres centrocampistas, así que arranca en 4-3-3 y no en 4-4-2. La formación inicial se elige según lo que el equipo tenga de verdad.',
+      'Y LOS RIVALES TAMBIÉN. Su once ya no es «los cuatro con nombre y siete de relleno», sino su alineación real por líneas. Pegan bastante más, así que se ha rebajado su multiplicador de fuerza para que la primera eliminatoria siga siendo asequible y la final siga dando miedo.',
+    ],
+  },
+  {
     version: 'v6.57',
     date: '2026-08-11',
     title: 'Inazuma: eliges instituto, alineación arrastrable y Restaurante Rai Rai',

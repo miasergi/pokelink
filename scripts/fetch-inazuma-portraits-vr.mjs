@@ -44,7 +44,7 @@ async function readRoster() {
   for (const chunk of src.split(/\n  \},?/)) {
     const m = /id: '([^']+)', name: '([^']+)'/.exec(chunk)
     if (!m) continue
-    if (/rarity: \d,\s*\/\/ original/.test(chunk)) continue
+
     out.push({ id: m[1], name: m[2] })
   }
   return out
@@ -88,7 +88,9 @@ async function main() {
 
   for (const { id, name } of targets) {
     const dest = join(OUT_DIR, `${id}.png`)
-    if (!force && await exists(dest) && !only.size) { /* se sobrescribe igual: es una mejora */ }
+    // Se salta lo ya descargado para poder REANUDAR: son 126 fichas y una
+    // pasada entera no cabe en una sola ejecución. Con --force se rehace todo.
+    if (!force && !only.size && await exists(dest)) { skipped++; continue }
     try {
       await search.fill('')
       await page.waitForTimeout(250)

@@ -11,6 +11,7 @@ import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
 import { getPlayerBase } from '@/data/inazuma/players'
+import { TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyMatchResult, applyPachangaResult, autoTraining, canLearn, createSave,
   fullRest, isEliminated, isMapComplete, recordMatchStats, startMatch, startPachanga,
@@ -39,17 +40,22 @@ describe('elementos', () => {
 })
 
 describe('plantilla', () => {
-  it('el once automático es legal', () => {
-    const save = createSave(1234)
-    expect(save.roster).toHaveLength(11)
-    expect(lineupError(save.roster, save.lineup)).toBeNull()
+  it('el once inicial de CADA instituto es legal', () => {
+    // Las plantillas son las reales de la serie y cada una trae su reparto, así
+    // que la formación de salida se elige según lo que el equipo tenga: el
+    // Raimon con seis defensas y tres medios no puede jugar un 4-4-2.
+    for (const teamId of TEAMS.map((t) => t.id)) {
+      const save = createSave(1234, teamId)
+      expect(save.roster, teamId).toHaveLength(11)
+      expect(lineupError(save.roster, save.lineup, save.formation), teamId).toBeNull()
+    }
   })
 
   it('subir de nivel ENSANCHA la brecha entre una estrella y un suplente', () => {
     // Se comparan atributos crudos, no `overall`: la valoración tiene tope 99 y
     // pondera por demarcación, así que no sirve para medir brechas.
     const gap = (lv: number) =>
-      effectiveStats(createPlayer('axel-blaze', lv)).tiro - effectiveStats(createPlayer('erik-eagle', lv)).tiro
+      effectiveStats(createPlayer('axel-blaze', lv)).tiro - effectiveStats(createPlayer('william-glass', lv)).tiro
     expect(overall(createPlayer('axel-blaze', 40))).toBeGreaterThan(overall(createPlayer('axel-blaze', 1)))
     expect(gap(40)).toBeGreaterThan(gap(1))
   })
@@ -66,7 +72,7 @@ describe('plantilla', () => {
   })
 
   it('los PT máximos crecen con el aguante', () => {
-    expect(ptMax(createPlayer('mark-evans', 10))).toBeGreaterThan(ptMax(createPlayer('erik-eagle', 10)))
+    expect(ptMax(createPlayer('mark-evans', 10))).toBeGreaterThan(ptMax(createPlayer('william-glass', 10)))
   })
 })
 

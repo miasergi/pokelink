@@ -9,7 +9,12 @@
 //
 // La dificultad de verdad la marca la CALIDAD DE LA PLANTILLA rival, que ya
 // sube sola por el cuadro (Occult juega con ★2 y Zeus con ★4-★5). `power` solo
-// da el último empujón, así que se mantiene en un rango estrecho.
+// da el último empujón.
+//
+// La curva se rebajó al pasar a plantillas REALES de 14 jugadores: antes los
+// rivales eran 3-5 jugadores con nombre y el resto relleno flojo, y al darles
+// un once entero de verdad la primera eliminatoria se llevaba por delante al
+// 30 % de las partidas. Ahora arranca en 0.72 y llega a 1.26.
 import type { TeamBase } from '@/engine/inazuma/types'
 
 export const TEAMS: TeamBase[] = [
@@ -19,44 +24,44 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'occult', name: 'Instituto Occult', color: '#7c3aed', element: 'bosque', power: 0.9,
+    id: 'occult', name: 'Instituto Occult', color: '#7c3aed', element: 'bosque', power: 0.72,
     taunt: 'Este campo está maldito… y vosotros también.',
-    lineup: ['jim-wraith', 'victor-grave', 'mona-crypt', 'ozzy-blake'],
+    lineup: [],
   },
   {
-    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', element: 'aire', power: 0.96,
+    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', element: 'aire', power: 0.80,
     taunt: 'Hemos calculado vuestras jugadas. Todas.',
-    lineup: ['tobias-quill', 'noel-pixel', 'ken-arcade'],
+    lineup: [],
   },
   {
-    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 1,
+    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 0.88,
     taunt: 'Aquí no se juega al fútbol. Aquí se sobrevive.',
-    lineup: ['gus-boulder', 'rex-thorn', 'bruno-stagg'],
+    lineup: [],
   },
   {
-    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', element: 'aire', power: 1.04,
+    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', element: 'aire', power: 0.94,
     taunt: 'No nos veréis venir. Nunca lo hacen.',
-    lineup: ['goro-tetsu', 'kaze-shindo', 'rin-kagemori'],
+    lineup: [],
   },
   {
-    id: 'farm', name: 'Instituto Farm', color: '#65a30d', element: 'bosque', power: 1.07,
+    id: 'farm', name: 'Instituto Farm', color: '#65a30d', element: 'bosque', power: 1,
     taunt: 'Llevamos madrugando desde los seis años. ¿Y vosotros?',
-    lineup: ['otto-barn', 'martha-reap', 'silas-hayfield'],
+    lineup: [],
   },
   {
-    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.1,
+    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.07,
     taunt: 'Quemamos el campo entero si hace falta.',
-    lineup: ['hector-ash', 'adrian-kirk', 'lucia-ember'],
+    lineup: [],
   },
   {
     id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.15,
     taunt: 'El fútbol es una ciencia. Y vosotros no habéis estudiado.',
-    lineup: ['joe-king', 'herman-waldon', 'sue-marlow', 'caleb-stonewall'],
+    lineup: [],
   },
   {
-    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.22,
+    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.26,
     taunt: 'Los dioses no pierden contra unos críos.',
-    lineup: ['atlas-vane', 'nyx-lorne', 'helios-crown', 'torch-hades', 'byron-love'],
+    lineup: [],
   },
 ]
 

@@ -1,162 +1,184 @@
-// Genera la base de datos REAL de jugadores cruzando dos fuentes:
+// Genera la base de datos REAL de jugadores desde la wiki de Fandom.
 //
-//   1. Fandom  → la plantilla de cada instituto, en nombres japoneses
-//                (`{{#invoke:MemberTable ... |p1=Endou |p2=Kazemaru ...}}`).
-//   2. inazumo → buscando ese nombre japonés sale su ficha con el nombre del
-//                DOBLAJE, su elemento y su demarcación reales.
+//   1. Página del instituto → su plantilla, en nombres cortos japoneses
+//      (`{{#invoke:MemberTable ... |p1=Endou |p2=Kazemaru ...}}`).
+//   2. Ficha de cada personaje → `|name_dub=` (nombre del doblaje europeo),
+//      `|element=` y `|position=`.
 //
-// Se hace así porque ninguna de las dos fuentes vale por sí sola: la wiki no
-// tiene los nombres del doblaje europeo y inazumo no dice a qué instituto
-// pertenece cada jugador.
+// Todo por HTTP, sin navegador. Las dos versiones anteriores intentaban cruzar
+// la wiki con inazumo y fracasaban: la wiki romaniza distinto («Endou» frente a
+// «Mamoru Endo») y las cartas base de inazumo traen el japonés en KANJI, así que
+// no había clave común. Resulta que no hacía falta: la propia wiki guarda el
+// nombre del doblaje y el elemento en el infobox de cada personaje.
 //
-//   node scripts/build-inazuma-roster.mjs            (todos los equipos)
-//   node scripts/build-inazuma-roster.mjs occult zeus
+//   node scripts/build-inazuma-roster.mjs
 //
-// Escribe `scripts/.cache/inazuma-roster.json`. NO toca `players.ts`: ese
-// fichero lleva los atributos equilibrados a mano, así que la mezcla se hace
-// aparte y con criterio.
+// Escribe `scripts/.cache/inazuma-roster.json`. NO toca `players.ts`.
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const require = createRequire(import.meta.url)
-const { chromium } = require(join(ROOT, 'node_modules', 'playwright'))
-
 const OUT = join(ROOT, 'scripts', '.cache', 'inazuma-roster.json')
-const WIKI = 'https://inazuma-eleven.fandom.com/api.php'
-const UA = 'pokelink-roster-builder/1.0 (script de un solo uso)'
+const API = 'https://inazuma-eleven.fandom.com/api.php'
+const UA = 'pokelink-roster-builder/2.0 (script de un solo uso)'
 
-/** Página de la wiki de cada instituto y cuántos jugadores coger. */
+/** Página de la wiki de cada instituto. */
 const TEAMS = {
-  raimon: { pages: ['Raimon'], take: 18 },
-  occult: { pages: ['Occult'], take: 16 },
-  otaku: { pages: ['Otaku', 'Otaku Gakuen'], take: 16 },
-  wild: { pages: ['Wild', 'Yakuza Gakuen'], take: 16 },
-  shuriken: { pages: ['Shuriken', 'Shuriken Gakuen'], take: 16 },
-  farm: { pages: ['Nose', 'Farm'], take: 16 },
-  kirkwood: { pages: ['Kidokawa Seishuu'], take: 16 },
-  royal: { pages: ['Teikoku Gakuen'], take: 16 },
-  zeus: { pages: ['Zeus'], take: 16 },
+  raimon: ['Raimon'],
+  occult: ['Occult'],
+  otaku: ['Otaku', 'Otaku Gakuen'],
+  wild: ['Wild', 'Yakuza Gakuen'],
+  shuriken: ['Sengoku Igajima', 'Shuriken'],
+  farm: ['Nose', 'Farm'],
+  kirkwood: ['Kidokawa Seishuu'],
+  royal: ['Teikoku Gakuen'],
+  zeus: ['Zeus'],
 }
 
-/** Traducción de lo que pone inazumo a nuestros identificadores. */
-const ELEMENT = { 'montaña': 'montana', montana: 'montana', fuego: 'fuego', bosque: 'bosque', aire: 'aire' }
-const POSITION = { portero: 'POR', defensa: 'DEF', centrocampista: 'MED', delantero: 'DEL' }
+/** Los cuatro elementos, como los escribe la wiki en inglés. */
+const ELEMENT = {
+  fire: 'fuego', wood: 'bosque', forest: 'bosque',
+  wind: 'aire', air: 'aire',
+  earth: 'montana', mountain: 'montana',
+}
+const POSITION = { gk: 'POR', df: 'DEF', mf: 'MED', fw: 'DEL' }
 
-const only = new Set(process.argv.slice(2).filter((a) => !a.startsWith('--')))
-
-async function wikiRoster(pages) {
-  for (const page of pages) {
-    try {
-      const r = await fetch(`${WIKI}?action=parse&page=${encodeURIComponent(page)}&prop=wikitext&format=json`,
-        { headers: { 'User-Agent': UA } })
-      const wt = (await r.json())?.parse?.wikitext?.['*']
-      if (!wt) continue
-      const m = wt.match(/\|p\d+=([^\n|}]+)/g)
-      if (m && m.length >= 8) {
-        return { page, names: m.map((x) => x.split('=')[1].trim()).filter(Boolean) }
-      }
-    } catch { /* siguiente */ }
-  }
-  return null
+/**
+ * Excepciones a mano. Son los casos en los que la wiki no se deja leer: la
+ * página del apellido es de desambiguación PERO contiene un `name_dub` (así que
+ * pasa el filtro) o su infobox no trae `position`/`element`. Son cinco de 126;
+ * el resto sale de la wiki tal cual.
+ */
+const OVERRIDES = {
+  Endou: { name: 'Mark Evans', position: 'POR', element: 'montana' },
+  Kazemaru: { position: 'DEF', element: 'aire' },
+  Tamagorou: { position: 'DEF', element: 'aire' },
+  Gojou: { position: 'DEF', element: 'bosque' },
+  Sakiyama: { position: 'MED', element: 'bosque' },
 }
 
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+const cache = new Map()
+async function api(params) {
+  const url = `${API}?${new URLSearchParams({ format: 'json', ...params })}`
+  if (cache.has(url)) return cache.get(url)
+  const r = await fetch(url, { headers: { 'User-Agent': UA } })
+  const j = await r.json()
+  cache.set(url, j)
+  return j
+}
+
+async function wikitext(title) {
+  const j = await api({ action: 'parse', page: title, prop: 'wikitext', redirects: '1' })
+  return j?.parse?.wikitext?.['*'] ?? null
+}
+
+async function teamRoster(pages) {
+  for (const page of pages) {
+    const wt = await wikitext(page)
+    if (!wt) continue
+    const m = wt.match(/\|p\d+=([^\n|}]+)/g)
+    if (m && m.length >= 8) {
+      // Se quedan solo los del juego original: la tabla mezcla varias entregas.
+      const names = [...new Set(m.map((x) => x.split('=')[1].trim()).filter(Boolean))]
+      return { page, names }
+    }
+  }
+  return null
+}
+
+/** Resuelve un nombre corto («Kazemaru») a su página completa. */
+async function resolvePage(short) {
+  const direct = await wikitext(short)
+  // OJO: hay que comprobar que la página directa sea una FICHA. `Endou`,
+  // `Kazemaru` o `Tamagorou` existen como páginas de desambiguación por
+  // apellido, y quedarse con ellas dejaba sin datos justo a los titulares
+  // (entre ellos el portero del Raimon, que rompía el once entero).
+  if (direct && /\|name_dub\s*=/.test(direct)) return { title: short, wt: direct }
+  const j = await api({ action: 'query', list: 'search', srsearch: short, srnamespace: '0', srlimit: '5' })
+  for (const hit of j?.query?.search ?? []) {
+    if (!hit.title.toLowerCase().startsWith(short.toLowerCase().split('_')[0])) continue
+    const wt = await wikitext(hit.title)
+    if (wt && /\|name_dub\s*=/.test(wt)) return { title: hit.title, wt }
+  }
+  return null
+}
+
+/**
+ * Lee TODAS las apariciones de un campo del infobox. Hay fichas donde `|position=`
+ * aparece más de una vez y la primera trae basura (el nombre del personaje, por
+ * ejemplo `|position= Kazemaru`), así que el que llama se queda con la primera
+ * que sepa interpretar en lugar de con la primera a secas.
+ */
+function fields(wt, key) {
+  const re = new RegExp('\\|\\s*' + key + '\\s*=\\s*([^\\n|]+)', 'gi')
+  const out = []
+  let m
+  while ((m = re.exec(wt))) out.push(m[1].replace(/\[\[|\]\]|'''/g, '').trim())
+  return out
+}
+
+const field = (wt, key) => fields(wt, key)[0] ?? null
+
+/** Primera posición reconocible: acepta «DF», «DF,MF», «MF/FW»… */
+function parsePosition(values) {
+  for (const v of values) {
+    for (const tok of v.toUpperCase().split(/[^A-Z]+/)) {
+      if (POSITION[tok.toLowerCase()]) return POSITION[tok.toLowerCase()]
+    }
+  }
+  return null
+}
+
+/** Primer elemento reconocible. */
+function parseElement(values) {
+  for (const v of values) {
+    const key = v.toLowerCase().split(/[^a-z]+/).find((t) => ELEMENT[t])
+    if (key) return ELEMENT[key]
+  }
+  return null
+}
+
 async function main() {
   await mkdir(dirname(OUT), { recursive: true })
-
-  // --- 1. plantillas de la wiki
-  const rosters = {}
-  for (const [id, cfg] of Object.entries(TEAMS)) {
-    if (only.size && !only.has(id)) continue
-    const found = await wikiRoster(cfg.pages)
-    if (!found) { console.log(`  ✗ ${id}: la wiki no tiene plantilla`); continue }
-    rosters[id] = found.names.slice(0, cfg.take)
-    console.log(`  · ${id}: ${rosters[id].length} de ${found.page}`)
-  }
-
-  // --- 2. ficha real de cada uno en inazumo
-  const browser = await chromium.launch({ args: ['--no-sandbox'] })
-  const page = await (await browser.newContext()).newPage()
-  await page.goto('https://inazumo.es/jugadores', { waitUntil: 'domcontentloaded', timeout: 60000 })
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
-  // OJO: el buscador NO lleva atributo `type`, así que `input[type=text]` no casa.
-  const search = page.locator('input:not([type]), input[type="text"]').first()
-  await search.waitFor({ state: 'visible', timeout: 60000 })
-
   const out = {}
   const missing = []
 
-  for (const [teamId, names] of Object.entries(rosters)) {
+  for (const [teamId, pages] of Object.entries(TEAMS)) {
+    const roster = await teamRoster(pages)
+    if (!roster) { console.log(`x ${teamId}: la wiki no tiene plantilla`); continue }
     out[teamId] = []
-    for (const jp of names) {
-      try {
-        await search.fill('')
-        await page.waitForTimeout(200)
-        await search.fill(jp)
-        await page.waitForTimeout(1500)
-
-        const cards = await page.evaluate(() =>
-          [...document.querySelectorAll('a[href*="/jugadores/"]')].map((a) => ({
-            href: a.getAttribute('href') ?? '',
-            text: (a.textContent || '').trim().replace(/\s+/g, ' '),
-            img: a.querySelector('img')?.getAttribute('src') ?? null,
-          })))
-
-        // La carta BASE es la del slug sin prefijo de variante.
-        const base = cards.find((c) => /^\/jugadores\/[a-z0-9-]+-\d+$/.test(c.href)
-          && !/^\/jugadores\/(basara|idol)-/.test(c.href))
-        if (!base) { missing.push(`${teamId}/${jp}`); console.log(`  ✗ ${teamId}/${jp} — sin carta base`); continue }
-
-        await page.goto(`https://inazumo.es${base.href}`, { waitUntil: 'domcontentloaded', timeout: 45000 })
-        await page.waitForTimeout(2200)
-        const info = await page.evaluate(() => ({
-          h1: document.querySelector('h1,h2')?.textContent?.trim() ?? '',
-          body: document.body.innerText.replace(/\s+/g, ' ').slice(0, 400),
-          img: [...document.querySelectorAll('img')].map((i) => i.src).find((s) => s.includes('cloudfront')) ?? null,
-        }))
-
-        // OJO: hay que ANCLAR la búsqueda. Buscar «portero» o «fuego» sueltos en
-        // el texto de la página da basura: el bloque de estadísticas incluye la
-        // línea «PP Portero» para TODO el mundo y los nombres de técnicas llevan
-        // elementos dentro («Despeje de Fuego»). El encabezado real es
-        //   <nombre JP> <afinidad> <Elemento> <Posición> Tier <X>
-        // así que se lee justo lo que va pegado a «Tier».
-        const head = /(Fuego|Bosque|Aire|Monta[ñn]a)\s+(Portero|Defensa|Centrocampista|Delantero)\s+Tier/i
-          .exec(info.body)
-        const el = head?.[1]?.toLowerCase()
-        const pos = head?.[2]?.toLowerCase()
-        const name = info.h1 || base.text
-        out[teamId].push({
-          jp,
-          name,
-          id: slugify(name),
-          element: el ? ELEMENT[el] : null,
-          position: pos ? POSITION[pos] : null,
-          img: info.img,
-          slug: base.href.replace('/jugadores/', ''),
-        })
-        console.log(`  ✓ ${teamId.padEnd(9)} ${jp.padEnd(12)} → ${name} (${pos ?? '?'} / ${el ?? '?'})`)
-
-        // volver al buscador
-        await page.goto('https://inazumo.es/jugadores', { waitUntil: 'domcontentloaded', timeout: 45000 })
-        await page.waitForTimeout(1200)
-      } catch (err) {
-        missing.push(`${teamId}/${jp}`)
-        console.log(`  ✗ ${teamId}/${jp} — ${err.message.split('\n')[0]}`)
-      }
+    for (const short of roster.names) {
+      if (out[teamId].length >= 14) break
+      const page = await resolvePage(short)
+      if (!page) { missing.push(`${teamId}/${short}`); continue }
+      const dub = field(page.wt, 'name_dub')
+      if (!dub) { missing.push(`${teamId}/${short}`); continue }
+      const ov = OVERRIDES[short] ?? {}
+      // Los nombres vienen a veces con marcas de lista del wikitext («*Axel Blaze»).
+      const name = (ov.name ?? dub).replace(/^[*#:;\s]+/, '').trim()
+      out[teamId].push({
+        wiki: page.title,
+        name,
+        id: slugify(name),
+        element: ov.element ?? parseElement(fields(page.wt, 'element')),
+        position: ov.position ?? parsePosition(fields(page.wt, 'position')),
+      })
     }
+    const full = out[teamId].filter((p) => p.element).length
+    console.log(`${teamId.padEnd(9)} ${String(out[teamId].length).padStart(2)} jugadores, ${full} con elemento`)
   }
 
-  await browser.close()
   await writeFile(OUT, JSON.stringify(out, null, 2), 'utf8')
-  const total = Object.values(out).reduce((a, l) => a + l.length, 0)
-  console.log(`\n${total} jugadores en ${OUT}`)
-  if (missing.length) console.log(`Sin ficha (${missing.length}): ${missing.join(', ')}`)
+  const all = Object.values(out).flat()
+  console.log('')
+  console.log(`${all.length} jugadores -> ${OUT}`)
+  console.log(`  con elemento: ${all.filter((p) => p.element).length}`)
+  console.log(`  con posicion: ${all.filter((p) => p.position).length}`)
+  if (missing.length) console.log(`Sin ficha (${missing.length}): ${missing.slice(0, 20).join(', ')}`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

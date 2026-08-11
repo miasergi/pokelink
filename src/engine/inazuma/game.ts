@@ -2,9 +2,8 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { getPlayerBase, startingSquad } from '@/data/inazuma/players'
+import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
 import { getTeam } from '@/data/inazuma/teams'
-import { DEFAULT_FORMATION } from '@/data/inazuma/formations'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, createPlayer, effectiveStats,
@@ -37,10 +36,11 @@ const REST_PT_FRACTION = 0.35
 
 export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
   const rng = new RNG(seed)
-  const roster = startingSquad(teamId).map((id, i) =>
+  const formation = formationFor(teamId)
+  const roster = startingSquad(teamId, formation).map((id, i) =>
     createPlayer(id, START_LEVEL, { captain: i === 0 }))
   const map = generateMap(rng, teamId)
-  const lineup = autoLineup(roster, DEFAULT_FORMATION)
+  const lineup = autoLineup(roster, formation)
   return {
     seed,
     teamId,
@@ -57,7 +57,7 @@ export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
     goalsAgainst: 0,
     bag: [],
     techniqueBag: [],
-    formation: DEFAULT_FORMATION,
+    formation,
     playerStats: {},
     startedAt: Date.now(),
   }
