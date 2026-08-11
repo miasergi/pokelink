@@ -4,7 +4,7 @@ import Sprite from './Sprite'
 import TypeBadge from './TypeBadge'
 import { getSpecies } from '@/data'
 import { nodeImage, aceSprite } from './nodeImage'
-import { nodeDifficulty, isCombatNode, effectiveEnemyLevel, enemyLevelBonus } from '@/engine/run/difficulty'
+import { nodeDifficulty, isCombatNode, effectiveEnemyLevel } from '@/engine/run/difficulty'
 import { monTypes } from '@/engine/team/leveling'
 
 const CLASS_ES: Record<string, string> = {
@@ -19,19 +19,17 @@ const SIMPLE: Partial<Record<string, { title: string; desc: string }>> = {
   event: { title: 'Evento', desc: 'Un encuentro inesperado en el camino. Puede salir bien... o no.' },
   trade: { title: 'Intercambio', desc: 'Cambia un Pokémon por otro aleatorio de primera etapa con +3 niveles (cuesta dinero).' },
 }
-// OJO: estas cifras tienen que cuadrar con `levelGain` (combate) y con el bonus
-// de VIAJE de `enterNode` (+1 en las casillas que no son combate) en
-// runEngine.ts. Combate: salvaje +1 · entrenador +2 · Team Rocket y jefes +3.
+// OJO: estas cifras tienen que cuadrar con `levelGain` en runEngine.ts
+// (salvaje +1 · entrenador +2 · Team Rocket y jefes +3). SOLO los combates dan
+// niveles: nada de "+1 por pisar la casilla".
 const REWARD: Partial<Record<string, string>> = {
   battle: '+1 nivel a todo tu equipo',
   trainer: '+2 niveles a tu equipo + dinero',
   rival: '+3 niveles + dinero',
-  catch: 'un Pokémon nuevo para tu equipo · +1 nivel',
-  item: '1 objeto a elegir · +1 nivel',
-  shop: '+1 nivel (y compras lo que necesites)',
-  heal: 'PS al máximo · +1 nivel',
-  event: 'sorpresa (objeto, dinero o Pokémon) · +1 nivel',
-  trade: 'un Pokémon nuevo, con +3 niveles · +1 nivel al equipo',
+  catch: 'un Pokémon nuevo para tu equipo',
+  item: '1 objeto a elegir',
+  event: 'sorpresa (objeto, dinero o Pokémon)',
+  trade: 'un Pokémon nuevo (llega con +3 niveles)',
   gym: '+3 niveles + medalla + objeto raro + dinero',
   elite: '+3 niveles + objeto raro',
   champion: '+3 niveles · ¡completar la región!',
@@ -63,14 +61,11 @@ export default function NodePreview({
 
   // Tipos presentes en el equipo del entrenador (para planificar)
   const teamTypes = [...new Set(team.flatMap((m) => monTypes(m)))]
-  // Niveles REALES que vas a pelear: en Difícil/Nuzlocke los enemigos llevan un
-  // extra fijo. Al entrar en combate el motor ya sube las instancias, así que
-  // solo hay que sumarlo mientras la casilla siga sin superarse (si no, se
-  // contaría dos veces al revisar una casilla ya vencida).
-  const lvlBonus = node.cleared ? 0 : enemyLevelBonus(difficulty, node.enemyLevel)
-  const shown = (lv: number) => Math.min(100, lv + lvlBonus)
-  const minLvl = team.length ? shown(Math.min(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
-  const maxLvl = team.length ? shown(Math.max(...team.map((m) => m.level))) : effectiveEnemyLevel(node, difficulty)
+  // Niveles REALES que vas a pelear. Ya no hay que sumar nada por dificultad:
+  // Difícil/Nuzlocke tienen su propia curva de jefes y el equipo enemigo viene
+  // con el nivel definitivo desde que se genera el mapa (v6.52).
+  const minLvl = team.length ? Math.min(...team.map((m) => m.level)) : effectiveEnemyLevel(node)
+  const maxLvl = team.length ? Math.max(...team.map((m) => m.level)) : effectiveEnemyLevel(node)
   const simple = SIMPLE[node.type]
   const money = trainer
     ? trainer.reward.money
@@ -170,11 +165,7 @@ export default function NodePreview({
                     <div key={i} className="rounded-xl bg-slate-900/60 p-1.5 flex flex-col items-center border border-slate-700/50">
                       <Sprite speciesId={mon.speciesId} variant="front" className="w-12 h-12 object-contain" />
                       <div className="text-[10px] font-semibold truncate w-full text-center">{sp.displayName}</div>
-                      {/* shown(): mismo extra de Difícil/Nuzlocke que la cabecera.
-                          En crudo, `mon.level` es el nivel ANTES de que el motor
-                          suba al equipo enemigo, y las tarjetas contradecían al
-                          rango "Nv. X-Y" de arriba. */}
-                      <div className="text-[9px] text-slate-400">Nv.{shown(mon.level)}</div>
+                      <div className="text-[9px] text-slate-400">Nv.{mon.level}</div>
                     </div>
                   )
                 })}

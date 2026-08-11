@@ -1,17 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { createRun, levelCap } from './runEngine'
-import { effectiveEnemyLevel, enemyLevelBonus } from './difficulty'
+import { effectiveEnemyLevel } from './difficulty'
 import { getSpecies } from '@/data'
 import type { Difficulty, MapNode, RunState } from './types'
 
 /**
- * Curva de nivel y dificultad (v6.46).
+ * Curva de nivel y dificultad (v6.52).
  *
- * El bug que blindan estos tests: en Difícil los enemigos iban a ×1.4 mientras
- * el jugador subía por bonus FIJOS de casilla, así que la separación crecía sin
- * freno (gym1 +3 niveles, gym4 +13, gym8 +27) y a partir del 3er/4º gimnasio la
- * run era matemáticamente imposible. La regla es: el hueco entre el jefe y lo
- * máximo a lo que puede llegar el jugador tiene que ser CONSTANTE, no crecer.
+ * El bug que blindan estos tests: hubo dos intentos de "hacer Difícil más
+ * difícil" sumando niveles ENCIMA de la curva (primero ×1.4, luego una rampa
+ * con techo). Los dos acababan en el mismo sitio: el número que ponía la curva
+ * y el que veías en pantalla no coincidían (el 1er gimnasio de Difícil, puesto
+ * a 14, se leía "Nv.16") y la separación con el jugador crecía sin freno.
+ * Ahora cada dificultad tiene su PROPIA curva de jefes en `mapGen` (Normal
+ * 11 y +8 por gimnasio; Difícil/Nuzlocke 14 y +9) y nada la modifica después.
  */
 
 const bosses = (run: RunState): MapNode[] =>
@@ -26,19 +28,25 @@ function capBefore(run: RunState, boss: MapNode): number {
 }
 
 describe('curva de nivel por dificultad', () => {
-  it('el extra de nivel enemigo tiene techo (no es un multiplicador)', () => {
-    for (const diff of ['hard', 'nuzlocke'] as Difficulty[]) {
-      const early = enemyLevelBonus(diff, 8)
-      const late = enemyLevelBonus(diff, 67)
-      expect(early).toBeGreaterThan(0)
-      // La clave: el extra NO escala con el nivel sin freno. Con ×1.4 esto
-      // valía 3 al principio y 27 al final; ahora está acotado y ya saturado
-      // mucho antes del final de la run.
-      expect(late).toBeLessThanOrEqual(6)
-      expect(late).toBeGreaterThan(early)
-      expect(enemyLevelBonus(diff, 100)).toBe(late) // saturado, no crece más
+  it('el nivel del jefe es EXACTAMENTE el de su curva, sin extras por dificultad', () => {
+    // Lo que ve el jugador tiene que ser el número de la curva de `mapGen`:
+    // Normal 11 y +8 por gimnasio; Difícil y Nuzlocke 14 y +9.
+    const expected: Record<string, number[]> = {
+      normal: [11, 19, 27, 35, 43, 51, 59, 67],
+      hard: [14, 23, 32, 41, 50, 59, 68, 77],
+      nuzlocke: [14, 23, 32, 41, 50, 59, 68, 77],
     }
-    expect(enemyLevelBonus('normal', 50)).toBe(0)
+    for (const diff of ['normal', 'hard', 'nuzlocke'] as Difficulty[]) {
+      const run = createRun({ pools: [1], random: false, difficulty: diff, gen: 1, starterId: 1, seed: 7 })
+      const gyms = bosses(run).filter((b) => b.type === 'gym')
+      expect(gyms.map((b) => effectiveEnemyLevel(b, diff))).toEqual(expected[diff])
+      // Y el nivel del AS del equipo del líder tampoco se sale de la curva.
+      for (const [i, b] of gyms.entries()) {
+        if (b.content.kind !== 'trainer') continue
+        const ace = Math.max(...b.content.team.map((m) => m.level))
+        expect(ace, `gym${i + 1} de ${diff}`).toBeLessThanOrEqual(expected[diff][i])
+      }
+    }
   })
 
   it('el hueco jefe-vs-tope del jugador no se dispara al avanzar la run', () => {

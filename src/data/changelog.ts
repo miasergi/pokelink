@@ -16,11 +16,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Las ciudades de los juegos y líderes que ya no te esperan',
     changes: [
       'LAS RUTAS SON DE LOS JUEGOS: cada tramo se ilustra con la localidad REAL donde está ese gimnasio —Ciudad Plateada, Ciudad Malva, Ciudad Férrica, Cortondo…— en las nueve regiones, y el último tramo con su Calle Victoria o su Liga. Se acabaron las fotos de paisajes reales que no pintaban nada (una pradera de la Toscana en Kanto, un estadio de fútbol en la Liga). La cabecera del mapa dice además a qué ciudad vas.',
-      'LOS LÍDERES SUBEN a la curva del pokelike original: el primer gimnasio pasa de nivel 8 a 14 y cada uno suma +9 (23, 32, 41, 50, 59, 68 y 77 el octavo). El Alto Mando remata en 84-97 y el Campeón cierra a 100.',
+      'CADA DIFICULTAD TIENE SU PROPIA CURVA DE LÍDERES. En Difícil y Nuzlocke, la del pokelike original: primer gimnasio a nivel 14 y +9 en cada uno (23, 32, 41, 50, 59, 68 y 77 el octavo), Alto Mando 84-97 y Campeón a 100. En Normal: 11 y +8 (19, 27, 35, 43, 51, 59 y 67), Alto Mando 75-95 y Campeón a 100.',
+      'EL NIVEL QUE VES ES EL QUE PELEAS. Difícil sumaba unos niveles extra por encima de la curva, así que el primer gimnasio, puesto a 14, se leía "Nv.16" y el número de la ficha no cuadraba con el del combate. Ese extra desaparece: la dificultad está en la curva, no en un recargo escondido.',
       'AVISO: la región se ha vuelto MUCHO más exigente. Cada medalla son 8 casillas, los niveles solo salen de pelear (salvaje +1, entrenador +2, Team Rocket —que ahora paga como jefe— y jefes +3) y los líderes han subido: llegar al primero en condiciones ya no está garantizado ni jugando bien. Es a propósito.',
       'Toda capa de ruta tiene ahora al menos una casilla de COMBATE. Antes salían capas enteras de tienda, objeto, captura e intercambio donde era imposible subir de nivel aunque quisieras: perdías el tramo por mala suerte del mapa, no por tus decisiones. Esquivar peleas sigue siendo una opción; ahora es tuya.',
       'Sigues empezando a NIVEL 5, que es donde está la gracia, y la primera ruta ya no reparte esos 9 niveles en línea recta: arranca pegada a tu nivel (4, 4, 5, 6) y el repecho llega al final (9, 11, 12) justo antes del gimnasio, cuando ya tienes equipo.',
-      'Los Pokémon salvajes que salen en cada zona ya no dependen del NÚMERO de nivel sino de por dónde vas en la región, así que en la primera ruta siguen apareciendo Pokémon de primera ruta aunque ahora vayan a nivel 10.',
+      'Los Pokémon salvajes que salen en cada zona ya no dependen del NÚMERO de nivel sino de por dónde vas en la región, así que en la primera ruta siguen apareciendo Pokémon de primera ruta aunque ahora vayan a más nivel.',
     ],
   },
   {

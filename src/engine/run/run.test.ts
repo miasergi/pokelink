@@ -361,9 +361,9 @@ describe('tramos del mapa (una pantalla por medalla)', () => {
 
   it('el tope de nivel sube al vencer jefes (Normal: próximo jefe + 5)', () => {
     const run = createRun({ pools: [1], random: false, difficulty: 'normal', gen: 1, starterId: 1, seed: 78 })
-    expect(levelCap(run)).toBe(19) // gym1 = 14 -> tope 19
+    expect(levelCap(run)).toBe(16) // Normal: gym1 = 11 -> tope 16
     const gym1 = Object.values(run.map.nodes).find((n) => n.type === 'gym' && n.bossIndex === 0)!
     gym1.cleared = true
-    expect(levelCap(run)).toBe(28) // gym2 = 23 -> tope 28
+    expect(levelCap(run)).toBe(24) // Normal: gym2 = 19 -> tope 24
   })
 })

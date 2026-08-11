@@ -167,20 +167,34 @@ export function generateMap(
       plan.push({ kind: 'route', width: routeWidth(), withHeal: healLast && i === n - 1 })
     }
   }
-  // Curva de niveles de jefes (v6.52): la del pokelike original — el 1er
-  // gimnasio a nv.14 y +9 en cada uno hasta el 8º a nv.77. Los gimnasios de
-  // antes (8→67) se quedaban cortos: como el tope del equipo sale del nivel
-  // del próximo jefe, toda la run transcurría en números bajos.
-  // El Alto Mando remata la subida y el CAMPEÓN cierra a nivel 100.
-  const GYM_LEVELS = [14, 23, 32, 41, 50, 59, 68, 77]
-  const ELITE_LEVELS = [84, 89, 94, 97]
+  // Curva de niveles de jefes POR DIFICULTAD (v6.52). Es LA curva: la dificultad
+  // ya no añade niveles extra encima (eso hacía que en Difícil el 1er gimnasio
+  // se viera a nv.16 en vez de a 14). Difícil/Nuzlocke: 14 y +9 por gimnasio,
+  // la del pokelike original. Normal: 11 y +8. En ambas el Alto Mando remata la
+  // subida y el CAMPEÓN cierra a nivel 100.
+  //
+  // Rivales y guardián van ENTRE jefes, con el nivel de su posición en el mapa
+  // (rival 1 entre gym1 y gym2, rival 2 entre gym5 y gym6, rival 3 antes del
+  // Alto Mando, guardián legendario entre gym7 y gym8). Los anclas tienen que
+  // quedar ESTRICTAMENTE crecientes en el orden del recorrido.
+  const CURVE = difficulty === 'normal'
+    ? {
+      gyms: [11, 19, 27, 35, 43, 51, 59, 67],
+      elite: [75, 82, 89, 95],
+      rivals: [15, 47, 71],
+      legendary: 63,
+    }
+    : {
+      gyms: [14, 23, 32, 41, 50, 59, 68, 77],
+      elite: [84, 89, 94, 97],
+      rivals: [19, 55, 81],
+      legendary: 72,
+    }
+  const GYM_LEVELS = CURVE.gyms
+  const ELITE_LEVELS = CURVE.elite
   const CHAMPION_LEVEL = 100
-  // Rivales y guardián situados ENTRE jefes -> nivel acorde a su posición en el
-  // mapa (rival 1 entre gym1 y gym2, rival 2 entre gym5 y gym6, rival 3 antes
-  // del Alto Mando; el guardián legendario entre gym7 y gym8). Los anclas
-  // tienen que quedar ESTRICTAMENTE crecientes en el orden del recorrido.
-  const RIVAL_LEVELS = [19, 55, 81]
-  const LEGENDARY_LEVEL = 72
+  const RIVAL_LEVELS = CURVE.rivals
+  const LEGENDARY_LEVEL = CURVE.legendary
 
   const gym = (i: number) => plan.push({ kind: 'boss', type: 'gym', bossIndex: i, trainer: gyms[i], level: GYM_LEVELS[i] })
   const pushRival = () => {

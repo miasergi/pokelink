@@ -22,42 +22,29 @@ export function isCombatNode(node: MapNode): boolean {
 }
 
 /**
- * Niveles EXTRA que llevan los enemigos según la dificultad: sube con el nivel
- * pero con TECHO (`max`), nunca un multiplicador puro (v6.46).
+ * Nivel enemigo de una casilla. Es la ÚNICA fuente de verdad para la UI y el
+ * motor: pinta y pelea SIEMPRE esto.
  *
- * Historia del parámetro:
- *  - ×1.4 (hasta v6.45) era un multiplicador y se desalineaba de la curva del
- *    jugador, que sube por bonus fijos de casilla (+2/+3/+4) y por tanto sigue
- *    la curva base. El enemigo, multiplicado, se separaba más y más: gym1 8→11
- *    (+3), pero gym4 32→45 (+13) y gym8 67→94 (+27), con TODO el Alto Mando
- *    saturado a 100. Diagnóstico: 0,2 gimnasios de media por run en Difícil
- *    frente a 2,9 en Normal. No era más difícil, era imposible.
- *  - Una suma fija (+3) arregla la deriva pero rompe la apertura: tu inicial es
- *    nv.5 y el primer salvaje pasaba a nv.8, así que las runs morían en la
- *    primera ruta antes de tener equipo (seguía dando 0,2 gimnasios).
- *  - La rampa con techo cubre las dos cosas: casi nada al empezar (+1), el
- *    hueco completo a media run y CONSTANTE a partir de ahí.
+ * Ya no hay "extra por dificultad" (v6.52): la dificultad vive en la CURVA DE
+ * JEFES de `mapGen` (Normal empieza en nv.11 y sube +8 por gimnasio;
+ * Difícil/Nuzlocke, nv.14 y +9), y las casillas de ruta se interpolan entre esos
+ * anclas, así que en Difícil TODO el mapa va más alto por construcción. Sumar
+ * además unos niveles encima solo servía para que el número de la curva y el
+ * que veías en pantalla no coincidieran: el primer gimnasio de Difícil está
+ * puesto a 14 y se leía "Nv.16".
+ *
+ * Historia (por qué el extra existió): fue el sustituto del viejo ×1.4, que al
+ * ser multiplicador se desalineaba de la curva del jugador (gym1 8→11 pero gym8
+ * 67→94, con el Alto Mando saturado a 100: 0,2 gimnasios de media por run en
+ * Difícil frente a 2,9 en Normal). Con curvas propias por dificultad el
+ * problema desaparece de raíz.
+ *
+ * Se mantiene el parámetro `difficulty` a propósito: es el punto donde volvería
+ * a colgarse cualquier ajuste de nivel por modo, y evita tocar 10 llamadas.
  */
-const LEVEL_BONUS: Record<string, { rate: number; max: number }> = {
-  normal: { rate: 0, max: 0 },
-  hard: { rate: 0.12, max: 3 },
-  // Nuzlocke usa la MISMA curva que Difícil: su dureza propia es la muerte
-  // permanente y el número de vidas, no unos enemigos más altos.
-  nuzlocke: { rate: 0.12, max: 3 },
-}
-
-/** Niveles extra del enemigo para un nivel base dado (ver `LEVEL_BONUS`). */
-export function enemyLevelBonus(difficulty: string, baseLevel: number): number {
-  const t = LEVEL_BONUS[difficulty]
-  if (!t || !t.rate) return 0
-  return Math.min(t.max, Math.round(baseLevel * t.rate))
-}
-
-/** Nivel enemigo EFECTIVO de una casilla (con el extra de Difícil/Nuzlocke,
- *  igual que el motor de combate). Es la ÚNICA fuente de verdad: la UI debe
- *  pintar esto, nunca `node.enemyLevel` en crudo. */
-export function effectiveEnemyLevel(node: MapNode, difficulty: string): number {
-  return Math.min(100, node.enemyLevel + enemyLevelBonus(difficulty, node.enemyLevel))
+export function effectiveEnemyLevel(node: MapNode, difficulty?: string): number {
+  void difficulty
+  return Math.min(100, node.enemyLevel)
 }
 
 /** Dificultad de una casilla comparada con el nivel medio de tu equipo. Sirve

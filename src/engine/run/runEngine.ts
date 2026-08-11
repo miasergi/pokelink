@@ -1,8 +1,8 @@
 import type { PokemonInstance } from '@/types'
 import { encounterPoolFor, getSpecies, basePoolFor } from '@/data'
 import { RNG } from '@/utils/rng'
-import { createInstance, selectMoveset } from '@/engine/team/instance'
-import { computeStats, expForLevel, gainLevel, refreshMoves, effectiveTier, applyCaptureTier } from '@/engine/team/leveling'
+import { createInstance } from '@/engine/team/instance'
+import { gainLevel, refreshMoves, effectiveTier, applyCaptureTier } from '@/engine/team/leveling'
 import { evolve, effectiveEvoLevel, evolutionBlockedByItem } from '@/engine/team/evolution'
 import { runBattle } from '@/engine/battle/battleEngine'
 import type { BattleResult } from '@/engine/battle/types'
@@ -12,7 +12,7 @@ import { EVENTS, type EventEffect, GIFT_ITEMS } from './nodes'
 import { getItem } from '@/data/items'
 import { tierPool } from './nodes'
 import { healParty, MAX_PARTY } from './party'
-import { effectiveEnemyLevel, enemyLevelBonus } from './difficulty'
+import { effectiveEnemyLevel } from './difficulty'
 import { getGeneration } from '@/data/generations'
 import type { Difficulty, MapNode, RandomFlags, RunState } from './types'
 import type { PokemonType } from '@/types'
@@ -170,13 +170,11 @@ export function startNodeBattle(run: RunState, node: MapNode): BattleResult {
   }
   const isBoss = node.type === 'gym' || node.type === 'elite' || node.type === 'champion' || node.type === 'legendary'
 
-  // Difícil y Nuzlocke: los enemigos (salvajes, entrenadores y jefes) llevan
-  // unos niveles extra que suben con la curva pero con techo (v6.46). Antes era
-  // ×1.4, que se desalineaba de la curva del jugador (ver `enemyLevelBonus`).
-  // Se calcula sobre el nivel del NODO, no el de cada Pokémon: así todo el
-  // equipo enemigo sube lo mismo y no se ensancha su abanico de niveles.
-  const bonus = enemyLevelBonus(run.difficulty, node.enemyLevel)
-  if (bonus) for (const m of enemyTeam) enforceMinLevel(m, Math.min(100, m.level + bonus))
+  // Los enemigos pelean al nivel que pone el mapa, sin extras por dificultad:
+  // Difícil y Nuzlocke ya vienen con su propia curva de jefes (nv.14 y +9 por
+  // gimnasio frente a 11 y +8 de Normal), y las casillas de ruta se interpolan
+  // entre esos anclas. Sumar niveles aquí solo hacía que el nivel de la ficha y
+  // el del combate no coincidieran (v6.52).
 
   // SIN suelo de nivel: los Pokémon suben SOLO peleando (EXP) + el bonus de
   // casilla establecido (+1 salvaje / +2 entrenador / +3 jefe). Nada de subirles
@@ -601,20 +599,9 @@ function monotypePool(pool: import('@/types').SpeciesData[], monotype?: PokemonT
   return f.length ? f : pool
 }
 
-/** Sube un Pokémon a un nivel mínimo (mantiene fracción de PS y aprende movimientos del nivel). */
-function enforceMinLevel(mon: PokemonInstance, minLevel: number): void {
-  if (mon.level >= minLevel) return
-  const fainted = mon.currentHp <= 0
-  const frac = mon.stats.hp > 0 ? mon.currentHp / mon.stats.hp : 1
-  mon.level = minLevel
-  mon.exp = expForLevel(minLevel)
-  const sp = getSpecies(mon.speciesId)
-  mon.stats = computeStats(sp.baseStats, mon.ivs, minLevel, mon.bonus)
-  mon.currentHp = fainted ? 0 : Math.max(1, Math.round(mon.stats.hp * frac))
-  // Refresca el moveset al nivel actual para no pelear con ataques flojos.
-  const fresh = selectMoveset(sp, minLevel)
-  if (fresh.length) mon.moves = fresh
-}
+// (Aquí vivía `enforceMinLevel`, que subía al equipo enemigo el extra de
+// Difícil/Nuzlocke justo antes de pelear. Ya no hace falta: cada dificultad
+// tiene su propia curva de jefes y los enemigos nacen con su nivel final.)
 
 export function isNodeBattle(node: MapNode): boolean {
   return (
