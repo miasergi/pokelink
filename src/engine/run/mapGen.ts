@@ -114,14 +114,13 @@ function buildRocketContent(level: number, rng: RNG, gen: number, pool: SpeciesD
   return { kind: 'trainer', trainer, team, rescue }
 }
 
-/** Nivel del inicial y arranque de la interpolación de la ruta (v6.52).
+/** Nivel del inicial y arranque de la interpolación de la ruta.
  *
- *  Sube de 5 a 10 junto con la curva de jefes (gym1 8→14): si el primer
- *  gimnasio pide 14, la ruta que lleva hasta él tiene que empezar cerca. Con el
- *  inicial a nv.5 la capa 4 ya pedía nv.10 con el equipo a nv.6 y las runs
- *  morían antes del primer gimnasio (0,1 gimnasios de media en la simulación,
- *  frente a 0,7-0,8 de la curva anterior). */
-export const START_LEVEL = 10
+ *  Empezar a nv.5 es a propósito: la salida cuesta arriba es parte de la
+ *  gracia. Lo que hace jugable el arranque con la curva de jefes nueva (gym1 a
+ *  nv.14) NO es subir este número, sino la rampa curva del primer tramo (ver
+ *  `OPENING_EASE`) y el bonus de nivel por casilla. */
+export const START_LEVEL = 5
 
 interface LayerPlan {
   kind: 'route' | 'boss' | 'heal' | 'legendary'
@@ -397,18 +396,32 @@ export function generateMap(
   }
 }
 
+/** Curvatura de la RAMPA DE SALIDA (v6.52).
+ *
+ *  Entre el inicial (nv.5) y el primer gimnasio (nv.14) hay 9 niveles y solo 6
+ *  casillas, y ahí empiezas con UN Pokémon, sin objetos y sin equipo: repartir
+ *  esa subida en línea recta ponía la 4ª casilla a nv.10 con tu equipo a nv.6 y
+ *  las runs se acababan en la primera ruta. Con el exponente, la salida se
+ *  queda pegada a tu nivel y el repecho llega justo antes del gimnasio, que es
+ *  donde ya tienes equipo. Solo afecta al PRIMER tramo: a partir del gym1 la
+ *  interpolación vuelve a ser recta. */
+const OPENING_EASE = 1.9
+
 export function interpolateLevels(anchors: (number | null)[], startLevel: number): number[] {
   const out = new Array(anchors.length).fill(0)
   let prevLevel = startLevel
   let prevIdx = -1
+  let first = true
   for (let i = 0; i < anchors.length; i++) {
     if (anchors[i] !== null) {
       const target = anchors[i] as number
       const span = i - prevIdx
       for (let j = prevIdx + 1; j <= i; j++) {
-        const t = (j - prevIdx) / span
+        const lin = (j - prevIdx) / span
+        const t = first ? Math.pow(lin, OPENING_EASE) : lin
         out[j] = Math.max(2, Math.round(prevLevel + (target - prevLevel) * t) - (anchors[j] === null ? 1 : 0))
       }
+      first = false
       prevLevel = target
       prevIdx = i
     }

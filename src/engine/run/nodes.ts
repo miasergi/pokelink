@@ -32,14 +32,13 @@ const DIFF_POWER: Record<string, number> = { normal: 1, hard: 1.18, nuzlocke: 1.
  * Traduce el nivel a POSICIÓN EN EL RECORRIDO (v6.52).
  *
  * La ventana de BST de abajo está calibrada contra la curva de jefes vieja
- * (inicial nv.5, gym1 8 … gym8 67). Al subir la curva a la del pokelike
- * original (inicial 10, gym1 14 … gym8 77), el MISMO punto de la run pasó a
- * tener 6-10 niveles más y en la primera ruta salían especies de tramo medio
- * contra tu inicial: la simulación se desplomó de 1,0 a 0,1 gimnasios de
- * media. Esta función devuelve el nivel equivalente en la curva vieja, así el
- * "¿qué especies tocan aquí?" depende de por dónde vas y no del número.
+ * (gym1 nv.8 … gym8 nv.67). Al subir la curva a la del pokelike original
+ * (gym1 14 … gym8 77), el MISMO punto de la run pasó a tener 6-10 niveles más
+ * y en la primera ruta salían especies de tramo medio contra tu inicial. Esta
+ * recta pasa por los dos gimnasios extremos (14→8 y 77→67), así que el "¿qué
+ * especies tocan aquí?" sale de por dónde vas y no del número de nivel.
  */
-const progressLevel = (level: number) => 8 + (level - 10) * (59 / 63)
+const progressLevel = (level: number) => Math.max(4, 8 + (level - 14) * (59 / 63))
 
 /**
  * Pool de especies con potencia (BST) acorde al nivel y a la dificultad:
