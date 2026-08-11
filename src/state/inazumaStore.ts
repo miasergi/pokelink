@@ -21,10 +21,12 @@ import {
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { buildDraft, buildScoutOffer } from '@/engine/inazuma/rewards'
-import { autoLineup, createPlayer, levelUp, lineupError, ptMax } from '@/engine/inazuma/roster'
-import { bossIndexForLayer, currentOffer, layerName } from '@/engine/inazuma/tournament'
 import {
-  ROSTER_MAX, TECHNIQUE_SLOTS,
+  autoLineup, canUpgradeTechnique, createPlayer, levelUp, lineupError, ptMax, upgradeTechnique,
+} from '@/engine/inazuma/roster'
+import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
+import {
+  ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
   type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent, type MatchPhase,
   type MatchState, type TournamentNode,
 } from '@/engine/inazuma/types'
@@ -49,7 +51,7 @@ function stopTicker() {
 }
 
 /** Fases desde las que es seguro guardar (fuera de un partido). */
-const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'draft', 'victory', 'gameover', 'title']
+const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'bag', 'draft', 'victory', 'gameover', 'title']
 
 async function persist(save: InazumaSave, phase: InazumaPhase) {
   if (!SAFE_PHASES.includes(phase)) return
@@ -133,6 +135,7 @@ interface InazumaState {
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string) => void
+  teachTechnique: (techId: string, uid: string) => void
   release: (uid: string) => void
   buy: (itemId: string) => void
 }
@@ -207,7 +210,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   chooseNode: (nodeId) => {
     const { save } = get()
     if (!save) return
-    const node = currentOffer(save.map, save.layer).find((n) => n.id === nodeId)
+    // Solo las casillas conectadas con la actual, como en el mapa Pokémon.
+    const node = availableNextNodes(save.map, save.currentNodeId).find((n) => n.id === nodeId)
     if (!node) return
 
     // Jefes y pachangas pasan por la previa (ver rival y once); el resto se
@@ -236,22 +240,12 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         }
         break
       case 'tecnica':
-        // Necesita que señales a quién enseñársela: se abre el vestuario.
+        // Va a la MOCHILA. Antes obligaba a elegir destinatario en el acto, y
+        // eso es una decisión que casi siempre quieres tomar después de ver la
+        // plantilla — ahora se guarda y se enseña cuando te venga bien.
         if (node.techniqueId) {
-          advanceLayer(next, node)
-          set({
-            save: next,
-            pendingTarget: {
-              kind: 'tecnica',
-              id: `node-${node.id}`,
-              title: `Aprender «${getTechnique(node.techniqueId)?.name}»`,
-              desc: 'Elige a quién se la enseña',
-              techniqueId: node.techniqueId,
-            },
-            phase: 'squad',
-          })
-          void persist(next, 'squad')
-          return
+          next.techniqueBag = [...next.techniqueBag, node.techniqueId]
+          message = `${getTechnique(node.techniqueId)?.name} guardada en la mochila.`
         }
         break
       case 'ojeador': {
@@ -491,6 +485,36 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   cancelTarget: () => set({ pendingTarget: null }),
 
+  /** Enseña a un jugador una supertécnica guardada en la mochila. */
+  teachTechnique: (techId, uid) => {
+    const { save } = get()
+    if (!save) return
+    const i = save.techniqueBag.indexOf(techId)
+    if (i < 0) return
+    const target = save.roster.find((p) => p.uid === uid)
+    if (!target) return
+    if (!canLearn(target, techId)) {
+      set({ message: 'Esa técnica no es de su demarcación.' })
+      return
+    }
+    const bag = save.techniqueBag.slice()
+    bag.splice(i, 1)
+    const techs = target.techniques.slice()
+    // Con los 4 huecos llenos se descarta la más antigua.
+    if (techs.length >= TECHNIQUE_SLOTS) techs.shift()
+    techs.push(techId)
+    const next = {
+      ...save,
+      techniqueBag: bag,
+      roster: save.roster.map((p) => (p.uid === uid ? { ...p, techniques: techs } : p)),
+    }
+    set({
+      save: next,
+      message: `${getPlayerBase(target.baseId).name} aprende ${getTechnique(techId)?.name}.`,
+    })
+    void persist(next, get().phase)
+  },
+
   // ----------------------------------------------------------- plantilla ---
   setLineup: (uids) => {
     const { save } = get()
@@ -572,6 +596,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         roster = roster.map((p) => (p.uid === uid ? levelUp(p, 2) : p))
         message = '+2 niveles'
         break
+      case 'mejora': {
+        const target = roster.find((p) => p.uid === uid)
+        const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
+        if (!target || !up) {
+          set({ message: 'Ese jugador no tiene ninguna técnica que se pueda mejorar más.' })
+          return
+        }
+        roster = roster.map((p) => (p.uid === uid ? upgradeTechnique(p, up) : p))
+        const t = getTechnique(up)
+        message = `${t?.name} mejorada (+25 % de potencia)`
+        break
+      }
       case 'manual-avanzado': {
         const target = roster.find((p) => p.uid === uid)
         const evolvable = target?.techniques.map((t) => getTechnique(t)).find((t) => t?.evolvesTo)
@@ -600,6 +636,12 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const p = save.roster.find((x) => x.uid === uid)
     if (!p) return
     if (p.captain) { set({ message: 'El capitán no se traspasa.' }); return }
+    // Con 11 justos, traspasar deja el once incompleto y la partida muerta:
+    // no habría forma de alinear y todo partido daría error.
+    if (save.roster.length <= SQUAD_SIZE) {
+      set({ message: `No puedes bajar de ${SQUAD_SIZE} jugadores: te quedarías sin once.` })
+      return
+    }
     const roster = save.roster.filter((x) => x.uid !== uid)
     const lineup = save.lineup.filter((u) => u !== uid)
     const next = { ...save, roster, lineup: lineup.length ? lineup : autoLineup(roster) }

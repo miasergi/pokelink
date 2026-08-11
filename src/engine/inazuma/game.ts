@@ -41,6 +41,7 @@ export function createSave(seed: number): InazumaSave {
     rngState: rng.getState(),
     map,
     layer: 0,
+    currentNodeId: null,
     cleared: [],
     roster,
     lineup: autoLineup(roster),
@@ -49,6 +50,7 @@ export function createSave(seed: number): InazumaSave {
     goalsFor: 0,
     goalsAgainst: 0,
     bag: [],
+    techniqueBag: [],
     startedAt: Date.now(),
   }
 }
@@ -69,6 +71,7 @@ function actorFromPlayer(p: PlayerInstance): Actor {
     pt: p.pt,
     ptMax: ptMax(p),
     techniques: p.techniques,
+    techLevels: p.techLevels,
   }
 }
 
@@ -265,10 +268,17 @@ export function isEliminated(node: TournamentNode, result: 'win' | 'draw' | 'los
   return result === 'loss'
 }
 
-/** Marca la casilla como jugada y avanza a la siguiente capa del mapa. */
+/**
+ * Marca la casilla como jugada y avanza. Guarda DÓNDE estás (`currentNodeId`),
+ * que es lo que decide a qué casillas puedes ir después: el mapa es un grafo,
+ * no una lista de capas sueltas.
+ */
 export function advanceLayer(save: InazumaSave, node: TournamentNode): void {
   save.cleared = [...save.cleared, node.id]
-  save.layer = Math.min(save.map.totalLayers, save.layer + 1)
+  save.currentNodeId = node.id
+  const marked = save.map.nodes[node.id]
+  if (marked) marked.cleared = true
+  save.layer = Math.min(save.map.totalLayers, node.layer + 1)
 }
 
 /** ¿Se completó el mapa entero? */

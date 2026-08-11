@@ -13,8 +13,7 @@
 //   definición    DEL tuyo   vs  POR rival    (decides: qué tiro)
 // Perder cualquiera de los tres corta la jugada. Hacen falta los tres para gol.
 import { RNG } from '@/utils/rng'
-import { getTechnique } from '@/data/inazuma/techniques'
-import { duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
+import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier } from './roster'
 import type {
@@ -91,7 +90,7 @@ function toDuelist(a: Actor, tech: Technique | undefined, burst: boolean): Dueli
 /** Técnicas conocidas de una clase concreta que el actor puede pagar. */
 function affordable(a: Actor, kind: Technique['kind'], free: boolean): Technique[] {
   return a.techniques
-    .map((id) => getTechnique(id))
+    .map((id) => actorTechnique(a, id))
     .filter((t): t is Technique => !!t && t.kind === kind && (free || t.cost <= a.pt))
 }
 
@@ -411,7 +410,7 @@ function buildDecision(
   ))
 
   // 2) Cada supertécnica conocida de la clase que toca.
-  for (const t of actor.techniques.map((id) => getTechnique(id)).filter((t): t is Technique => !!t && t.kind === kind)) {
+  for (const t of actor.techniques.map((id) => actorTechnique(actor, id)).filter((t): t is Technique => !!t && t.kind === kind)) {
     const cost = free ? 0 : t.cost
     const opt = buildOption(m, step, mode, attacker, defender, momentum, { id: `tech:${t.id}`, label: t.name, tech: t, cost })
     if (!free && t.cost > actor.pt) opt.disabled = `Necesitas ${t.cost} PT`
@@ -549,7 +548,8 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
 
   let myTech: Technique | undefined
   if (optionId.startsWith('tech:')) {
-    myTech = getTechnique(optionId.slice(5))
+    // Se resuelve contra el actor que la lanza para aplicar sus Mejoras.
+    myTech = actorTechnique(d.mode === 'ataque' ? attacker : defender, optionId.slice(5))
   } else if (optionId.startsWith('pass:')) {
     const mate = findActor(atkSide, optionId.slice(5))
     attacker = mate

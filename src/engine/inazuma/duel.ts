@@ -6,9 +6,27 @@
 // (construcción → penetración → definición), así que ninguna tirada suelta
 // decide el partido y una plantilla con una sola estrella no basta.
 import type { RNG } from '@/utils/rng'
+import { getTechnique } from '@/data/inazuma/techniques'
 import { elementMultiplier } from './elements'
-import type { ChainStep, Element, Stats, Technique } from './types'
-import { fatigueMultiplier } from './roster'
+import type { Actor, ChainStep, Element, Stats, Technique } from './types'
+import { fatigueMultiplier, TECH_LEVEL_BONUS } from './roster'
+
+/**
+ * Resuelve una técnica EN MANOS DE UN ACTOR CONCRETO, con sus mejoras del
+ * objeto «Mejora» ya aplicadas a la potencia.
+ *
+ * Todo el motor debe pasar por aquí en vez de por `getTechnique` a secas: si no,
+ * la Mejora se vería en la ficha del jugador pero no cambiaría nada en el campo
+ * — exactamente el fallo que ya tuvimos con los objetos de atributos, que eran
+ * decorativos y valían cero medido con el bot.
+ */
+export function actorTechnique(actor: Actor, id: string): Technique | undefined {
+  const t = getTechnique(id)
+  if (!t) return undefined
+  const lv = actor.techLevels?.[id] ?? 0
+  if (!lv) return t
+  return { ...t, power: Math.round(t.power * (1 + lv * TECH_LEVEL_BONUS)) }
+}
 
 /** Un lado del duelo, ya resuelto a números (sirve para ti y para el rival). */
 export interface Duelist {

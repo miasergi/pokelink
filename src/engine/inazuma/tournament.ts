@@ -113,19 +113,68 @@ export function generateMap(rng: RNG): InazumaMap {
       title: team.name,
       subtitle: `${entry.name} · nivel medio ${RIVAL_LEVELS[seg]}`,
       reward: `${prizeMoney(seg)} ₽ + carta de fichaje`,
+      next: [],
     }
     nodes[boss.id] = boss
     layers.push([boss.id])
     layerIdx++
   }
 
+  // Conecta cada capa con la siguiente: el mapa es un GRAFO, no una lista de
+  // capas independientes. Desde dónde estás depende a dónde puedes ir.
+  for (let i = 0; i < layers.length - 1; i++) {
+    connect(layers[i].map((id) => nodes[id]), layers[i + 1].map((id) => nodes[id]), rng)
+  }
+
   return { layers, nodes, totalLayers: layers.length }
+}
+
+/**
+ * Traza los caminos entre dos capas. Cada casilla enlaza con la más cercana en
+ * horizontal (y a veces con una segunda), y después se garantiza que TODA
+ * casilla de la capa siguiente tenga al menos una entrada — si no, quedarían
+ * casillas inalcanzables pintadas en el tablero.
+ *
+ * Es el mismo algoritmo que `connect` en el mapa del roguelike Pokémon.
+ */
+function connect(curr: TournamentNode[], next: TournamentNode[], rng: RNG): void {
+  if (next.length === 1) {
+    for (const c of curr) c.next = [next[0].id]
+    return
+  }
+  const posOf = (n: TournamentNode, len: number) => (len <= 1 ? 0.5 : n.col / (len - 1))
+  for (const c of curr) {
+    const cp = posOf(c, curr.length)
+    const sorted = [...next].sort(
+      (a, b) => Math.abs(posOf(a, next.length) - cp) - Math.abs(posOf(b, next.length) - cp),
+    )
+    const edges = [sorted[0].id]
+    if (sorted[1] && rng.chance(0.45)) edges.push(sorted[1].id)
+    c.next = [...new Set(edges)]
+  }
+  for (const n of next) {
+    if (!curr.some((c) => c.next.includes(n.id))) {
+      const np = posOf(n, next.length)
+      const nearest = [...curr].sort(
+        (a, b) => Math.abs(posOf(a, curr.length) - np) - Math.abs(posOf(b, curr.length) - np),
+      )[0]
+      nearest.next = [...new Set([...nearest.next, n.id])]
+    }
+  }
+}
+
+/** Casillas a las que puedes ir ahora mismo. */
+export function availableNextNodes(map: InazumaMap, currentNodeId: string | null): TournamentNode[] {
+  if (currentNodeId === null) return (map.layers[0] ?? []).map((id) => map.nodes[id])
+  const cur = map.nodes[currentNodeId]
+  if (!cur) return []
+  return cur.next.map((id) => map.nodes[id]).filter(Boolean)
 }
 
 function buildRouteNode(
   id: string, kind: NodeKind, layer: number, col: number, seg: number, routeIndex: number, rng: RNG,
 ): TournamentNode {
-  const base: TournamentNode = { id, kind, layer, col, title: '', subtitle: '', reward: '' }
+  const base: TournamentNode = { id, kind, layer, col, title: '', subtitle: '', reward: '', next: [] }
 
   switch (kind) {
     case 'pachanga': {

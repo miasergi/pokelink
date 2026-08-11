@@ -23,7 +23,11 @@ export const ITEMS: InazumaItem[] = [
   { id: 'plan-entrenamiento', name: 'Plan de entrenamiento', kind: 'consumible', desc: 'Sube 2 niveles a un jugador.', price: 1800, consumable: true },
 
   // -------------------------------------------------------------- MANUAL ----
-  { id: 'manual-avanzado', name: 'Manual avanzado', kind: 'manual', desc: 'Evoluciona una supertécnica a su versión definitiva.', price: 3000, consumable: true },
+  // Dos formas distintas de mejorar una supertécnica, igual que en el modo
+  // Pokémon conviven la Mejora (sube el tier de potencia del ataque) y las
+  // evoluciones (cambian el movimiento por otro).
+  { id: 'mejora', name: 'Mejora', kind: 'manual', desc: '+25 % de potencia a una supertécnica. Se puede aplicar dos veces a la misma.', price: 1600, consumable: true },
+  { id: 'manual-avanzado', name: 'Manual avanzado', kind: 'manual', desc: 'Evoluciona una supertécnica a su versión definitiva (nº1 → nº2).', price: 3000, consumable: true },
 ]
 
 export const ITEM_BY_ID = new Map(ITEMS.map((i) => [i.id, i]))

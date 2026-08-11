@@ -310,6 +310,41 @@ export function knownTechniques(techIds: string[], kind?: string) {
     .filter((t): t is NonNullable<typeof t> => !!t && (!kind || t.kind === kind))
 }
 
+// ---------------------------------------------------------------------------
+// Mejora de supertécnicas (objeto «Mejora»)
+// ---------------------------------------------------------------------------
+
+/** Veces que se puede mejorar la misma técnica. */
+export const MAX_TECH_LEVEL = 2
+/** Potencia extra por mejora. */
+export const TECH_LEVEL_BONUS = 0.25
+
+/** Mejoras aplicadas a una técnica concreta de un jugador. */
+export function techLevel(p: PlayerInstance, techId: string): number {
+  return p.techLevels?.[techId] ?? 0
+}
+
+/**
+ * Potencia EFECTIVA de una técnica en manos de este jugador, con las mejoras
+ * aplicadas. Todo el motor debe leer de aquí y no de `Technique.power`, o las
+ * mejoras no se notarían en el campo (que es justo el fallo que ya tuvimos con
+ * los objetos de atributos).
+ */
+export function techniquePower(p: PlayerInstance | undefined, tech: { id: string; power: number }): number {
+  if (!p) return tech.power
+  return Math.round(tech.power * (1 + techLevel(p, tech.id) * TECH_LEVEL_BONUS))
+}
+
+/** ¿Se le puede aplicar una Mejora a esta técnica? */
+export function canUpgradeTechnique(p: PlayerInstance, techId: string): boolean {
+  return p.techniques.includes(techId) && techLevel(p, techId) < MAX_TECH_LEVEL
+}
+
+/** Aplica una Mejora. Devuelve el jugador nuevo (puro). */
+export function upgradeTechnique(p: PlayerInstance, techId: string): PlayerInstance {
+  return { ...p, techLevels: { ...(p.techLevels ?? {}), [techId]: techLevel(p, techId) + 1 } }
+}
+
 /** Jugadores fichables: los de los institutos ya derrotados + agentes libres. */
 export function signablePool(beatenTeams: string[]): PlayerBase[] {
   const allowed = new Set([...beatenTeams, 'libre'])

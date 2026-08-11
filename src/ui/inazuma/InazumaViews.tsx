@@ -5,9 +5,10 @@ import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerCard, PlayerRow, ElementChip, portraitUrl } from '@/ui/inazuma/PlayerCard'
+import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { buildLineup, lineupError, overall } from '@/engine/inazuma/roster'
-import { currentOffer, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
+import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -79,11 +80,6 @@ export function TitleView() {
 // Mapa del torneo
 // ---------------------------------------------------------------------------
 
-const NODE_ICON: Record<TournamentNode['kind'], string> = {
-  pachanga: '⚽', jefe: '⚔️', final: '🏆', ojeador: '🔎',
-  objeto: '🎒', tecnica: '⚡', descanso: '🛌', tienda: '🛒',
-}
-
 /**
  * Mapa del tramo actual: las capas que quedan hasta el próximo instituto, con
  * las casillas de cada una. Se pinta UNA PANTALLA POR TRAMO, igual que el mapa
@@ -91,59 +87,44 @@ const NODE_ICON: Record<TournamentNode['kind'], string> = {
  */
 export function MapView() {
   const { save, chooseNode, goTo } = useInazuma()
+  const [preview, setPreview] = useState<TournamentNode | null>(null)
   if (!save) return null
   const segs = mapSegments(save.map)
   const seg = segmentForLayer(segs, save.layer)
-  const offer = currentOffer(save.map, save.layer)
+  const reachable = new Set(availableNextNodes(save.map, save.currentNodeId).map((n) => n.id))
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="shrink-0 px-3 pt-2 pb-1.5 border-b border-slate-800/70">
         <SegmentProgress segs={segs} current={seg.index} />
-
-        <div className="flex items-center gap-2">
-          <TeamCrest teamId={seg.boss?.teamId} size={34} />
+        <div className="flex items-center gap-2 mt-2">
+          <TeamCrest teamId={seg.boss?.teamId} size={30} />
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-widest text-slate-500">{seg.name}</div>
-            <div className="font-extrabold text-sm leading-tight truncate">
+            <div className="font-extrabold text-[13px] leading-tight truncate">
               Camino a {seg.boss ? getTeam(seg.boss.teamId ?? '').name : 'la final'}
             </div>
           </div>
-        </div>
-
-        {/* Casillas del tramo: las pasadas en gris, la actual elegible. */}
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: seg.end - seg.start + 1 }, (_, i) => seg.start + i).map((li) => {
-            const nodes = currentOffer(save.map, li)
-            const state = li < save.layer ? 'past' : li === save.layer ? 'now' : 'future'
-            return (
-              <div key={li} className={state === 'future' ? 'opacity-35' : ''}>
-                {state === 'now' && (
-                  <div className="text-[10px] uppercase tracking-widest text-amber-300 mb-1">Elige una casilla</div>
-                )}
-                <div className={nodes.length > 1 ? 'flex flex-col gap-2' : ''}>
-                  {nodes.map((n) => (
-                    <NodeCard
-                      key={n.id}
-                      node={n}
-                      save={save}
-                      state={state}
-                      onPick={state === 'now' ? () => chooseNode(n.id) : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {!offer.length && <div className="text-center text-slate-500 text-sm py-8">No queda nada por jugar.</div>}
-        <div className="text-[11px] text-slate-600 text-center mt-1">
-          Tramo {seg.index + 1} de 8 · casilla {save.layer + 1}/{save.map.totalLayers}
+          <span className="ml-auto text-[10px] text-slate-600 tabular-nums shrink-0">
+            {seg.index + 1}/8
+          </span>
         </div>
       </div>
-      <BottomBar onSquad={() => goTo('squad')} />
+
+      <MapBoard save={save} onPick={setPreview} />
+
+      <BottomBar onSquad={() => goTo('squad')} onBag={() => goTo('bag')} />
+
+      {preview && (
+        <NodePreview
+          node={preview}
+          save={save}
+          canEnter={reachable.has(preview.id) && !preview.cleared}
+          onEnter={() => { const id = preview.id; setPreview(null); chooseNode(id) }}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   )
 }
@@ -160,67 +141,6 @@ function SegmentProgress({ segs, current }: { segs: { index: number }[]; current
         />
       ))}
     </div>
-  )
-}
-
-function NodeCard({
-  node, save, onPick, state,
-}: {
-  node: TournamentNode
-  save: InazumaSave
-  onPick?: () => void
-  state: 'past' | 'now' | 'future'
-}) {
-  const isBoss = node.kind === 'jefe' || node.kind === 'final'
-  const team = isBoss && node.teamId ? getTeam(node.teamId) : null
-  const lineup = buildLineup(save.roster, save.lineup)
-  const myLevel = lineup ? Math.round(lineup.all.reduce((a, p) => a + p.level, 0) / lineup.all.length) : 0
-  const gap = node.level != null ? node.level - myLevel : 0
-  const cleared = save.cleared.includes(node.id)
-
-  return (
-    <Card
-      onClick={onPick}
-      className={`p-3 ${
-        node.risky ? 'border-rose-500/50'
-          : node.kind === 'final' ? 'border-amber-400/60'
-            : state === 'now' ? 'border-slate-500/70' : ''
-      } ${state === 'past' && !cleared ? 'opacity-40' : ''}`}
-      style={team ? { background: `linear-gradient(120deg, ${team.color}22, rgba(30,41,59,0.7) 60%)` } : undefined}
-    >
-      <div className="flex items-start gap-2.5">
-        {team
-          ? <TeamCrest teamId={node.teamId} size={34} />
-          : <span className="text-2xl leading-none shrink-0 w-[34px] text-center">{NODE_ICON[node.kind]}</span>}
-        <div className="min-w-0 flex-1">
-          <div className="font-extrabold text-sm leading-tight flex items-center gap-1.5">
-            {node.title}
-            {cleared && <Icon name="check" className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-          </div>
-          <div className="text-[11px] text-slate-400">{node.subtitle}</div>
-          {node.level != null && (
-            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-              {team && <ElementChip element={team.element} />}
-              <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 border ${
-                gap > 3 ? 'border-rose-500/50 bg-rose-500/15 text-rose-200'
-                  : gap > 0 ? 'border-amber-500/50 bg-amber-500/15 text-amber-200'
-                    : 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
-              }`}>
-                {gap > 3 ? 'Muy superiores' : gap > 0 ? 'Algo por encima' : 'A tu alcance'}
-              </span>
-              {node.risky && (
-                <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 border border-rose-500/60 bg-rose-500/20 text-rose-200">
-                  Arriesgada
-                </span>
-              )}
-            </div>
-          )}
-          <div className="mt-1.5 text-[11px] text-emerald-300/90">🎁 {node.reward}</div>
-          {team?.taunt && <div className="mt-1 text-[11px] italic text-slate-500">«{team.taunt}»</div>}
-        </div>
-        {onPick && <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0 mt-1" />}
-      </div>
-    </Card>
   )
 }
 
@@ -267,13 +187,28 @@ function SaveHeader({ save }: { save: InazumaSave }) {
   )
 }
 
-function BottomBar({ onSquad }: { onSquad: () => void }) {
-  const { exitInazuma } = useInazuma()
+function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void }) {
+  const { exitInazuma, save } = useInazuma()
+  const items = (save?.bag.length ?? 0) + (save?.techniqueBag.length ?? 0)
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
       <Button variant="secondary" full onClick={onSquad}>
         <span className="inline-flex items-center justify-center gap-1.5"><Icon name="people" className="w-4 h-4" /> Vestuario</span>
       </Button>
+      {onBag && (
+        // Con el icono a secas se leía como una papelera, y «tocar la papelera»
+        // asusta. Va con la palabra al lado.
+        <Button variant="secondary" full onClick={onBag}>
+          <span className="inline-flex items-center justify-center gap-1.5 relative">
+            <Icon name="bag" className="w-4 h-4" /> Mochila
+            {items > 0 && (
+              <span className="rounded-full bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 leading-tight">
+                {items}
+              </span>
+            )}
+          </span>
+        </Button>
+      )}
       <Button variant="ghost" onClick={exitInazuma}>
         <Icon name="home" className="w-4 h-4" />
       </Button>

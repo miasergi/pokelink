@@ -10,8 +10,7 @@
 //  - CANSA: cada ronda gasta aguante de los dos que la disputan, ganes o pierdas.
 //  - SUBE DE NIVEL: si ganas, todo el que haya jugado se lleva niveles.
 import { RNG } from '@/utils/rng'
-import { getTechnique } from '@/data/inazuma/techniques'
-import { duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
+import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
 import { ELEMENT_INFO } from './elements'
 import type { Actor, DecisionOption, MatchSide, Technique } from './types'
 
@@ -125,7 +124,7 @@ function shooterFor(side: MatchSide, rng: RNG): Actor {
 
 function affordable(a: Actor, kind: Technique['kind']): Technique[] {
   return a.techniques
-    .map((id) => getTechnique(id))
+    .map((id) => actorTechnique(a, id))
     .filter((t): t is Technique => !!t && t.kind === kind && t.cost <= a.pt)
 }
 
@@ -170,7 +169,7 @@ export function nextRound(s: PachangaState, rng: RNG): void {
   }
 
   options.push(build('plain', mineTurn ? 'Disparo sencillo' : 'Achicar y blocar', undefined, 0))
-  for (const t of actor.techniques.map((id) => getTechnique(id)).filter((t): t is Technique => !!t && t.kind === kind)) {
+  for (const t of actor.techniques.map((id) => actorTechnique(actor, id)).filter((t): t is Technique => !!t && t.kind === kind)) {
     const o = build(`tech:${t.id}`, t.name, t, t.cost)
     if (t.cost > actor.pt) o.disabled = `Necesitas ${t.cost} PT`
     options.push(o)
@@ -185,7 +184,9 @@ export function shoot(s: PachangaState, rng: RNG, optionId: string): PachangaRou
   if (s.phase !== 'decision' || !s.pending) return null
   const { shooter, keeper, mine } = s.pending
 
-  const myTech = optionId.startsWith('tech:') ? getTechnique(optionId.slice(5)) : undefined
+  const myTech = optionId.startsWith('tech:')
+    ? actorTechnique(mine ? shooter : keeper, optionId.slice(5))
+    : undefined
   const rivalActor = mine ? keeper : shooter
   const rivalTech = pickAiTechnique(
     affordable(rivalActor, mine ? 'parada' : 'tiro'),

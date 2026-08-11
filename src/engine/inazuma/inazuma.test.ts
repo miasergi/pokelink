@@ -7,15 +7,20 @@ import { RNG } from '@/utils/rng'
 import { ITEMS, ITEM_BY_ID } from '@/data/inazuma/items'
 import { elementMultiplier, ELEMENT_ADVANTAGE, ELEMENT_WEAKNESS } from './elements'
 import { advance, chooseOption, playerScore } from './match'
+import { actorTechnique } from './duel'
+import { getTechnique } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyMatchResult, applyPachangaResult, autoTraining, canLearn, createSave,
   fullRest, isEliminated, isMapComplete, startMatch, startPachanga,
 } from './game'
 import { nextRound, shoot } from './pachanga'
 import { buildDraft } from './rewards'
-import { autoLineup, createPlayer, effectiveStats, lineupError, overall, ptMax } from './roster'
 import {
-  bossIndexForLayer, currentOffer, generateMap, mapSegments, RIVAL_LEVELS,
+  autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, lineupError, overall, ptMax,
+  TECH_LEVEL_BONUS, techLevel, upgradeTechnique,
+} from './roster'
+import {
+  availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments, RIVAL_LEVELS,
   ROUTE_LAYERS_PER_SEGMENT, TOTAL_LAYERS,
 } from './tournament'
 import { ROSTER_MAX, type InazumaSave, type MatchState, type TournamentNode } from './types'
@@ -208,7 +213,10 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
   })
 
   while (!isMapComplete(save)) {
-    const offer = currentOffer(save.map, save.layer)
+    // El bot juega con las MISMAS reglas que el jugador: solo puede ir a las
+    // casillas conectadas con la actual. Si eligiera de toda la capa tendría
+    // más libertad que una persona y la medición de dificultad no valdría.
+    const offer = availableNextNodes(save.map, save.currentNodeId)
     if (!offer.length) break
     const tired = save.roster
       .filter((p) => save.lineup.includes(p.uid))
@@ -388,6 +396,49 @@ describe('torneo', () => {
         expect(nodes.some((n) => n.kind === 'pachanga')).toBe(true)
       }
     }
+  })
+
+  it('las casillas están conectadas y todas son alcanzables', () => {
+    const map = generateMap(new RNG(11))
+    // Desde la salida se entra por cualquiera de la primera capa.
+    expect(availableNextNodes(map, null).map((n) => n.id).sort())
+      .toEqual([...map.layers[0]].sort())
+
+    for (let li = 0; li < map.layers.length - 1; li++) {
+      const nextIds = new Set(map.layers[li + 1])
+      const reached = new Set<string>()
+      for (const id of map.layers[li]) {
+        const n = map.nodes[id]
+        expect(n.next.length).toBeGreaterThan(0)
+        for (const nx of n.next) {
+          // Solo se enlaza con la capa siguiente, nunca se salta ni se retrocede.
+          expect(nextIds.has(nx)).toBe(true)
+          reached.add(nx)
+        }
+      }
+      // Y ninguna casilla queda huérfana: si no, se pintaría inalcanzable.
+      expect(reached.size).toBe(nextIds.size)
+    }
+  })
+
+  it('la Mejora sube la potencia de la técnica y se nota en el campo', () => {
+    const p = createPlayer('axel-blaze', 20)
+    const tech = p.techniques[0]
+    expect(techLevel(p, tech)).toBe(0)
+    expect(canUpgradeTechnique(p, tech)).toBe(true)
+
+    let up = upgradeTechnique(p, tech)
+    expect(techLevel(up, tech)).toBe(1)
+    up = upgradeTechnique(up, tech)
+    expect(techLevel(up, tech)).toBe(2)
+    // Tope: no se puede mejorar indefinidamente.
+    expect(canUpgradeTechnique(up, tech)).toBe(false)
+
+    // Y la potencia efectiva llega al motor a través del actor.
+    const base = getTechnique(tech)!
+    const actor = { techLevels: up.techLevels } as Parameters<typeof actorTechnique>[0]
+    expect(actorTechnique(actor, tech)!.power)
+      .toBe(Math.round(base.power * (1 + 2 * TECH_LEVEL_BONUS)))
   })
 
   it('las casillas de objeto y técnica traen su contenido ya sorteado', () => {

@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.55',
+    date: '2026-08-11',
+    title: 'Inazuma: tablero de casillas, mochila y Mejora de supertécnicas',
+    changes: [
+      'EL MAPA ES UN TABLERO, igual que el del roguelike Pokémon: las casillas están unidas por caminos y solo puedes ir a las CONECTADAS con la tuya. Elegir camino importa: si tiras por la izquierda te pierdes lo de la derecha. Tocar una casilla abre su previa (qué es, a qué nivel va el rival, qué te llevas) antes de entrar.',
+      'MOCHILA. Los objetos y las supertécnicas que te encuentras se guardan y los usas cuando quieras. Antes la técnica te obligaba a elegir destinatario en el acto, justo cuando menos información tienes; ahora la llevas encima y se la enseñas a quien te convenga.',
+      'OBJETO «MEJORA». Sube un 25 % la potencia de una supertécnica de un jugador, y se puede aplicar dos veces a la misma. Convive con el Manual avanzado, que hace otra cosa: evoluciona la técnica a su versión definitiva (Pingüinos Emperador nº1 → nº2).',
+      'YA NO PUEDES QUEDARTE SIN ONCE: con 11 jugadores justos, el botón de traspasar avisa en vez de dejarte la plantilla incompleta y la partida bloqueada.',
+    ],
+  },
+  {
     version: 'v6.54',
     date: '2026-08-11',
     title: 'Inazuma Rogue ahora es un MAPA, con pachangas de barrio',

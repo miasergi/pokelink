@@ -93,6 +93,12 @@ export interface PlayerInstance {
   boosts?: Partial<Stats>
   /** Objeto equipado (`InazumaItem.id`). */
   item?: string
+  /**
+   * Mejoras aplicadas a cada supertécnica con el objeto «Mejora», por id.
+   * Cada nivel sube la potencia un 25 % (tope `MAX_TECH_LEVEL`). Es el
+   * equivalente a la Mejora del modo Pokémon, que sube el tier del ataque.
+   */
+  techLevels?: Record<string, number>
   /** Capitán: no se puede traspasar ni sacar del once. */
   captain?: boolean
 }
@@ -201,8 +207,10 @@ export interface Actor {
   stamina: number
   pt: number
   ptMax: number
-  /** Ids de técnica; se resuelven con `getTechnique`. */
+  /** Ids de técnica; se resuelven con `actorTechnique`. */
   techniques: string[]
+  /** Mejoras del objeto «Mejora», por id de técnica. Solo las tuyas. */
+  techLevels?: Record<string, number>
 }
 
 export interface MatchSide {
@@ -292,6 +300,14 @@ export interface TournamentNode {
   title: string
   subtitle: string
   reward: string
+  /**
+   * Casillas de la capa siguiente a las que se puede saltar desde esta. Igual
+   * que en el mapa del roguelike Pokémon: no eliges «una casilla de la capa»,
+   * eliges un CAMINO, y desde dónde estás depende a dónde puedes ir.
+   */
+  next: string[]
+  /** Ya jugada. */
+  cleared?: boolean
   /** Contenido ya sorteado al generar el mapa (para que la previa no mienta). */
   itemId?: string
   techniqueId?: string
@@ -363,7 +379,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number
@@ -372,6 +388,9 @@ export interface InazumaSave {
   map: InazumaMap
   /** Capa en la que estás. Avanza una casilla por elección. */
   layer: number
+  /** Casilla en la que estás. `null` al empezar = puedes entrar por cualquiera
+   *  de la primera capa. Define a dónde puedes ir (ver `next`). */
+  currentNodeId: string | null
   /** Ids de casilla ya jugadas. */
   cleared: string[]
   roster: PlayerInstance[]
@@ -384,6 +403,8 @@ export interface InazumaSave {
   goalsAgainst: number
   /** Ids de objeto en la mochila (sin equipar). */
   bag: string[]
+  /** Supertécnicas encontradas y aún sin enseñar a nadie. */
+  techniqueBag: string[]
   /** Resultado del último partido, para la pantalla de resumen y el draft. */
   lastMatch?: {
     rival: string
