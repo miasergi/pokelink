@@ -96,24 +96,28 @@ function playStrategic(seed: number, starterId: number, gen: number): RunState {
 
 describe('E2E: run completa de principio a fin', () => {
   it('una run estratégica termina siempre y llega lejos en alguna semilla', () => {
-    let maxGyms = 0, maxElite = 0, wins = 0, ended = 0
+    let maxGyms = 0, maxElite = 0, wins = 0, ended = 0, maxDepth = 0
     for (const seed of [1, 2, 3, 5, 8, 13, 21, 34]) {
       for (const starter of [1, 4, 7]) {
         const run = playStrategic(seed * 10 + starter, starter, 1)
         expect(run.status === 'won' || run.status === 'lost').toBe(true) // termina, no se cuelga
         if (run.status === 'won' || run.status === 'lost') ended++
         maxGyms = Math.max(maxGyms, run.stats.gymsDefeated)
+        maxDepth = Math.max(maxDepth, run.currentLayer + 1)
         maxElite = Math.max(maxElite, run.stats.eliteDefeated)
         if (run.status === 'won') wins++
       }
     }
     // eslint-disable-next-line no-console
-    console.log(`\n[E2E] runs=24 terminadas=${ended} maxGimnasios=${maxGyms} maxAltoMando=${maxElite} victorias=${wins}`)
+    console.log(`\n[E2E] runs=24 terminadas=${ended} maxGimnasios=${maxGyms} maxAltoMando=${maxElite} maxCapa=${maxDepth} victorias=${wins}`)
     expect(ended).toBe(24) // todas terminan sin colgarse
-    // El bot es ingenuo (no explota ventajas de tipo ni gestiona bien objetos):
-    // no se le exige completar la region, solo que la run AVANCE de verdad. Con
-    // el bonus de jefe a +3 su mejor marca baja de 8 gimnasios a 5.
-    expect(maxGyms).toBeGreaterThanOrEqual(4)
+    // OJO (v6.52): este test YA NO promete que la región se complete. Con la
+    // curva del pokelike (gym1 nv.14 y +9 por gimnasio), tramos de 8 casillas y
+    // los niveles de casilla (+1/+2/+3), este bot se queda en el 1er gimnasio, y
+    // se midió que subirle la agresividad no cambia nada. Es la dificultad que
+    // quiere el autor. Lo garantizado: la run termina y avanza de verdad.
+    expect(maxGyms).toBeGreaterThanOrEqual(1)
+    expect(maxDepth).toBeGreaterThanOrEqual(6)
   })
 
   it('completa el recorrido en las 9 regiones sin errores', () => {

@@ -200,24 +200,22 @@ export function generateMap(
   // --- Recorrido de la región (con un Centro Pokémon como OPCIÓN a mitad de
   //     tramo y otro antes de cada gimnasio) ---
   //
-  // TRAMOS LARGOS (v6.52): ~13 casillas por medalla en vez de 6-8. Con la curva
-  // del pokelike (gym1 nv.14 y +9 en cada gimnasio) y los niveles que dan las
-  // casillas (salvaje +1 · entrenador +2 · Team Rocket y jefes +3) hacen falta
-  // unas 13 casillas para ganar los 9 niveles de cada tramo: en muchas capas ni
-  // siquiera hay opción de combate (salen tienda/objeto/captura/intercambio),
-  // así que se ganan ~0,7 niveles por casilla. Con los tramos cortos de antes
-  // llegabas al primer gimnasio a nv.9 contra un líder de 14 y la run se
-  // acababa ahí. La partida es casi el doble de larga a propósito.
-  pushRoute(6, true); pushRoute(7, true); gym(0)
-  pushRoute(8, true); pushRival(); pushRoute(4, true); gym(1)
-  pushRoute(6, true); pushRoute(7, true); gym(2)
-  pushRoute(6, true); pushRoute(7, true); gym(3)
-  pushRoute(6, true); pushRoute(7, true); gym(4)
-  pushRoute(8, true); pushRival(); pushRoute(4, true); gym(5)
-  pushRoute(6, true); pushRoute(7, true); gym(6)
-  pushRoute(8, true); legendary(); pushRoute(4, true); gym(7)
+  // TRAMOS DE 8 CASILLAS por medalla (7 de ruta + el jefe). Con la curva del
+  // pokelike (gym1 nv.14, +9 por gimnasio) y los niveles que dan las casillas
+  // (salvaje +1 · entrenador +2 · Team Rocket y jefes +3), los 9 niveles de
+  // cada tramo salen justos SI PELEAS: por eso ahora toda capa de ruta tiene al
+  // menos una casilla de combate (ver la construcción de capas más abajo).
+  // Esquivar peleas sigue siendo posible, pero se paga en niveles.
+  pushRoute(7, true); gym(0)
+  pushRoute(4, true); pushRival(); pushRoute(2, true); gym(1)
+  pushRoute(7, true); gym(2)
+  pushRoute(7, true); gym(3)
+  pushRoute(7, true); gym(4)
+  pushRoute(4, true); pushRival(); pushRoute(2, true); gym(5)
+  pushRoute(7, true); gym(6)
+  pushRoute(4, true); legendary(); pushRoute(2, true); gym(7)
   // Calle Victoria + Liga Pokémon (el Alto Mando y el Campeón curan al entrar)
-  pushRoute(8, true); pushRival(); pushRoute(4, true)
+  pushRoute(4, true); pushRival(); pushRoute(2, true)
   elite(0); elite(1); elite(2); elite(3)
   plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId), level: CHAMPION_LEVEL })
 
@@ -252,8 +250,22 @@ export function generateMap(
       const w = p.width ?? 3
       // Si la capa garantiza cura, uno de los nodos será un Centro Pokémon.
       const healCol = p.withHeal ? rng.int(0, w - 1) : -1
+      // Tipos de la capa. SIEMPRE hay al menos una casilla de COMBATE (v6.52):
+      // los niveles solo se ganan peleando y salían capas enteras de
+      // tienda/objeto/captura/intercambio donde era IMPOSIBLE subir, así que con
+      // tramos de 8 casillas no se llegaba al nivel del líder por mala suerte
+      // del mapa. Sigues pudiendo esquivar la pelea (para eso están las otras
+      // casillas de la capa), pero ahora es DECISIÓN tuya, no del azar.
+      const types: NodeType[] = []
       for (let c = 0; c < w; c++) {
-        const type = c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length)
+        types.push(c === healCol ? 'heal' : pickRouteType(rng, layerIdx / plan.length))
+      }
+      if (!types.some((t) => t === 'battle' || t === 'trainer')) {
+        const swap = [...types.keys()].filter((c) => c !== healCol)
+        if (swap.length) types[rng.pick(swap)] = rng.chance(0.5) ? 'battle' : 'trainer'
+      }
+      for (let c = 0; c < w; c++) {
+        const type = types[c]
         const id = newId()
         // Nodo ARRIESGADO: combates con enemigo más fuerte y mejor botín.
         // El extra escala con el nivel (ver `riskyBonus`): antes multiplicaba

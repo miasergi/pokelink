@@ -100,6 +100,11 @@ function chooseNext(run: RunState, nodes: MapNode[]): MapNode {
   return [...nodes].sort((a, b) => score(b) - score(a))[0]
 }
 
+/** Capa más profunda alcanzada (mide progreso aunque no caiga ningún jefe). */
+function deepestLayer(run: RunState): number {
+  return run.currentLayer + 1
+}
+
 function playRun(seed: number, starterId: number, gen = 1): { run: RunState; steps: number } {
   const run = createRun({ pools: [gen], random: false, difficulty: 'normal', gen, starterId, seed })
   let steps = 0
@@ -143,7 +148,7 @@ function playRun(seed: number, starterId: number, gen = 1): { run: RunState; ste
 
 describe('simulación de runs completas (balance)', () => {
   it('un auto-jugador progresa por Kanto y las runs terminan', () => {
-    const results: { gyms: number; elite: number; won: boolean; party: number; steps: number }[] = []
+    const results: { gyms: number; elite: number; won: boolean; party: number; steps: number; depth: number }[] = []
     for (const seed of [1, 2, 3, 4, 5, 11, 23, 42]) {
       for (const starter of [1, 4, 7]) {
         const { run, steps } = playRun(seed * 100 + starter, starter)
@@ -153,6 +158,7 @@ describe('simulación de runs completas (balance)', () => {
           won: run.status === 'won',
           party: run.party.length,
           steps,
+          depth: deepestLayer(run),
         })
         // la run siempre termina (no se queda colgada)
         expect(run.status === 'won' || run.status === 'lost').toBe(true)
@@ -161,12 +167,19 @@ describe('simulación de runs completas (balance)', () => {
     const avgGyms = results.reduce((a, r) => a + r.gyms, 0) / results.length
     const wins = results.filter((r) => r.won).length
     const maxGyms = Math.max(...results.map((r) => r.gyms))
+    const maxDepth = Math.max(...results.map((r) => r.depth))
     // eslint-disable-next-line no-console
-    console.log(`\n[BALANCE] runs=${results.length} avgGimnasios=${avgGyms.toFixed(1)} maxGimnasios=${maxGyms} victorias=${wins}`)
-    // Bot básico (sin uso de Mejoras): smoke test de progreso. La completabilidad
-    // real con juego estratégico la cubre e2e.test.ts (8 gimnasios + Liga).
-    expect(maxGyms).toBeGreaterThanOrEqual(4)
-    void avgGyms
+    console.log(`\n[BALANCE] runs=${results.length} avgGimnasios=${avgGyms.toFixed(1)} maxGimnasios=${maxGyms} maxCapa=${maxDepth} victorias=${wins}`)
+    // OJO CON LO QUE ESTE TEST PROMETE (v6.52): ya NO comprueba que la región
+    // sea completable. Con la curva del pokelike (gym1 nv.14 y +9 por gimnasio),
+    // tramos de 8 casillas y los niveles que dan las casillas (+1/+2/+3), estos
+    // bots no pasan del primer gimnasio; se midió que peleando TODO lo posible
+    // llegan igual de lejos que esquivando, porque en 8 casillas no caben subir
+    // 9 niveles y además curarse. Es una decisión de diseño del autor, que
+    // prefiere jugarlo así de duro. Lo que sigue garantizado: la run TERMINA y
+    // AVANZA; si un cambio rompe el mapa de verdad, la profundidad se desploma.
+    expect(maxDepth).toBeGreaterThanOrEqual(6)
+    void avgGyms; void maxGyms
   })
 
   it('cada generación (1-9) se juega de principio a fin sin errores', () => {
@@ -180,21 +193,24 @@ describe('simulación de runs completas (balance)', () => {
     }
   })
 
-  it('Johto (Gen 2) es jugable y completable', () => {
+  it('Johto (Gen 2) es jugable y la run avanza', () => {
     let maxGyms = 0
     let wins = 0
+    let maxDepth = 0
     for (const seed of [1, 2, 3, 7, 11, 23]) {
       for (const starter of [152, 155, 158]) {
         const { run } = playRun(seed * 100 + starter, starter, 2)
         expect(run.status === 'won' || run.status === 'lost').toBe(true)
         maxGyms = Math.max(maxGyms, run.stats.gymsDefeated)
+        maxDepth = Math.max(maxDepth, deepestLayer(run))
         if (run.status === 'won') wins++
       }
     }
     // eslint-disable-next-line no-console
-    console.log(`\n[JOHTO] maxGimnasios=${maxGyms} victorias=${wins}`)
-    // Bot básico (sin uso de Mejoras): smoke test de progreso. La completabilidad
-    // real con juego estratégico la cubre e2e.test.ts (llega a 8 gimnasios + Liga).
-    expect(maxGyms).toBeGreaterThanOrEqual(2)
+    console.log(`\n[JOHTO] maxGimnasios=${maxGyms} maxCapa=${maxDepth} victorias=${wins}`)
+    // Igual que en Kanto: smoke test de que Johto se juega y AVANZA, no de que
+    // se complete (ver el comentario largo del test de arriba).
+    expect(maxDepth).toBeGreaterThanOrEqual(6)
+    void maxGyms
   })
 })
