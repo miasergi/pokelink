@@ -197,18 +197,27 @@ export function generateMap(
     plan.push({ kind: 'legendary', type: 'legendary', legendarySpeciesId: sp.id, level: LEGENDARY_LEVEL })
   }
 
-  // --- Recorrido de la región (con un Centro Pokémon como OPCIÓN antes de cada
-  //     gimnasio: el último nodo de ruta antes del jefe ofrece curarse) ---
-  pushRoute(6, true); gym(0)
-  pushRoute(4); pushRival(); pushRoute(2, true); gym(1)
-  pushRoute(5, true); gym(2)
-  pushRoute(6, true); gym(3)
-  pushRoute(5, true); gym(4)
-  pushRoute(4); pushRival(); pushRoute(2, true); gym(5)
-  pushRoute(5, true); gym(6)
-  pushRoute(3); legendary(); pushRoute(2, true); gym(7)
+  // --- Recorrido de la región (con un Centro Pokémon como OPCIÓN a mitad de
+  //     tramo y otro antes de cada gimnasio) ---
+  //
+  // TRAMOS LARGOS (v6.52): ~13 casillas por medalla en vez de 6-8. Con la curva
+  // del pokelike (gym1 nv.14 y +9 en cada gimnasio) y los niveles que dan las
+  // casillas (salvaje +1 · entrenador +2 · Team Rocket y jefes +3) hacen falta
+  // unas 13 casillas para ganar los 9 niveles de cada tramo: en muchas capas ni
+  // siquiera hay opción de combate (salen tienda/objeto/captura/intercambio),
+  // así que se ganan ~0,7 niveles por casilla. Con los tramos cortos de antes
+  // llegabas al primer gimnasio a nv.9 contra un líder de 14 y la run se
+  // acababa ahí. La partida es casi el doble de larga a propósito.
+  pushRoute(6, true); pushRoute(7, true); gym(0)
+  pushRoute(8, true); pushRival(); pushRoute(4, true); gym(1)
+  pushRoute(6, true); pushRoute(7, true); gym(2)
+  pushRoute(6, true); pushRoute(7, true); gym(3)
+  pushRoute(6, true); pushRoute(7, true); gym(4)
+  pushRoute(8, true); pushRival(); pushRoute(4, true); gym(5)
+  pushRoute(6, true); pushRoute(7, true); gym(6)
+  pushRoute(8, true); legendary(); pushRoute(4, true); gym(7)
   // Calle Victoria + Liga Pokémon (el Alto Mando y el Campeón curan al entrar)
-  pushRoute(4); pushRival(); pushRoute(2, true)
+  pushRoute(8, true); pushRival(); pushRoute(4, true)
   elite(0); elite(1); elite(2); elite(3)
   plan.push({ kind: 'boss', type: 'champion', trainer: region.buildChampion(rivalFinalId), level: CHAMPION_LEVEL })
 

@@ -141,28 +141,15 @@ export function availableNextNodes(run: RunState): MapNode[] {
   return cur.next.map((id) => run.map.nodes[id])
 }
 
-/** Casillas que NO son combate: dan el bonus de VIAJE (ver `enterNode`). */
-const TRAVEL_NODES = new Set(['catch', 'item', 'shop', 'trade', 'event', 'heal'])
-
 export function enterNode(run: RunState, nodeId: string): MapNode {
   const node = run.map.nodes[nodeId]
   run.currentNodeId = nodeId
   run.currentLayer = node.layer
   run.stats.turnsPlayed++
-  // Bonus de VIAJE: +1 nivel al equipo por pisar una casilla que no es combate
-  // (tienda, objeto, captura, intercambio, evento, Centro Pokémon).
-  //
-  // Los combates pagan aparte (salvaje +1 · entrenador +2 · Team Rocket y jefes
-  // +3, ver `applyBattleOutcome`). Sin esto, la mitad del recorrido no daba
-  // NADA y la curva de jefes (+9 por gimnasio desde nv.14) quedaba fuera de
-  // alcance: del inicial nv.5 al primer gimnasio hay 6 casillas y solo se
-  // ganaban ~4 niveles, así que llegabas a nv.9 contra un líder de 14 y la run
-  // se acababa ahí (0,1 gimnasios de media en la simulación). El tope por
-  // medallas sigue poniendo el techo.
-  if (TRAVEL_NODES.has(node.type) && !node.cleared) {
-    const cap = levelCap(run)
-    for (const mon of run.party) if (mon.level < cap) gainLevel(mon)
-  }
+  // OJO: las casillas que no son combate NO dan niveles. Se probó (+1 por
+  // pisarlas) y se descartó: ya te pagan en objetos, caramelos y capturas, que
+  // es su forma de fortalecer al equipo. Los niveles se ganan peleando y
+  // comprando caramelos con el dinero de los combates.
   return node
 }
 
