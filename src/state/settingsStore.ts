@@ -9,12 +9,15 @@ interface SettingsState {
   sound: boolean
   music: boolean
   skipNodeInfo: boolean
+  /** Inazuma: enseñar el % de la jugada además de las estrellas. */
+  showOdds: boolean
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
   toggleSound: () => void
   toggleMusic: () => void
   toggleSkipNodeInfo: () => void
+  toggleShowOdds: () => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -35,7 +38,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, theme: s.theme }),
   )
 }
 
@@ -47,6 +50,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   sound: saved.sound ?? true,
   music: saved.music ?? false,
   skipNodeInfo: saved.skipNodeInfo ?? false,
+  showOdds: saved.showOdds ?? false,
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
     set({ battleSpeed })
@@ -66,6 +70,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
   toggleSkipNodeInfo: () => {
     set({ skipNodeInfo: !get().skipNodeInfo })
+    persist(get())
+  },
+  toggleShowOdds: () => {
+    set({ showOdds: !get().showOdds })
     persist(get())
   },
   setTheme: (theme) => {

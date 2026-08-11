@@ -4,6 +4,7 @@
 import { RNG } from '@/utils/rng'
 import { getPlayerBase, RAIMON_STARTING_XI } from '@/data/inazuma/players'
 import { getTeam } from '@/data/inazuma/teams'
+import { DEFAULT_FORMATION } from '@/data/inazuma/formations'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, createPlayer, effectiveStats,
@@ -13,7 +14,8 @@ import { createMatch } from './match'
 import { createPachanga, participants, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import type {
-  Actor, InazumaSave, MatchSide, MatchState, PlayerInstance, RivalPlayer, TournamentNode,
+  Actor, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats,
+  RivalPlayer, TournamentNode,
 } from './types'
 
 /**
@@ -36,6 +38,7 @@ export function createSave(seed: number): InazumaSave {
   const roster = RAIMON_STARTING_XI.map((id, i) =>
     createPlayer(id, START_LEVEL, { captain: i === 0 }))
   const map = generateMap(rng)
+  const lineup = autoLineup(roster, DEFAULT_FORMATION)
   return {
     seed,
     rngState: rng.getState(),
@@ -44,13 +47,15 @@ export function createSave(seed: number): InazumaSave {
     currentNodeId: null,
     cleared: [],
     roster,
-    lineup: autoLineup(roster),
+    lineup,
     coins: 1200,
     record: [0, 0, 0],
     goalsFor: 0,
     goalsAgainst: 0,
     bag: [],
     techniqueBag: [],
+    formation: DEFAULT_FORMATION,
+    playerStats: {},
     startedAt: Date.now(),
   }
 }
@@ -72,6 +77,7 @@ function actorFromPlayer(p: PlayerInstance): Actor {
     ptMax: ptMax(p),
     techniques: p.techniques,
     techLevels: p.techLevels,
+    spirit: base.spirit,
   }
 }
 
@@ -186,6 +192,26 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
  */
 export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 4, draw: 3, loss: 2 }
 
+/** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
+export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
+  const stats = { ...save.playerStats }
+  const bump = (uid: string, key: keyof PlayerStats, n = 1) => {
+    if (!mineUids.has(uid)) return
+    const cur = stats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
+    stats[uid] = { ...cur, [key]: cur[key] + n }
+  }
+  for (const uid of mineUids) bump(uid, 'matches')
+  for (const e of events) {
+    if (e.kind === 'goal') bump(e.scorerUid, 'goals')
+    else if (e.kind === 'save') bump(e.keeperUid, 'saves')
+    else if (e.kind === 'duel') {
+      bump(e.attackerUid, e.success ? 'duelsWon' : 'duelsLost')
+      bump(e.defenderUid, e.success ? 'duelsLost' : 'duelsWon')
+    }
+  }
+  save.playerStats = stats
+}
+
 /**
  * Devuelve a la plantilla el desgaste del partido, reparte niveles y actualiza
  * el historial. Muta `save` (el store lo llama dentro de su `set`).
@@ -198,6 +224,7 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
 
   const result = match.result ?? 'draw'
   const gained = LEVELS_BY_RESULT[result]
+  recordMatchStats(save, match.events, new Set(byUid.keys()))
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
@@ -255,6 +282,18 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
     if (levels && played.has(p.uid)) next = levelUp(next, levels)
     return next
   })
+
+  // La pachanga también cuenta para el pichichi: son goles igual.
+  const stats = { ...save.playerStats }
+  for (const r of s.rounds) {
+    const who = actors.find((a) => a.name === (r.mine ? r.shooter : r.keeper))
+    if (!who) continue
+    const cur = stats[who.uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
+    stats[who.uid] = r.mine
+      ? { ...cur, goals: cur.goals + (r.scored ? 1 : 0), duelsWon: cur.duelsWon + (r.scored ? 1 : 0), duelsLost: cur.duelsLost + (r.scored ? 0 : 1) }
+      : { ...cur, saves: cur.saves + (r.scored ? 0 : 1), duelsWon: cur.duelsWon + (r.scored ? 0 : 1), duelsLost: cur.duelsLost + (r.scored ? 1 : 0) }
+  }
+  save.playerStats = stats
 
   save.goalsFor += s.goals[0]
   save.goalsAgainst += s.goals[1]

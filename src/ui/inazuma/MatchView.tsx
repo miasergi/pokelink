@@ -9,11 +9,15 @@ import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import Odds from '@/ui/inazuma/Odds'
 import { playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import type { MatchEvent, MatchState } from '@/engine/inazuma/types'
 
 export default function MatchView() {
-  const { match, feed, playing, speed, autoPlay, setPlaying, setSpeed, setAutoPlay, decide, finishMatch } = useInazuma()
+  const {
+    match, feed, playing, speed, autoPlay,
+    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
+  } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
@@ -64,6 +68,18 @@ export default function MatchView() {
           >
             {speed > 700 ? '×1' : speed > 350 ? '×2' : '×4'}
           </button>
+          {/* Guardar y salir: SOLO tras el descanso. 90 minutos del tirón en un
+              móvil es mucho; como se guarda el marcador tal cual, no sirve para
+              esquivar una derrota. */}
+          {match.halftimeDone && (
+            <button
+              onClick={pauseAtHalftime}
+              className="rounded-xl border border-emerald-600/60 bg-emerald-500/10 px-3 py-3 text-xs font-bold text-emerald-300"
+              title="Guarda el partido y vuelve al mapa"
+            >
+              GUARDAR
+            </button>
+          )}
           <button
             onClick={() => setAutoPlay(!autoPlay)}
             className={`rounded-xl border px-3 py-3 text-xs font-bold ${
@@ -156,6 +172,8 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
       )
     case 'burst':
       return <Banner text={event.text} tone="burst" />
+    case 'spirit':
+      return <Banner text={`👹 ${event.text}`} tone="burst" />
     case 'save':
       return <Line minute={event.minute} text={event.text} accent={isMine ? '#22c55e' : '#94a3b8'} />
     case 'turnover':
@@ -250,9 +268,7 @@ function DecisionPanel({
                 </div>
                 <div className="text-[10px] text-slate-400">{o.disabled ?? o.detail}</div>
               </div>
-              <span className="shrink-0 text-xs tracking-tight" title="Probabilidad estimada">
-                {'★'.repeat(o.odds)}<span className="text-slate-700">{'★'.repeat(3 - o.odds)}</span>
-              </span>
+              <Odds option={o} />
             </button>
           )
         })}

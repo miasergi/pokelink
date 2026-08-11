@@ -8,6 +8,11 @@ export interface Achievement {
 /** Catálogo de logros. La comprobación se hace en recordRunEnd (gameStore). */
 // `icon` = nombre de icono para el componente <Icon> (sin emojis).
 export const ACHIEVEMENTS: Achievement[] = [
+  // --- Inazuma Rogue ---
+  { id: 'inazuma_first', title: 'Debut en el Frontier', desc: 'Gana tu primer instituto en Inazuma Rogue.', icon: 'league' },
+  { id: 'inazuma_title', title: 'Campeón del Football Frontier', desc: 'Gana el Football Frontier al completo.', icon: 'trophy' },
+  { id: 'inazuma_squad', title: 'Ojeador incansable', desc: 'Ficha a 20 jugadores distintos entre todas tus partidas.', icon: 'people' },
+  { id: 'inazuma_legends', title: 'Once de leyenda', desc: 'Ficha a 40 jugadores distintos.', icon: 'star' },
   // --- Victorias ---
   { id: 'first_win', title: 'Primera victoria', desc: 'Gana tu primera partida.', icon: 'achievement' },
   { id: 'win10', title: 'Veterano', desc: 'Gana 10 partidas en total.', icon: 'trophy' },

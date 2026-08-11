@@ -38,6 +38,8 @@ export interface Duelist {
   technique?: Technique
   /** Supervibración activa: la técnica pega más y no cuesta PT. */
   burst?: boolean
+  /** Multiplicador extra del Espíritu Guerrero (1 = sin espíritu). */
+  boost?: number
 }
 
 export interface DuelResult {
@@ -84,7 +86,7 @@ function defendStat(step: ChainStep, s: Stats): number {
 
 function power(base: number, d: Duelist): number {
   const tech = d.technique ? 1 + d.technique.power / 100 : 1
-  return base * tech * fatigueMultiplier(d.stamina) * (d.burst ? BURST_MULT : 1)
+  return base * tech * fatigueMultiplier(d.stamina) * (d.burst ? BURST_MULT : 1) * (d.boost ?? 1)
 }
 
 /**

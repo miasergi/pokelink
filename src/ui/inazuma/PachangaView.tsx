@@ -4,6 +4,7 @@
 import { Button } from '@/ui/components/kit'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import Odds from '@/ui/inazuma/Odds'
 import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET } from '@/engine/inazuma/pachanga'
 
 export default function PachangaView() {
@@ -101,9 +102,7 @@ export default function PachangaView() {
                     <div className="font-bold text-[13px] truncate" style={el ? { color: el.color } : undefined}>{o.label}</div>
                     <div className="text-[10px] text-slate-400">{o.disabled ?? o.detail}</div>
                   </div>
-                  <span className="shrink-0 text-xs">
-                    {'★'.repeat(o.odds)}<span className="text-slate-700">{'★'.repeat(3 - o.odds)}</span>
-                  </span>
+                  <Odds option={o} />
                 </button>
               )
             })}

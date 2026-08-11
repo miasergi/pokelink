@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.56',
+    date: '2026-08-11',
+    title: 'Inazuma: formaciones, Espíritus Guerreros, estadísticas y álbum',
+    changes: [
+      'FORMACIONES. 4-4-2, 3-4-3, 5-3-2, 3-5-2 y 4-3-3, y no son decorativas: la jugada se decide entre el centro del campo y el ataque, así que jugar con cinco atrás o con tres arriba cambia dónde se resuelve el partido. El once se recoloca solo al cambiarla.',
+      'ESPÍRITUS GUERREROS. Los jugadores grandes (★4-★5) tienen el suyo. Se invoca UNA vez por partido y consume la barra de Ruptura entera, así que compite con la Supervibración: o tres acciones gratis, o un único duelo con la potencia por las nubes.',
+      'VES EL ONCE RIVAL ANTES DE JUGAR. En la previa del instituto salen sus jugadores con nombre, elemento, rareza y espíritu. Hasta ahora el sistema elemental era medio adivinanza.',
+      'ESTADÍSTICAS Y PICHICHI. Goles, paradas y porcentaje de duelos ganados de cada uno de tus jugadores a lo largo de la partida, con su pichichi destacado. Se llega desde el vestuario.',
+      'ÁLBUM DE FICHAJES. Todos los jugadores que has llegado a tener en plantilla, entre TODAS tus partidas, agrupados por instituto. Con cuatro logros nuevos del modo.',
+      'GUARDAR EN EL DESCANSO. Los partidos de instituto ya no obligan a jugar los 90 minutos del tirón: en el minuto 45 aparece el botón de guardar y salir, y lo retomas desde el mapa. Como se guarda el marcador tal cual, no sirve para esquivar una derrota.',
+      'TUTORIAL Y PORCENTAJES. El modo se explica solo la primera vez (mapa, pachangas, elementos, PT y banquillo). Y en Ajustes puedes activar «Mostrar porcentajes» para ver la probabilidad exacta de cada jugada junto a las estrellas.',
+    ],
+  },
+  {
     version: 'v6.55',
     date: '2026-08-11',
     title: 'Inazuma: tablero de casillas, mochila y Mejora de supertécnicas',

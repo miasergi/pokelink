@@ -23,31 +23,37 @@ export const PLAYERS: PlayerBase[] = [
     id: 'mark-evans', name: 'Mark Evans', team: 'raimon', position: 'POR', element: 'montana', rarity: 5,
     stats: { tiro: 40, control: 55, fisico: 70, defensa: 82, velocidad: 52, aguante: 76 },
     techniques: ['p-mano-celestial', 'p-blocaje'],
+    spirit: 'majin',
   },
   {
     id: 'axel-blaze', name: 'Axel Blaze', team: 'raimon', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 84, control: 68, fisico: 60, defensa: 38, velocidad: 72, aguante: 53 },
     techniques: ['t-tornado-fuego', 't-brasa'],
+    spirit: 'pegaso',
   },
   {
     id: 'jude-sharp', name: 'Jude Sharp', team: 'raimon', position: 'MED', element: 'bosque', rarity: 5,
     stats: { tiro: 66, control: 84, fisico: 52, defensa: 58, velocidad: 62, aguante: 53 },
     techniques: ['r-ilusion', 't-pinguinos-1'],
+    spirit: 'ent',
   },
   {
     id: 'shawn-frost', name: 'Shawn Frost', team: 'raimon', position: 'DEL', element: 'aire', rarity: 5,
     stats: { tiro: 80, control: 70, fisico: 50, defensa: 62, velocidad: 66, aguante: 47 },
     techniques: ['t-ventisca', 'b-barrera-hielo'],
+    spirit: 'lobo-blanco',
   },
   {
     id: 'nathan-swift', name: 'Nathan Swift', team: 'raimon', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 42, control: 62, fisico: 44, defensa: 68, velocidad: 82, aguante: 52 },
     techniques: ['r-torbellino', 'b-entrada'],
+    spirit: 'kraken',
   },
   {
     id: 'kevin-dragonfly', name: 'Kevin Dragonfly', team: 'raimon', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 76, control: 58, fisico: 66, defensa: 40, velocidad: 58, aguante: 52 },
     techniques: ['t-golpe-dragon', 'r-recorte'],
+    spirit: 'ent',
   },
   {
     id: 'jack-wallside', name: 'Jack Wallside', team: 'raimon', position: 'DEF', element: 'montana', rarity: 3,
@@ -144,6 +150,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'bruno-stagg', name: 'Bruno Stagg', team: 'wild', position: 'DEL', element: 'montana', rarity: 4, // original
     stats: { tiro: 78, control: 46, fisico: 76, defensa: 44, velocidad: 50, aguante: 62 },
     techniques: ['t-meteorito', 'r-paso-montana'],
+    spirit: 'majin',
   },
   {
     id: 'gus-boulder', name: 'Gus Boulder', team: 'wild', position: 'DEF', element: 'montana', rarity: 3, // original
@@ -161,11 +168,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'kaze-shindo', name: 'Kaze Shindo', team: 'shuriken', position: 'MED', element: 'aire', rarity: 4, // original
     stats: { tiro: 58, control: 76, fisico: 44, defensa: 56, velocidad: 78, aguante: 50 },
     techniques: ['r-relampago', 't-huracan-doble'],
+    spirit: 'kraken',
   },
   {
     id: 'rin-kagemori', name: 'Rin Kagemori', team: 'shuriken', position: 'DEL', element: 'bosque', rarity: 4, // original
     stats: { tiro: 76, control: 66, fisico: 42, defensa: 40, velocidad: 72, aguante: 48 },
     techniques: ['t-cuchilla-sombra', 'r-sombra-doble'],
+    spirit: 'ent',
   },
   {
     id: 'goro-tetsu', name: 'Goro Tetsu', team: 'shuriken', position: 'POR', element: 'aire', rarity: 3, // original
@@ -178,6 +187,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'silas-hayfield', name: 'Silas Hayfield', team: 'farm', position: 'DEL', element: 'bosque', rarity: 4, // original
     stats: { tiro: 80, control: 54, fisico: 70, defensa: 42, velocidad: 48, aguante: 68 },
     techniques: ['t-golpe-dragon', 't-volea'],
+    spirit: 'ent',
   },
   {
     id: 'martha-reap', name: 'Martha Reap', team: 'farm', position: 'DEF', element: 'bosque', rarity: 3, // original
@@ -195,11 +205,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'adrian-kirk', name: 'Adrian Kirk', team: 'kirkwood', position: 'MED', element: 'fuego', rarity: 4, // original
     stats: { tiro: 70, control: 78, fisico: 52, defensa: 58, velocidad: 62, aguante: 54 },
     techniques: ['r-espejismo', 't-brasa'],
+    spirit: 'pegaso',
   },
   {
     id: 'lucia-ember', name: 'Lucía Ember', team: 'kirkwood', position: 'DEL', element: 'fuego', rarity: 4, // original
     stats: { tiro: 84, control: 60, fisico: 48, defensa: 38, velocidad: 68, aguante: 50 },
     techniques: ['t-tornado-fuego', 'r-espejismo'],
+    spirit: 'pegaso',
   },
   {
     id: 'hector-ash', name: 'Héctor Ash', team: 'kirkwood', position: 'DEF', element: 'fuego', rarity: 3, // original
@@ -212,21 +224,25 @@ export const PLAYERS: PlayerBase[] = [
     id: 'caleb-stonewall', name: 'Caleb Stonewall', team: 'royal', position: 'DEL', element: 'bosque', rarity: 5,
     stats: { tiro: 82, control: 74, fisico: 54, defensa: 46, velocidad: 68, aguante: 52 },
     techniques: ['t-pinguinos-1', 'r-ilusion'],
+    spirit: 'ent',
   },
   {
     id: 'joe-king', name: 'Joe King', team: 'royal', position: 'POR', element: 'montana', rarity: 4,
     stats: { tiro: 30, control: 50, fisico: 66, defensa: 82, velocidad: 48, aguante: 62 },
     techniques: ['p-muralla', 'p-blocaje'],
+    spirit: 'majin',
   },
   {
     id: 'herman-waldon', name: 'Herman Waldon', team: 'royal', position: 'DEF', element: 'montana', rarity: 4, // original
     stats: { tiro: 34, control: 48, fisico: 78, defensa: 80, velocidad: 40, aguante: 62 },
     techniques: ['b-torre-doble'],
+    spirit: 'majin',
   },
   {
     id: 'sue-marlow', name: 'Sue Marlow', team: 'royal', position: 'MED', element: 'bosque', rarity: 4, // original
     stats: { tiro: 60, control: 80, fisico: 48, defensa: 62, velocidad: 64, aguante: 52 },
     techniques: ['r-sombra-doble', 't-cuchilla-sombra'],
+    spirit: 'ent',
   },
 
   // ================================================ INSTITUTO ZEUS (final, r.8) ==
@@ -234,26 +250,31 @@ export const PLAYERS: PlayerBase[] = [
     id: 'byron-love', name: 'Byron Love', team: 'zeus', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 92, control: 76, fisico: 52, defensa: 44, velocidad: 74, aguante: 60 },
     techniques: ['t-fenix', 't-tiro-celestial'],
+    spirit: 'ave-fenix',
   },
   {
     id: 'torch-hades', name: 'Torch', team: 'zeus', position: 'DEL', element: 'fuego', rarity: 4,
     stats: { tiro: 84, control: 58, fisico: 68, defensa: 42, velocidad: 62, aguante: 56 },
     techniques: ['t-tiro-celestial', 't-brasa'],
+    spirit: 'pegaso',
   },
   {
     id: 'atlas-vane', name: 'Atlas Vane', team: 'zeus', position: 'POR', element: 'fuego', rarity: 5, // original
     stats: { tiro: 34, control: 56, fisico: 72, defensa: 90, velocidad: 56, aguante: 66 },
     techniques: ['p-puno-justiciero', 'p-muralla'],
+    spirit: 'majin',
   },
   {
     id: 'helios-crown', name: 'Helios Crown', team: 'zeus', position: 'MED', element: 'fuego', rarity: 4, // original
     stats: { tiro: 68, control: 78, fisico: 56, defensa: 60, velocidad: 66, aguante: 56 },
     techniques: ['r-espejismo', 't-torre-babel'],
+    spirit: 'pegaso',
   },
   {
     id: 'nyx-lorne', name: 'Nyx Lorne', team: 'zeus', position: 'DEF', element: 'fuego', rarity: 4, // original
     stats: { tiro: 40, control: 56, fisico: 76, defensa: 82, velocidad: 52, aguante: 58 },
     techniques: ['b-cerco-llamas', 'b-torre-doble'],
+    spirit: 'pegaso',
   },
 
   // ========================================== AGENTES LIBRES (solo en ojeador) ==
@@ -261,11 +282,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'xavier-foster', name: 'Xavier Foster', team: 'libre', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 88, control: 72, fisico: 54, defensa: 46, velocidad: 76, aguante: 54 },
     techniques: ['t-fenix', 'r-espejismo'],
+    spirit: 'ave-fenix',
   },
   {
     id: 'jordan-greenway', name: 'Jordan Greenway', team: 'libre', position: 'MED', element: 'bosque', rarity: 4,
     stats: { tiro: 58, control: 78, fisico: 46, defensa: 58, velocidad: 70, aguante: 50 },
     techniques: ['r-sombra-doble'],
+    spirit: 'ent',
   },
   {
     id: 'austin-hobbes', name: 'Austin Hobbes', team: 'libre', position: 'DEF', element: 'aire', rarity: 3,

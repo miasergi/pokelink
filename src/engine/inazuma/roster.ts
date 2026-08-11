@@ -5,9 +5,11 @@ import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
+import { getFormation } from '@/data/inazuma/formations'
 import {
+  SQUAD_SIZE, TECHNIQUE_SLOTS,
   type PlayerInstance, type PlayerBase, type Position, type RivalPlayer,
-  type Stats, type Element, TECHNIQUE_SLOTS,
+  type Stats, type Element,
 } from './types'
 
 let uidSeq = 0
@@ -183,42 +185,63 @@ export function buildLineup(roster: PlayerInstance[], uids: string[]): Lineup | 
 }
 
 /**
- * Once automático: mejor portero + los mejores de cada línea hasta 11, con un
- * mínimo de 3 DEF / 3 MED / 2 DEL para que no salga un equipo deforme.
+ * Once automático para una formación dada: mejor portero + los mejores de cada
+ * línea hasta cubrirla. Si falta gente en una línea se completa con lo mejor
+ * que quede, para que siempre salga un once jugable.
  */
-export function autoLineup(roster: PlayerInstance[]): string[] {
+export function autoLineup(roster: PlayerInstance[], formationId?: string): string[] {
+  const f = getFormation(formationId)
   const byPos = (pos: Position) =>
     roster.filter((p) => getPlayerBase(p.baseId).position === pos)
       .sort((a, b) => overall(b) - overall(a))
-  const gk = byPos('POR').slice(0, 1)
-  const defs = byPos('DEF')
-  const mids = byPos('MED')
-  const fwds = byPos('DEL')
-  const picked = [...gk, ...defs.slice(0, 4), ...mids.slice(0, 4), ...fwds.slice(0, 2)]
-  // Si falta gente en alguna línea, completa con lo mejor que quede.
-  if (picked.length < 11) {
+  const picked = [
+    ...byPos('POR').slice(0, 1),
+    ...byPos('DEF').slice(0, f.defs),
+    ...byPos('MED').slice(0, f.mids),
+    ...byPos('DEL').slice(0, f.fwds),
+  ]
+  if (picked.length < SQUAD_SIZE) {
     const rest = roster
       .filter((p) => !picked.includes(p))
       .sort((a, b) => overall(b) - overall(a))
-    picked.push(...rest.slice(0, 11 - picked.length))
+    picked.push(...rest.slice(0, SQUAD_SIZE - picked.length))
   }
-  return picked.slice(0, 11).map((p) => p.uid)
+  return picked.slice(0, SQUAD_SIZE).map((p) => p.uid)
 }
 
-/** ¿Es un once legal? (11 jugadores exactos y exactamente un portero). */
-export function lineupError(roster: PlayerInstance[], uids: string[]): string | null {
-  if (uids.length > 11) return `Te sobran ${uids.length - 11} en el once`
-  if (uids.length < 11) {
-    const n = 11 - uids.length
+/** Cuántos jugadores hay en el once por demarcación. */
+export function lineupShape(roster: PlayerInstance[], uids: string[]): Record<Position, number> {
+  const byUid = new Map(roster.map((p) => [p.uid, p]))
+  const out: Record<Position, number> = { POR: 0, DEF: 0, MED: 0, DEL: 0 }
+  for (const u of uids) {
+    const p = byUid.get(u)
+    if (p) out[getPlayerBase(p.baseId).position] += 1
+  }
+  return out
+}
+
+/**
+ * ¿Es un once legal? 11 jugadores, un solo portero y las líneas cuadrando con
+ * la formación elegida. Sin lo último la formación sería decorativa.
+ */
+export function lineupError(roster: PlayerInstance[], uids: string[], formationId?: string): string | null {
+  if (uids.length > SQUAD_SIZE) return `Te sobran ${uids.length - SQUAD_SIZE} en el once`
+  if (uids.length < SQUAD_SIZE) {
+    const n = SQUAD_SIZE - uids.length
     return n === 1 ? 'Te falta 1 jugador en el once' : `Te faltan ${n} jugadores en el once`
   }
-  const byUid = new Map(roster.map((p) => [p.uid, p]))
-  const keepers = uids.filter((u) => {
-    const p = byUid.get(u)
-    return p && getPlayerBase(p.baseId).position === 'POR'
-  })
-  if (keepers.length === 0) return 'Necesitas un portero en el once'
-  if (keepers.length > 1) return 'Solo puede haber un portero en el once'
+  const shape = lineupShape(roster, uids)
+  if (shape.POR === 0) return 'Necesitas un portero en el once'
+  if (shape.POR > 1) return 'Solo puede haber un portero en el once'
+
+  const f = getFormation(formationId)
+  const need: [Position, number][] = [['DEF', f.defs], ['MED', f.mids], ['DEL', f.fwds]]
+  const LABEL: Record<Position, string> = { POR: 'porteros', DEF: 'defensas', MED: 'centrocampistas', DEL: 'delanteros' }
+  for (const [pos, want] of need) {
+    if (shape[pos] !== want) {
+      return `El ${f.name} pide ${want} ${LABEL[pos]} y tienes ${shape[pos]}`
+    }
+  }
   return null
 }
 
@@ -235,6 +258,11 @@ const FILLER_TECHS: Record<Position, string[]> = {
 
 /** Reparto de un once rival: 1 POR, 4 DEF, 4 MED, 2 DEL. */
 const RIVAL_SHAPE: Position[] = ['POR', 'DEF', 'DEF', 'DEF', 'DEF', 'MED', 'MED', 'MED', 'MED', 'DEL', 'DEL']
+
+/** Espíritu del jugador base, para pasarlo al partido. */
+export function spiritOf(baseId: string): string | undefined {
+  return getPlayerBase(baseId).spirit
+}
 
 /**
  * Construye el once del instituto rival: sus jugadores con nombre propio + los

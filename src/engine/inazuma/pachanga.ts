@@ -163,6 +163,7 @@ export function nextRound(s: PachangaState, rng: RNG): void {
       detail: [tech ? `${tech.power} pot.` : 'sin técnica', el ? ELEMENT_INFO[el].label : null, cost ? `${cost} PT` : 'gratis']
         .filter(Boolean).join(' · '),
       odds: oddsStars(shown),
+      chance: shown,
       cost,
       element: el,
     }

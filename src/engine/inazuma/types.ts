@@ -76,6 +76,11 @@ export interface PlayerBase {
   rarity: 1 | 2 | 3 | 4 | 5
   /** Slug del retrato en `public/inazuma/players/<slug>.webp`. Opcional. */
   portrait?: string
+  /**
+   * Espíritu Guerrero. Solo lo tienen los jugadores grandes (★4-★5): es la
+   * carta que te guardas para un duelo concreto, no un pasivo.
+   */
+  spirit?: string
 }
 
 /** Un jugador concreto de TU plantilla, con su progresión de la partida. */
@@ -105,6 +110,21 @@ export interface PlayerInstance {
 
 export const TECHNIQUE_SLOTS = 4
 export const SQUAD_SIZE = 11
+
+/**
+ * Formación del once. No es decorativa: la cadena del partido
+ * (construcción → penetración → definición) reparte los duelos entre MED y DEL,
+ * así que jugar con 5-3-2 o con 3-4-3 cambia de verdad dónde se decide el
+ * partido.
+ */
+export interface Formation {
+  id: string
+  name: string
+  defs: number
+  mids: number
+  fwds: number
+  desc: string
+}
 /** Titulares + suplentes. El draft ofrece traspasar cuando se llena. */
 export const ROSTER_MAX = 16
 
@@ -143,11 +163,12 @@ export type ChainStep = 'construccion' | 'penetracion' | 'definicion'
 export type MatchEvent =
   | { kind: 'kickoff'; minute: number }
   | { kind: 'possession'; minute: number; side: Side; text: string }
-  | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; defender: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; text: string }
-  | { kind: 'goal'; minute: number; side: Side; scorer: string; technique?: string; score: [number, number] }
-  | { kind: 'save'; minute: number; side: Side; keeper: string; technique?: string; text: string }
+  | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; text: string }
+  | { kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number] }
+  | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }
+  | { kind: 'spirit'; minute: number; side: Side; player: string; spirit: string; text: string }
   | { kind: 'exhausted'; minute: number; player: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
   | { kind: 'fulltime'; minute: number; score: [number, number]; result: 'win' | 'draw' | 'loss' }
@@ -160,6 +181,8 @@ export interface DecisionOption {
   detail: string
   /** Estimación 1-3 estrellas que se pinta en el botón. */
   odds: 1 | 2 | 3
+  /** Probabilidad real 0-1. La UI la enseña si el ajuste está activo. */
+  chance: number
   cost: number
   element?: Element
   /** Motivo por el que la opción está deshabilitada (sin PT, etc.). */
@@ -179,6 +202,15 @@ export interface Decision {
   rivalElement: Element
   headline: string
   options: DecisionOption[]
+}
+
+/** Acumulado de un jugador a lo largo de la partida. */
+export interface PlayerStats {
+  goals: number
+  saves: number
+  duelsWon: number
+  duelsLost: number
+  matches: number
 }
 
 /** Jugador rival: instancia ligera, sin progresión ni uid persistente. */
@@ -211,6 +243,8 @@ export interface Actor {
   techniques: string[]
   /** Mejoras del objeto «Mejora», por id de técnica. Solo las tuyas. */
   techLevels?: Record<string, number>
+  /** Id del Espíritu Guerrero, si lo tiene. */
+  spirit?: string
 }
 
 export interface MatchSide {
@@ -228,6 +262,8 @@ export interface MatchSide {
   burst: number
   /** Acciones que quedan de Supervibración activa (0 = inactiva). */
   burstTurns: number
+  /** El Espíritu Guerrero se invoca UNA vez por partido y por equipo. */
+  spiritUsed?: boolean
 }
 
 export type MatchPhase = 'playing' | 'decision' | 'finished'
@@ -272,6 +308,12 @@ export interface ChainState {
   defenderUid: string
   /** Bonus acumulado por encadenar duelos ganados en la misma jugada. */
   momentum: number
+  /**
+   * Espíritu invocado para ESTE duelo. Se invoca primero y luego eliges la
+   * técnica, así que el multiplicador tiene que sobrevivir a la reconstrucción
+   * de la decisión.
+   */
+  spirit?: { uid: string; power: number }
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +421,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'bag' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number
@@ -405,6 +447,17 @@ export interface InazumaSave {
   bag: string[]
   /** Supertécnicas encontradas y aún sin enseñar a nadie. */
   techniqueBag: string[]
+  /** Formación del once (id de `FORMATIONS`). */
+  formation: string
+  /** Acumulado de la partida por jugador: goles, paradas, duelos… */
+  playerStats: Record<string, PlayerStats>
+  /**
+   * Partido de jefe interrumpido en el descanso. Es la ÚNICA forma de guardar
+   * a mitad de partido: se ofrece en el minuto 45 para no obligar a jugar 90
+   * minutos del tirón en un móvil, y no permite esquivar derrotas porque el
+   * marcador se guarda tal cual está.
+   */
+  pausedMatch?: { nodeId: string; rngState: number; match: MatchState }
   /** Resultado del último partido, para la pantalla de resumen y el draft. */
   lastMatch?: {
     rival: string

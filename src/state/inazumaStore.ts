@@ -11,6 +11,7 @@ import { play } from '@/utils/sfx'
 import { useGame } from '@/state/gameStore'
 import { clearInazuma, loadInazuma, loadMeta, saveInazuma, saveMeta } from '@/persistence/db'
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
+import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
 import { getItem } from '@/data/inazuma/items'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -25,6 +26,7 @@ import {
   autoLineup, canUpgradeTechnique, createPlayer, levelUp, lineupError, ptMax, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
+import { getFormation } from '@/data/inazuma/formations'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
   type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent, type MatchPhase,
@@ -51,7 +53,7 @@ function stopTicker() {
 }
 
 /** Fases desde las que es seguro guardar (fuera de un partido). */
-const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'bag', 'draft', 'victory', 'gameover', 'title']
+const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'bag', 'stats', 'album', 'draft', 'victory', 'gameover', 'title']
 
 async function persist(save: InazumaSave, phase: InazumaPhase) {
   if (!SAFE_PHASES.includes(phase)) return
@@ -69,8 +71,12 @@ export function persistInazumaMeta(extra: { title?: boolean; round?: number; sig
     if (extra.signed?.length) {
       meta.inazumaSigned = [...new Set([...(meta.inazumaSigned ?? []), ...extra.signed])]
     }
+    const ach = checkInazumaAchievements(meta)
+    if (ach.length) meta.achievements = [...new Set([...meta.achievements, ...ach])]
     await saveMeta(meta)
     if (currentUser()) await saveCloudMeta(meta).catch(() => {})
+    // Mismo patrón que el resto de modos: el aviso se pinta en Inicio.
+    if (ach.length) useGame.setState((g) => ({ newAchievements: [...g.newAchievements, ...ach] }))
   })
   return metaQueue
 }
@@ -136,6 +142,9 @@ interface InazumaState {
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string) => void
   teachTechnique: (techId: string, uid: string) => void
+  setFormation: (id: string) => void
+  pauseAtHalftime: () => void
+  resumePausedMatch: () => void
   release: (uid: string) => void
   buy: (itemId: string) => void
 }
@@ -267,7 +276,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   confirmMatch: () => {
     const { save, matchNode } = get()
     if (!save || !matchNode) return
-    const err = lineupError(save.roster, save.lineup)
+    const err = lineupError(save.roster, save.lineup, save.formation)
     if (err) { set({ message: err }); return }
     stopTicker()
 
@@ -485,6 +494,57 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   cancelTarget: () => set({ pendingTarget: null }),
 
+  /** Cambia de formación y recoloca el once para que cuadre con ella. */
+  setFormation: (id) => {
+    const { save } = get()
+    if (!save) return
+    const next = { ...save, formation: id, lineup: autoLineup(save.roster, id) }
+    set({ save: next, message: `Formación ${getFormation(id).name}. Once recolocado.` })
+    void persist(next, get().phase)
+  },
+
+  /**
+   * Guarda el partido en el descanso y sale al mapa. Es la ÚNICA excepción a
+   * «el partido no se persiste»: 90 minutos del tirón en un móvil es mucho, y
+   * como se guarda el marcador tal cual está, no sirve para esquivar derrotas.
+   */
+  pauseAtHalftime: () => {
+    const { match, matchNode, save } = get()
+    if (!match || !matchNode || !save || !matchRng) return
+    if (!match.halftimeDone || match.phase === 'finished') return
+    stopTicker()
+    const next: InazumaSave = {
+      ...save,
+      pausedMatch: { nodeId: matchNode.id, rngState: matchRng.getState(), match },
+    }
+    set({ save: next, match: null, matchNode: null, feed: [], playing: false, phase: 'map' })
+    void persist(next, 'map')
+  },
+
+  /** Retoma el partido guardado en el descanso. */
+  resumePausedMatch: () => {
+    const { save } = get()
+    if (!save?.pausedMatch) return
+    const node = save.map.nodes[save.pausedMatch.nodeId]
+    if (!node) { set({ message: 'El partido guardado ya no existe.' }); return }
+    matchRng = new RNG(save.seed)
+    matchRng.setState(save.pausedMatch.rngState)
+    const match = save.pausedMatch.match
+    const next = { ...save }
+    delete next.pausedMatch
+    stopTicker()
+    set({
+      save: next,
+      match,
+      matchNode: node,
+      feed: match.events.slice(),
+      phase: 'match',
+      playing: match.phase === 'playing',
+    })
+    void persist(next, 'match')
+    get().tick()
+  },
+
   /** Enseña a un jugador una supertécnica guardada en la mochila. */
   teachTechnique: (techId, uid) => {
     const { save } = get()
@@ -534,7 +594,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       set({ message: 'El capitán no sale del once.' })
       return
     }
-    if (!inXi && save.lineup.length >= 11) {
+    if (!inXi && save.lineup.length >= SQUAD_SIZE) {
       set({ message: 'El once ya está completo. Saca a alguien primero.' })
       return
     }
@@ -644,7 +704,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     const roster = save.roster.filter((x) => x.uid !== uid)
     const lineup = save.lineup.filter((u) => u !== uid)
-    const next = { ...save, roster, lineup: lineup.length ? lineup : autoLineup(roster) }
+    const next = { ...save, roster, lineup: lineup.length ? lineup : autoLineup(roster, save.formation) }
     set({ save: next, message: `${getPlayerBase(p.baseId).name} deja el equipo.` })
     void persist(next, get().phase)
   },

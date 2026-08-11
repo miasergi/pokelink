@@ -9,14 +9,16 @@ import { elementMultiplier, ELEMENT_ADVANTAGE, ELEMENT_WEAKNESS } from './elemen
 import { advance, chooseOption, playerScore } from './match'
 import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
+import { FORMATIONS } from '@/data/inazuma/formations'
+import { getPlayerBase } from '@/data/inazuma/players'
 import {
   advanceLayer, applyMatchResult, applyPachangaResult, autoTraining, canLearn, createSave,
-  fullRest, isEliminated, isMapComplete, startMatch, startPachanga,
+  fullRest, isEliminated, isMapComplete, recordMatchStats, startMatch, startPachanga,
 } from './game'
 import { nextRound, shoot } from './pachanga'
 import { buildDraft } from './rewards'
 import {
-  autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, lineupError, overall, ptMax,
+  autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, lineupError, lineupShape, overall, ptMax,
   TECH_LEVEL_BONUS, techLevel, upgradeTechnique,
 } from './roster'
 import {
@@ -419,6 +421,46 @@ describe('torneo', () => {
       // Y ninguna casilla queda huérfana: si no, se pintaría inalcanzable.
       expect(reached.size).toBe(nextIds.size)
     }
+  })
+
+  it('la formación manda: el once automático cuadra y el ilegal se detecta', () => {
+    const save = createSave(77)
+    for (const f of FORMATIONS) {
+      const lineup = autoLineup(save.roster, f.id)
+      const shape = lineupShape(save.roster, lineup)
+      expect(lineup).toHaveLength(11)
+      expect(shape.POR).toBe(1)
+      // El Raimon inicial no tiene gente para todas las formaciones (solo 2
+      // delanteros), así que se comprueba lo que sí debe cumplirse siempre:
+      // que `lineupError` acepte lo que genera `autoLineup` cuando cuadra.
+      const err = lineupError(save.roster, lineup, f.id)
+      if (shape.DEF === f.defs && shape.MED === f.mids && shape.DEL === f.fwds) {
+        expect(err).toBeNull()
+      } else {
+        expect(err).not.toBeNull()
+      }
+    }
+    // Un once con dos porteros nunca vale.
+    const keepers = save.roster.filter((p) => getPlayerBase(p.baseId).position === 'POR')
+    if (keepers.length > 1) {
+      expect(lineupError(save.roster, [keepers[0].uid, keepers[1].uid], '4-4-2')).not.toBeNull()
+    }
+  })
+
+  it('las estadísticas por jugador se acumulan de los eventos', () => {
+    const save = createSave(555)
+    const m = playMatch(save, firstBoss(save))
+    const mine = m.home.isPlayer ? m.home : m.away
+    const uids = new Set([mine.keeper, ...mine.defs, ...mine.mids, ...mine.fwds].map((a) => a.uid))
+    recordMatchStats(save, m.events, uids)
+
+    const totals = Object.values(save.playerStats)
+    expect(totals.length).toBeGreaterThan(0)
+    // Los goles registrados cuadran con el marcador.
+    const goals = totals.reduce((a, s) => a + s.goals, 0)
+    expect(goals).toBe(playerScore(m)[0])
+    // Y solo se apunta lo de los TUYOS: nada de contar duelos del rival.
+    expect(Object.keys(save.playerStats).every((uid) => uids.has(uid))).toBe(true)
   })
 
   it('la Mejora sube la potencia de la técnica y se nota en el campo', () => {

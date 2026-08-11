@@ -6,6 +6,8 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerCard, PlayerRow, ElementChip, portraitUrl } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
+import { RivalLineup } from '@/ui/inazuma/ExtraViews'
+import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { buildLineup, lineupError, overall } from '@/engine/inazuma/roster'
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
@@ -20,7 +22,7 @@ import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode 
 // ---------------------------------------------------------------------------
 
 export function TitleView() {
-  const { hasSave, save, newTournament, continueTournament, abandonTournament, exitInazuma } = useInazuma()
+  const { hasSave, save, newTournament, continueTournament, abandonTournament, exitInazuma, goTo } = useInazuma()
   const [confirm, setConfirm] = useState(false)
 
   return (
@@ -56,6 +58,11 @@ export function TitleView() {
         <Button variant="primary" full onClick={() => (hasSave ? setConfirm(true) : void newTournament())}>
           {hasSave ? 'Empezar torneo nuevo' : '¡Empezar el Football Frontier!'}
         </Button>
+        <Button variant="secondary" full onClick={() => goTo('album')}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="pokedex" className="w-4 h-4" /> Álbum de fichajes
+          </span>
+        </Button>
         <Button variant="ghost" full onClick={exitInazuma}>Volver al inicio</Button>
       </div>
 
@@ -86,7 +93,7 @@ export function TitleView() {
  * del roguelike Pokémon.
  */
 export function MapView() {
-  const { save, chooseNode, goTo } = useInazuma()
+  const { save, chooseNode, goTo, resumePausedMatch } = useInazuma()
   const [preview, setPreview] = useState<TournamentNode | null>(null)
   if (!save) return null
   const segs = mapSegments(save.map)
@@ -111,6 +118,18 @@ export function MapView() {
           </span>
         </div>
       </div>
+
+      {save.pausedMatch && (
+        <button
+          onClick={resumePausedMatch}
+          className="mx-3 mt-2 shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/15 px-3 py-2 text-left active:scale-[0.98] transition"
+        >
+          <div className="text-[10px] uppercase tracking-widest text-emerald-300">Partido a medias</div>
+          <div className="text-[12px] font-bold text-slate-100">
+            Retomar el descanso · {save.pausedMatch.match.home.goals}-{save.pausedMatch.match.away.goals}
+          </div>
+        </button>
+      )}
 
       <MapBoard save={save} onPick={setPreview} />
 
@@ -225,7 +244,7 @@ export function PreviewView() {
   if (!save || !matchNode) return null
   const team = getTeam(matchNode.teamId ?? 'occult')
   const lineup = buildLineup(save.roster, save.lineup)
-  const err = lineupError(save.roster, save.lineup)
+  const err = lineupError(save.roster, save.lineup, save.formation)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -244,7 +263,14 @@ export function PreviewView() {
         {/* Aviso de emparejamiento elemental: es LA decisión táctica del modo */}
         <MatchupHint teamElement={team.element} lineup={lineup?.all ?? []} />
 
-        <div className="text-[11px] uppercase tracking-widest text-slate-500">Tu once</div>
+        {/* Su once. Sin esto, el sistema elemental era una adivinanza. */}
+        {matchNode.teamId && (matchNode.kind === 'jefe' || matchNode.kind === 'final') && (
+          <RivalLineup teamId={matchNode.teamId} level={matchNode.level ?? 10} />
+        )}
+
+        <div className="text-[11px] uppercase tracking-widest text-slate-500">
+          Tu once · {getFormation(save.formation).name}
+        </div>
         <div className="flex flex-col gap-1.5">
           {lineup?.all.map((p) => (
             <PlayerRow
@@ -303,7 +329,7 @@ export function SquadView() {
     .map((u) => save.roster.find((p) => p.uid === u))
     .filter((p): p is PlayerInstance => !!p)
   const bench = save.roster.filter((p) => !save.lineup.includes(p.uid))
-  const err = lineupError(save.roster, save.lineup)
+  const err = lineupError(save.roster, save.lineup, save.formation)
   const target = pendingTarget
 
   return (
@@ -316,6 +342,8 @@ export function SquadView() {
             <button className="ml-2 underline text-amber-300" onClick={cancelTarget}>cancelar</button>
           </div>
         )}
+
+        <FormationPicker />
 
         <div className="flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-widest text-slate-500">Once titular · {starters.length}/11</span>
@@ -371,6 +399,9 @@ export function SquadView() {
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
+        <Button variant="secondary" onClick={() => goTo('stats')}>
+          <span className="inline-flex items-center gap-1.5"><Icon name="chartUp" className="w-4 h-4" /> Stats</span>
+        </Button>
         <Button variant="primary" full onClick={() => goTo('map')}>Listo</Button>
       </div>
 
@@ -383,6 +414,34 @@ export function SquadView() {
           onRelease={() => { release(detail); setDetail(null) }}
         />
       )}
+    </div>
+  )
+}
+
+/** Selector de formación. Cambia el once y las líneas que exige el motor. */
+function FormationPicker() {
+  const { save, setFormation } = useInazuma()
+  if (!save) return null
+  const current = getFormation(save.formation)
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Formación</div>
+      <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        {FORMATIONS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFormation(f.id)}
+            className={`shrink-0 rounded-xl border px-3 py-1.5 text-[12px] font-bold transition active:scale-95 ${
+              f.id === current.id
+                ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                : 'border-slate-700 bg-slate-800/60 text-slate-400'
+            }`}
+          >
+            {f.name}
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-slate-500 mt-1">{current.desc}</p>
     </div>
   )
 }
@@ -602,7 +661,7 @@ export function DraftView() {
 // ---------------------------------------------------------------------------
 
 export function EndView({ won }: { won: boolean }) {
-  const { save, exitInazuma, abandonTournament } = useInazuma()
+  const { save, exitInazuma, abandonTournament, goTo } = useInazuma()
   if (!save) return null
   const best = [...save.roster].sort((a, b) => overall(b) - overall(a)).slice(0, 3)
 
@@ -633,6 +692,11 @@ export function EndView({ won }: { won: boolean }) {
       </div>
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">
         <Button variant="primary" full onClick={() => void abandonTournament()}>Nuevo torneo</Button>
+        <Button variant="secondary" full onClick={() => goTo('album')}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="pokedex" className="w-4 h-4" /> Álbum de fichajes
+          </span>
+        </Button>
         <Button variant="ghost" full onClick={exitInazuma}>Volver al inicio</Button>
       </div>
     </div>

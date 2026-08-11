@@ -61,6 +61,14 @@ export default function SettingsScreen() {
           <Toggle on={s.skipNodeInfo} onClick={s.toggleSkipNodeInfo} />
         </Card>
 
+        <Card className="p-4 flex items-center justify-between">
+          <div>
+            <div className="font-bold">Mostrar porcentajes</div>
+            <div className="text-xs text-slate-400">Inazuma Rogue: enseña la probabilidad exacta junto a las estrellas</div>
+          </div>
+          <Toggle on={s.showOdds} onClick={s.toggleShowOdds} />
+        </Card>
+
         {/* Copia de seguridad (export/import) */}
         <Card className="p-4">
           <div className="font-bold">Copia de seguridad</div>

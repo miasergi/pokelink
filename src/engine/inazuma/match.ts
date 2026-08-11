@@ -14,6 +14,7 @@
 // Perder cualquiera de los tres corta la jugada. Hacen falta los tres para gol.
 import { RNG } from '@/utils/rng'
 import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
+import { getSpirit } from '@/data/inazuma/spirits'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier } from './roster'
 import type {
@@ -83,8 +84,16 @@ function allActors(side: MatchSide): Actor[] {
   return [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
 }
 
-function toDuelist(a: Actor, tech: Technique | undefined, burst: boolean): Duelist {
-  return { name: a.name, element: a.element, stats: a.stats, stamina: a.stamina, technique: tech, burst }
+function toDuelist(a: Actor, tech: Technique | undefined, burst: boolean, spirit?: { uid: string; power: number }): Duelist {
+  return {
+    name: a.name,
+    element: a.element,
+    stats: a.stats,
+    stamina: a.stamina,
+    technique: tech,
+    burst,
+    boost: spirit && spirit.uid === a.uid ? spirit.power : 1,
+  }
 }
 
 /** Técnicas conocidas de una clase concreta que el actor puede pagar. */
@@ -268,8 +277,8 @@ function executeDuel(
 
   const r = resolveDuel(
     step,
-    toDuelist(attacker, atkTech, atkBurst),
-    toDuelist(defender, defTech, defBurst),
+    toDuelist(attacker, atkTech, atkBurst, chain.spirit),
+    toDuelist(defender, defTech, defBurst, chain.spirit),
     rng,
     chain.momentum,
   )
@@ -280,7 +289,9 @@ function executeDuel(
     side: chain.side,
     step,
     attacker: attacker.name,
+    attackerUid: attacker.uid,
     defender: defender.name,
+    defenderUid: defender.uid,
     technique: atkTech?.name,
     counter: defTech?.name,
     element: atkTech?.element ?? attacker.element,
@@ -299,6 +310,8 @@ function executeDuel(
     chain.step = step === 'construccion' ? 'penetracion' : 'definicion'
     chain.carrier = attackerFor(chain.step, atkSide, rng).uid
     chain.defenderUid = defenderFor(chain.step, defSide, rng).uid
+    // El espíritu vale para UN duelo, no para la jugada entera.
+    chain.spirit = undefined
     return
   }
 
@@ -310,6 +323,7 @@ function executeDuel(
       minute: m.minute,
       side: otherSide(chain.side),
       keeper: defender.name,
+      keeperUid: defender.uid,
       technique: defTech?.name,
       text: `¡${defender.name} lo detiene! ${defSide.name} respira.`,
     })
@@ -336,7 +350,7 @@ function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Techni
   addBurst(atkSide, BURST_ON_GOAL)
   addBurst(defSide, BURST_ON_CONCEDE)
   if (chain.side === playerSide(m)) m.scorers.push(scorer.name)
-  out.push({ kind: 'goal', minute: m.minute, side: chain.side, scorer: scorer.name, technique: tech?.name, score: score(m) })
+  out.push({ kind: 'goal', minute: m.minute, side: chain.side, scorer: scorer.name, scorerUid: scorer.uid, technique: tech?.name, score: score(m) })
   m.chain = null
 }
 
@@ -436,7 +450,23 @@ function buildDecision(
       label: '¡SUPERVIBRACIÓN!',
       detail: `${BURST_DURATION} acciones sin gastar PT y con potencia ×1.4`,
       odds: 3,
+      chance: 1,
       cost: 0,
+    })
+  }
+
+  // 5) Espíritu Guerrero: compite con la Supervibración por la MISMA barra.
+  //    Una sola vez por partido, y se lo lleva todo a un único duelo.
+  const spirit = getSpirit(actor.spirit)
+  if (spirit && mySide.burst >= 100 && !mySide.spiritUsed) {
+    options.push({
+      id: 'spirit',
+      label: `¡${spirit.name.toUpperCase()}!`,
+      detail: `Espíritu Guerrero · potencia ×${spirit.power} en este duelo`,
+      odds: 3,
+      chance: 1,
+      cost: 0,
+      element: spirit.element,
     })
   }
 
@@ -494,10 +524,11 @@ function buildOption(
   const myTech = spec.tech
   const atkTech = mode === 'ataque' ? myTech : rivalTech
   const defTech = mode === 'ataque' ? rivalTech : myTech
+  const spirit = m.chain?.spirit
   const { chance } = duelChance(
     step,
-    toDuelist(attacker, atkTech, atkSide.burstTurns > 0),
-    toDuelist(defender, defTech, defSide.burstTurns > 0),
+    toDuelist(attacker, atkTech, atkSide.burstTurns > 0, spirit),
+    toDuelist(defender, defTech, defSide.burstTurns > 0, spirit),
     momentum,
   )
   // Defendiendo, tus estrellas son la probabilidad de PARAR = 1 − la del tiro.
@@ -508,7 +539,7 @@ function buildOption(
     el ? ELEMENT_INFO[el].label : null,
     spec.cost > 0 ? `${spec.cost} PT` : 'gratis',
   ].filter(Boolean).join(' · ')
-  return { id: spec.id, label: spec.label, detail, odds: oddsStars(shown), cost: spec.cost, element: el }
+  return { id: spec.id, label: spec.label, detail, odds: oddsStars(shown), chance: shown, cost: spec.cost, element: el }
 }
 
 /**
@@ -523,6 +554,30 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   const atkSide = sideOf(m, chain.side)
   const defSide = sideOf(m, otherSide(chain.side))
   const mySide = d.mode === 'ataque' ? atkSide : defSide
+
+  // El Espíritu se invoca y DESPUÉS eliges el tiro, igual que la Supervibración:
+  // no consume la jugada, se vuelve a preguntar con el espíritu ya rugiendo.
+  if (optionId === 'spirit') {
+    const actor = d.mode === 'ataque' ? findActor(atkSide, chain.carrier) : defSide.keeper
+    const spirit = getSpirit(actor.spirit)
+    if (!spirit) return []
+    mySide.spiritUsed = true
+    mySide.burst = 0
+    chain.spirit = { uid: actor.uid, power: spirit.power }
+    const out: MatchEvent[] = [{
+      kind: 'spirit',
+      minute: m.minute,
+      side: d.mode === 'ataque' ? chain.side : otherSide(chain.side),
+      player: actor.name,
+      spirit: spirit.name,
+      text: `¡${actor.name} invoca a ${spirit.name}!`,
+    }]
+    m.decision = null
+    m.phase = 'playing'
+    m.events.push(...out)
+    resolveStep(m, rng, [])
+    return out
+  }
 
   if (optionId === 'burst') {
     mySide.burstTurns = BURST_DURATION

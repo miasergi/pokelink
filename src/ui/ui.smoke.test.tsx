@@ -57,10 +57,26 @@ describe('render de pantallas (smoke)', () => {
     expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
 
     const save = createSave(4242)
-    for (const phase of ['map', 'squad', 'shop', 'victory', 'gameover'] as const) {
+    for (const phase of ['map', 'squad', 'shop', 'bag', 'stats', 'album', 'victory', 'gameover'] as const) {
       useInazuma.setState({ save, hasSave: true, phase })
       expect(() => renderToString(createElement(InazumaScreen)), phase).not.toThrow()
     }
+
+    // Con mochila llena y estadísticas, que es cuando esas pantallas tienen algo
+    // que pintar.
+    useInazuma.setState({
+      save: {
+        ...save,
+        bag: ['botas-rayo', 'mejora', 'manual-avanzado'],
+        techniqueBag: ['t-tornado-fuego'],
+        playerStats: { [save.roster[0].uid]: { goals: 3, saves: 5, duelsWon: 9, duelsLost: 4, matches: 2 } },
+      },
+      phase: 'bag',
+    })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    useInazuma.setState({ phase: 'stats' })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    useInazuma.setState({ save, phase: 'map' })
 
     // El mapa de un tramo avanzado, para que se pinten casillas pasadas,
     // actuales y futuras a la vez.

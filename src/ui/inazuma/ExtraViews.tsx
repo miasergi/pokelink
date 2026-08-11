@@ -1,0 +1,317 @@
+// Pantallas de apoyo del modo: estadísticas de la partida, álbum de fichados y
+// el tutorial de entrada.
+import { useEffect, useState } from 'react'
+import { Button, Card, ImgFallback } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
+import { useInazuma } from '@/state/inazumaStore'
+import { portraitUrl, ElementChip } from '@/ui/inazuma/PlayerCard'
+import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
+import { getSpirit } from '@/data/inazuma/spirits'
+import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { loadMeta } from '@/persistence/db'
+import type { PlayerStats } from '@/engine/inazuma/types'
+
+// ---------------------------------------------------------------------------
+// Estadísticas de la partida
+// ---------------------------------------------------------------------------
+
+const EMPTY: PlayerStats = { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
+
+export function StatsView() {
+  const { save, goTo } = useInazuma()
+  if (!save) return null
+
+  const rows = save.roster
+    .map((p) => ({ p, s: save.playerStats[p.uid] ?? EMPTY }))
+    .sort((a, b) => b.s.goals - a.s.goals || b.s.duelsWon - a.s.duelsWon)
+  const pichichi = rows.filter((r) => r.s.goals > 0)[0]
+  const totalGoals = rows.reduce((a, r) => a + r.s.goals, 0)
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
+        <Icon name="chartUp" className="w-5 h-5 text-emerald-300" />
+        <div className="font-extrabold text-sm">Estadísticas</div>
+        <span className="ml-auto text-[11px] text-slate-400 tabular-nums">
+          {save.record[0]}V {save.record[1]}E {save.record[2]}D
+        </span>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+        {pichichi ? (
+          <Card className="p-3 border-amber-500/50" style={{ background: 'linear-gradient(120deg,#f59e0b22,rgba(30,41,59,.7) 60%)' }}>
+            <div className="text-[10px] uppercase tracking-widest text-amber-300">Pichichi</div>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-500/40 bg-slate-800 grid place-items-center shrink-0">
+                <ImgFallback
+                  src={portraitUrl(pichichi.p.baseId)}
+                  className="w-full h-full object-cover"
+                  fallback={<span className="text-lg">⚽</span>}
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="font-extrabold">{getPlayerBase(pichichi.p.baseId).name}</div>
+                <div className="text-[11px] text-slate-400">
+                  {pichichi.s.goals} {pichichi.s.goals === 1 ? 'gol' : 'goles'} de los {totalGoals} del equipo
+                </div>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="text-center text-[12px] text-slate-500 py-4">
+            Todavía no habéis marcado. Las estadísticas se llenan jugando.
+          </div>
+        )}
+
+        <div className="text-[11px] uppercase tracking-widest text-slate-500">Toda la plantilla</div>
+        <div className="rounded-xl border border-slate-700/60 overflow-hidden">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 py-1.5 bg-slate-800/70 text-[9px] uppercase tracking-wide text-slate-500">
+            <span>Jugador</span><span className="w-8 text-right">Gol</span>
+            <span className="w-8 text-right">Par</span><span className="w-12 text-right">Duelos</span>
+          </div>
+          {rows.map(({ p, s }) => {
+            const base = getPlayerBase(p.baseId)
+            const total = s.duelsWon + s.duelsLost
+            return (
+              <div key={p.uid} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 py-1.5 border-t border-slate-800 items-center">
+                <span className="text-[12px] font-bold truncate">
+                  {base.name}
+                  <span className="text-[9px] text-slate-500 ml-1">{base.position}</span>
+                </span>
+                <span className="w-8 text-right text-[12px] tabular-nums font-bold text-emerald-300">{s.goals || '·'}</span>
+                <span className="w-8 text-right text-[12px] tabular-nums text-sky-300">{s.saves || '·'}</span>
+                <span className="w-12 text-right text-[11px] tabular-nums text-slate-400">
+                  {total ? `${Math.round((s.duelsWon / total) * 100)}%` : '·'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-slate-600">
+          «Duelos» es el porcentaje de mano a mano ganados, tirando y defendiendo.
+        </p>
+      </div>
+
+      <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">
+        <Button variant="primary" full onClick={() => goTo('map')}>Volver al mapa</Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Álbum de fichados (meta-progresión entre partidas)
+// ---------------------------------------------------------------------------
+
+export function AlbumView() {
+  const { goTo, save } = useInazuma()
+  const [signed, setSigned] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    void loadMeta().then((m) => setSigned(new Set(m.inazumaSigned ?? [])))
+  }, [])
+
+  // Los que llevas AHORA también cuentan como vistos, aunque la meta se guarde
+  // al final: si no, verías huecos de jugadores que tienes en la plantilla.
+  const owned = new Set([...signed, ...(save?.roster ?? []).map((p) => p.baseId)])
+  const byTeam = new Map<string, typeof PLAYERS>()
+  for (const p of PLAYERS) {
+    if (!byTeam.has(p.team)) byTeam.set(p.team, [])
+    byTeam.get(p.team)!.push(p)
+  }
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
+        <Icon name="pokedex" className="w-5 h-5" />
+        <div className="font-extrabold text-sm">Álbum de fichajes</div>
+        <span className="ml-auto text-[11px] font-bold text-amber-300 tabular-nums">
+          {owned.size}/{PLAYERS.length}
+        </span>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+        <p className="text-[11px] text-slate-500">
+          Todos los jugadores que has llegado a tener en plantilla, entre todas tus partidas.
+        </p>
+        {[...byTeam.entries()].map(([teamId, list]) => {
+          const team = TEAM_BY_ID.get(teamId)
+          const got = list.filter((p) => owned.has(p.id)).length
+          return (
+            <div key={teamId}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-[11px] uppercase tracking-widest text-slate-500">
+                  {team?.name ?? 'Agentes libres'}
+                </span>
+                <span className="text-[10px] text-slate-600 tabular-nums">{got}/{list.length}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {list.map((p) => {
+                  const has = owned.has(p.id)
+                  const info = ELEMENT_INFO[p.element]
+                  return (
+                    <div
+                      key={p.id}
+                      className="rounded-xl border p-1 text-center"
+                      style={{
+                        borderColor: has ? `${info.color}55` : '#1e293b',
+                        background: has ? `${info.color}14` : 'rgba(15,23,42,.5)',
+                      }}
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-slate-800 grid place-items-center">
+                        {has ? (
+                          <ImgFallback
+                            src={portraitUrl(p.id)}
+                            className="w-full h-full object-cover"
+                            fallback={<span className="text-[10px] font-bold" style={{ color: info.color }}>{p.name[0]}</span>}
+                          />
+                        ) : (
+                          <span className="text-slate-700 text-lg">?</span>
+                        )}
+                      </div>
+                      <div className={`text-[8px] leading-tight mt-0.5 truncate ${has ? 'text-slate-300' : 'text-slate-700'}`}>
+                        {has ? p.name : '???'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">
+        <Button variant="primary" full onClick={() => goTo('title')}>Volver</Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tutorial
+// ---------------------------------------------------------------------------
+
+const ONBOARD_KEY = 'inazuma:onboarded'
+
+const PAGES = [
+  {
+    icon: '🗺️',
+    title: 'Un mapa, no un torneo',
+    body: 'Avanzas por casillas unidas por caminos. Solo puedes ir a las conectadas con la tuya, así que elegir ruta importa: lo que dejas atrás no vuelve. Al final de cada tramo te espera un instituto.',
+  },
+  {
+    icon: '⚽',
+    title: 'Pachangas: nivel a cambio de piernas',
+    body: 'Los partidillos de barrio son tu fuente de nivel. Se juegan en cinco toques, pero CANSAN. La decisión del modo es esa: subir de nivel o llegar entero al instituto.',
+  },
+  {
+    icon: '🔥',
+    title: 'Fuego ▶ Bosque ▶ Aire ▶ Montaña ▶ Fuego',
+    body: 'Ciclo cerrado, sin elemento dominante. La ventaja se gana eligiendo quién juega y a quién le pasas el balón, no fichando «al mejor».',
+  },
+  {
+    icon: '⚡',
+    title: 'PT, Ruptura y Espíritus',
+    body: 'Las supertécnicas gastan PT, así que no puedes tirarlas todas. Encadenar jugadas buenas llena la barra de Ruptura: gástala en tres acciones gratis (Supervibración) o en un único duelo brutal (Espíritu Guerrero). Una cosa o la otra.',
+  },
+  {
+    icon: '🛌',
+    title: 'El banquillo no es un castigo',
+    body: 'Jugar 90 minutos desgasta, y por debajo del 40 % de aguante se rinde peor. Los suplentes suben de nivel igual que los titulares y llegan frescos: rotar sale gratis.',
+  },
+]
+
+export function InazumaOnboarding({ onClose }: { onClose: () => void }) {
+  const [i, setI] = useState(0)
+  const page = PAGES[i]
+  const last = i === PAGES.length - 1
+
+  return (
+    <div className="fixed inset-0 z-[90] bg-slate-950/95 backdrop-blur-sm grid place-items-center p-5">
+      <div className="w-full max-w-sm text-center">
+        <div className="text-6xl mb-3">{page.icon}</div>
+        <h2 className="text-xl font-extrabold text-amber-300">{page.title}</h2>
+        <p className="text-sm text-slate-300 mt-2 leading-relaxed">{page.body}</p>
+
+        <div className="flex justify-center gap-1.5 my-5">
+          {PAGES.map((_, k) => (
+            <span key={k} className={`h-1.5 rounded-full transition-all ${k === i ? 'w-5 bg-amber-400' : 'w-1.5 bg-slate-700'}`} />
+          ))}
+        </div>
+
+        <Button variant="primary" full onClick={() => (last ? onClose() : setI(i + 1))}>
+          {last ? '¡A jugar!' : 'Siguiente'}
+        </Button>
+        {!last && (
+          <button className="text-xs text-slate-500 mt-3" onClick={onClose}>Saltar tutorial</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** ¿Toca enseñar el tutorial? */
+export function shouldShowOnboarding(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && !localStorage.getItem(ONBOARD_KEY)
+  } catch {
+    return false
+  }
+}
+
+export function markOnboarded(): void {
+  try { localStorage.setItem(ONBOARD_KEY, '1') } catch { /* da igual */ }
+}
+
+// ---------------------------------------------------------------------------
+// Once rival (se usa en la previa del partido)
+// ---------------------------------------------------------------------------
+
+export function RivalLineup({ teamId, level }: { teamId: string; level: number }) {
+  const team = getTeam(teamId)
+  const named = team.lineup.map((id) => getPlayerBase(id))
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-[11px] uppercase tracking-widest text-slate-500">
+        Su once · nivel {level}
+      </div>
+      {named.map((b) => {
+        const info = ELEMENT_INFO[b.element]
+        const spirit = getSpirit(b.spirit)
+        return (
+          <div key={b.id} className="flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/40 px-2 py-1.5">
+            <div
+              className="w-9 h-9 shrink-0 rounded-lg overflow-hidden grid place-items-center border"
+              style={{ borderColor: `${info.color}55`, background: `${info.color}18` }}
+            >
+              <ImgFallback
+                src={portraitUrl(b.id)}
+                className="w-full h-full object-cover"
+                fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{b.name[0]}</span>}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-extrabold text-slate-400">{b.position}</span>
+                <span className="font-bold text-[12px] truncate">{b.name}</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <ElementChip element={b.element} />
+                {spirit && (
+                  <span className="text-[9px] text-amber-300">👹 {spirit.name}</span>
+                )}
+              </div>
+            </div>
+            <span className="text-[10px] text-slate-500 shrink-0">{'★'.repeat(b.rarity)}</span>
+          </div>
+        )
+      })}
+      <p className="text-[10px] text-slate-600">
+        El resto de su once son jugadores de relleno, más flojos que estos.
+      </p>
+    </div>
+  )
+}
