@@ -8,12 +8,17 @@ import { ITEMS, ITEM_BY_ID } from '@/data/inazuma/items'
 import { elementMultiplier, ELEMENT_ADVANTAGE, ELEMENT_WEAKNESS } from './elements'
 import { advance, chooseOption, playerScore } from './match'
 import {
-  applyMatchResult, autoTraining, createSave, fullRest, isEliminated, startMatch,
+  advanceLayer, applyMatchResult, applyPachangaResult, autoTraining, canLearn, createSave,
+  fullRest, isEliminated, isMapComplete, startMatch, startPachanga,
 } from './game'
+import { nextRound, shoot } from './pachanga'
 import { buildDraft } from './rewards'
 import { autoLineup, createPlayer, effectiveStats, lineupError, overall, ptMax } from './roster'
-import { buildOffer, isMatchRound, matchIndex, TOTAL_ROUNDS } from './tournament'
-import { ROSTER_MAX, type InazumaSave, type MatchState } from './types'
+import {
+  bossIndexForLayer, currentOffer, generateMap, mapSegments, RIVAL_LEVELS,
+  ROUTE_LAYERS_PER_SEGMENT, TOTAL_LAYERS,
+} from './tournament'
+import { ROSTER_MAX, type InazumaSave, type MatchState, type TournamentNode } from './types'
 
 describe('elementos', () => {
   it('forma un ciclo cerrado sin elemento dominante', () => {
@@ -62,7 +67,7 @@ describe('plantilla', () => {
 // Bot: juega un partido entero eligiendo siempre la mejor opción disponible
 // ---------------------------------------------------------------------------
 
-function playMatch(save: InazumaSave, node: ReturnType<typeof buildOffer>[number]): MatchState {
+function playMatch(save: InazumaSave, node: TournamentNode): MatchState {
   const setup = startMatch(save, node)
   if ('error' in setup) throw new Error(setup.error)
   const { match, rng } = setup
@@ -88,8 +93,7 @@ describe('partido', () => {
   it('termina siempre, con 90 minutos y un resultado coherente', () => {
     for (let seed = 0; seed < 25; seed++) {
       const save = createSave(seed)
-      const node = buildOffer(0, new RNG(seed))[0]
-      const m = playMatch(save, node)
+      const m = playMatch(save, firstBoss(save))
       expect(m.phase).toBe('finished')
       expect(m.minute).toBe(90)
       const [mine, theirs] = playerScore(m)
@@ -104,7 +108,7 @@ describe('partido', () => {
     const N = 40
     for (let seed = 0; seed < N; seed++) {
       const save = createSave(seed * 31 + 7)
-      const m = playMatch(save, buildOffer(0, new RNG(seed))[0])
+      const m = playMatch(save, firstBoss(save))
       const [a, b] = playerScore(m)
       expect(a).toBeLessThanOrEqual(8)
       expect(b).toBeLessThanOrEqual(8)
@@ -126,11 +130,11 @@ describe('partido', () => {
     for (let seed = 0; seed < N; seed++) {
       const play = (gear: boolean) => {
         const save = createSave(seed)
-        save.round = 6
+        save.layer = 6
         if (gear) {
           save.roster = save.roster.map((p) => (save.lineup.includes(p.uid) ? { ...p, item: 'espinilleras' } : p))
         }
-        return playerScore(playMatch(save, buildOffer(6, new RNG(seed))[0])).join('-')
+        return playerScore(playMatch(save, firstBoss(save))).join('-')
       }
       if (play(false) !== play(true)) changed++
     }
@@ -139,7 +143,7 @@ describe('partido', () => {
 
   it('las decisiones no se cobran PT que el jugador no tiene', () => {
     const save = createSave(99)
-    const setup = startMatch(save, buildOffer(0, new RNG(99))[0])
+    const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     const { match, rng } = setup
     let guard = 0
@@ -194,65 +198,131 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
   let matchesWon = 0
   const report = (won: boolean): RunReport => ({
     won,
-    roundsCleared: save.round,
+    roundsCleared: save.layer,
     matchesWon,
-    diedAt: matchIndex(save.round),
+    diedAt: bossIndexForLayer(save.layer),
     avgLevel: save.roster.reduce((a, p) => a + p.level, 0) / Math.max(1, save.roster.length),
     // Solo el once: el banquillo está siempre a 100 y taparía el desgaste.
     avgStamina: save.roster.filter((p) => save.lineup.includes(p.uid))
       .reduce((a, p) => a + p.stamina, 0) / Math.max(1, save.lineup.length),
   })
 
-  while (save.round < TOTAL_ROUNDS) {
+  while (!isMapComplete(save)) {
+    const offer = currentOffer(save.map, save.layer)
+    if (!offer.length) break
     const tired = save.roster
       .filter((p) => save.lineup.includes(p.uid))
       .reduce((a, p) => a + p.stamina, 0) / Math.max(1, save.lineup.length)
-    // El listo prefiere descansar si el once va fundido; si no, entrenar.
-    const node = !smart
-      ? save.offer[0]
-      : (tired < 55 ? save.offer.find((n) => n.kind === 'descanso') : undefined)
-        ?? save.offer.find((n) => n.kind === 'entrenamiento')
-        ?? save.offer.find((n) => n.kind === 'ojeador')
-        ?? save.offer[0]
-    if (!node) break
 
-    if (node.kind === 'partido' || node.kind === 'final' || node.kind === 'amistoso') {
-      if (smart) save.lineup = autoLineup(save.roster)
-      const m = playMatch(save, node)
-      const result = m.result ?? 'draw'
-      applyMatchResult(save, m, node)
-      if (result === 'win') matchesWon++
-      if (isEliminated(node, result)) return report(false)
-      // Carta post-partido: el listo ficha si mejora, si no entrena.
-      const draft = buildDraft(save, rng)
-      const sign = draft.find((o) => o.kind === 'fichaje')
-      if (sign?.kind === 'fichaje' && save.roster.length < ROSTER_MAX) {
-        save.roster.push(createPlayer(sign.playerId, sign.level))
-        if (smart) save.lineup = autoLineup(save.roster)
-      } else {
-        autoTraining(save, 4, 1)
+    // El listo pondera nivel contra frescura, que es LA decisión del mapa:
+    // la pachanga es la única fuente de nivel en ruta, pero cansa, y al jefe
+    // hay que llegar entero. Encadenarlas a ciegas rinde PEOR que ir al azar
+    // (medido: el bot que siempre elegía pachanga caía antes que el tonto).
+    const pick = (k: TournamentNode['kind']) => offer.find((n) => n.kind === k)
+    const myLevel = save.roster.filter((p) => save.lineup.includes(p.uid))
+      .reduce((a, p) => a + p.level, 0) / Math.max(1, save.lineup.length)
+    const nextBoss = RIVAL_LEVELS[Math.min(RIVAL_LEVELS.length - 1, bossIndexForLayer(save.layer))]
+    const underLevelled = myLevel < nextBoss + 2
+
+    const node = !smart
+      ? offer[0]
+      : (tired < 55 ? pick('descanso') : undefined)
+        ?? (underLevelled ? pick('pachanga') : undefined)
+        ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto') ?? pick('descanso')
+        ?? offer[0]
+
+    if (smart) save.lineup = autoLineup(save.roster)
+
+    switch (node.kind) {
+      case 'jefe':
+      case 'final': {
+        const m = playMatch(save, node)
+        const result = m.result ?? 'draw'
+        applyMatchResult(save, m, node)
+        if (result === 'win') matchesWon++
+        if (isEliminated(node, result)) return report(false)
+        // Carta post-jefe: el listo ficha si puede, si no entrena.
+        const draft = buildDraft(save, rng)
+        const sign = draft.find((o) => o.kind === 'fichaje')
+        if (sign?.kind === 'fichaje' && save.roster.length < ROSTER_MAX) {
+          save.roster.push(createPlayer(sign.playerId, sign.level))
+          if (smart) save.lineup = autoLineup(save.roster)
+        } else {
+          autoTraining(save, 4, 1)
+        }
+        if (useItems) { shop(save); equipStarters(save) }
+        break
       }
-      if (useItems) { shop(save); equipStarters(save) }
-    } else if (node.kind === 'tienda' && useItems) {
-      shop(save)
-      equipStarters(save)
-    } else if (node.kind === 'descanso') {
-      fullRest(save)
-    } else if (node.kind === 'entrenamiento') {
-      autoTraining(save, 3, 2)
-    } else if (node.kind === 'ojeador') {
-      const offer = buildDraft(save, rng)
-      const sign = offer.find((o) => o.kind === 'fichaje')
-      if (sign?.kind === 'fichaje' && save.roster.length < ROSTER_MAX) {
-        save.roster.push(createPlayer(sign.playerId, sign.level))
-        save.lineup = autoLineup(save.roster)
+      case 'pachanga': {
+        const s = playPachanga(save, node)
+        if (s) applyPachangaResult(save, s, node)
+        break
       }
+      case 'descanso':
+        fullRest(save)
+        break
+      case 'objeto':
+        if (node.itemId) save.bag.push(node.itemId)
+        if (useItems) equipStarters(save)
+        break
+      case 'tecnica':
+        // Se la queda el titular con menos técnicas de esa clase.
+        if (node.techniqueId) learnTechnique(save, node.techniqueId)
+        break
+      case 'ojeador': {
+        const o = buildDraft(save, rng).find((x) => x.kind === 'fichaje')
+        if (o?.kind === 'fichaje' && save.roster.length < ROSTER_MAX) {
+          save.roster.push(createPlayer(o.playerId, o.level))
+          save.lineup = autoLineup(save.roster)
+        }
+        break
+      }
+      case 'tienda':
+        if (useItems) { shop(save); equipStarters(save) }
+        break
+      default:
+        break
     }
 
-    save.round += 1
-    save.offer = buildOffer(save.round, rng)
+    advanceLayer(save, node)
   }
   return report(true)
+}
+
+/** Juega una pachanga entera eligiendo siempre la mejor opción disponible. */
+function playPachanga(save: InazumaSave, node: TournamentNode) {
+  const setup = startPachanga(save, node)
+  if ('error' in setup) return null
+  const { pachanga, rng } = setup
+  nextRound(pachanga, rng)
+  let guard = 0
+  while (pachanga.phase !== 'finished' && guard++ < 50) {
+    if (pachanga.phase === 'decision') {
+      const best = pachanga.options.filter((o) => !o.disabled)
+        .slice().sort((a, b) => b.odds - a.odds || a.cost - b.cost)[0]
+      shoot(pachanga, rng, best.id)
+      nextRound(pachanga, rng)
+    } else {
+      nextRound(pachanga, rng)
+    }
+  }
+  expect(guard).toBeLessThan(50)
+  return pachanga
+}
+
+/** Enseña la técnica al titular de la demarcación que corresponda. */
+function learnTechnique(save: InazumaSave, techId: string): void {
+  const target = save.roster.find((p) => save.lineup.includes(p.uid) && canLearn(p, techId))
+  if (!target) return
+  save.roster = save.roster.map((p) => (p.uid === target.uid
+    ? { ...p, techniques: [...p.techniques.slice(-3), techId] }
+    : p))
+}
+
+/** El primer jefe del mapa: sirve de rival fijo en los tests de partido. */
+function firstBoss(save: InazumaSave): TournamentNode {
+  const seg = mapSegments(save.map)[bossIndexForLayer(save.layer)]
+  return seg.boss!
 }
 
 /**
@@ -299,14 +369,57 @@ function summarise(label: string, reports: RunReport[]): { wins: number; avgDied
 }
 
 describe('torneo', () => {
-  it('el cuadro alterna partido e interludio y tiene 15 rondas', () => {
-    expect(TOTAL_ROUNDS).toBe(15)
-    expect(isMatchRound(0)).toBe(true)
-    expect(isMatchRound(1)).toBe(false)
-    expect(isMatchRound(14)).toBe(true)
-    expect(buildOffer(0, new RNG(1))).toHaveLength(2) // oficial + a por todas
-    expect(buildOffer(14, new RNG(1))).toHaveLength(1) // la final no se elige
-    expect(buildOffer(1, new RNG(1))).toHaveLength(3)
+  it('el mapa tiene 8 tramos, cada uno con sus casillas y su jefe', () => {
+    const map = generateMap(new RNG(7))
+    expect(map.totalLayers).toBe(TOTAL_LAYERS)
+    const segs = mapSegments(map)
+    expect(segs).toHaveLength(8)
+    expect(segs[7].boss?.kind).toBe('final')
+
+    for (const seg of segs) {
+      // El jefe cierra el tramo y va solo en su capa.
+      expect(map.layers[seg.end]).toHaveLength(1)
+      expect(seg.end - seg.start).toBe(ROUTE_LAYERS_PER_SEGMENT)
+      for (let li = seg.start; li < seg.end; li++) {
+        const nodes = currentOffer(map, li)
+        expect(nodes.length).toBeGreaterThan(1)
+        // Toda capa de ruta ofrece al menos una pachanga: sin ella se podría
+        // cruzar un tramo entero sin subir de nivel.
+        expect(nodes.some((n) => n.kind === 'pachanga')).toBe(true)
+      }
+    }
+  })
+
+  it('las casillas de objeto y técnica traen su contenido ya sorteado', () => {
+    const map = generateMap(new RNG(3))
+    const all = Object.values(map.nodes)
+    expect(all.filter((n) => n.kind === 'objeto').every((n) => !!n.itemId)).toBe(true)
+    expect(all.filter((n) => n.kind === 'tecnica').every((n) => !!n.techniqueId)).toBe(true)
+    // Y hay de todo: el mapa no puede salir monotemático.
+    const kinds = new Set(all.map((n) => n.kind))
+    for (const k of ['pachanga', 'objeto', 'tecnica', 'ojeador', 'jefe'] as const) {
+      expect(kinds.has(k)).toBe(true)
+    }
+  })
+
+  it('la pachanga se decide rápido, cansa y solo da nivel si se gana', () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const save = createSave(seed)
+      const node = currentOffer(save.map, 0).find((n) => n.kind === 'pachanga')!
+      const before = save.roster.map((p) => ({ lv: p.level, st: p.stamina }))
+      const s = playPachanga(save, node)!
+      expect(s.phase).toBe('finished')
+      expect(s.rounds.length).toBeLessThanOrEqual(13)
+      // Nunca acaba en tablas: hay muerte súbita.
+      expect(s.goals[0]).not.toBe(s.goals[1])
+
+      applyPachangaResult(save, s, node)
+      // Cansa siempre: alguien tiene que haber perdido aguante.
+      expect(save.roster.some((p, i) => p.stamina < before[i].st)).toBe(true)
+      // Y solo se sube de nivel al ganar.
+      const levelled = save.roster.some((p, i) => p.level > before[i].lv)
+      expect(levelled).toBe(s.result === 'win')
+    }
   })
 
   /**

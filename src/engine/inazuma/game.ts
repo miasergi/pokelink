@@ -10,7 +10,8 @@ import {
   levelUp, ptMax, START_LEVEL,
 } from './roster'
 import { createMatch } from './match'
-import { buildOffer, prizeMoney, matchIndex } from './tournament'
+import { createPachanga, participants, type PachangaState } from './pachanga'
+import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import type {
   Actor, InazumaSave, MatchSide, MatchState, PlayerInstance, RivalPlayer, TournamentNode,
 } from './types'
@@ -34,10 +35,12 @@ export function createSave(seed: number): InazumaSave {
   const rng = new RNG(seed)
   const roster = RAIMON_STARTING_XI.map((id, i) =>
     createPlayer(id, START_LEVEL, { captain: i === 0 }))
+  const map = generateMap(rng)
   return {
     seed,
     rngState: rng.getState(),
-    round: 0,
+    map,
+    layer: 0,
     cleared: [],
     roster,
     lineup: autoLineup(roster),
@@ -46,7 +49,6 @@ export function createSave(seed: number): InazumaSave {
     goalsFor: 0,
     goalsAgainst: 0,
     bag: [],
-    offer: buildOffer(0, rng),
     startedAt: Date.now(),
   }
 }
@@ -115,11 +117,18 @@ export interface MatchSetup {
  * así que la semilla solo sirve para que la retransmisión sea reproducible
  * mientras dura.
  */
+/** RNG del enfrentamiento: fija por (semilla, casilla) para que sea reproducible. */
+function nodeRng(save: InazumaSave, node: TournamentNode): RNG {
+  let h = save.seed >>> 0
+  for (const ch of node.id) h = (Math.imul(h ^ ch.charCodeAt(0), 2654435761) >>> 0)
+  return new RNG(h)
+}
+
 export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup | { error: string } {
   const lineup = buildLineup(save.roster, save.lineup)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
-  const rng = new RNG((save.seed ^ (save.round * 2654435761)) >>> 0)
+  const rng = nodeRng(save, node)
   const teamId = node.teamId ?? 'occult'
   const team = getTeam(teamId)
   const rivals = buildRivalTeam(teamId, node.level ?? 10, rng)
@@ -128,6 +137,33 @@ export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup 
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
   return { match: createMatch({ seed: rng.getState(), home, away }, rng), rng, node }
+}
+
+export interface PachangaSetup {
+  pachanga: PachangaState
+  rng: RNG
+  node: TournamentNode
+}
+
+/**
+ * Monta una pachanga. El rival es un equipo de barrio genérico (sin escudo ni
+ * plantilla con nombre): lo que importa es su nivel, igual que un Pokémon
+ * salvaje.
+ */
+export function startPachanga(save: InazumaSave, node: TournamentNode): PachangaSetup | { error: string } {
+  const lineup = buildLineup(save.roster, save.lineup)
+  if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
+
+  const rng = nodeRng(save, node)
+  const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng)
+  const mine = sideFromActors('Raimon', '#e11d48', 'montana', true, lineup.all.map(actorFromPlayer))
+  const theirs = sideFromActors(node.title, '#64748b', 'montana', false, rivals.map(actorFromRival))
+
+  return {
+    pachanga: createPachanga({ seed: rng.getState(), mine, theirs, rivalName: node.title }),
+    rng,
+    node,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -151,14 +187,14 @@ export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 
  * Devuelve a la plantilla el desgaste del partido, reparte niveles y actualiza
  * el historial. Muta `save` (el store lo llama dentro de su `set`).
  */
-export function applyMatchResult(save: InazumaSave, match: MatchState, node: TournamentNode): void {
+export function applyMatchResult(save: InazumaSave, match: MatchState, _node: TournamentNode): void {
   const mine = match.home.isPlayer ? match.home : match.away
   const theirs = match.home.isPlayer ? match.away : match.home
   const actors = [mine.keeper, ...mine.defs, ...mine.mids, ...mine.fwds]
   const byUid = new Map(actors.map((a) => [a.uid, a]))
 
   const result = match.result ?? 'draw'
-  const gained = node.kind === 'amistoso' ? 2 : LEVELS_BY_RESULT[result]
+  const gained = LEVELS_BY_RESULT[result]
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
@@ -193,24 +229,51 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, node: Tou
     scorers: match.scorers,
   }
 
-  // Premio en metálico. El amistoso paga fijo; las eliminatorias, por ronda, y
-  // el doble si saliste «a por todas».
-  if (node.kind === 'amistoso') {
-    save.coins += 400
-  } else if (result === 'win') {
-    const base = prizeMoney(matchIndex(save.round))
-    save.coins += node.id.endsWith('-todas') ? base * 2 : base
-  } else {
-    save.coins += 200
-  }
+  save.coins += result === 'win' ? prizeMoney(bossIndexForLayer(save.layer)) : 200
 }
 
-/** ¿Se acabó la partida? Perder una eliminatoria oficial elimina del torneo. */
+/**
+ * Cierra una pachanga: devuelve el desgaste SIEMPRE (por eso cansa) y reparte
+ * niveles solo si ganaste (por eso compensa jugarla).
+ */
+export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): void {
+  const actors = [s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds]
+  const byUid = new Map(actors.map((a) => [a.uid, a]))
+  const played = new Set(participants(s))
+  const won = s.result === 'win'
+  const levels = won ? (node.risky ? 3 : 2) : 0
+
+  save.roster = save.roster.map((p) => {
+    const a = byUid.get(p.uid)
+    let next: PlayerInstance = a ? { ...p, stamina: a.stamina, pt: a.pt } : { ...p }
+    // El nivel se lo llevan SOLO los que han jugado la pachanga: es el incentivo
+    // para rotar al banquillo en las casillas de ruta y llegar al jefe con el
+    // once titular fresco.
+    if (levels && played.has(p.uid)) next = levelUp(next, levels)
+    return next
+  })
+
+  save.goalsFor += s.goals[0]
+  save.goalsAgainst += s.goals[1]
+  if (won) save.coins += node.risky ? 300 : 120
+}
+
+/** ¿Se acabó la partida? Solo perder contra un instituto te elimina. */
 export function isEliminated(node: TournamentNode, result: 'win' | 'draw' | 'loss'): boolean {
-  if (node.kind === 'amistoso') return false
-  // El empate en un torneo se resolvería en penaltis; aquí se cuenta como pase
-  // (no se elimina) pero sin el premio doble. Perder, elimina.
+  if (node.kind !== 'jefe' && node.kind !== 'final') return false
+  // El empate se resolvería en penaltis: cuenta como pase. Perder, elimina.
   return result === 'loss'
+}
+
+/** Marca la casilla como jugada y avanza a la siguiente capa del mapa. */
+export function advanceLayer(save: InazumaSave, node: TournamentNode): void {
+  save.cleared = [...save.cleared, node.id]
+  save.layer = Math.min(save.map.totalLayers, save.layer + 1)
+}
+
+/** ¿Se completó el mapa entero? */
+export function isMapComplete(save: InazumaSave): boolean {
+  return save.layer >= save.map.totalLayers
 }
 
 // ---------------------------------------------------------------------------

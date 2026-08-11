@@ -1,13 +1,13 @@
 // Vistas del modo fuera del partido: título, mapa del torneo, previa, vestuario
 // (plantilla), tienda, cartas de recompensa y pantallas de cierre.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerCard, PlayerRow, ElementChip, portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { buildLineup, lineupError, overall } from '@/engine/inazuma/roster'
-import { matchIndex, roundName, RIVAL_LEVELS, TOTAL_ROUNDS } from '@/engine/inazuma/tournament'
+import { currentOffer, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -44,7 +44,7 @@ export function TitleView() {
             <Button variant="success" full onClick={continueTournament}>
               <span className="inline-flex items-center justify-center gap-1.5">
                 <Icon name="play" className="w-4 h-4" />
-                Continuar · {roundName(save.round)}
+                Continuar · {layerName(save.layer)}
               </span>
             </Button>
             <div className="text-center text-[11px] text-slate-500">
@@ -80,28 +80,67 @@ export function TitleView() {
 // ---------------------------------------------------------------------------
 
 const NODE_ICON: Record<TournamentNode['kind'], string> = {
-  partido: '⚔️', final: '🏆', amistoso: '🤝', ojeador: '🔎', entrenamiento: '🏃', descanso: '🛌', tienda: '🛒',
+  pachanga: '⚽', jefe: '⚔️', final: '🏆', ojeador: '🔎',
+  objeto: '🎒', tecnica: '⚡', descanso: '🛌', tienda: '🛒',
 }
 
+/**
+ * Mapa del tramo actual: las capas que quedan hasta el próximo instituto, con
+ * las casillas de cada una. Se pinta UNA PANTALLA POR TRAMO, igual que el mapa
+ * del roguelike Pokémon.
+ */
 export function MapView() {
   const { save, chooseNode, goTo } = useInazuma()
   if (!save) return null
-  const done = matchIndex(save.round)
+  const segs = mapSegments(save.map)
+  const seg = segmentForLayer(segs, save.layer)
+  const offer = currentOffer(save.map, save.layer)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
-        <Bracket save={save} />
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-1">
-          {roundName(save.round)} · elige una opción
+        <SegmentProgress segs={segs} current={seg.index} />
+
+        <div className="flex items-center gap-2">
+          <TeamCrest teamId={seg.boss?.teamId} size={34} />
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-widest text-slate-500">{seg.name}</div>
+            <div className="font-extrabold text-sm leading-tight truncate">
+              Camino a {seg.boss ? getTeam(seg.boss.teamId ?? '').name : 'la final'}
+            </div>
+          </div>
         </div>
-        {save.offer.map((n) => <NodeCard key={n.id} node={n} save={save} onPick={() => chooseNode(n.id)} />)}
-        {!save.offer.length && (
-          <div className="text-center text-slate-500 text-sm py-8">No queda nada por jugar.</div>
-        )}
-        <div className="text-[11px] text-slate-600 text-center mt-2">
-          Eliminatoria {Math.min(done + 1, 8)} de 8 · ronda {save.round + 1}/{TOTAL_ROUNDS}
+
+        {/* Casillas del tramo: las pasadas en gris, la actual elegible. */}
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: seg.end - seg.start + 1 }, (_, i) => seg.start + i).map((li) => {
+            const nodes = currentOffer(save.map, li)
+            const state = li < save.layer ? 'past' : li === save.layer ? 'now' : 'future'
+            return (
+              <div key={li} className={state === 'future' ? 'opacity-35' : ''}>
+                {state === 'now' && (
+                  <div className="text-[10px] uppercase tracking-widest text-amber-300 mb-1">Elige una casilla</div>
+                )}
+                <div className={nodes.length > 1 ? 'flex flex-col gap-2' : ''}>
+                  {nodes.map((n) => (
+                    <NodeCard
+                      key={n.id}
+                      node={n}
+                      save={save}
+                      state={state}
+                      onPick={state === 'now' ? () => chooseNode(n.id) : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {!offer.length && <div className="text-center text-slate-500 text-sm py-8">No queda nada por jugar.</div>}
+        <div className="text-[11px] text-slate-600 text-center mt-1">
+          Tramo {seg.index + 1} de 8 · casilla {save.layer + 1}/{save.map.totalLayers}
         </div>
       </div>
       <BottomBar onSquad={() => goTo('squad')} />
@@ -109,15 +148,14 @@ export function MapView() {
   )
 }
 
-function Bracket({ save }: { save: InazumaSave }) {
-  const done = matchIndex(save.round)
+function SegmentProgress({ segs, current }: { segs: { index: number }[]; current: number }) {
   return (
     <div className="flex items-center gap-1">
-      {RIVAL_LEVELS.map((_, i) => (
+      {segs.map((s) => (
         <div
-          key={i}
+          key={s.index}
           className={`flex-1 h-1.5 rounded-full ${
-            i < done ? 'bg-emerald-500' : i === done ? 'bg-amber-400' : 'bg-slate-700'
+            s.index < current ? 'bg-emerald-500' : s.index === current ? 'bg-amber-400' : 'bg-slate-700'
           }`}
         />
       ))}
@@ -125,34 +163,54 @@ function Bracket({ save }: { save: InazumaSave }) {
   )
 }
 
-function NodeCard({ node, save, onPick }: { node: TournamentNode; save: InazumaSave; onPick: () => void }) {
-  const team = node.teamId ? getTeam(node.teamId) : null
-  const risky = node.id.endsWith('-todas')
+function NodeCard({
+  node, save, onPick, state,
+}: {
+  node: TournamentNode
+  save: InazumaSave
+  onPick?: () => void
+  state: 'past' | 'now' | 'future'
+}) {
+  const isBoss = node.kind === 'jefe' || node.kind === 'final'
+  const team = isBoss && node.teamId ? getTeam(node.teamId) : null
   const lineup = buildLineup(save.roster, save.lineup)
   const myLevel = lineup ? Math.round(lineup.all.reduce((a, p) => a + p.level, 0) / lineup.all.length) : 0
   const gap = node.level != null ? node.level - myLevel : 0
+  const cleared = save.cleared.includes(node.id)
 
   return (
     <Card
       onClick={onPick}
-      className={`p-3 ${risky ? 'border-rose-500/50' : node.kind === 'final' ? 'border-amber-400/60' : ''}`}
+      className={`p-3 ${
+        node.risky ? 'border-rose-500/50'
+          : node.kind === 'final' ? 'border-amber-400/60'
+            : state === 'now' ? 'border-slate-500/70' : ''
+      } ${state === 'past' && !cleared ? 'opacity-40' : ''}`}
       style={team ? { background: `linear-gradient(120deg, ${team.color}22, rgba(30,41,59,0.7) 60%)` } : undefined}
     >
       <div className="flex items-start gap-2.5">
-        <span className="text-2xl leading-none shrink-0">{NODE_ICON[node.kind]}</span>
+        {team
+          ? <TeamCrest teamId={node.teamId} size={34} />
+          : <span className="text-2xl leading-none shrink-0 w-[34px] text-center">{NODE_ICON[node.kind]}</span>}
         <div className="min-w-0 flex-1">
-          <div className="font-extrabold text-sm leading-tight">{node.title}</div>
+          <div className="font-extrabold text-sm leading-tight flex items-center gap-1.5">
+            {node.title}
+            {cleared && <Icon name="check" className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+          </div>
           <div className="text-[11px] text-slate-400">{node.subtitle}</div>
-          {team && (
+          {node.level != null && (
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-              <ElementChip element={team.element} />
-              {node.level != null && (
-                <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 border ${
-                  gap > 3 ? 'border-rose-500/50 bg-rose-500/15 text-rose-200'
-                    : gap > 0 ? 'border-amber-500/50 bg-amber-500/15 text-amber-200'
-                      : 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
-                }`}>
-                  {gap > 3 ? 'Muy superiores' : gap > 0 ? 'Algo por encima' : 'A tu alcance'}
+              {team && <ElementChip element={team.element} />}
+              <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 border ${
+                gap > 3 ? 'border-rose-500/50 bg-rose-500/15 text-rose-200'
+                  : gap > 0 ? 'border-amber-500/50 bg-amber-500/15 text-amber-200'
+                    : 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
+              }`}>
+                {gap > 3 ? 'Muy superiores' : gap > 0 ? 'Algo por encima' : 'A tu alcance'}
+              </span>
+              {node.risky && (
+                <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 border border-rose-500/60 bg-rose-500/20 text-rose-200">
+                  Arriesgada
                 </span>
               )}
             </div>
@@ -160,9 +218,37 @@ function NodeCard({ node, save, onPick }: { node: TournamentNode; save: InazumaS
           <div className="mt-1.5 text-[11px] text-emerald-300/90">🎁 {node.reward}</div>
           {team?.taunt && <div className="mt-1 text-[11px] italic text-slate-500">«{team.taunt}»</div>}
         </div>
-        <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0 mt-1" />
+        {onPick && <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0 mt-1" />}
       </div>
     </Card>
+  )
+}
+
+/**
+ * Escudo del instituto. Igual que los retratos: si el PNG no está (o falla la
+ * descarga), se pinta un escudo generado con la inicial sobre el color del
+ * equipo, y la pantalla no se rompe.
+ */
+export function TeamCrest({ teamId, size = 32 }: { teamId?: string; size?: number }) {
+  if (!teamId) return null
+  const team = TEAM_BY_ID.get(teamId)
+  if (!team) return null
+  return (
+    <span
+      className="shrink-0 grid place-items-center rounded-lg overflow-hidden border"
+      style={{ width: size, height: size, borderColor: `${team.color}66`, background: `${team.color}22` }}
+    >
+      <ImgFallback
+        src={`${import.meta.env.BASE_URL}inazuma/teams/${teamId}.png`}
+        className="w-full h-full object-contain"
+        alt={team.name}
+        fallback={
+          <span className="font-extrabold" style={{ color: team.color, fontSize: size * 0.45 }}>
+            {team.name.replace(/^(Instituto|Royal)\s+/i, '')[0]}
+          </span>
+        }
+      />
+    </span>
   )
 }
 
@@ -595,7 +681,7 @@ export function EndView({ won }: { won: boolean }) {
         <p className="text-sm text-slate-400 max-w-[18rem]">
           {won
             ? 'El Raimon lo ha conseguido. Nadie apostaba por vosotros.'
-            : `El torneo se acaba aquí, en ${roundName(save.round)}. La próxima vez.`}
+            : `El torneo se acaba aquí, en ${layerName(save.layer)}. La próxima vez.`}
         </p>
         <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
           <Stat label="Ganados" value={save.record[0]} />
@@ -627,16 +713,32 @@ function Stat({ label, value }: { label: string; value: number }) {
   )
 }
 
-/** Barra de aviso flotante para los mensajes del store. */
+/**
+ * Barra de aviso flotante para los mensajes del store.
+ *
+ * Se va SOLA a los 4 segundos y no intercepta clics. La primera versión era un
+ * `<button>` fijo que se quedaba puesto hasta que lo tocabas, y como está sobre
+ * la zona baja del mapa bloqueaba las casillas de debajo: al volver de una
+ * pachanga no se podía elegir la siguiente casilla sin quitar antes el aviso.
+ */
 export function Toast() {
   const { message, clearMessage } = useInazuma()
+
+  useEffect(() => {
+    if (!message) return
+    const t = setTimeout(clearMessage, 4000)
+    return () => clearTimeout(t)
+  }, [message, clearMessage])
+
   if (!message) return null
   return (
-    <button
-      onClick={clearMessage}
-      className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[80] max-w-[90%] rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-[12px] text-slate-100 shadow-xl animate-pop-in"
-    >
-      {message}
-    </button>
+    <div className="pointer-events-none fixed left-1/2 -translate-x-1/2 bottom-24 z-[80] max-w-[90%] animate-pop-in">
+      <button
+        onClick={clearMessage}
+        className="pointer-events-auto rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-[12px] text-slate-100 shadow-xl"
+      >
+        {message}
+      </button>
+    </div>
   )
 }

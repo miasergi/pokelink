@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.54',
+    date: '2026-08-11',
+    title: 'Inazuma Rogue ahora es un MAPA, con pachangas de barrio',
+    changes: [
+      'SE ACABÓ EL CUADRO DE TORNEO: ahora hay un MAPA por capas, como el del roguelike Pokémon. Cada tramo son tres capas de casillas a elegir y al final te espera el instituto de turno. Ves de un vistazo lo que queda hasta el jefe, con su escudo en la cabecera.',
+      'PACHANGAS. Los partidillos de barrio hacen de "combate salvaje": una tanda rápida de mano a mano a cinco rondas, primero que llegue a 3, y si hay empate se va a muerte súbita. Se juegan en cinco toques. Si ganas, los que hayan jugado suben de nivel; ganes o pierdas, el equipo vuelve cansado. Ahí está la decisión: subir nivel o llegar entero al instituto.',
+      'CASILLAS DE OBJETO Y DE SUPERTÉCNICA. Ahora te encuentras equipamiento tirado por el camino y entrenadores veteranos que enseñan una supertécnica al jugador que tú elijas. El ojeador, la tienda y el descanso también son casillas del mapa, y el fichaje ya no depende solo de ganar eliminatorias.',
+      'CASILLAS ARRIESGADAS. Algunas pachangas salen "a cara de perro": rival cuatro niveles por encima, pero +3 niveles y 300 ₽ si te sale bien.',
+      'ESCUDOS DE LOS INSTITUTOS. Los nueve equipos llevan su escudo real en el mapa, en la previa y en las casillas de jefe.',
+      'RETRATOS NUEVOS. Los jugadores pasan a lucir los bustos de Inazuma Eleven: Victory Road, mucho más limpios que las capturas de anime que había antes. Están 25 de los 27; los dos que faltan mantienen el retrato viejo.',
+    ],
+  },
+  {
     version: 'v6.53',
     date: '2026-08-11',
     title: 'INAZUMA ROGUE: un roguelite de fútbol dentro del juego',

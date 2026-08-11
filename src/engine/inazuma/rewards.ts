@@ -7,7 +7,7 @@ import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import { signablePool, transferValue } from './roster'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
-import { beatenTeams } from './tournament'
+import { beatenTeams, bossIndexForLayer } from './tournament'
 
 const RARITY_STARS = ['', '★', '★★', '★★★', '★★★★', '★★★★★']
 
@@ -23,8 +23,8 @@ export function signingLevel(save: InazumaSave): number {
  * leyendas (arruinaría la curva) y al final no aparecen suplentes (no servirían
  * de nada).
  */
-function rarityWeight(rarity: number, round: number): number {
-  const progress = Math.min(1, round / 12)
+function rarityWeight(rarity: number, bossIndex: number): number {
+  const progress = Math.min(1, bossIndex / 7)
   const target = 1.6 + progress * 2.6 // 1.6 → 4.2
   const d = Math.abs(rarity - target)
   return Math.max(0.05, 1 - d * 0.42)
@@ -44,13 +44,13 @@ function weightedPick<T>(items: T[], weight: (t: T) => number, rng: RNG): T | un
 /** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
-  return signablePool(beatenTeams(save.round)).filter((p) => !owned.has(p.id))
+  return signablePool(beatenTeams(save.layer)).filter((p) => !owned.has(p.id))
 }
 
 function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {
   const pool = availableSignings(save).filter((p) => !exclude.has(p.id))
   if (!pool.length) return null
-  const pick = weightedPick(pool, (p) => rarityWeight(p.rarity, save.round), rng)
+  const pick = weightedPick(pool, (p) => rarityWeight(p.rarity, bossIndexForLayer(save.layer)), rng)
   if (!pick) return null
   exclude.add(pick.id)
   const level = signingLevel(save)
@@ -86,6 +86,9 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
 export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
   const out: DraftOption[] = []
   const seen = new Set<string>()
+  // Lo avanzada que va la partida, 0-7. Sustituye a la antigua «ronda» ahora
+  // que el torneo es un mapa por capas y no un cuadro de eliminatorias.
+  const prog = bossIndexForLayer(save.layer)
 
   const sign = signingOption(save, rng, seen)
   if (sign) out.push(sign)
@@ -101,8 +104,8 @@ export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
     })
   } else {
     const tech = weightedPick(
-      TECHNIQUES.filter((t) => t.power >= 40 && t.power <= 60 + save.round * 5),
-      (t) => 1 / (1 + Math.abs(t.power - (45 + save.round * 4)) / 20),
+      TECHNIQUES.filter((t) => t.power >= 40 && t.power <= 60 + prog * 9),
+      (t) => 1 / (1 + Math.abs(t.power - (45 + prog * 7)) / 20),
       rng,
     )
     if (tech) {
@@ -120,13 +123,13 @@ export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
   const roll = rng.next()
   if (roll < 0.5) {
     const item = weightedPick(
-      ITEMS.filter((i) => i.kind !== 'consumible' || save.round < 8),
-      (i) => 1 / (1 + Math.abs(i.price - (700 + save.round * 200)) / 700),
+      ITEMS.filter((i) => i.kind !== 'consumible' || prog < 5),
+      (i) => 1 / (1 + Math.abs(i.price - (700 + prog * 350)) / 700),
       rng,
     )
     if (item) out.push({ kind: 'objeto', id: `draft-item-${item.id}`, title: item.name, desc: item.desc, itemId: item.id })
   } else if (roll < 0.8) {
-    const amount = 500 + save.round * 120
+    const amount = 500 + prog * 210
     out.push({ kind: 'dinero', id: 'draft-cash', title: `${amount.toLocaleString('es-ES')} ₽`, desc: 'Taquilla y patrocinadores', amount })
   } else {
     out.push({ kind: 'descanso', id: 'draft-rest', title: 'Recuperación completa', desc: 'Toda la plantilla recupera aguante y PT' })

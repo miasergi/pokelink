@@ -15,12 +15,14 @@ import { getItem } from '@/data/inazuma/items'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
-  applyMatchResult, autoTraining, canLearn, createSave, fullRest, isEliminated, startMatch,
+  advanceLayer, applyMatchResult, applyPachangaResult, canLearn, createSave, fullRest,
+  isEliminated, isMapComplete, startMatch, startPachanga,
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
+import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { buildDraft, buildScoutOffer } from '@/engine/inazuma/rewards'
 import { autoLineup, createPlayer, levelUp, lineupError, ptMax } from '@/engine/inazuma/roster'
-import { buildOffer, TOTAL_ROUNDS, isMatchRound } from '@/engine/inazuma/tournament'
+import { bossIndexForLayer, currentOffer, layerName } from '@/engine/inazuma/tournament'
 import {
   ROSTER_MAX, TECHNIQUE_SLOTS,
   type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent, type MatchPhase,
@@ -77,6 +79,8 @@ interface InazumaState {
   hasSave: boolean
   /** Partido en curso (en memoria; nunca se guarda). */
   match: MatchState | null
+  /** Pachanga en curso (idem: no se persiste). */
+  pachanga: PachangaState | null
   /** Nodo que originó el partido, para saber qué premio pagar al acabar. */
   matchNode: TournamentNode | null
   /** Eventos ya reproducidos, del más antiguo al más nuevo. */
@@ -115,6 +119,10 @@ interface InazumaState {
   decide: (optionId: string) => void
   finishMatch: () => void
 
+  // pachanga
+  pachangaShoot: (optionId: string) => void
+  finishPachanga: () => void
+
   // recompensas
   pickDraft: (optionId: string) => void
   applyToPlayer: (uid: string) => void
@@ -134,6 +142,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   save: null,
   hasSave: false,
   match: null,
+  pachanga: null,
   matchNode: null,
   feed: [],
   playing: false,
@@ -151,7 +160,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     matchRng = null
     if (save) getRng(save)
     set({
-      save, hasSave: !!save, phase: 'title', match: null, matchNode: null,
+      save, hasSave: !!save, phase: 'title', match: null, pachanga: null, matchNode: null,
       feed: [], playing: false, draft: [], draftPicks: 0, pendingTarget: null, message: null,
     })
   },
@@ -170,20 +179,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     rng = new RNG(seed)
     rng.setState(save.rngState)
     await saveInazuma(save)
-    set({ save, hasSave: true, phase: 'map', match: null, feed: [], draft: [], message: null })
+    set({ save, hasSave: true, phase: 'map', match: null, pachanga: null, feed: [], draft: [], message: null })
   },
 
   continueTournament: () => {
     const { save } = get()
     if (!save) return
-    set({ phase: save.round >= TOTAL_ROUNDS ? 'victory' : 'map' })
+    set({ phase: isMapComplete(save) ? 'victory' : 'map' })
   },
 
   abandonTournament: async () => {
     stopTicker()
     await clearInazuma()
     rng = null
-    set({ save: null, hasSave: false, phase: 'title', match: null, feed: [] })
+    set({ save: null, hasSave: false, phase: 'title', match: null, pachanga: null, feed: [] })
   },
 
   goTo: (phase) => {
@@ -198,12 +207,12 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   chooseNode: (nodeId) => {
     const { save } = get()
     if (!save) return
-    const node = save.offer.find((n) => n.id === nodeId)
+    const node = currentOffer(save.map, save.layer).find((n) => n.id === nodeId)
     if (!node) return
 
-    // Los nodos de partido pasan por la previa (ver rival y once); el resto se
-    // resuelve al momento.
-    if (node.kind === 'partido' || node.kind === 'final' || node.kind === 'amistoso') {
+    // Jefes y pachangas pasan por la previa (ver rival y once); el resto se
+    // resuelve al momento, como las casillas del mapa del modo Pokémon.
+    if (node.kind === 'jefe' || node.kind === 'final' || node.kind === 'pachanga') {
       set({ matchNode: node, phase: 'preview' })
       return
     }
@@ -212,25 +221,51 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
 
-    const next = { ...save, roster: save.roster.slice() }
-    let message: string
-    if (node.kind === 'descanso') {
-      fullRest(next)
-      message = 'Toda la plantilla vuelve a estar fresca: aguante y PT al máximo.'
-    } else if (node.kind === 'entrenamiento') {
-      const names = autoTraining(next, 3, 2)
-      message = names.length
-        ? `Sesión dura. ${names.join(' y ')} suben 3 niveles.`
-        : 'Sesión dura, pero no había a quién entrenar.'
-    } else {
-      // Ojeador: tres fichas, eliges una.
-      const offer = buildScoutOffer(next, getRng(next))
-      advanceRound(next, getRng(next))
-      set({ save: next, draft: offer, draftPicks: 1, phase: 'draft' })
-      void persist(next, 'draft')
-      return
+    const next = { ...save, roster: save.roster.slice(), bag: save.bag.slice(), cleared: save.cleared.slice() }
+    let message: string | null = null
+
+    switch (node.kind) {
+      case 'descanso':
+        fullRest(next)
+        message = 'Toda la plantilla vuelve a estar fresca: aguante y PT al máximo.'
+        break
+      case 'objeto':
+        if (node.itemId) {
+          next.bag.push(node.itemId)
+          message = `${getItem(node.itemId)?.name ?? 'Objeto'} a la mochila.`
+        }
+        break
+      case 'tecnica':
+        // Necesita que señales a quién enseñársela: se abre el vestuario.
+        if (node.techniqueId) {
+          advanceLayer(next, node)
+          set({
+            save: next,
+            pendingTarget: {
+              kind: 'tecnica',
+              id: `node-${node.id}`,
+              title: `Aprender «${getTechnique(node.techniqueId)?.name}»`,
+              desc: 'Elige a quién se la enseña',
+              techniqueId: node.techniqueId,
+            },
+            phase: 'squad',
+          })
+          void persist(next, 'squad')
+          return
+        }
+        break
+      case 'ojeador': {
+        const offer = buildScoutOffer(next, getRng(next))
+        advanceLayer(next, node)
+        set({ save: next, draft: offer, draftPicks: 1, phase: 'draft' })
+        void persist(next, 'draft')
+        return
+      }
+      default:
+        break
     }
-    advanceRound(next, getRng(next))
+
+    advanceLayer(next, node)
     set({ save: next, phase: 'map', message })
     void persist(next, 'map')
   },
@@ -240,12 +275,55 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save || !matchNode) return
     const err = lineupError(save.roster, save.lineup)
     if (err) { set({ message: err }); return }
+    stopTicker()
+
+    // Pachanga: tanda rápida, no el partido de 90 minutos.
+    if (matchNode.kind === 'pachanga') {
+      const setup = startPachanga(save, matchNode)
+      if ('error' in setup) { set({ message: setup.error }); return }
+      matchRng = setup.rng
+      nextRound(setup.pachanga, setup.rng)
+      set({ pachanga: { ...setup.pachanga }, phase: 'pachanga' })
+      return
+    }
+
     const setup = startMatch(save, matchNode)
     if ('error' in setup) { set({ message: setup.error }); return }
     matchRng = setup.rng
-    stopTicker()
     set({ match: setup.match, feed: setup.match.events.slice(), phase: 'match', playing: true })
     get().tick()
+  },
+
+  // ---------------------------------------------------------- pachanga ----
+  pachangaShoot: (optionId) => {
+    const { pachanga } = get()
+    if (!pachanga || !matchRng || pachanga.phase !== 'decision') return
+    const round = shoot(pachanga, matchRng, optionId)
+    play(round?.scored ? 'crit' : 'hit')
+    // `nextRound` ya no hace nada si la tanda está decidida, así que se llama
+    // sin condición: comprobar `phase` aquí no compila (TypeScript la da por
+    // estrechada a 'decision' y no sabe que `shoot` la ha mutado).
+    nextRound(pachanga, matchRng)
+    set({ pachanga: { ...pachanga } })
+  },
+
+  finishPachanga: () => {
+    const { pachanga, matchNode, save } = get()
+    if (!pachanga || !matchNode || !save || pachanga.phase !== 'finished') return
+    const next: InazumaSave = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
+    applyPachangaResult(next, pachanga, matchNode)
+    advanceLayer(next, matchNode)
+    play(pachanga.result === 'win' ? 'victory' : 'defeat')
+    set({
+      save: next,
+      pachanga: null,
+      matchNode: null,
+      phase: 'map',
+      message: pachanga.result === 'win'
+        ? `Pachanga ganada ${pachanga.goals[0]}-${pachanga.goals[1]}. Los que jugaron suben ${matchNode.risky ? 3 : 2} niveles.`
+        : `Pachanga perdida ${pachanga.goals[0]}-${pachanga.goals[1]}. Solo os llevasteis el cansancio.`,
+    })
+    void persist(next, 'map')
   },
 
   // ------------------------------------------------------------ partido ----
@@ -309,37 +387,39 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     stopTicker()
     const { match, matchNode, save } = get()
     if (!match || !matchNode || !save || match.phase !== 'finished') return
-    const next: InazumaSave = { ...save, roster: save.roster.slice(), record: [...save.record] as [number, number, number] }
+    const next: InazumaSave = {
+      ...save,
+      roster: save.roster.slice(),
+      record: [...save.record] as [number, number, number],
+      cleared: save.cleared.slice(),
+    }
     applyMatchResult(next, match, matchNode)
     const result = match.result ?? 'draw'
 
     if (isEliminated(matchNode, result)) {
       next.finishedAt = Date.now()
-      void persistInazumaMeta({ round: next.round })
+      void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
       set({ save: next, phase: 'gameover', match: null, matchNode: null })
       void persist(next, 'gameover')
       play('defeat')
       return
     }
 
-    // Cartas de recompensa: 2 si saliste «a por todas», 1 en el resto.
-    const picks = matchNode.id.endsWith('-todas') ? 2 : 1
-    advanceRound(next, getRng(next))
-    const won = next.round >= TOTAL_ROUNDS
-    if (won) {
+    advanceLayer(next, matchNode)
+    if (isMapComplete(next)) {
       next.finishedAt = Date.now()
-      void persistInazumaMeta({ title: true, round: next.round })
+      void persistInazumaMeta({ title: true, round: 8 })
       set({ save: next, phase: 'victory', match: null, matchNode: null })
       void persist(next, 'victory')
       play('victory')
       return
     }
-    void persistInazumaMeta({ round: next.round })
+    void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
     set({
       save: next,
       draft: buildDraft(next, getRng(next)),
-      draftPicks: matchNode.kind === 'amistoso' ? 0 : picks,
-      phase: matchNode.kind === 'amistoso' ? 'map' : 'draft',
+      draftPicks: 1,
+      phase: 'draft',
       match: null,
       matchNode: null,
     })
@@ -543,15 +623,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 // Helpers internos
 // ---------------------------------------------------------------------------
 
-/** Cierra la ronda actual y genera la oferta de la siguiente. */
-function advanceRound(save: InazumaSave, r: RNG): void {
-  const current = save.offer.map((n) => n.id)
-  save.cleared = [...save.cleared, ...current]
-  save.round += 1
-  save.offer = buildOffer(save.round, r)
-  save.rngState = r.getState()
-}
-
 /**
  * Descuenta una carta de la tanda: si quedan más, se vuelve a barajar (sin la
  * que acabas de coger); si no, de vuelta al mapa.
@@ -574,9 +645,9 @@ function closeDraft(
   void persist(save, 'map')
 }
 
-/** ¿La ronda actual es de partido? Lo usa la cabecera del mapa. */
-export function currentRoundIsMatch(save: InazumaSave | null): boolean {
-  return !!save && isMatchRound(save.round)
+/** Dónde estás del mapa, para la cabecera. */
+export function currentPlaceName(save: InazumaSave | null): string {
+  return save ? layerName(save.layer) : ''
 }
 
 /** Marcador del partido en curso, tal y como lo ve el usuario. */

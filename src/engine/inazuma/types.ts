@@ -270,25 +270,53 @@ export interface ChainState {
 // Torneo (la capa roguelite)
 // ---------------------------------------------------------------------------
 
-export type NodeKind = 'partido' | 'amistoso' | 'ojeador' | 'entrenamiento' | 'descanso' | 'tienda' | 'final'
+/**
+ * Casillas del mapa, calcadas en espíritu a las del roguelike Pokémon:
+ *   pachanga ≈ combate salvaje   ·  jefe ≈ gimnasio
+ *   objeto/tecnica ≈ objeto       ·  ojeador ≈ captura
+ *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
+ */
+export type NodeKind =
+  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'descanso' | 'tienda' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
   kind: NodeKind
-  /** Instituto rival (solo en nodos de partido). */
+  /** Capa del mapa (0 = salida) y columna dentro de la capa. */
+  layer: number
+  col: number
+  /** Instituto rival (jefes, final y pachangas). */
   teamId?: string
   /** Nivel medio del rival. */
   level?: number
   title: string
   subtitle: string
-  /** 0-3 estrellas de riesgo, calculadas contra tu plantilla al pintar el mapa. */
   reward: string
+  /** Contenido ya sorteado al generar el mapa (para que la previa no mienta). */
+  itemId?: string
+  techniqueId?: string
+  /** Casilla arriesgada: rival más fuerte, premio doble. */
+  risky?: boolean
 }
 
-export interface TournamentRound {
+/** Mapa completo de una partida: capas de casillas conectadas en cadena. */
+export interface InazumaMap {
+  /** Ids de casilla por capa. */
+  layers: string[][]
+  nodes: Record<string, TournamentNode>
+  totalLayers: number
+}
+
+/**
+ * Tramo del mapa: las capas que van desde el jefe anterior hasta el siguiente.
+ * Se pinta UNA PANTALLA POR TRAMO, igual que en el roguelike Pokémon.
+ */
+export interface MapSegment {
   index: number
   name: string
-  nodes: TournamentNode[]
+  start: number
+  end: number
+  boss: TournamentNode | null
 }
 
 /**
@@ -334,15 +362,17 @@ export interface InazumaItem {
 // ---------------------------------------------------------------------------
 
 export type InazumaPhase =
-  | 'title' | 'setup' | 'map' | 'preview' | 'match' | 'result'
+  | 'title' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
   | 'draft' | 'squad' | 'shop' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number
   rngState: number
-  /** Ronda actual del torneo (0-based). */
-  round: number
-  /** Nodos ya jugados, por id. */
+  /** Mapa completo de la partida, generado al empezar. */
+  map: InazumaMap
+  /** Capa en la que estás. Avanza una casilla por elección. */
+  layer: number
+  /** Ids de casilla ya jugadas. */
   cleared: string[]
   roster: PlayerInstance[]
   /** uids del once titular, en orden POR, DEF…, MED…, DEL…. */
@@ -354,8 +384,6 @@ export interface InazumaSave {
   goalsAgainst: number
   /** Ids de objeto en la mochila (sin equipar). */
   bag: string[]
-  /** Ronda a la que pertenecen los nodos ofrecidos ahora. */
-  offer: TournamentNode[]
   /** Resultado del último partido, para la pantalla de resumen y el draft. */
   lastMatch?: {
     rival: string

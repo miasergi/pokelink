@@ -15,8 +15,9 @@ import { useCyber } from '@/state/cyberStore'
 import { createAdventure } from '@/engine/cyber/cyberEngine'
 import InazumaScreen from '@/ui/screens/InazumaScreen'
 import { useInazuma } from '@/state/inazumaStore'
-import { createSave, startMatch } from '@/engine/inazuma/game'
+import { createSave, startMatch, startPachanga } from '@/engine/inazuma/game'
 import { advance, chooseOption } from '@/engine/inazuma/match'
+import { nextRound, shoot } from '@/engine/inazuma/pachanga'
 import { buildDraft } from '@/engine/inazuma/rewards'
 import { RNG } from '@/utils/rng'
 
@@ -61,9 +62,31 @@ describe('render de pantallas (smoke)', () => {
       expect(() => renderToString(createElement(InazumaScreen)), phase).not.toThrow()
     }
 
+    // El mapa de un tramo avanzado, para que se pinten casillas pasadas,
+    // actuales y futuras a la vez.
+    useInazuma.setState({ save: { ...save, layer: 6 }, phase: 'map' })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+
+    // Pachanga: se juega entera y se pinta en cada ronda.
+    const pachNode = save.map.layers[0].map((id) => save.map.nodes[id]).find((n) => n.kind === 'pachanga')!
+    const ps = startPachanga(save, pachNode)
+    if ('error' in ps) throw new Error(ps.error)
+    nextRound(ps.pachanga, ps.rng)
+    let pGuard = 0
+    while (ps.pachanga.phase !== 'finished' && pGuard++ < 50) {
+      useInazuma.setState({ pachanga: ps.pachanga, matchNode: pachNode, phase: 'pachanga' })
+      expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+      if (ps.pachanga.phase === 'decision') shoot(ps.pachanga, ps.rng, ps.pachanga.options[0].id)
+      nextRound(ps.pachanga, ps.rng)
+    }
+    expect(ps.pachanga.phase).toBe('finished')
+    useInazuma.setState({ pachanga: ps.pachanga, phase: 'pachanga' })
+    expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
+    useInazuma.setState({ pachanga: null })
+
     // Previa y partido: se juega hasta el pitido final pasando por al menos una
     // jugada clave, que es donde vive el panel de decisión.
-    const node = save.offer[0]
+    const node = Object.values(save.map.nodes).find((n) => n.kind === 'jefe')!
     useInazuma.setState({ save, matchNode: node, phase: 'preview' })
     expect(() => renderToString(createElement(InazumaScreen))).not.toThrow()
 

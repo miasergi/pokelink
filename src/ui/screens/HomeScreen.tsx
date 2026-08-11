@@ -16,7 +16,7 @@ import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
 import { loadCyber, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
 import TypeBadge from '@/ui/components/TypeBadge'
-import { roundName } from '@/engine/inazuma/tournament'
+import { layerName } from '@/engine/inazuma/tournament'
 
 /** Fecha local (YYYY-MM-DD) de un timestamp, igual que `dailyChallenge`. */
 function localDateStr(ms: number): string {
@@ -105,7 +105,7 @@ export default function HomeScreen() {
   const [hasCyber, setHasCyber] = useState(false)
   const today = dailyChallenge().date
   useEffect(() => {
-    void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${roundName(s.round)}` : null))
+    void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer)}` : null))
     void loadCyber().then((s) => setHasCyber(!!s))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).

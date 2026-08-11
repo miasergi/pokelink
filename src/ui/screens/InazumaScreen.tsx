@@ -4,6 +4,7 @@
 import { useEffect } from 'react'
 import { useInazuma } from '@/state/inazumaStore'
 import MatchView from '@/ui/inazuma/MatchView'
+import PachangaView from '@/ui/inazuma/PachangaView'
 import {
   DraftView, EndView, MapView, PreviewView, ShopView, SquadView, TitleView, Toast,
 } from '@/ui/inazuma/InazumaViews'
@@ -19,6 +20,7 @@ export default function InazumaScreen() {
       case 'map': return <MapView />
       case 'preview': return <PreviewView />
       case 'match': return <MatchView />
+      case 'pachanga': return <PachangaView />
       case 'squad': return <SquadView />
       case 'shop': return <ShopView />
       case 'draft': return <DraftView />
