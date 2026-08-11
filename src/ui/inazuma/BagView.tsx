@@ -12,6 +12,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import { ItemIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
@@ -89,7 +90,7 @@ export default function BagView() {
               return (
                 <Card key={`${id}-${i}`} className="p-3" onClick={() => setPending({ kind: 'tech', id })}>
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl shrink-0" style={{ color: info.color }}>{info.glyph}</span>
+                    <TechniqueBadge tech={t} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-sm" style={{ color: info.color }}>{t.name}</div>
                       <div className="text-[11px] text-slate-400">
@@ -116,9 +117,7 @@ export default function BagView() {
               return (
                 <Card key={`${id}-${i}`} className="p-3" onClick={() => setPending({ kind: 'item', id })}>
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl shrink-0">
-                      {item.kind === 'equipo' ? '🎽' : item.kind === 'manual' ? '📘' : '🧃'}
-                    </span>
+                    <ItemIcon itemId={id} className="w-6 h-6 shrink-0 text-slate-300" />
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-sm">{item.name}</div>
                       <div className="text-[11px] text-slate-400">{item.desc}</div>

@@ -60,11 +60,24 @@ export function getItem(id: string): InazumaItem | undefined {
   return ITEM_BY_ID.get(id)
 }
 
-/** Lo que vende cada sitio. El Rai Rai solo sirve comida. */
-export function stockFor(kind: 'tienda' | 'rairai'): InazumaItem[] {
-  return kind === 'rairai'
+/**
+ * Lo que vende cada sitio, según lo avanzado que vayas (0-7). El Rai Rai solo
+ * sirve comida.
+ *
+ * El catálogo se ABRE por tramos: en la primera ronda no tiene sentido ver las
+ * Botas Doradas de 2600 ₽ ni el Amuleto de 7500 en el escaparate, porque no hay
+ * forma de pagarlos y solo sirven para que la tienda parezca un museo. Cada
+ * instituto que tumbas desbloquea material mejor, así que volver a la tienda
+ * más adelante tiene sentido.
+ */
+export function stockFor(kind: 'tienda' | 'rairai', progress = 7): InazumaItem[] {
+  const pool = kind === 'rairai'
     ? ITEMS.filter((i) => i.kind === 'comida')
     : ITEMS.filter((i) => i.kind !== 'comida')
+  // Techo de precio: arranca en 900 ₽ y sube ~800 por eliminatoria superada.
+  // Los raros nunca se venden: esos solo salen en las casillas de objeto.
+  const ceiling = 900 + progress * 850
+  return pool.filter((i) => i.kind !== 'raro' && i.price <= ceiling)
 }
 
 /** Objetos que pueden salir en una casilla de objeto, según lo avanzado que vayas. */

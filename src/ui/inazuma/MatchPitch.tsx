@@ -9,6 +9,7 @@
 // `STEP_X`.
 import { useRef } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { actorByUid, playerSide, sideOf } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
@@ -131,7 +132,7 @@ function Face({ actor, x, label, ball, dim }: {
             </span>}
           />
         </div>
-        {ball && <span className="absolute -bottom-0.5 -right-1 text-[11px] leading-none">⚽</span>}
+        {ball && <Icon name="ball" className="absolute -bottom-1 -right-1.5 w-4 h-4 text-white drop-shadow" />}
       </div>
       {/* Solo el nombre de pila: el apellido no cabe sin taparlo todo. */}
       <span className="mt-0.5 max-w-[64px] truncate rounded px-1 text-[8px] font-bold bg-black/60 text-white leading-tight">

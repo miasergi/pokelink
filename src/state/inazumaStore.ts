@@ -459,9 +459,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const opt = draft.find((o) => o.id === optionId)
     if (!opt) return
 
-    // Estas dos necesitan que señales a quién: se guardan y se abre la plantilla.
+    // Estas dos necesitan que señales a quién. El selector vive en el vestuario,
+    // así que hay que LLEVAR ahí: antes solo se guardaba el objetivo y la
+    // pantalla de recompensa se quedaba clavada sin decir nada.
     if (opt.kind === 'entrenamiento' || opt.kind === 'tecnica') {
-      set({ pendingTarget: opt })
+      set({ pendingTarget: opt, phase: 'squad' })
       return
     }
 
@@ -515,7 +517,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     closeDraft(set, next, draft, draftPicks, pendingTarget.id, message)
   },
 
-  cancelTarget: () => set({ pendingTarget: null }),
+  /** Vuelve a la carta sin gastarla: la recompensa sigue esperando. */
+  cancelTarget: () => set({ pendingTarget: null, phase: get().draft.length ? 'draft' : 'map' }),
 
   /**
    * Resuelve una situación del mapa. Las opciones con `chance` pueden salir mal
@@ -801,7 +804,6 @@ function closeDraft(
   void persist(save, 'map')
 }
 
-/** Aplica el efecto de una situación al save. Muta `save`. */
 /** Dónde estás del mapa, para la cabecera. */
 export function currentPlaceName(save: InazumaSave | null): string {
   return save ? layerName(save.layer) : ''

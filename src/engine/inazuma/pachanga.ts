@@ -18,12 +18,19 @@ import type { Actor, DecisionOption, MatchSide, Technique } from './types'
 export const PACHANGA_TARGET = 3
 export const PACHANGA_MAX_ROUNDS = 5
 /**
- * Tope duro con muerte súbita incluida. Una pachanga NO puede acabar en tablas:
- * si tras las cinco rondas hay empate se sigue tirando de dos en dos hasta que
- * alguien saque ventaja, como una tanda de penaltis. Sin esto salían pachangas
- * 0-0 que se contaban como derrota, que es el desenlace menos divertido posible.
+ * Tope duro de rondas. La muerte súbita se juega de dos en dos hasta que alguien
+ * saca ventaja, así que el tope solo está para que un bucle no se vaya a
+ * infinito: NO decide nada por sí mismo. Antes valía 13 y cortaba tandas
+ * todavía empatadas, que se apuntaban como derrota — justo el desenlace que la
+ * muerte súbita existe para evitar.
  */
-const HARD_CAP_ROUNDS = 13
+const HARD_CAP_ROUNDS = 61
+/**
+ * A partir de esta ronda los porteros están fundidos: cada tanda extra les
+ * quita aguante de más, así que las tandas se van desnivelando solas y la
+ * muerte súbita no se eterniza.
+ */
+const KEEPER_FATIGUE_FROM = 9
 /** Aguante que cuesta cada mano a mano, al tirador y al portero. */
 const STAMINA_PER_ROUND = 6
 
@@ -106,6 +113,11 @@ function finish(s: PachangaState): void {
   s.pending = null
   s.options = []
   s.result = s.goals[0] > s.goals[1] ? 'win' : 'loss'
+}
+
+/** ¿Puede acabar en tablas? No: es lo que garantiza `decided`. */
+export function isDraw(s: PachangaState): boolean {
+  return s.phase === 'finished' && s.goals[0] === s.goals[1]
 }
 
 /** ¿Va en muerte súbita? Lo pinta la UI para que se entienda por qué sigue. */
@@ -201,7 +213,10 @@ export function shoot(s: PachangaState, rng: RNG, optionId: string): PachangaRou
   if (shotTech) shooter.pt = Math.max(0, shooter.pt - shotTech.cost)
   if (saveTech) keeper.pt = Math.max(0, keeper.pt - saveTech.cost)
   shooter.stamina = Math.max(0, shooter.stamina - STAMINA_PER_ROUND)
-  keeper.stamina = Math.max(0, keeper.stamina - STAMINA_PER_ROUND)
+  // Al portero se le cargan las piernas más deprisa según se alarga la tanda:
+  // es lo que rompe los empates eternos sin recurrir a una moneda al aire.
+  const extra = s.round >= KEEPER_FATIGUE_FROM ? (s.round - KEEPER_FATIGUE_FROM) + 2 : 0
+  keeper.stamina = Math.max(0, keeper.stamina - STAMINA_PER_ROUND - extra)
 
   const r = resolveDuel('definicion', toDuelist(shooter, shotTech), toDuelist(keeper, saveTech), rng)
   if (r.success) {

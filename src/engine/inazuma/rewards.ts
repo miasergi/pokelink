@@ -9,7 +9,8 @@ import { signablePool } from './roster'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
 import { beatenTeams, bossIndexForLayer } from './tournament'
 
-const RARITY_STARS = ['', '★', '★★', '★★★', '★★★★', '★★★★★']
+/** Rareza en palabras: la descripción es texto plano y aquí no caben iconos. */
+const RARITY_WORD = ['', 'suplente', 'de rotación', 'titular', 'estrella', 'crack']
 
 /** Nivel al que llega un fichaje: el del resto de tu plantilla, para que sirva. */
 export function signingLevel(save: InazumaSave): number {
@@ -58,7 +59,8 @@ export function learnableByRoster(save: InazumaSave) {
 /** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
-  return signablePool(beatenTeams(save.layer)).filter((p) => !owned.has(p.id))
+  return signablePool(beatenTeams(save.layer, save.teamId), save.teamId)
+    .filter((p) => !owned.has(p.id))
 }
 
 function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {
@@ -74,7 +76,7 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
     title: `Fichar a ${pick.name}`,
     // Los fichajes NO cuestan dinero: son la recompensa de la casilla, como
     // una captura en el modo Pokémon. El dinero es solo para la tienda.
-    desc: `${RARITY_STARS[pick.rarity]} · ${pick.position} · nivel ${level}`,
+    desc: `${RARITY_WORD[pick.rarity]} · ${pick.position} · nivel ${level}`,
     playerId: pick.id,
     level,
   }

@@ -25,7 +25,7 @@ import { RNG } from '@/utils/rng'
 import { rivalStartingXI } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { EVENTS } from '@/data/inazuma/events'
-import { techniqueStock } from '@/data/inazuma/techniques'
+import { TECHNIQUES, techniqueStock } from '@/data/inazuma/techniques'
 
 // jsdom no trae ni `scrollIntoView` ni `ResizeObserver`, y el tablero del mapa
 // y la retransmisión los usan para medirse.
@@ -110,14 +110,14 @@ describe('render de pantallas (smoke)', () => {
       save: {
         ...save,
         bag: ['botas-rayo', 'mejora', 'manual-avanzado'],
-        techniqueBag: ['t-tornado-fuego'],
+        techniqueBag: [TECHNIQUES[0].id],
         playerStats: { [save.roster[0].uid]: { goals: 3, saves: 5, duelsWon: 9, duelsLost: 4, matches: 2 } },
       },
       phase: 'bag',
     })
     const bag = mount(InazumaScreen)
     expect(bag).toContain('Botas Rayo')
-    expect(bag).toContain('Tornado de Fuego')
+    expect(bag).toContain(TECHNIQUES[0].name)
 
     useInazuma.setState({ phase: 'stats' })
     expect(mount(InazumaScreen)).toContain(getPlayerBase(save.roster[0].baseId).name)

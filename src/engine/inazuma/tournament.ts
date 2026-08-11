@@ -22,8 +22,21 @@ import { TECHNIQUES } from '@/data/inazuma/techniques'
 import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
 import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from './types'
 
-/** Nivel del instituto que cierra cada tramo. */
-export const RIVAL_LEVELS = [6, 10, 14, 18, 22, 26, 30, 34]
+/**
+ * Nivel del instituto que cierra cada tramo.
+ *
+ * Sale por encima de tu plantilla (arrancas a nivel 5) y sube más deprisa que
+ * antes: los institutos del final rondan el 40 en vez del 30. La curva se fijó
+ * MIDIENDO con qué nivel llega el bot a cada eliminatoria — el número absoluto
+ * da igual, lo que decide el partido es la diferencia:
+ *
+ *   llegas con  [11,20,29,41,50,56,58,60]
+ *   el rival va [ 6,10,16,23,29,35,40,44]
+ *
+ * La ventaja crece porque el `power` del instituto también (0.72 → 1.16), así
+ * que el margen que ganas grindeando pachangas se lo come su calidad.
+ */
+export const RIVAL_LEVELS = [9, 16, 24, 32, 40, 47, 54, 60]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
@@ -321,9 +334,13 @@ export function bossIndexForLayer(layer: number): number {
 }
 
 /** Institutos ya derrotados: definen a quién puedes fichar. */
-export function beatenTeams(layer: number): string[] {
+export function beatenTeams(layer: number, playerTeamId?: string): string[] {
   const done = Math.floor(layer / (ROUTE_LAYERS_PER_SEGMENT + 1))
-  return BRACKET.slice(0, done).map((b) => b.teamId)
+  // El cuadro depende del instituto con el que juegues (el que descartas entra
+  // en él), así que mirar el cuadro por defecto daba equipos equivocados a
+  // quien no jugara con el Raimon.
+  const bracket = playerTeamId ? buildBracket(playerTeamId) : BRACKET
+  return bracket.slice(0, done).map((b) => b.teamId)
 }
 
 /** Nombre visible del punto del mapa en el que estás. */

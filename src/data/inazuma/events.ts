@@ -38,6 +38,7 @@ export interface EventOption {
 
 export interface InazumaEvent {
   id: string
+  /** Nombre del SVG en `Icon.tsx`. En este modo no se usan emojis. */
   icon: string
   title: string
   text: string
@@ -47,7 +48,7 @@ export interface InazumaEvent {
 export const EVENTS: InazumaEvent[] = [
   {
     id: 'ribera',
-    icon: '🌅',
+    icon: 'sunrise',
     title: 'La ribera del río',
     text: 'El sitio donde el equipo lleva entrenando desde siempre. Nadie os mira, no hay árbitro y da igual la hora que sea.',
     options: [
@@ -57,7 +58,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'cuaderno',
-    icon: '📓',
+    icon: 'notebook',
     title: 'El cuaderno del abuelo',
     text: 'Aparece un cuaderno viejo lleno de esquemas de supertécnicas dibujados a mano. Cuesta entender la letra.',
     options: [
@@ -73,7 +74,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'cazatalentos',
-    icon: '🕴️',
+    icon: 'suit',
     title: 'Un hombre de traje',
     text: 'Lleva un rato mirando el entrenamiento sin decir nada. Al final se acerca: dice que representa a un jugador que busca equipo.',
     options: [
@@ -83,7 +84,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'maquina',
-    icon: '🥤',
+    icon: 'vending',
     title: 'Máquina expendedora averiada',
     text: 'Da el doble de lo que pides. También podría tragarse las monedas y no dar nada.',
     options: [
@@ -100,7 +101,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'porteria',
-    icon: '🥅',
+    icon: 'goalpost',
     title: 'La portería oxidada',
     text: 'Una portería abandonada en un descampado. El larguero está doblado y la red hecha jirones, pero aguanta.',
     options: [
@@ -114,7 +115,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'lesion',
-    icon: '🩹',
+    icon: 'bandage',
     title: 'Tobillo tocado',
     text: 'Un mal apoyo en el calentamiento. No parece grave, pero cojea.',
     options: [
@@ -129,7 +130,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'reto',
-    icon: '🎯',
+    icon: 'target2',
     title: 'Reto de los veteranos',
     text: 'Unos exjugadores del barrio os desafían a un concurso de tiros. Apuestan dinero.',
     options: [
@@ -146,7 +147,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'tienda-cerrada',
-    icon: '📦',
+    icon: 'box',
     title: 'Reparto equivocado',
     text: 'Una caja con material deportivo en la puerta de un almacén cerrado. La etiqueta lleva otra dirección.',
     options: [
@@ -156,7 +157,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'tormenta',
-    icon: '⛈️',
+    icon: 'storm',
     title: 'Se pone a diluviar',
     text: 'El campo se convierte en un barrizal en cinco minutos.',
     options: [
@@ -166,7 +167,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'maestro',
-    icon: '🧓',
+    icon: 'elder',
     title: 'El viejo del quiosco',
     text: 'Dice que jugó en Primera hace cuarenta años. Nadie sabe si es verdad, pero de fútbol sabe un rato.',
     options: [
@@ -180,7 +181,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'balon-firmado',
-    icon: '✍️',
+    icon: 'autograph',
     title: 'Balón firmado',
     text: 'Encontráis un balón con la firma de una vieja gloria. Podría valer bastante.',
     options: [
@@ -190,7 +191,7 @@ export const EVENTS: InazumaEvent[] = [
   },
   {
     id: 'gimnasio',
-    icon: '🏋️',
+    icon: 'dumbbell',
     title: 'Gimnasio del polideportivo',
     text: 'Está vacío y la puerta abierta. Hay pesas, cintas y una máquina de bebidas que funciona.',
     options: [

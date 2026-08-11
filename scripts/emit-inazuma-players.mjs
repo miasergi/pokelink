@@ -27,24 +27,89 @@ const SHAPE = {
   DEL: { tiro: 0.30, control: 0.21, fisico: 0.14, defensa: 0.08, velocidad: 0.17, aguante: 0.10 },
 }
 
-/** Técnicas por demarcación y nivel de estrella. */
-const TECHS = {
-  POR: { top: ['p-mano-celestial', 'p-blocaje'], mid: ['p-muralla'], low: ['p-blocaje'] },
-  DEF: { top: ['b-muro', 'b-entrada'], mid: ['b-raices'], low: ['b-entrada'] },
-  MED: { top: ['r-ilusion', 'r-torbellino'], mid: ['r-paso-montana'], low: ['r-recorte'] },
-  DEL: { top: ['t-tornado-fuego', 't-brasa'], mid: ['t-meteorito'], low: ['t-tiro-raso'] },
+/** Clase de técnica que usa cada demarcación. */
+const KIND = { POR: 'parada', DEF: 'bloqueo', MED: 'regate', DEL: 'tiro' }
+
+/**
+ * Técnicas de salida, LEÍDAS del catálogo generado por
+ * `build-inazuma-techniques.mjs`. Antes estaban escritas a mano aquí y, al
+ * regenerar el catálogo desde la wiki, todos los jugadores se quedaron
+ * apuntando a ids que ya no existían.
+ *
+ * Se elige por demarcación Y elemento, que es lo que exige el motor para poder
+ * aprenderlas: a un defensa de bosque le toca un bloqueo de bosque.
+ */
+async function readTechniques() {
+  const src = await readFile(join(ROOT, 'src', 'data', 'inazuma', 'techniques.ts'), 'utf8')
+  const out = []
+  const re = /\{ id: '([^']+)', name: "[^"]*", kind: '([^']+)', element: '([^']+)', power: (\d+)/g
+  let m
+  while ((m = re.exec(src))) out.push({ id: m[1], kind: m[2], element: m[3], power: Number(m[4]) })
+  return out
+}
+
+/** Las `n` técnicas más flojas de esa clase y elemento, de menos a más. */
+function pickTechs(all, position, element, n) {
+  const kind = KIND[position] ?? 'regate'
+  const pool = all.filter((t) => t.kind === kind && t.element === element)
+    .sort((a, b) => a.power - b.power)
+  if (!pool.length) return []
+  return pool.slice(0, n).map((t) => t.id)
 }
 
 /** Espíritu por elemento, solo para ★4-★5. */
 const SPIRIT = { fuego: 'pegaso', bosque: 'ent', aire: 'kraken', montana: 'majin' }
 
-/** Estrellas por puesto en la plantilla: los primeros son los titulares. */
+/**
+ * Estrellas ESCRITAS A MANO para los personajes cuyo peso en la serie conozco.
+ *
+ * El orden de la wiki no es un escalafón de calidad: coloca a los jugadores por
+ * el orden en que aparecen en la ficha del equipo, así que Axel Blaze (el
+ * killer del Raimon) salía ★1 y Paul Peabody ★3 y le quitaba el sitio a Kevin
+ * Dragonfly en el once. Lo que está en esta tabla manda; el resto sigue con la
+ * heurística del índice.
+ *
+ * Solo hay entradas de los personajes de los que estoy seguro. Si falta alguien
+ * que merezca más estrellas, se añade aquí y se vuelve a generar el fichero.
+ */
+const STARS = {
+  // --- Raimon
+  'Mark Evans': 5,        // Endou, capitán y portero titular
+  'Axel Blaze': 5,        // Gouenji, el killer
+  'Kevin Dragonfly': 4,   // Someoka, el otro delantero de referencia
+  'Nathan Swift': 4,      // Kazemaru
+  'Jack Wallside': 3,
+  'Tod Ironside': 3,
+  'Steve Grim': 3,
+  'Sam Kincaid': 3,
+  'Tim Saunders': 3,
+  'Maxwell Carson': 3,
+  'Bobby Shearer': 3,
+  'Jim Wraith': 2,
+  'Paul Peabody': 2,
+  'William Glass': 2,
+  // --- Rivales de los que no hay duda
+  'Jude Sharp': 5,        // Kidou, el cerebro de la Royal
+  'David Samford': 4,     // Sakuma
+  'Byron Love': 5,        // Aphrodi, el as del Zeus
+}
+
+/**
+ * Estrellas por puesto en la plantilla: los primeros son los titulares.
+ *
+ * MISMO perfil para todos los institutos. Antes los rivales tenían un techo más
+ * bajo que el Raimon (★4 contra ★5) y, al escribir a mano las estrellas de los
+ * cracks del Raimon, el jugador se plantaba con dos ★5 y dos ★4 contra equipos
+ * cuyo mejor hombre era ★4: el torneo se ganaba en una de cada cuatro partidas.
+ * Cada instituto tiene sus figuras; la diferencia entre unos y otros la marca
+ * el `power` del equipo, que para eso está.
+ */
 function rarityFor(index, teamId) {
   const elite = teamId === 'royal' || teamId === 'zeus'
-  if (index === 0) return elite ? 5 : 4
-  if (index <= 2) return elite ? 4 : 3
-  if (index <= 6) return 3
-  if (index <= 9) return 2
+  if (index === 0) return 5
+  if (index <= 2) return 4
+  if (index <= 8) return 3
+  if (index <= 11) return 2
   return elite ? 2 : 1
 }
 
@@ -64,11 +129,23 @@ function statsFor(position, rarity, seedStr) {
   return out
 }
 
-function techsFor(position, rarity) {
-  const t = TECHS[position] ?? TECHS.MED
-  if (rarity >= 4) return t.top
-  if (rarity === 3) return [...t.mid, ...t.low].slice(0, 2)
-  return t.low
+/**
+ * Cuántas técnicas y de qué nivel según las estrellas. Los ★4-★5 se llevan una
+ * potente y una de repuesto; los ★1 salen con una básica y a ganársela.
+ */
+function techsFor(all, position, element, rarity) {
+  const kind = KIND[position] ?? 'regate'
+  const pool = all.filter((t) => t.kind === kind && t.element === element)
+    .sort((a, b) => a.power - b.power)
+  if (!pool.length) return []
+  // OJO con subir estos percentiles: medido con el bot, dar a los ★5 la técnica
+  // del percentil 75 (una definitiva de salida) disparaba los títulos del 6 %
+  // al 22 %. Las definitivas hay que ganárselas por el mapa.
+  const at = (f) => pool[Math.min(pool.length - 1, Math.floor(pool.length * f))].id
+  if (rarity >= 5) return [...new Set([at(0.45), pool[0].id])]
+  if (rarity === 4) return [...new Set([at(0.3), pool[0].id])]
+  if (rarity === 3) return [...new Set([at(0.15), pool[0].id])]
+  return [pool[0].id]
 }
 
 const q = (s) => `'${s.replace(/'/g, "\\'")}'`
@@ -78,6 +155,8 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 async function main() {
   const data = JSON.parse(await readFile(IN, 'utf8'))
+  const allTechs = await readTechniques()
+  if (!allTechs.length) throw new Error('No he podido leer techniques.ts; ¿está generado?')
 
   const lines = []
   lines.push('// Base de datos de jugadores. GENERADA — no editar a mano el bloque de')
@@ -97,8 +176,18 @@ async function main() {
   lines.push('export const PLAYERS: PlayerBase[] = [')
 
   const seenIds = new Set()
-  for (const [teamId, list] of Object.entries(data)) {
+  for (const [teamId, rawList] of Object.entries(data)) {
     lines.push(`  // ${'='.repeat(30)} ${teamId.toUpperCase()}`)
+    // Se ordena por estrellas ANTES de emitir: `startingSquad` coge los
+    // primeros de cada línea, así que el orden del fichero ES el once titular.
+    const list = rawList
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => {
+        const sa = STARS[(a.p.name ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim()] ?? 0
+        const sb = STARS[(b.p.name ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim()] ?? 0
+        return sb - sa || a.i - b.i
+      })
+      .map((x) => x.p)
     let idx = 0
     for (const p of list) {
       if (!p.position || !p.element) continue
@@ -111,9 +200,9 @@ async function main() {
       while (seenIds.has(id)) id = `${baseId}-${n++}`
       seenIds.add(id)
 
-      const rarity = rarityFor(idx, teamId)
+      const rarity = STARS[cleanName] ?? rarityFor(idx, teamId)
       const st = statsFor(p.position, rarity, id)
-      const techs = techsFor(p.position, rarity)
+      const techs = techsFor(allTechs, p.position, p.element, rarity)
       lines.push('  {')
       lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)
       lines.push(`    stats: { tiro: ${st.tiro}, control: ${st.control}, fisico: ${st.fisico}, defensa: ${st.defensa}, velocidad: ${st.velocidad}, aguante: ${st.aguante} },`)

@@ -11,6 +11,8 @@
 // sirve el Content-Type por extensión).
 import { ImgFallback } from '@/ui/components/kit'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import Icon from '@/ui/components/Icon'
+import { ELEMENT_ICON, ItemIcon } from '@/ui/inazuma/Glyphs'
 import { effectiveStats, overall, ptMax } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -42,7 +44,8 @@ export function ElementChip({ element, className = '' }: { element: Element; cla
       className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold border ${className}`}
       style={{ color: info.color, borderColor: `${info.color}66`, background: `${info.color}1a` }}
     >
-      {info.glyph} {info.label}
+      <Icon name={ELEMENT_ICON[element]} className="w-3 h-3" />
+      {info.label}
     </span>
   )
 }
@@ -149,7 +152,10 @@ export function PlayerCard({
             })}
           </div>
           {player.item && (
-            <div className="text-[10px] text-amber-200/90 truncate">🎽 {getItem(player.item)?.name}</div>
+            <div className="text-[10px] text-amber-200/90 truncate flex items-center gap-1">
+              <ItemIcon itemId={player.item} className="w-3.5 h-3.5" />
+              {getItem(player.item)?.name}
+            </div>
           )}
         </div>
       )}
@@ -220,7 +226,7 @@ export function PlayerRow({
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
-          <span className="text-[10px]" style={{ color: info.color }}>{info.glyph}</span>
+          <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           <div className="flex-1"><Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} /></div>
         </div>
       </div>

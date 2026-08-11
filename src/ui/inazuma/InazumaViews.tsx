@@ -10,6 +10,8 @@ import PitchView from '@/ui/inazuma/PitchView'
 import { RivalLineup } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
+import { ElementIcon, ItemIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { buildLineup, lineupError, overall, ptMax, transferValue } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -33,7 +35,7 @@ export function TitleView() {
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom">
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-        <div className="text-6xl animate-float">⚽</div>
+        <Icon name="ball" className="w-16 h-16 animate-float text-amber-300" />
         <h1 className="text-3xl font-extrabold tracking-tight">
           INAZUMA <span className="text-amber-400">ROGUE</span>
         </h1>
@@ -210,6 +212,7 @@ function SaveHeader({ save }: { save: InazumaSave }) {
         </div>
       </div>
       <span className="text-sm font-bold text-amber-300 tabular-nums shrink-0">{save.coins.toLocaleString('es-ES')} ₽</span>
+      <SettingsButton />
     </div>
   )
 }
@@ -313,8 +316,8 @@ function ElementBadgeVs({ mine, rival }: { mine: keyof typeof ELEMENT_INFO; riva
   const mult = elementMultiplier(mine, rival)
   const info = ELEMENT_INFO[mine]
   return (
-    <span className="text-sm" style={{ color: info.color }}>
-      {info.glyph}
+    <span className="inline-flex items-center text-sm" style={{ color: info.color }}>
+      <ElementIcon element={mine} className="w-3.5 h-3.5" />
       {mult > 1 && <span className="ml-0.5 text-[10px] text-emerald-300">▲</span>}
       {mult < 1 && <span className="ml-0.5 text-[10px] text-rose-300">▼</span>}
     </span>
@@ -376,7 +379,10 @@ export function SquadView() {
                 tab === t ? 'border-amber-500/70 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-800/60 text-slate-400'
               }`}
             >
-              {t === 'campo' ? '⚽ Alineación' : '☰ Lista'}
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name={t === 'campo' ? 'ball' : 'clipboard'} className="w-4 h-4" />
+                {t === 'campo' ? 'Alineación' : 'Lista'}
+              </span>
             </button>
           ))}
         </div>
@@ -461,6 +467,8 @@ export function SquadView() {
           onClose={() => setDetail(null)}
           onEquip={(item) => equip(detail, item)}
           blocked={save.roster.length <= SQUAD_SIZE}
+          starter={save.lineup.includes(detail)}
+          onToggleStarter={() => toggleStarter(detail)}
           onRelease={() => { release(detail); setDetail(null) }}
         />
       )}
@@ -494,7 +502,7 @@ function TechniqueStock() {
             onClick={afford ? () => buyTechnique(t.id) : undefined}
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-xl shrink-0" style={{ color: info.color }}>{info.glyph}</span>
+              <TechniqueBadge tech={t} size={40} />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-sm" style={{ color: info.color }}>{t.name}</div>
                 <div className="text-[11px] text-slate-400">
@@ -597,15 +605,18 @@ function BagPanel({
 }
 
 function PlayerDetail({
-  player, bag, blocked, onClose, onEquip, onRelease,
+  player, bag, blocked, starter, onClose, onEquip, onRelease, onToggleStarter,
 }: {
   player: PlayerInstance
   bag: string[]
   /** true si la plantilla está en el mínimo y no se puede traspasar a nadie. */
   blocked?: boolean
+  /** true si ahora mismo es titular. */
+  starter: boolean
   onClose: () => void
   onEquip: (itemId: string | undefined) => void
   onRelease: () => void
+  onToggleStarter: () => void
 }) {
   const base = getPlayerBase(player.baseId)
   const gear = bag.filter((id) => getItem(id)?.kind === 'equipo')
@@ -660,7 +671,21 @@ function PlayerDetail({
           {!gear.length && !player.item && <span className="text-[11px] text-slate-600">Nada en la mochila.</span>}
         </div>
 
-        <div className="mt-3 flex gap-2">
+        {/* Rotar desde AQUÍ: la ficha se abre igual desde la lista y desde el
+            campo, así que las dos vistas hacen exactamente lo mismo. */}
+        <Button
+          variant="secondary"
+          full
+          className="mt-3"
+          onClick={() => { onToggleStarter(); onClose() }}
+        >
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name={starter ? 'bench' : 'ball'} className="w-4 h-4" />
+            {starter ? 'Al banquillo' : 'Al once titular'}
+          </span>
+        </Button>
+
+        <div className="mt-2 flex gap-2">
           <Button variant="primary" full onClick={onClose}>Cerrar</Button>
           {/* Se enseña la cifra ANTES de pulsar: un botón de traspaso sin
               precio es una decisión a ciegas. */}
@@ -688,7 +713,8 @@ export function ShopView() {
   const { save, buy, goTo, matchNode } = useInazuma()
   if (!save) return null
   const isRaiRai = matchNode?.kind === 'rairai'
-  const stock = stockFor(isRaiRai ? 'rairai' : 'tienda')
+  const progress = bossIndexForLayer(save.layer)
+  const stock = stockFor(isRaiRai ? 'rairai' : 'tienda', progress)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -705,7 +731,7 @@ export function ShopView() {
           }}
         >
           <div className="flex items-center gap-2.5">
-            <span className="text-3xl leading-none">{isRaiRai ? '🍜' : '🛒'}</span>
+            <Icon name={isRaiRai ? 'ramen' : 'cart'} className="w-8 h-8" style={{ color: isRaiRai ? '#f472b6' : '#fcd34d' }} />
             <div className="min-w-0">
               <div className="font-extrabold text-base leading-tight">
                 {isRaiRai ? 'Restaurante Rai Rai' : 'Tienda de deportes'}
@@ -723,14 +749,19 @@ export function ShopView() {
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
         {!isRaiRai && <TechniqueStock />}
 
+
+        {!isRaiRai && progress < 7 && (
+          <p className="text-[10px] text-slate-600">
+            El escaparate crece con cada instituto que tumbas: el material caro llega más adelante.
+          </p>
+        )}
+
         {stock.map((item) => {
           const afford = save.coins >= item.price
           return (
             <Card key={item.id} className={`p-3 ${afford ? '' : 'opacity-50'}`} onClick={afford ? () => buy(item.id) : undefined}>
               <div className="flex items-center gap-2.5">
-                <span className="text-xl shrink-0">
-                  {item.kind === 'equipo' ? '🎽' : item.kind === 'manual' ? '📘' : item.kind === 'comida' ? '🍥' : '🧃'}
-                </span>
+                <ItemIcon itemId={item.id} className="w-6 h-6 shrink-0 text-slate-300" />
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-sm">{item.name}</div>
                   <div className="text-[11px] text-slate-400">{item.desc}</div>
@@ -776,7 +807,10 @@ export function DraftView() {
             <div className="text-[11px] uppercase tracking-widest text-slate-400">vs {last.rival}</div>
             <div className="text-3xl font-extrabold tabular-nums">{last.score[0]} – {last.score[1]}</div>
             {last.scorers.length > 0 && (
-              <div className="text-[11px] text-slate-300 mt-1">⚽ {last.scorers.join(', ')}</div>
+              <div className="text-[11px] text-slate-300 mt-1 flex items-center justify-center gap-1">
+                <Icon name="ball" className="w-3.5 h-3.5" />
+                {last.scorers.join(', ')}
+              </div>
             )}
           </div>
         )}
@@ -791,13 +825,15 @@ export function DraftView() {
                   <ImgFallback
                     src={portraitUrl(o.playerId)}
                     className="w-full h-full object-cover"
-                    fallback={<span className="text-lg">🎽</span>}
+                    fallback={<Icon name="jersey" className="w-6 h-6 text-slate-400" />}
                   />
                 </div>
               ) : (
-                <span className="text-2xl shrink-0">
-                  {o.kind === 'objeto' ? '🎒' : o.kind === 'entrenamiento' ? '🏃' : o.kind === 'tecnica' ? '⚡' : o.kind === 'dinero' ? '💰' : '🛌'}
-                </span>
+                <Icon
+                  name={o.kind === 'objeto' ? 'bag' : o.kind === 'entrenamiento' ? 'dumbbell'
+                    : o.kind === 'tecnica' ? 'bolt' : o.kind === 'dinero' ? 'coin' : 'bench'}
+                  className="w-7 h-7 shrink-0 text-amber-300"
+                />
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-extrabold text-sm">{o.title}</div>
@@ -824,7 +860,7 @@ export function EndView({ won }: { won: boolean }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 safe-top flex flex-col items-center gap-3 text-center">
-        <div className="text-6xl mt-4">{won ? '🏆' : '😔'}</div>
+        <Icon name={won ? 'trophy' : 'sad'} className={`w-16 h-16 mt-4 ${won ? 'text-amber-300' : 'text-slate-400'}`} />
         <h2 className={`text-2xl font-extrabold ${won ? 'text-amber-300' : 'text-slate-300'}`}>
           {won ? '¡CAMPEONES DEL FOOTBALL FRONTIER!' : 'Eliminados'}
         </h2>

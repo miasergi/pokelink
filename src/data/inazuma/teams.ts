@@ -18,10 +18,14 @@
 //
 // Segundo ajuste, midiendo eliminatoria a eliminatoria: con la cola en 1.26 los
 // tres últimos institutos eran un muro (48 % de pase contra Zeus incluso con 28
-// niveles de ventaja), y como hay que encadenar OCHO, el título salía en el 6 %
-// de las partidas jugando bien o jugando mal — o sea, decidido por la suerte y
-// no por lo que haces. Ahora la cola llega a 1.16: siguen siendo duros, pero
-// prepararse se nota. Rango 0.72 → 1.16.
+// niveles de ventaja), y como hay que encadenar OCHO, el título salía decidido
+// por la suerte y no por lo que haces.
+//
+// Tercer ajuste, al quitar los empates gratis (ahora hay prórroga y penaltis) y
+// al escribir a mano las estrellas de los cracks: la curva se aplanó por abajo
+// (0.72 → 0.94 en los seis primeros) y se dejó la cola alta, que es donde tiene
+// que doler. Rango 0.72 → 1.15, y la final se lleva por delante a uno de cada
+// cinco que llega.
 import type { TeamBase } from '@/engine/inazuma/types'
 
 export const TEAMS: TeamBase[] = [
@@ -36,37 +40,37 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', element: 'aire', power: 0.80,
+    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', element: 'aire', power: 0.78,
     taunt: 'Hemos calculado vuestras jugadas. Todas.',
     lineup: [],
   },
   {
-    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 0.88,
+    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 0.84,
     taunt: 'Aquí no se juega al fútbol. Aquí se sobrevive.',
     lineup: [],
   },
   {
-    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', element: 'aire', power: 0.94,
+    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', element: 'aire', power: 0.89,
     taunt: 'No nos veréis venir. Nunca lo hacen.',
     lineup: [],
   },
   {
-    id: 'farm', name: 'Instituto Farm', color: '#65a30d', element: 'bosque', power: 1,
+    id: 'farm', name: 'Instituto Farm', color: '#65a30d', element: 'bosque', power: 0.94,
     taunt: 'Llevamos madrugando desde los seis años. ¿Y vosotros?',
     lineup: [],
   },
   {
-    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.04,
+    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.02,
     taunt: 'Quemamos el campo entero si hace falta.',
     lineup: [],
   },
   {
-    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.09,
+    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.08,
     taunt: 'El fútbol es una ciencia. Y vosotros no habéis estudiado.',
     lineup: [],
   },
   {
-    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.16,
+    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.15,
     taunt: 'Los dioses no pierden contra unos críos.',
     lineup: [],
   },

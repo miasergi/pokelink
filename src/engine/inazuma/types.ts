@@ -171,6 +171,8 @@ export type MatchEvent =
   | { kind: 'spirit'; minute: number; side: Side; player: string; spirit: string; text: string }
   | { kind: 'exhausted'; minute: number; player: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
+  | { kind: 'stage'; minute: number; stage: MatchStage; text: string }
+  | { kind: 'penalty'; minute: number; side: Side; shooter: string; shooterUid: string; keeper: string; keeperUid: string; technique?: string; scored: boolean; text: string; shootout: [number, number] }
   | { kind: 'fulltime'; minute: number; score: [number, number]; result: 'win' | 'draw' | 'loss' }
 
 /** Una opción que el motor ofrece al jugador en una jugada clave. */
@@ -273,6 +275,22 @@ export interface MatchSide {
 export type MatchPhase = 'playing' | 'decision' | 'finished'
 
 /**
+ * Tramo del partido. Un partido de instituto NO puede acabar en tablas: si a
+ * los 90 hay empate se juega prórroga, y si sigue el empate, penaltis.
+ */
+export type MatchStage = 'reglamentario' | 'prorroga' | 'penaltis'
+
+/** Tanda de penaltis: tres cada uno y, si siguen igualados, muerte súbita. */
+export interface ShootoutState {
+  /** Penaltis ya lanzados, contando los de los dos equipos. */
+  round: number
+  /** Marcador de la tanda [local, visitante]. */
+  goals: [number, number]
+  /** Quién tira ahora mismo, mientras se espera tu decisión. */
+  pending: { shooterUid: string; keeperUid: string; side: Side } | null
+}
+
+/**
  * Estado VIVO del partido. NO se persiste a propósito: igual que en el modo
  * Cyber, abandonar a mitad de partido no guarda nada (anti-trampa: si vas
  * perdiendo 3-0 no puedes cerrar la app y volver a intentarlo).
@@ -293,6 +311,10 @@ export interface MatchState {
   result: 'win' | 'draw' | 'loss' | null
   /** true si ya se emitió el descanso. */
   halftimeDone: boolean
+  /** Reglamentario, prórroga o penaltis. */
+  stage: MatchStage
+  /** Tanda de penaltis, solo cuando `stage` es 'penaltis'. */
+  shootout: ShootoutState | null
   /** Retransmisión completa, en orden. */
   events: MatchEvent[]
   /** Nombres de los goleadores propios, para el resumen post-partido. */
@@ -312,6 +334,12 @@ export interface ChainState {
   defenderUid: string
   /** Bonus acumulado por encadenar duelos ganados en la misma jugada. */
   momentum: number
+  /**
+   * true si el usuario ha pasado el balón a propósito en esta posesión. El que
+   * recibe se lo queda hasta el final de la jugada: si no, el motor volvía a
+   * sortear quién la llevaba y el pase no cambiaba nada.
+   */
+  passed?: boolean
   /**
    * Espíritu invocado para ESTE duelo. Se invoca primero y luego eliges la
    * técnica, así que el multiplicador tiene que sobrevivir a la reconstrucción

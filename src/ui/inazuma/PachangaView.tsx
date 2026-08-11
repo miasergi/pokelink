@@ -1,22 +1,39 @@
 // Pachanga: la tanda rápida de mano a mano. Una pantalla, cinco toques.
 // Deliberadamente MUY distinta del partido de jefe (que es una retransmisión de
 // 90 minutos): aquí se ve todo de golpe y se resuelve en segundos.
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
 import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET } from '@/engine/inazuma/pachanga'
+import TechniqueCutIn, { techniqueIdByName, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
 
 export default function PachangaView() {
   const { pachanga, pachangaShoot, finishPachanga } = useInazuma()
+  const [cut, setCut] = useState<CutIn | null>(null)
+  const seen = useRef(0)
+
+  // Mismo corte que en el partido, sobre la última ronda resuelta.
+  useEffect(() => {
+    const rounds = pachanga?.rounds ?? []
+    if (rounds.length <= seen.current) { seen.current = rounds.length; return }
+    seen.current = rounds.length
+    const last = rounds[rounds.length - 1]
+    const name = last.technique ?? last.counter
+    if (name) setCut({ key: rounds.length, name, id: techniqueIdByName(name), mine: last.mine })
+  }, [pachanga?.rounds.length, pachanga])
+
   if (!pachanga) return null
   const [mine, theirs] = pachanga.goals
   const done = pachanga.phase === 'finished'
   const pending = pachanga.pending
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="relative flex flex-col flex-1 min-h-0">
+      <TechniqueCutIn cut={cut} onDone={() => setCut(null)} />
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
         <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
@@ -57,7 +74,7 @@ export default function PachangaView() {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-white/80">
               {pending.mine ? `${pending.shooter.name} avanza…` : `${pending.shooter.name} se planta delante…`}
             </div>
-            <span className="absolute right-10 top-1/2 -translate-y-1/2 text-base">⚽</span>
+            <Icon name="ball" className="absolute right-10 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
           </div>
         </div>
       )}
@@ -84,7 +101,11 @@ export default function PachangaView() {
               Ronda {r.index + 1} · {r.mine ? 'tiras tú' : 'tiran ellos'}
             </div>
             <div className="text-[12px] text-slate-200 leading-snug">
-              {r.scored ? '⚽ ' : '🧤 '}{r.text}
+              <Icon
+                name={r.scored ? 'ball' : 'glove'}
+                className="w-3.5 h-3.5 inline-block mr-1 align-[-3px]"
+              />
+              {r.text}
             </div>
           </div>
         ))}
@@ -113,7 +134,7 @@ export default function PachangaView() {
           <div className="mb-2 flex items-center gap-2">
             <Mugshot actor={pending.shooter} name={pending.shooter.name} />
             <div className="text-center px-1">
-              <div className="text-[10px] font-extrabold text-slate-500">⚽</div>
+              <Icon name="ball" className="w-4 h-4 mx-auto text-slate-500" />
               <div className="text-[9px] text-slate-500 whitespace-nowrap">
                 {pending.mine ? 'tiras' : 'paras'}
               </div>

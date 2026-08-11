@@ -4,13 +4,14 @@
 // La UI NO calcula nada: solo pinta los `MatchEvent` que emite el motor y manda
 // de vuelta el id de la opción elegida. Mismo reparto de responsabilidades que
 // `BattleScreen` en el roguelike Pokémon.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
+import TechniqueCutIn, { cutInFrom, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -22,8 +23,24 @@ export default function MatchView() {
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
   } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
+  const [cut, setCut] = useState<CutIn | null>(null)
+  const seen = useRef(0)
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
+
+  // Corte de supertécnica: se mira SOLO lo que ha entrado nuevo en la
+  // retransmisión, y se enseña la última técnica del lote. Si se mirara el
+  // feed entero volvería a saltar en cada repintado.
+  useEffect(() => {
+    if (!match) return
+    const fresh = feed.slice(seen.current)
+    seen.current = feed.length
+    const mine = playerSide(match)
+    for (let i = fresh.length - 1; i >= 0; i--) {
+      const c = cutInFrom(fresh[i], mine, feed.length)
+      if (c) { setCut(c); return }
+    }
+  }, [feed, match])
 
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
@@ -31,7 +48,8 @@ export default function MatchView() {
   const finished = match.phase === 'finished'
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="relative flex flex-col flex-1 min-h-0">
+      <TechniqueCutIn cut={cut} onDone={() => setCut(null)} />
       <Scoreboard match={match} />
       {!finished && <MatchPitch match={match} />}
 
@@ -119,6 +137,19 @@ function Scoreboard({ match }: { match: MatchState }) {
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} right />
       </div>
+      {/* La tanda tiene su propio marcador: el del partido se queda congelado. */}
+      {match.stage !== 'reglamentario' && (
+        <div className="mt-1 text-center text-[10px] font-bold uppercase tracking-widest text-amber-300">
+          {match.stage === 'prorroga' ? 'Prórroga' : (() => {
+            const sh = match.shootout
+            if (!sh) return 'Penaltis'
+            const [h, a] = sh.goals
+            const my = mineSide === 'home' ? h : a
+            const yours = mineSide === 'home' ? a : h
+            return `Penaltis · ${my} – ${yours}`
+          })()}
+        </div>
+      )}
       {/* Barras de Ruptura */}
       <div className="mt-1.5 flex items-center gap-2">
         <BurstBar value={mine.burst} turns={mine.burstTurns} color="#f59e0b" />
@@ -160,6 +191,26 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
       return <Banner text="¡Comienza el partido!" tone="neutral" />
     case 'halftime':
       return <Banner text={`Descanso · ${event.score[0]}-${event.score[1]}`} tone="neutral" />
+    case 'stage':
+      // Prórroga y penaltis se anuncian a lo grande: es el momento en el que
+      // el partido cambia de reglas.
+      return <Banner text={event.text} tone="burst" />
+    case 'penalty':
+      return (
+        <div className={`rounded-xl border px-3 py-2 animate-pop-in ${
+          event.scored
+            ? (isMine ? 'border-emerald-500/60 bg-emerald-500/15' : 'border-rose-500/60 bg-rose-500/15')
+            : 'border-slate-700 bg-slate-800/60'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-widest text-slate-400">Penalti</span>
+            <span className="ml-auto text-xs font-extrabold tabular-nums text-slate-300">
+              {event.shootout[0]} – {event.shootout[1]}
+            </span>
+          </div>
+          <div className="text-[12px] text-slate-200 leading-snug">{event.text}</div>
+        </div>
+      )
     case 'fulltime':
       return <Banner text={`Final · ${event.score[0]}-${event.score[1]}`} tone="neutral" />
     case 'goal':
@@ -169,7 +220,8 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
         }`}>
           <div className="text-[10px] tabular-nums text-slate-400">{event.minute}′</div>
           <div className="font-extrabold text-sm">
-            ⚽ ¡GOL de {event.scorer}!{event.technique ? ` (${event.technique})` : ''}
+            <Icon name="ball" className="w-4 h-4 inline-block mr-1 align-[-3px]" />
+            ¡GOL de {event.scorer}!{event.technique ? ` (${event.technique})` : ''}
           </div>
           <div className="text-xs text-slate-300 tabular-nums">{event.score[0]} – {event.score[1]}</div>
         </div>
@@ -177,13 +229,13 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
     case 'burst':
       return <Banner text={event.text} tone="burst" />
     case 'spirit':
-      return <Banner text={`👹 ${event.text}`} tone="burst" />
+      return <Banner text={event.text} tone="burst" icon="spirit" />
     case 'save':
       return <Line minute={event.minute} text={event.text} accent={isMine ? '#22c55e' : '#94a3b8'} />
     case 'turnover':
       return <Line minute={event.minute} text={event.text} accent="#64748b" />
     case 'exhausted':
-      return <Line minute={event.minute} text={`😮‍💨 ${event.text}`} accent="#f97316" />
+      return <Line minute={event.minute} text={event.text} accent="#f97316" icon="tired" />
     case 'possession':
       return <Line minute={event.minute} text={event.text} accent={isMine ? '#38bdf8' : '#475569'} />
     case 'duel': {
@@ -194,7 +246,7 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
           text={event.text}
           accent={event.success ? (isMine ? '#22c55e' : '#f43f5e') : '#64748b'}
           badge={el && event.effectiveness !== 1
-            ? `${el.glyph} ${event.effectiveness > 1 ? '×1.35' : '×0.78'}`
+            ? `${event.effectiveness > 1 ? '×1.35' : '×0.78'}`
             : undefined}
         />
       )
@@ -204,12 +256,19 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
   }
 }
 
-function Line({ minute, text, accent, badge }: { minute: number; text: string; accent: string; badge?: string }) {
+function Line({ minute, text, accent, badge, icon }: {
+  minute: number
+  text: string
+  accent: string
+  badge?: string
+  icon?: string
+}) {
   return (
     <div className="flex gap-2 items-start animate-fade-in">
       <span className="text-[10px] tabular-nums text-slate-600 w-7 shrink-0 pt-0.5">{minute}′</span>
       <span className="w-0.5 shrink-0 self-stretch rounded-full" style={{ background: accent }} />
       <span className="text-[12px] text-slate-300 leading-snug flex-1">
+        {icon && <Icon name={icon} className="w-3.5 h-3.5 inline-block mr-1 align-[-3px]" style={{ color: accent }} />}
         {text}
         {badge && <span className="ml-1.5 text-[10px] font-bold" style={{ color: accent }}>{badge}</span>}
       </span>
@@ -217,11 +276,12 @@ function Line({ minute, text, accent, badge }: { minute: number; text: string; a
   )
 }
 
-function Banner({ text, tone }: { text: string; tone: 'neutral' | 'burst' }) {
+function Banner({ text, tone, icon }: { text: string; tone: 'neutral' | 'burst'; icon?: string }) {
   return (
-    <div className={`text-center text-[11px] font-extrabold uppercase tracking-widest py-1.5 rounded-lg my-1 ${
+    <div className={`flex items-center justify-center gap-1.5 text-center text-[11px] font-extrabold uppercase tracking-widest py-1.5 rounded-lg my-1 ${
       tone === 'burst' ? 'text-amber-200 bg-amber-500/15 border border-amber-500/40 animate-pop-in' : 'text-slate-500 bg-slate-800/60'
     }`}>
+      {icon && <Icon name={icon} className="w-4 h-4 shrink-0" />}
       {text}
     </div>
   )
@@ -327,8 +387,9 @@ export function Mugshot({ actor, name, right, tiny }: {
       {!tiny && (
         <div className="min-w-0">
           <div className="text-[12px] font-bold truncate">{name}</div>
-          <div className="text-[10px]" style={{ color: info.color }}>
-            {info.glyph} {info.label}
+          <div className="text-[10px] flex items-center gap-1" style={{ color: info.color }}>
+            <Icon name={info.icon} className="w-3 h-3" />
+            {info.label}
             {actor && <span className="text-slate-500"> · {actor.pt} PT</span>}
           </div>
         </div>

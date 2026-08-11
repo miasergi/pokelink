@@ -18,11 +18,12 @@ import { getSpirit } from '@/data/inazuma/spirits'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier } from './roster'
 import type {
-  Actor, ChainStep, Decision, DecisionOption, Element, MatchEvent, MatchSide, MatchState, Side, Technique,
+  Actor, ChainStep, Decision, DecisionOption, Element, MatchEvent, MatchSide, MatchState,
+  ShootoutState, Side, Technique,
 } from './types'
 
 /** Posesiones por partido. Con la conversión actual salen resultados 0-4. */
-export const PLAYS_PER_MATCH = 12
+export const PLAYS_PER_MATCH = 16
 /** Puntos de Ruptura por hito. A 100 se puede activar la Supervibración. */
 const BURST_ON_DUEL = 13
 const BURST_ON_GOAL = 26
@@ -58,6 +59,8 @@ export function createMatch(cfg: MatchConfig, rng: RNG): MatchState {
     decision: null,
     result: null,
     halftimeDone: false,
+    stage: 'reglamentario',
+    shootout: null,
     events: [{ kind: 'kickoff', minute: 0 }],
     scorers: [],
   }
@@ -127,10 +130,16 @@ export function advance(m: MatchState, rng: RNG): MatchEvent[] {
   if (m.phase !== 'playing') return []
   const out: MatchEvent[] = []
 
+  // Penaltis: el partido ya no se juega por posesiones, se tira desde el punto.
+  if (m.stage === 'penaltis') {
+    nextPenalty(m, rng, out)
+    return commit(m, out)
+  }
+
   if (!m.chain) {
-    // ¿Se acabó?
+    // ¿Se acabó el tramo?
     if (m.play >= m.schedule.length) {
-      finish(m, out)
+      if (!openNextStage(m, out)) finish(m, out)
       return commit(m, out)
     }
     m.minute = m.schedule[m.play]
@@ -168,14 +177,61 @@ function halftimeRecovery(m: MatchState): void {
   }
 }
 
+/** Minutos de la prórroga: media hora repartida en cuatro llegadas. */
+const EXTRA_TIME_PLAYS = 4
+
+/**
+ * Abre el tramo siguiente si el partido está empatado. Un partido de instituto
+ * NO puede acabar en tablas: primero prórroga, después penaltis. Devuelve
+ * `false` cuando ya hay ganador y toca pitar el final.
+ */
+function openNextStage(m: MatchState, out: MatchEvent[]): boolean {
+  if (m.home.goals !== m.away.goals) return false
+
+  if (m.stage === 'reglamentario') {
+    m.stage = 'prorroga'
+    for (let i = 0; i < EXTRA_TIME_PLAYS; i++) m.schedule.push(94 + i * 7)
+    out.push({
+      kind: 'stage',
+      minute: 90,
+      stage: 'prorroga',
+      text: 'Se acaban los 90 y siguen igualados. ¡Media hora más!',
+    })
+    return true
+  }
+
+  if (m.stage === 'prorroga') {
+    m.stage = 'penaltis'
+    m.minute = 120
+    m.shootout = { round: 0, goals: [0, 0], pending: null }
+    out.push({
+      kind: 'stage',
+      minute: 120,
+      stage: 'penaltis',
+      text: 'Ni con la prórroga. Esto se decide desde los once metros.',
+    })
+    return true
+  }
+
+  return false
+}
+
 function finish(m: MatchState, out: MatchEvent[]): void {
   m.phase = 'finished'
-  m.minute = 90
+  m.minute = m.stage === 'reglamentario' ? 90 : 120
   const mine = playerSide(m)
   const my = sideOf(m, mine).goals
   const theirs = sideOf(m, otherSide(mine)).goals
-  m.result = my > theirs ? 'win' : my === theirs ? 'draw' : 'loss'
-  out.push({ kind: 'fulltime', minute: 90, score: score(m), result: m.result })
+  // En penaltis el marcador del partido sigue empatado: manda la tanda.
+  if (m.stage === 'penaltis' && m.shootout) {
+    const [h, a] = m.shootout.goals
+    const myPens = mine === 'home' ? h : a
+    const theirPens = mine === 'home' ? a : h
+    m.result = myPens > theirPens ? 'win' : myPens < theirPens ? 'loss' : 'draw'
+  } else {
+    m.result = my > theirs ? 'win' : my === theirs ? 'draw' : 'loss'
+  }
+  out.push({ kind: 'fulltime', minute: m.minute, score: score(m), result: m.result })
 }
 
 /** Elige de quién es la posesión (pesado por el centro del campo) y la abre. */
@@ -307,9 +363,28 @@ function executeDuel(
       scoreGoal(m, out, attacker, atkTech)
       return
     }
-    chain.step = step === 'construccion' ? 'penetracion' : 'definicion'
-    chain.carrier = attackerFor(chain.step, atkSide, rng).uid
-    chain.defenderUid = defenderFor(chain.step, defSide, rng).uid
+    const nextStep: ChainStep = step === 'construccion' ? 'penetracion' : 'definicion'
+    chain.step = nextStep
+    // Quién sigue con el balón. Antes se sorteaba SIEMPRE, y eso rompía dos
+    // cosas: si acababas de elegir «Pasar a Fulano», el balón se le quitaba
+    // acto seguido (parecía que el pase no servía de nada), y el que rompía la
+    // defensa no era el que remataba.
+    //   · si has pasado a propósito, se queda con ella,
+    //   · el que revienta la defensa es el que dispara,
+    //   · y solo en el primer relevo se busca a quien ataque el área.
+    const receiver = chain.passed || nextStep === 'definicion'
+      ? attacker
+      : attackerFor(nextStep, atkSide, rng)
+    if (receiver.uid !== attacker.uid) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `${attacker.name} se la deja a ${receiver.name}.`,
+      })
+    }
+    chain.carrier = receiver.uid
+    chain.defenderUid = defenderFor(nextStep, defSide, rng).uid
     // El espíritu vale para UN duelo, no para la jugada entera.
     chain.spirit = undefined
     return
@@ -610,6 +685,9 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     const mate = findActor(atkSide, optionId.slice(5))
     attacker = mate
     chain.carrier = mate.uid
+    // Marca la jugada como «pase buscado»: el que recibe se queda el balón el
+    // resto de la posesión en vez de devolvérselo al sorteo.
+    chain.passed = true
   }
 
   const rivalKind = d.mode === 'ataque' ? DEFEND_KIND[chain.step] : ATTACK_KIND[chain.step]
@@ -625,14 +703,134 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   m.decision = null
   m.phase = 'playing'
   const out: MatchEvent[] = []
-  executeDuel(
-    m, rng, out,
-    attacker, defender,
-    d.mode === 'ataque' ? myTech : rivalTech,
-    d.mode === 'ataque' ? rivalTech : myTech,
-  )
+  // En la tanda no hay jugada que seguir: es un tiro y a otra cosa.
+  if (m.stage === 'penaltis' && m.shootout?.pending) {
+    resolvePenalty(
+      m, rng, out, attacker, defender,
+      d.mode === 'ataque' ? myTech : rivalTech,
+      d.mode === 'ataque' ? rivalTech : myTech,
+    )
+  } else {
+    executeDuel(
+      m, rng, out,
+      attacker, defender,
+      d.mode === 'ataque' ? myTech : rivalTech,
+      d.mode === 'ataque' ? rivalTech : myTech,
+    )
+  }
   m.events.push(...out)
   return out
+}
+
+// ---------------------------------------------------------------------------
+// Tanda de penaltis
+// ---------------------------------------------------------------------------
+
+/** Penaltis reglamentarios por equipo antes de la muerte súbita. */
+export const PENALTY_ROUNDS = 3
+/** Tope de seguridad: 3 de cada uno + 25 pares de muerte súbita. */
+const PENALTY_HARD_CAP = 56
+
+/** ¿Está decidida la tanda? */
+function shootoutDecided(sh: ShootoutState): boolean {
+  const [h, a] = sh.goals
+  const shot = (side: 0 | 1) => Math.ceil((sh.round - side) / 2)
+  if (sh.round >= PENALTY_HARD_CAP) return true
+  if (sh.round < PENALTY_ROUNDS * 2) {
+    // Ventaja insalvable: al que va por detrás no le quedan tiros suficientes.
+    const leftHome = PENALTY_ROUNDS - shot(0)
+    const leftAway = PENALTY_ROUNDS - shot(1)
+    return h > a + leftAway || a > h + leftHome
+  }
+  // Muerte súbita: solo se decide con la pareja cerrada y con diferencia.
+  return sh.round % 2 === 0 && h !== a
+}
+
+/** Quién tira el penalti: el que mejor dispare de los que están en el campo. */
+function penaltyTaker(side: MatchSide, round: number): Actor {
+  const pool = [...side.fwds, ...side.mids, ...side.defs]
+    .sort((a, b) => b.stats.tiro - a.stats.tiro)
+  if (!pool.length) return side.keeper
+  // Se van rotando: en la muerte súbita tienen que tirar todos.
+  return pool[Math.floor(round / 2) % pool.length]
+}
+
+/**
+ * Prepara y resuelve un penalti. Si el que decide eres tú (tirando o parando)
+ * deja el partido en `decision` con las mismas opciones de siempre, así que la
+ * pantalla del partido no necesita nada nuevo.
+ */
+function nextPenalty(m: MatchState, _rng: RNG, out: MatchEvent[]): void {
+  const sh = m.shootout!
+  if (shootoutDecided(sh)) { finish(m, out); return }
+
+  // Alterna: pares tira el local, impares el visitante.
+  const side: Side = sh.round % 2 === 0 ? 'home' : 'away'
+  const atk = sideOf(m, side)
+  const def = sideOf(m, otherSide(side))
+  const shooter = penaltyTaker(atk, sh.round)
+  const keeper = def.keeper
+  sh.pending = { shooterUid: shooter.uid, keeperUid: keeper.uid, side }
+
+  // La cadena se rellena para que el panel del campo y las probabilidades
+  // sigan funcionando: un penalti ES un duelo de definición.
+  m.chain = { side, step: 'definicion', carrier: shooter.uid, defenderUid: keeper.uid, momentum: 0 }
+
+  const iShoot = side === playerSide(m)
+  const iDecide = true // en la tanda decides siempre: tu tiro o tu parada
+  if (iDecide) {
+    m.decision = buildDecision(
+      m, 'definicion', iShoot ? 'ataque' : 'defensa',
+      shooter, keeper, atk, def, 0,
+    )
+    m.decision.headline = iShoot
+      ? `Penalti ${Math.floor(sh.round / 2) + 1} · tiras tú`
+      : `Penalti ${Math.floor(sh.round / 2) + 1} · paras tú`
+    m.phase = 'decision'
+  }
+}
+
+/** Ejecuta el penalti con las técnicas elegidas y prepara el siguiente. */
+function resolvePenalty(
+  m: MatchState, rng: RNG, out: MatchEvent[],
+  shooter: Actor, keeper: Actor, shotTech: Technique | undefined, saveTech: Technique | undefined,
+): void {
+  const sh = m.shootout!
+  const side = sh.pending!.side
+  spend(shooter, shotTech, false)
+  spend(keeper, saveTech, false)
+
+  const r = resolveDuel(
+    'definicion',
+    toDuelist(shooter, shotTech, false, undefined),
+    toDuelist(keeper, saveTech, false, undefined),
+    rng,
+  )
+  if (r.success) sh.goals[side === 'home' ? 0 : 1] += 1
+  sh.round += 1
+  sh.pending = null
+  m.chain = null
+
+  const move = shotTech ? `¡${shotTech.name.toUpperCase()}! ` : ''
+  const stop = saveTech ? ` ¡${saveTech.name.toUpperCase()}!` : ''
+  out.push({
+    kind: 'penalty',
+    minute: m.minute,
+    side,
+    shooter: shooter.name,
+    shooterUid: shooter.uid,
+    keeper: keeper.name,
+    keeperUid: keeper.uid,
+    technique: shotTech?.name,
+    scored: r.success,
+    shootout: [sh.goals[0], sh.goals[1]],
+    text: r.success
+      ? `${move}${shooter.name} la manda dentro.`
+      : `${shooter.name} tira…${stop} ¡${keeper.name} la saca!`,
+  })
+
+  if (shootoutDecided(sh)) finish(m, out)
+  else m.phase = 'playing'
 }
 
 /** Marcador desde el punto de vista del usuario, para cabeceras y resúmenes. */

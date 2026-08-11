@@ -6,6 +6,8 @@
 // se leía como un recorrido ni había caminos que elegir.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import Icon from '@/ui/components/Icon'
+import { ELEMENT_ICON, NODE_ICON } from '@/ui/inazuma/Glyphs'
 import { availableNextNodes, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import type { InazumaSave, NodeKind, TournamentNode } from '@/engine/inazuma/types'
@@ -15,15 +17,15 @@ const NODE = 46
 
 /** Aspecto de cada tipo de casilla en el tablero. */
 export const NODE_META: Record<NodeKind, { icon: string; color: string; label: string }> = {
-  pachanga: { icon: '⚽', color: '#38bdf8', label: 'Pachanga' },
-  objeto: { icon: '🎒', color: '#a78bfa', label: 'Objeto' },
-  tecnica: { icon: '⚡', color: '#fbbf24', label: 'Técnica' },
-  ojeador: { icon: '🔎', color: '#34d399', label: 'Ojeador' },
-  evento: { icon: '❓', color: '#c084fc', label: 'Situación' },
-  rairai: { icon: '🍜', color: '#f472b6', label: 'Rai Rai' },
-  tienda: { icon: '🛒', color: '#fcd34d', label: 'Tienda' },
-  jefe: { icon: '⚔️', color: '#f87171', label: 'Instituto' },
-  final: { icon: '🏆', color: '#fde047', label: 'FINAL' },
+  pachanga: { icon: NODE_ICON.pachanga, color: '#38bdf8', label: 'Pachanga' },
+  objeto: { icon: NODE_ICON.objeto, color: '#a78bfa', label: 'Objeto' },
+  tecnica: { icon: NODE_ICON.tecnica, color: '#fbbf24', label: 'Técnica' },
+  ojeador: { icon: NODE_ICON.ojeador, color: '#34d399', label: 'Ojeador' },
+  evento: { icon: NODE_ICON.evento, color: '#c084fc', label: 'Situación' },
+  rairai: { icon: NODE_ICON.rairai, color: '#f472b6', label: 'Rai Rai' },
+  tienda: { icon: NODE_ICON.tienda, color: '#fcd34d', label: 'Tienda' },
+  jefe: { icon: NODE_ICON.jefe, color: '#f87171', label: 'Instituto' },
+  final: { icon: NODE_ICON.final, color: '#fde047', label: 'FINAL' },
 }
 
 export default function MapBoard({
@@ -146,16 +148,29 @@ export default function MapBoard({
                         className="w-7 h-7 object-contain"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                       />
-                    : <span className="text-lg leading-none">{node.cleared ? '✓' : meta.icon}</span>}
+                    : <Icon
+                        name={node.cleared ? 'check' : meta.icon}
+                        className="w-6 h-6"
+                        style={{ color: node.cleared ? '#64748b' : meta.color }}
+                      />}
                 </span>
 
-                {/* aviso de dificultad, como las estrellas del mapa Pokémon */}
+                {/* Aviso de dificultad, como las estrellas del mapa Pokémon.
+                    Fondo OSCURO con las estrellas de color: con la píldora
+                    ámbar y estrellas ámbar no se distinguía nada. */}
                 {!node.cleared && node.level != null && gap > 1 && (
                   <span
-                    className="absolute -top-1 -right-1 text-[9px] font-black leading-none rounded-full px-1 py-0.5 border border-black/40"
-                    style={{ background: gap > 4 ? '#ef4444' : '#f59e0b', color: '#1e293b' }}
+                    className="absolute -top-1 -right-1 flex items-center rounded-full px-1 py-0.5 border bg-slate-950/90"
+                    style={{ borderColor: gap > 4 ? '#ef4444' : '#f59e0b' }}
                   >
-                    {'★'.repeat(gap > 4 ? 3 : gap > 2 ? 2 : 1)}
+                    {Array.from({ length: gap > 4 ? 3 : gap > 2 ? 2 : 1 }, (_, i) => (
+                      <Icon
+                        key={i}
+                        name="star"
+                        className="w-2 h-2"
+                        style={{ color: gap > 4 ? '#ef4444' : '#f59e0b' }}
+                      />
+                    ))}
                   </span>
                 )}
 
@@ -208,7 +223,7 @@ export function NodePreview({
             className="grid place-items-center rounded-2xl shrink-0"
             style={{ width: 52, height: 52, background: `${meta.color}22` }}
           >
-            <span className="text-2xl">{meta.icon}</span>
+            <Icon name={meta.icon} className="w-7 h-7" style={{ color: meta.color }} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</div>
@@ -227,7 +242,8 @@ export function NodePreview({
                   borderColor: `${ELEMENT_INFO[team.element].color}66`,
                 }}
               >
-                {ELEMENT_INFO[team.element].glyph} {ELEMENT_INFO[team.element].label}
+                <Icon name={ELEMENT_ICON[team.element]} className="w-3 h-3" />
+                {ELEMENT_INFO[team.element].label}
               </span>
             )}
             <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${
@@ -246,7 +262,7 @@ export function NodePreview({
         )}
 
         <div className="mt-3 rounded-xl bg-slate-800/70 border border-slate-700 px-3 py-2 text-[12px] text-emerald-300">
-          🎁 {node.reward}
+          <Icon name="gift" className="w-3.5 h-3.5 inline-block mr-1 align-[-2px]" />{node.reward}
         </div>
         {team?.taunt && <p className="mt-2 text-[11px] italic text-slate-500">«{team.taunt}»</p>}
 

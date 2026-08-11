@@ -1,66 +1,73 @@
-// Catálogo de supertécnicas.
+// Catálogo de supertécnicas. GENERADO — se regenera con
+// `node scripts/build-inazuma-techniques.mjs`.
 //
-// NOTA sobre las fuentes: las técnicas ICÓNICAS de la saga (Mano Celestial,
-// Tornado de Fuego, Pingüinos Emperador, Ilusión, Muro de Piedra, El Fénix…)
-// llevan su nombre del doblaje. El resto son de relleno, escritas en el mismo
-// idioma visual para que las plantillas rivales no repitan las mismas cuatro
-// técnicas. Están marcadas con `// relleno`. Si quieres sustituirlas por las
-// reales de la saga, este fichero es el único sitio que hay que tocar.
+// TODAS son técnicas REALES de la serie: el nombre, la clase (tiro/regate/
+// bloqueo/parada) y el elemento salen del infobox `Hissatsu` de la wiki de
+// Fandom, y la imagen de `public/inazuma/techniques/<id>.png` es la de esa
+// misma ficha. Antes había técnicas de relleno inventadas; ya no queda ninguna.
 //
-// Balance (potencia / coste PT):
-//   básica     25-40  /  8-12      → todo el mundo lleva una, se puede spamear
-//   media      55-75  / 16-22      → una por partido y medio
-//   definitiva 95-135 / 28-40      → decide un partido, te deja seco
+// La POTENCIA y el COSTE sí están reescalados: los números del juego original
+// mezclan versiones y no encajan en la economía de PT de este modo.
 import type { Technique } from '@/engine/inazuma/types'
 
 export const TECHNIQUES: Technique[] = [
-  // ---------------------------------------------------------------- TIROS ---
-  { id: 't-tiro-raso', name: 'Tiro raso', kind: 'tiro', element: 'aire', power: 25, cost: 6, desc: 'Un disparo honesto a ras de hierba.' }, // relleno
-  { id: 't-volea', name: 'Volea seca', kind: 'tiro', element: 'montana', power: 34, cost: 9, desc: 'Golpeo al primer toque, sin pensarlo.' }, // relleno
-  { id: 't-tornado-fuego', name: 'Tornado de Fuego', kind: 'tiro', element: 'fuego', power: 72, cost: 20, desc: 'El balón entra en combustión y arrastra al portero.', evolvesTo: 't-tornado-fuego-2' },
-  { id: 't-tornado-fuego-2', name: 'Tornado de Fuego 2', kind: 'tiro', element: 'fuego', power: 108, cost: 32, desc: 'La misma llamarada, con el doble de revoluciones.' },
-  { id: 't-pinguinos-1', name: 'Pingüinos Emperador nº1', kind: 'tiro', element: 'bosque', power: 78, cost: 22, desc: 'Una bandada de pingüinos arrastra el balón a portería.', evolvesTo: 't-pinguinos-2' },
-  { id: 't-pinguinos-2', name: 'Pingüinos Emperador nº2', kind: 'tiro', element: 'bosque', power: 118, cost: 36, desc: 'Ahora son dos bandadas. No hay portero que lo pare limpio.' },
-  { id: 't-golpe-dragon', name: 'Golpe de Dragón', kind: 'tiro', element: 'bosque', power: 66, cost: 18, desc: 'Un dragón de energía escolta el disparo.' },
-  { id: 't-ventisca', name: 'Ventisca Eterna', kind: 'tiro', element: 'aire', power: 74, cost: 21, desc: 'El campo se hiela por donde pasa el balón.', evolvesTo: 't-leyenda-lobo' },
-  { id: 't-leyenda-lobo', name: 'Leyenda del Lobo', kind: 'tiro', element: 'aire', power: 112, cost: 34, desc: 'Una manada de lobos de nieve cruza el área.' },
-  { id: 't-fenix', name: 'El Fénix', kind: 'tiro', element: 'fuego', power: 120, cost: 38, desc: 'Un ave de fuego renace sobre el área pequeña.' },
-  { id: 't-tiro-celestial', name: 'Tiro Celestial', kind: 'tiro', element: 'fuego', power: 96, cost: 30, desc: 'Alas doradas y un disparo que no admite discusión.' },
-  { id: 't-meteorito', name: 'Remate Meteorito', kind: 'tiro', element: 'montana', power: 70, cost: 20, desc: 'El balón cae desde el cielo como una roca ardiendo.' }, // relleno
-  { id: 't-inazuma-1', name: 'Inazuma nº1', kind: 'tiro', element: 'montana', power: 88, cost: 26, desc: 'Técnica combinada: dos compañeros catapultan al rematador.' },
-  { id: 't-torre-babel', name: 'Torre de Babel', kind: 'tiro', element: 'montana', power: 92, cost: 28, desc: 'Una columna de piedra empuja el balón hacia la escuadra.' }, // relleno
-  { id: 't-cuchilla-sombra', name: 'Cuchilla Sombría', kind: 'tiro', element: 'bosque', power: 58, cost: 16, desc: 'El disparo desaparece a media trayectoria.' }, // relleno
-  { id: 't-huracan-doble', name: 'Huracán Doble', kind: 'tiro', element: 'aire', power: 62, cost: 17, desc: 'Dos remolinos en direcciones opuestas.' }, // relleno
-  { id: 't-brasa', name: 'Brasa', kind: 'tiro', element: 'fuego', power: 38, cost: 10, desc: 'Un chispazo, poco más. Pero entra.' }, // relleno
-
-  // -------------------------------------------------------------- REGATES ---
-  { id: 'r-recorte', name: 'Recorte', kind: 'regate', element: 'aire', power: 24, cost: 5, desc: 'Cambio de dirección de toda la vida.' }, // relleno
-  { id: 'r-ilusion', name: 'Ilusión', kind: 'regate', element: 'bosque', power: 70, cost: 18, desc: 'Se multiplica en cinco copias y solo una lleva el balón.' },
-  { id: 'r-torbellino', name: 'Torbellino', kind: 'regate', element: 'aire', power: 64, cost: 16, desc: 'Acelera hasta convertirse en un remolino.' },
-  { id: 'r-espejismo', name: 'Espejismo', kind: 'regate', element: 'fuego', power: 56, cost: 14, desc: 'El calor deforma la figura del regateador.' }, // relleno
-  { id: 'r-paso-montana', name: 'Paso de Montaña', kind: 'regate', element: 'montana', power: 60, cost: 15, desc: 'Se abre camino a hombros, sin frenar.' }, // relleno
-  { id: 'r-danza-hojas', name: 'Danza de Hojas', kind: 'regate', element: 'bosque', power: 44, cost: 11, desc: 'Una cortina de hojas tapa el balón.' }, // relleno
-  { id: 'r-sombra-doble', name: 'Sombra Doble', kind: 'regate', element: 'bosque', power: 98, cost: 28, desc: 'Deja atrás su propia sombra corriendo.' }, // relleno
-  { id: 'r-relampago', name: 'Paso Relámpago', kind: 'regate', element: 'aire', power: 90, cost: 26, desc: 'De un lado del campo al otro en un parpadeo.' }, // relleno
-
-  // ------------------------------------------------------------- BLOQUEOS ---
-  { id: 'b-entrada', name: 'Entrada firme', kind: 'bloqueo', element: 'montana', power: 26, cost: 6, desc: 'Al balón, siempre al balón.' }, // relleno
-  { id: 'b-muro', name: 'Muro de Piedra', kind: 'bloqueo', element: 'montana', power: 72, cost: 19, desc: 'Un muro se levanta del césped y el balón se estrella.' },
-  { id: 'b-barrera-hielo', name: 'Barrera de Hielo', kind: 'bloqueo', element: 'aire', power: 68, cost: 18, desc: 'El suelo se congela bajo los pies del atacante.' },
-  { id: 'b-raices', name: 'Raíces', kind: 'bloqueo', element: 'bosque', power: 58, cost: 15, desc: 'El terreno atrapa las piernas del rival.' }, // relleno
-  { id: 'b-cerco-llamas', name: 'Cerco de Llamas', kind: 'bloqueo', element: 'fuego', power: 62, cost: 16, desc: 'Un anillo de fuego cierra el pasillo.' }, // relleno
-  { id: 'b-torre-doble', name: 'Torre Doble', kind: 'bloqueo', element: 'montana', power: 96, cost: 27, desc: 'Dos defensas hacen de pared viviente.' }, // relleno
-  { id: 'b-tormenta-arena', name: 'Tormenta de Arena', kind: 'bloqueo', element: 'montana', power: 50, cost: 13, desc: 'Nadie ve nada durante dos segundos.' }, // relleno
-
-  // -------------------------------------------------------------- PARADAS ---
-  { id: 'p-blocaje', name: 'Blocaje', kind: 'parada', element: 'montana', power: 28, cost: 6, desc: 'Manos seguras, sin florituras.' }, // relleno
-  { id: 'p-mano-celestial', name: 'Mano Celestial', kind: 'parada', element: 'montana', power: 76, cost: 20, desc: 'Una mano gigante emerge y detiene lo indetenible.', evolvesTo: 'p-mano-celestial-2' },
-  { id: 'p-mano-celestial-2', name: 'Mano Celestial 2', kind: 'parada', element: 'montana', power: 114, cost: 32, desc: 'La mano ya no para el balón: lo devuelve.' },
-  { id: 'p-puno-justiciero', name: 'Puño Justiciero', kind: 'parada', element: 'fuego', power: 100, cost: 29, desc: 'Un puñetazo ardiente contra el disparo.' },
-  { id: 'p-muralla', name: 'Muralla Defensiva', kind: 'parada', element: 'montana', power: 66, cost: 17, desc: 'El portero se planta y no cede un centímetro.' }, // relleno
-  { id: 'p-red-hojas', name: 'Red de Hojas', kind: 'parada', element: 'bosque', power: 60, cost: 16, desc: 'Una malla vegetal frena el balón en seco.' }, // relleno
-  { id: 'p-corriente', name: 'Corriente Ascendente', kind: 'parada', element: 'aire', power: 70, cost: 19, desc: 'Una ráfaga levanta el disparo por encima del larguero.' }, // relleno
-  { id: 'p-guante-espectral', name: 'Guante Espectral', kind: 'parada', element: 'bosque', power: 92, cost: 26, desc: 'La mano atraviesa el balón y lo detiene desde dentro.' }, // relleno
+  // -------------------- BLOQUEO
+  { id: 'super-scan-df', name: "Defence Scan", kind: 'bloqueo', element: 'bosque', power: 32, cost: 9, desc: "El terreno atrapa las piernas del rival." },
+  { id: 'coil-turn', name: "Coil Turn", kind: 'bloqueo', element: 'aire', power: 32, cost: 9, desc: "Una ráfaga le quita el balón de los pies." },
+  { id: 'shikofumi', name: "Sumo Stomp", kind: 'bloqueo', element: 'montana', power: 32, cost: 9, desc: "Aquí no pasa nadie." },
+  { id: 'fake-bomber', name: "Fake Bomber", kind: 'bloqueo', element: 'fuego', power: 33, cost: 10, desc: "Un muro de fuego cierra el pasillo." },
+  { id: 'planet-shield', name: "Planet Shield", kind: 'bloqueo', element: 'fuego', power: 39, cost: 11, desc: "Un muro de fuego cierra el pasillo." },
+  { id: 'flame-dance', name: "Flame Dance", kind: 'bloqueo', element: 'fuego', power: 62, cost: 18, desc: "Un muro de fuego cierra el pasillo." },
+  { id: 'killer-slide', name: "Entrada Asesina", kind: 'bloqueo', element: 'bosque', power: 62, cost: 18, desc: "Entrada limpia y demoledora." },
+  { id: 'the-wall', name: "El Muro", kind: 'bloqueo', element: 'montana', power: 67, cost: 19, desc: "Un muro se levanta del césped y el balón se estrella." },
+  { id: 'no-escape', name: "No Escape", kind: 'bloqueo', element: 'montana', power: 70, cost: 20, desc: "Aquí no pasa nadie." },
+  { id: 'the-tower', name: "La Torre", kind: 'bloqueo', element: 'aire', power: 79, cost: 23, desc: "Una torre de piedra corta el pasillo." },
+  { id: 'good-smell', name: "Sleeping Dust", kind: 'bloqueo', element: 'bosque', power: 84, cost: 24, desc: "El terreno atrapa las piernas del rival." },
+  { id: 'ice-ground', name: "Land Of Ice", kind: 'bloqueo', element: 'aire', power: 90, cost: 26, desc: "El suelo se congela bajo los pies del atacante." },
+  // -------------------- PARADA
+  { id: 'tornado-catch', name: "Tornado Catch", kind: 'parada', element: 'aire', power: 25, cost: 7, desc: "Una corriente lo levanta por encima del larguero." },
+  { id: 'nekketsu-punch', name: "Fireball Knuckle", kind: 'parada', element: 'fuego', power: 37, cost: 11, desc: "Un puñetazo ardiente contra el disparo." },
+  { id: 'pressure-punch', name: "Pressure Punch", kind: 'parada', element: 'fuego', power: 37, cost: 11, desc: "Detiene el disparo con las manos al rojo." },
+  { id: 'killer-blade', name: "Killer Blade", kind: 'parada', element: 'bosque', power: 37, cost: 11, desc: "Una malla vegetal frena el balón en seco." },
+  { id: 'full-power-shield', name: "Escudo Total", kind: 'parada', element: 'fuego', power: 44, cost: 13, desc: "El portero se planta y no cede un centímetro." },
+  { id: 'kogarashi', name: "Mistral", kind: 'parada', element: 'aire', power: 50, cost: 14, desc: "Una corriente lo levanta por encima del larguero." },
+  { id: 'black-hole', name: "Black Hole", kind: 'parada', element: 'bosque', power: 56, cost: 16, desc: "Una malla vegetal frena el balón en seco." },
+  { id: 'hanafubuki', name: "Flower Power", kind: 'parada', element: 'aire', power: 67, cost: 19, desc: "Una corriente lo levanta por encima del larguero." },
+  { id: 'god-hand', name: "Mano Celestial", kind: 'parada', element: 'montana', power: 67, cost: 19, desc: "Una mano gigante emerge y detiene lo indetenible." },
+  { id: 'wormhole', name: "Wormhole", kind: 'parada', element: 'bosque', power: 79, cost: 23, desc: "Una malla vegetal frena el balón en seco." },
+  { id: 'mugen-the-hand', name: "Mano Infinita", kind: 'parada', element: 'montana', power: 101, cost: 29, desc: "La mano se estira todo lo que haga falta." },
+  { id: 'majin-the-hand', name: "Mano del Demonio", kind: 'parada', element: 'montana', power: 135, cost: 39, desc: "La mano del demonio atrapa el balón en el aire." },
+  // -------------------- REGATE
+  { id: 'super-scan-of', name: "Attack Scan", kind: 'regate', element: 'bosque', power: 32, cost: 9, desc: "Se escurre entre la maleza y aparece por el otro lado." },
+  { id: 'tatsumaki-senpuu', name: "Whirlwind Twister", kind: 'regate', element: 'aire', power: 32, cost: 9, desc: "Acelera hasta que el defensa deja de verle." },
+  { id: 'dash-accel', name: "Dash Accelerator", kind: 'regate', element: 'montana', power: 32, cost: 9, desc: "Se abre camino a hombros, sin frenar." },
+  { id: 'heat-tackle', name: "Entrada Ardiente", kind: 'regate', element: 'fuego', power: 34, cost: 10, desc: "Entra en llamas, y no es una forma de hablar." },
+  { id: 'judge-through', name: "Breakthrough", kind: 'regate', element: 'fuego', power: 35, cost: 10, desc: "Un quiebro con las botas humeando." },
+  { id: 'ninin-sankyaku', name: "Three-Legged Rush", kind: 'regate', element: 'montana', power: 37, cost: 11, desc: "Se abre camino a hombros, sin frenar." },
+  { id: 'moonsault', name: "Moonsault", kind: 'regate', element: 'aire', power: 50, cost: 14, desc: "Acelera hasta que el defensa deja de verle." },
+  { id: 'triple-dash', name: "Triple Dash", kind: 'regate', element: 'montana', power: 62, cost: 18, desc: "Se abre camino a hombros, sin frenar." },
+  { id: 'illusion-ball', name: "Balón Ilusión", kind: 'regate', element: 'bosque', power: 79, cost: 23, desc: "Se multiplica en cinco copias y solo una lleva el balón." },
+  { id: 'southern-crosscut', name: "Southern Cross", kind: 'regate', element: 'bosque', power: 96, cost: 28, desc: "Se escurre entre la maleza y aparece por el otro lado." },
+  { id: 'heaven-s-time', name: "Heaven's Time", kind: 'regate', element: 'aire', power: 112, cost: 32, desc: "Acelera hasta que el defensa deja de verle." },
+  { id: 'lightning-accel', name: "Lightning Sprint", kind: 'regate', element: 'fuego', power: 118, cost: 34, desc: "Un quiebro con las botas humeando." },
+  // -------------------- TIRO
+  { id: 'grenade-shot', name: "Grenade Shot", kind: 'tiro', element: 'fuego', power: 40, cost: 12, desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
+  { id: 'rolling-kick', name: "Patada Giratoria", kind: 'tiro', element: 'bosque', power: 40, cost: 12, desc: "Rueda por encima del rival con el balón pegado." },
+  { id: 'tarzan-kick', name: "Tarzan Kick", kind: 'tiro', element: 'montana', power: 41, cost: 12, desc: "Pega como una roca cayendo desde arriba." },
+  { id: 'megane-crash', name: "Spectacle Crash", kind: 'tiro', element: 'montana', power: 48, cost: 14, desc: "Pega como una roca cayendo desde arriba." },
+  { id: 'dragon-tornado', name: "Tornado de Dragón", kind: 'tiro', element: 'fuego', power: 50, cost: 14, desc: "Dos dragones enroscados alrededor del balón." },
+  { id: 'death-zone', name: "Zona Mortal", kind: 'tiro', element: 'bosque', power: 53, cost: 15, desc: "Tres jugadores hunden el balón en la portería." },
+  { id: 'the-phoenix', name: "El Fénix", kind: 'tiro', element: 'fuego', power: 54, cost: 16, desc: "Un ave de fuego renace sobre el área pequeña." },
+  { id: 'dragon-crash', name: "Golpe de Dragón", kind: 'tiro', element: 'bosque', power: 62, cost: 18, desc: "Un dragón de energía escolta el disparo." },
+  { id: 'dokonjou-club', name: "Utter Gutsiness Club", kind: 'tiro', element: 'montana', power: 62, cost: 18, desc: "Pega como una roca cayendo desde arriba." },
+  { id: 'god-break', name: "Golpe Divino", kind: 'tiro', element: 'aire', power: 70, cost: 20, desc: "Alas doradas y un disparo que no admite discusión." },
+  { id: 'tri-pegasus', name: "Tri-Pegaso", kind: 'tiro', element: 'aire', power: 70, cost: 20, desc: "Tres caballos alados empujan a la vez." },
+  { id: 'fire-tornado', name: "Tornado de Fuego", kind: 'tiro', element: 'fuego', power: 79, cost: 23, desc: "El balón entra en combustión y arrastra al portero." },
+  { id: 'eternal-blizzard', name: "Ventisca Eterna", kind: 'tiro', element: 'aire', power: 90, cost: 26, desc: "El campo se hiela por donde pasa el balón." },
+  { id: 'wolf-legend', name: "Legendary Wolf", kind: 'tiro', element: 'aire', power: 90, cost: 26, desc: "Una manada de lobos de nieve cruza el área." },
+  { id: 'butterfly-dream', name: "Butterfly Trance", kind: 'tiro', element: 'montana', power: 96, cost: 28, desc: "Una nube de mariposas tapa el regate." },
+  { id: 'inazuma-break', name: "Inazuma Break", kind: 'tiro', element: 'aire', power: 112, cost: 32, desc: "Técnica combinada: dos compañeros catapultan al rematador." },
+  { id: 'supernova', name: "Supernova", kind: 'tiro', element: 'bosque', power: 135, cost: 39, desc: "La naturaleza empuja el disparo hacia la red." },
 ]
 
 export const TECHNIQUE_BY_ID = new Map(TECHNIQUES.map((t) => [t.id, t]))
@@ -94,7 +101,7 @@ export function techniquePrice(t: Technique): number {
  */
 export function techniqueStock(seed: number, progress: number): Technique[] {
   const maxPower = 55 + progress * 12
-  const pool = TECHNIQUES.filter((t) => t.power <= maxPower && !t.evolvesTo)
+  const pool = TECHNIQUES.filter((t) => t.power <= maxPower)
   const out: Technique[] = []
   let h = (seed ^ (progress * 2654435761)) >>> 0
   for (let i = 0; i < 4 && pool.length; i++) {

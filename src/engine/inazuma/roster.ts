@@ -155,8 +155,13 @@ export function levelUp(p: PlayerInstance, amount = 1): PlayerInstance {
   return next
 }
 
-export const MAX_LEVEL = 60
-export const START_LEVEL = 8
+/**
+ * Tope de nivel. Con la curva actual se llega rozándolo en la final (el bot
+ * llega al último instituto a 60 contra un rival de 60), así que subirlo sin
+ * tocar `RIVAL_LEVELS` regalaría el torneo.
+ */
+export const MAX_LEVEL = 70
+export const START_LEVEL = 5
 
 // ---------------------------------------------------------------------------
 // Once titular
@@ -390,8 +395,17 @@ export function upgradeTechnique(p: PlayerInstance, techId: string): PlayerInsta
 }
 
 /** Jugadores fichables: los de los institutos ya derrotados + agentes libres. */
-export function signablePool(beatenTeams: string[]): PlayerBase[] {
+/**
+ * A quién puedes fichar: los institutos que ya has eliminado (se te unen, como
+ * en la serie) y los suplentes de tu propio instituto.
+ *
+ * Lo de tu propia plantilla no es un adorno: cada instituto tiene 14 jugadores
+ * reales y solo 11 salen de titulares, así que sin esto el ojeador de la
+ * primera ronda no tenía a NADIE que ofrecer y pagaba una comisión de consuelo.
+ */
+export function signablePool(beatenTeams: string[], ownTeam?: string): PlayerBase[] {
   const allowed = new Set([...beatenTeams, 'libre'])
+  if (ownTeam) allowed.add(ownTeam)
   return PLAYERS.filter((p) => allowed.has(p.team))
 }
 

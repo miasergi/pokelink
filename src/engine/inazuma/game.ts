@@ -34,10 +34,10 @@ import type {
  * Con estos números un titular pierde ~22 netos por partido, entra en
  * penalización a la tercera eliminatoria y el banquillo pasa a tener sentido.
  */
-const NINETY_MINUTES_COST = 34
+const NINETY_MINUTES_COST = 26
 /** Niveles que pierde el banquillo respecto a quien juega. */
 export const BENCH_LEVEL_PENALTY = 1
-const REST_STAMINA = 12
+const REST_STAMINA = 18
 const REST_PT_FRACTION = 0.35
 
 export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
@@ -203,7 +203,7 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
  * ya está muerta y todavía no te has enterado. Perder solo puntúa en los
  * amistosos: en una eliminatoria oficial te vas a casa.
  */
-export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 4, draw: 3, loss: 2 }
+export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 6, draw: 4, loss: 3 }
 
 /** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
 export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
@@ -283,7 +283,7 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const byUid = new Map(actors.map((a) => [a.uid, a]))
   const played = new Set(participants(s))
   const won = s.result === 'win'
-  const levels = won ? (node.risky ? 3 : 2) : 0
+  const levels = won ? (node.risky ? 4 : 3) : 0
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)

@@ -32,11 +32,16 @@ export function elementMultiplier(atk: Element, def: Element): number {
   return 1
 }
 
-export const ELEMENT_INFO: Record<Element, { label: string; color: string; ring: string; text: string; glyph: string }> = {
-  fuego: { label: 'Fuego', color: '#ef4444', ring: 'border-red-500/60', text: 'text-red-300', glyph: '🔥' },
-  bosque: { label: 'Bosque', color: '#22c55e', ring: 'border-emerald-500/60', text: 'text-emerald-300', glyph: '🌳' },
-  aire: { label: 'Aire', color: '#38bdf8', ring: 'border-sky-500/60', text: 'text-sky-300', glyph: '🌀' },
-  montana: { label: 'Montaña', color: '#eab308', ring: 'border-amber-500/60', text: 'text-amber-300', glyph: '⛰️' },
+/**
+ * Aspecto de cada elemento. `icon` es el nombre del SVG en `Icon.tsx`: el modo
+ * no usa emojis porque los dibuja el sistema operativo (se ven distintos en
+ * cada móvil, no se pueden teñir y varios salen en blanco y negro en Windows).
+ */
+export const ELEMENT_INFO: Record<Element, { label: string; color: string; ring: string; text: string; icon: string }> = {
+  fuego: { label: 'Fuego', color: '#ef4444', ring: 'border-red-500/60', text: 'text-red-300', icon: 'fire' },
+  bosque: { label: 'Bosque', color: '#22c55e', ring: 'border-emerald-500/60', text: 'text-emerald-300', icon: 'leaf' },
+  aire: { label: 'Aire', color: '#38bdf8', ring: 'border-sky-500/60', text: 'text-sky-300', icon: 'wind' },
+  montana: { label: 'Montaña', color: '#eab308', ring: 'border-amber-500/60', text: 'text-amber-300', icon: 'mountain' },
 }
 
 /** Etiqueta corta de la ventaja, para la retransmisión del partido. */

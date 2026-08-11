@@ -149,3 +149,20 @@ body {
     scrollbar-width: none;
   }
 }
+
+/* Corte de supertécnica del modo Inazuma: entra de golpe, se queda un
+   instante y se va. La banda diagonal y el zoom son el recurso del anime. */
+@keyframes inazuma-cutin {
+  0% { opacity: 0; transform: scale(1.25); }
+  12% { opacity: 1; transform: scale(1); }
+  75% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); }
+}
+.animate-cutin { animation: inazuma-cutin 1.15s ease-out forwards; }
+
+/* Destello del fondo cuando entra el corte. */
+@keyframes inazuma-flash {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+.animate-inazuma-flash { animation: inazuma-flash .35s ease-out forwards; }

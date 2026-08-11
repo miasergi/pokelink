@@ -6,6 +6,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import { Stars } from '@/ui/inazuma/Glyphs'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import { getSpirit } from '@/data/inazuma/spirits'
 import { getTeam, TEAM_BY_ID, PLAYABLE_TEAMS } from '@/data/inazuma/teams'
@@ -48,7 +49,7 @@ export function StatsView() {
                 <ImgFallback
                   src={portraitUrl(pichichi.p.baseId)}
                   className="w-full h-full object-cover"
-                  fallback={<span className="text-lg">⚽</span>}
+                  fallback={<Icon name="crest" className="w-6 h-6 text-slate-400" />}
                 />
               </div>
               <div className="min-w-0">
@@ -198,32 +199,32 @@ const ONBOARD_KEY = 'inazuma:onboarded'
 
 const PAGES = [
   {
-    icon: '🗺️',
+    icon: 'map',
     title: 'Un mapa, no un torneo',
     body: 'Avanzas por casillas unidas por caminos. Solo puedes ir a las conectadas con la tuya, así que elegir ruta importa: lo que dejas atrás no vuelve. Al final de cada tramo te espera un instituto.',
   },
   {
-    icon: '⚽',
+    icon: 'ball',
     title: 'Pachangas: nivel a cambio de piernas',
     body: 'Los partidillos de barrio son tu fuente de nivel. Se juegan en cinco toques, pero CANSAN. La decisión del modo es esa: subir de nivel o llegar entero al instituto.',
   },
   {
-    icon: '🔥',
+    icon: 'fire',
     title: 'Fuego ▶ Bosque ▶ Aire ▶ Montaña ▶ Fuego',
     body: 'Ciclo cerrado, sin elemento dominante. La ventaja se gana eligiendo quién juega y a quién le pasas el balón, no fichando «al mejor».',
   },
   {
-    icon: '⚡',
+    icon: 'bolt',
     title: 'Los PT son gasolina',
     body: 'Cada jugador tiene su depósito de PT. Lanzar una supertécnica cuesta los PT que pone en su ficha y se descuentan al usarla; sin saldo solo te queda el tiro sencillo. El depósito lo marca el aguante, y se rellena comiendo en el Rai Rai, con bebidas y al superar cada instituto.',
   },
   {
-    icon: '💥',
+    icon: 'spirit',
     title: 'Ruptura y Espíritus',
     body: 'Encadenar jugadas buenas llena la barra de Ruptura. Gástala en tres acciones gratis (Supervibración) o en un único duelo brutal (Espíritu Guerrero). Una cosa o la otra, y una vez por partido.',
   },
   {
-    icon: '🛌',
+    icon: 'bench',
     title: 'El banquillo no es un castigo',
     body: 'Jugar 90 minutos desgasta, y por debajo del 40 % de aguante se rinde peor. Los suplentes suben de nivel igual que los titulares y llegan frescos: rotar sale gratis.',
   },
@@ -237,7 +238,7 @@ export function InazumaOnboarding({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[90] bg-slate-950/95 backdrop-blur-sm grid place-items-center p-5">
       <div className="w-full max-w-sm text-center">
-        <div className="text-6xl mb-3">{page.icon}</div>
+        <Icon name={page.icon} className="w-16 h-16 mx-auto mb-3 text-amber-300" />
         <h2 className="text-xl font-extrabold text-amber-300">{page.title}</h2>
         <p className="text-sm text-slate-300 mt-2 leading-relaxed">{page.body}</p>
 
@@ -267,8 +268,15 @@ export function shouldShowOnboarding(): boolean {
   }
 }
 
-export function markOnboarded(): void {
-  try { localStorage.setItem(ONBOARD_KEY, '1') } catch { /* da igual */ }
+/**
+ * Marca el tutorial como visto. Con `seen = false` se olvida, que es lo que usa
+ * el botón «volver a ver el tutorial» de los ajustes.
+ */
+export function markOnboarded(seen = true): void {
+  try {
+    if (seen) localStorage.setItem(ONBOARD_KEY, '1')
+    else localStorage.removeItem(ONBOARD_KEY)
+  } catch { /* da igual */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -358,16 +366,16 @@ function RivalChip({ base }: { base: PlayerBase }) {
           style={{ background: info.color, color: '#0f172a' }}
           title={info.label}
         >
-          {info.glyph}
+          <Icon name={info.icon} className="w-4 h-4" />
         </span>
         {spirit && (
-          <span className="absolute -bottom-1 -right-1 text-[10px] leading-none" title={spirit.name}>👹</span>
+          <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title={spirit.name} />
         )}
       </div>
       <div className="text-[8px] leading-tight truncate w-full text-center text-slate-300 mt-0.5">
         {base.name.split(' ')[0]}
       </div>
-      <div className="text-[7px] leading-none text-amber-300/70">{'★'.repeat(base.rarity)}</div>
+      <Stars n={base.rarity} className="w-2 h-2" />
     </div>
   )
 }
@@ -420,7 +428,9 @@ export function TeamSelectView() {
                 <div className="min-w-0 flex-1">
                   <div className="font-extrabold text-sm leading-tight">{team.name}</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px]" style={{ color: info.color }}>{info.glyph} {info.label}</span>
+                    <span className="text-[10px] inline-flex items-center gap-1" style={{ color: info.color }}>
+                      <Icon name={info.icon} className="w-3 h-3" />{info.label}
+                    </span>
                     <span className="text-[10px] text-slate-500">·  {squad.length} jugadores</span>
                   </div>
                 </div>
