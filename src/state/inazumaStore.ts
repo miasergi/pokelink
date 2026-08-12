@@ -52,11 +52,11 @@ let revealQueue: MatchEvent[] = []
  */
 function holdFor(e: MatchEvent): number {
   switch (e.kind) {
-    case 'goal': return 2100        // la celebración necesita su segundo y medio
-    case 'penalty': return 3000     // escenario completo del penalti
+    case 'goal': return 2200        // la celebración necesita su tiempo
+    case 'penalty': return 3700     // escenario completo del penalti
     case 'save': return 1200        // la línea respira tras el escenario del tiro
     case 'duel':
-      if (e.step === 'definicion' || e.technique || e.counter) return 3000
+      if (e.step === 'definicion' || e.technique || e.counter) return 3700
       return 500
     case 'spirit':
     case 'burst':

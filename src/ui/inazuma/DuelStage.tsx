@@ -17,10 +17,10 @@ import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Technique } from '@/engine/inazuma/types'
 
 /** Duración total del escenario. El hold del store para estos eventos es mayor. */
-const STAGE_MS = 2600
+const STAGE_MS = 3300
 /** Cuándo entra cada fase (ms desde que aparece). */
-const T_DEFENDER = 550
-const T_RESULT = 1400
+const T_DEFENDER = 650
+const T_RESULT = 1750
 
 export interface StageSide {
   name: string

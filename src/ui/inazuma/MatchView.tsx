@@ -20,7 +20,7 @@ import type { Actor, MatchEvent, MatchState } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
-    match, feed, playing, speed, autoPlay,
+    match, feed, playing, speed, autoPlay, save, matchNode,
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
   } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
@@ -29,13 +29,16 @@ export default function MatchView() {
   // El RITMO lo marca el store: el feed llega ya revelado de uno en uno, con
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
   // solo se reacciona al último evento: escenario de duelo o celebración.
-  const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number } | null>(null)
+  const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
+  const crestOf = (mine: boolean) => (mine ? save?.teamId ?? 'raimon' : matchNode?.teamId)
   useEffect(() => {
     if (!match || !feed.length) return
     const last = feed[feed.length - 1]
     const mine = playerSide(match)
     if (last.kind === 'goal') {
-      setGol({ scorer: last.scorer, mine: last.side === mine, key: feed.length })
+      const isMine = last.side === mine
+      setGol({ scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
     } else if (last.kind === 'penalty') {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
       setStage({
@@ -46,7 +49,10 @@ export default function MatchView() {
         attackerMine: last.side === mine,
         kind: 'penalti',
       })
-      if (last.scored) setGol({ scorer: last.shooter, mine: last.side === mine, key: feed.length })
+      if (last.scored) {
+        const isMine = last.side === mine
+        setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
+      }
     } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
       // Toda interacción con técnica de por medio (y todos los tiros) se cuenta
       // en el escenario: quién contra quién, con qué, y quién gana.
@@ -72,7 +78,7 @@ export default function MatchView() {
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
       <DuelStage stage={stage} onDone={() => setStage(null)} />
-      <Scoreboard match={match} />
+      <Scoreboard match={match} feed={feed} />
       {!finished && <MatchPitch match={match} />}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
@@ -90,7 +96,15 @@ export default function MatchView() {
 
       {/* ¡GOL! La celebración para el partido un instante: sin ella, el gol
           pasaba tan deprisa como un regate cualquiera. */}
-      {gol && <GoalOverlay key={gol.key} scorer={gol.scorer} mine={gol.mine} onDone={() => setGol(null)} />}
+      {gol && (
+        <GoalOverlay
+          key={gol.key}
+          scorer={gol.scorer}
+          mine={gol.mine}
+          teamId={gol.teamId}
+          onDone={() => setGol(null)}
+        />
+      )}
 
       {/* Panel de decisión o controles */}
       {match.phase === 'decision' && match.decision ? (
@@ -154,29 +168,42 @@ function eventIsMine(match: MatchState, e: MatchEvent): boolean {
   return 'side' in e ? e.side === mine : false
 }
 
-function Scoreboard({ match }: { match: MatchState }) {
+function Scoreboard({ match, feed }: { match: MatchState; feed: MatchEvent[] }) {
   const mineSide = playerSide(match)
   const mine = sideOf(match, mineSide)
   const theirs = sideOf(match, otherSide(mineSide))
+
+  // El marcador se saca de lo REVELADO, no del motor: el motor ya sabe el gol
+  // mientras el escenario del tiro aún se está contando, y ver moverse el
+  // marcador antes de tiempo destripaba el desenlace.
+  let score: [number, number] = [0, 0]
+  let shootout: [number, number] | null = null
+  let stage: 'reglamentario' | 'prorroga' | 'penaltis' = 'reglamentario'
+  for (const e of feed) {
+    if ((e.kind === 'goal' || e.kind === 'halftime' || e.kind === 'fulltime') && e.score) score = e.score
+    if (e.kind === 'penalty') shootout = e.shootout
+    if (e.kind === 'stage') stage = e.stage
+  }
+  const myGoals = mineSide === 'home' ? score[0] : score[1]
+  const theirGoals = mineSide === 'home' ? score[1] : score[0]
+
   return (
     <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 pt-2 pb-2">
       <div className="flex items-center gap-2">
         <TeamBadge name={mine.name} color={mine.color} />
         <div className="text-center px-2">
-          <div className="text-2xl font-extrabold tabular-nums leading-none">{mine.goals} – {theirs.goals}</div>
+          <div className="text-2xl font-extrabold tabular-nums leading-none">{myGoals} – {theirGoals}</div>
           <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">min. {match.minute}′</div>
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} right />
       </div>
-      {/* La tanda tiene su propio marcador: el del partido se queda congelado. */}
-      {match.stage !== 'reglamentario' && (
+      {/* La tanda tiene su propio marcador, también sacado de lo revelado. */}
+      {stage !== 'reglamentario' && (
         <div className="mt-1 text-center text-[10px] font-bold uppercase tracking-widest text-amber-300">
-          {match.stage === 'prorroga' ? 'Prórroga' : (() => {
-            const sh = match.shootout
-            if (!sh) return 'Penaltis'
-            const [h, a] = sh.goals
-            const my = mineSide === 'home' ? h : a
-            const yours = mineSide === 'home' ? a : h
+          {stage === 'prorroga' && !shootout ? 'Prórroga' : (() => {
+            if (!shootout) return 'Penaltis'
+            const my = mineSide === 'home' ? shootout[0] : shootout[1]
+            const yours = mineSide === 'home' ? shootout[1] : shootout[0]
             return `Penaltis · ${my} – ${yours}`
           })()}
         </div>
@@ -434,9 +461,14 @@ export function Mugshot({ actor, name, right, tiny }: {
  * balón (imagen), el rótulo y el goleador. Verde si es tuyo, rojo si te lo
  * meten — que también hay que enterarse de esos.
  */
-function GoalOverlay({ scorer, mine, onDone }: { scorer: string; mine: boolean; onDone: () => void }) {
+function GoalOverlay({ scorer, mine, teamId, onDone }: {
+  scorer: string
+  mine: boolean
+  teamId?: string
+  onDone: () => void
+}) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1600)
+    const t = setTimeout(onDone, 1900)
     return () => clearTimeout(t)
   }, [onDone])
   const color = mine ? '#22c55e' : '#f43f5e'
@@ -444,7 +476,20 @@ function GoalOverlay({ scorer, mine, onDone }: { scorer: string; mine: boolean; 
     <div className="absolute inset-0 z-[65] grid place-items-center pointer-events-none">
       <div className="absolute inset-0 animate-inazuma-flash" style={{ background: color }} />
       <div className="relative flex flex-col items-center gap-1 animate-goal">
-        <Pic name="ball" className="w-16 h-16 drop-shadow-lg" />
+        {/* El ESCUDO del equipo que marca, con el balón asomando. */}
+        {teamId ? (
+          <div className="relative">
+            <img
+              src={`${import.meta.env.BASE_URL}inazuma/teams/${teamId}.png`}
+              alt=""
+              className="w-24 h-24 object-contain drop-shadow-[0_0_16px_rgba(0,0,0,0.6)]"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+            />
+            <Pic name="ball" className="absolute -bottom-2 -right-3 w-10 h-10 drop-shadow-lg" />
+          </div>
+        ) : (
+          <Pic name="ball" className="w-16 h-16 drop-shadow-lg" />
+        )}
         <div
           className="px-4 py-1 rounded-full text-2xl font-black uppercase tracking-widest bg-slate-950/85 border-2"
           style={{ color, borderColor: color }}
