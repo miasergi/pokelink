@@ -435,7 +435,7 @@ export function Mugshot({ actor, name, right, tiny }: {
       >
         <ImgFallback
           src={portraitUrl(actor?.baseId ?? '')}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-top"
           alt={name}
           fallback={<span className="text-[10px] font-extrabold" style={{ color: info.color }}>
             {name.slice(0, 2).toUpperCase()}

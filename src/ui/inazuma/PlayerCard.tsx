@@ -112,7 +112,7 @@ export function PlayerCard({
         >
           <ImgFallback
             src={portraitUrl(base.id)}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
             alt={base.name}
             fallback={
               <span className="text-lg font-extrabold" style={{ color: info.color }}>{initials(base.name)}</span>
@@ -214,7 +214,7 @@ export function PlayerRow({
       >
         <ImgFallback
           src={portraitUrl(base.id)}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-top"
           alt={base.name}
           fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{initials(base.name)}</span>}
         />

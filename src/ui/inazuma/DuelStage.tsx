@@ -124,7 +124,7 @@ function Fighter({ side, tech, label, right }: {
           <ImgFallback
             src={side.baseId ? portraitUrl(side.baseId) : ''}
             alt={side.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
             fallback={<span className="grid place-items-center w-full h-full text-base font-extrabold text-white">
               {side.name.slice(0, 2).toUpperCase()}
             </span>}

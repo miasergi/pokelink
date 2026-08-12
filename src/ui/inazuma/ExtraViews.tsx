@@ -48,7 +48,7 @@ export function StatsView() {
               <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-500/40 bg-slate-800 grid place-items-center shrink-0">
                 <ImgFallback
                   src={portraitUrl(pichichi.p.baseId)}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                   fallback={<Icon name="crest" className="w-6 h-6 text-slate-400" />}
                 />
               </div>
@@ -165,7 +165,7 @@ export function AlbumView() {
                         {has ? (
                           <ImgFallback
                             src={portraitUrl(p.id)}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-top"
                             fallback={<span className="text-[10px] font-bold" style={{ color: info.color }}>{p.name[0]}</span>}
                           />
                         ) : (
@@ -356,7 +356,7 @@ function RivalChip({ base }: { base: PlayerBase }) {
         >
           <ImgFallback
             src={portraitUrl(base.id)}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
             alt={base.name}
             fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{base.name[0]}</span>}
           />
@@ -448,7 +448,7 @@ export function TeamSelectView() {
                       <span className="w-4 h-4 rounded-full overflow-hidden bg-slate-700 grid place-items-center">
                         <ImgFallback
                           src={portraitUrl(p.id)}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover object-top"
                           fallback={<span className="text-[7px]">{p.name[0]}</span>}
                         />
                       </span>

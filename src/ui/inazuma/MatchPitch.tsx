@@ -125,7 +125,7 @@ function Face({ actor, x, label, ball, dim }: {
         >
           <ImgFallback
             src={portraitUrl(actor.baseId)}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
             alt={actor.name}
             fallback={<span className="text-[10px] font-extrabold" style={{ color: info.color }}>
               {actor.name.slice(0, 2).toUpperCase()}

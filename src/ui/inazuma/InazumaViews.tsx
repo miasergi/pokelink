@@ -909,7 +909,7 @@ export function DraftView() {
                 <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden border border-slate-600 grid place-items-center bg-slate-800">
                   <ImgFallback
                     src={portraitUrl(o.playerId)}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                     fallback={<Icon name="jersey" className="w-6 h-6 text-slate-400" />}
                   />
                 </div>
