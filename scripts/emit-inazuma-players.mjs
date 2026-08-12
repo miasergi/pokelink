@@ -139,11 +139,13 @@ function statsFor(position, rarity, seedStr) {
  */
 const SIGNATURES = {
   'Mark Evans': ['god-hand', 'mugen-the-hand', 'majin-the-hand'],
-  'Axel Blaze': ['fire-tornado', 'bakunetsu-storm'],
-  'Kevin Dragonfly': ['dragon-crash', 'death-zone'],
+  // El último paso de estas cadenas es una técnica COMBINADA: despertarla es
+  // lo que desbloquea el combo (además hacen falta los compañeros en el campo).
+  'Axel Blaze': ['fire-tornado', 'inazuma-break', 'bakunetsu-storm'],
+  'Kevin Dragonfly': ['dragon-crash', 'dragon-tornado'],
+  'Jude Sharp': ['illusion-ball', 'death-zone'],
   'Nathan Swift': ['coil-turn', 'the-tower'],
-  'Jude Sharp': ['illusion-ball', 'southern-crosscut'],
-  'Byron Love': ['god-break', 'inazuma-break'],
+  'Byron Love': ['god-break', 'eternal-blizzard'],
 }
 
 /**

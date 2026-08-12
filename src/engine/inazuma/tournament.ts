@@ -31,7 +31,7 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
  * las suyas. La curva se fijó MIDIENDO con qué nivel llega el bot a cada
  * eliminatoria; lo que decide el partido es la diferencia, no el número.
  */
-export const RIVAL_LEVELS = [6, 11, 19, 28, 38, 48, 58, 68]
+export const RIVAL_LEVELS = [9, 17, 29, 44, 58, 70, 81, 90]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
@@ -69,10 +69,11 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
 // partidas guardadas.
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
   { kind: 'pachanga', weight: 20 },
-  { kind: 'evento', weight: 17 },
+  { kind: 'evento', weight: 16 },
   { kind: 'firma', weight: 15 },
-  { kind: 'objeto', weight: 17 },
-  { kind: 'ojeador', weight: 12 },
+  { kind: 'objeto', weight: 16 },
+  { kind: 'ojeador', weight: 10 },
+  { kind: 'trade', weight: 7 },
   { kind: 'rairai', weight: 9 },
   { kind: 'tienda', weight: 7 },
 ]
@@ -274,6 +275,13 @@ function buildRouteNode(
       }
     case 'ojeador':
       return { ...base, title: 'Ojeador', subtitle: 'Tiene tres fichas sobre la mesa', reward: 'Fichas a un jugador nuevo' }
+    case 'trade':
+      return {
+        ...base,
+        title: 'Cazatalentos ambulante',
+        subtitle: 'Un jugador por otro, a ciegas',
+        reward: 'Cambia a quien elijas por otro al azar con +3 niveles',
+      }
     case 'rairai':
       return {
         ...base,

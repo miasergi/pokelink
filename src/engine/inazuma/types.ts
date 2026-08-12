@@ -369,7 +369,7 @@ export interface ChainState {
  *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
  */
 export type NodeKind =
-  | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
+  | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'trade' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
@@ -467,7 +467,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'trade' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number

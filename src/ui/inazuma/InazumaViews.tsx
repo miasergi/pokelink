@@ -13,7 +13,7 @@ import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { ElementIcon, ItemIcon, Pic, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
-import { buildLineup, lineupError, overall, ptMax, transferValue } from '@/engine/inazuma/roster'
+import { buildLineup, lineupError, overall, ptMax, SIGNATURE_LEVELS, transferValue } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
@@ -705,6 +705,7 @@ function PlayerDetail({
                 const t = getTechnique(id)
                 if (!t) return null
                 const learnt = player.techniques.includes(id)
+                const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
                 return (
                   <span key={id} className="inline-flex items-center gap-1">
                     <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
@@ -713,6 +714,8 @@ function PlayerDetail({
                       <TechniqueBadge tech={t} size={22} />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
                         {t.name}
+                        {/* Cuándo despierta sola, si aún no la tiene. */}
+                        {!learnt && <span className="ml-1 text-slate-500">nv.{need}</span>}
                       </span>
                     </span>
                     {i < arr.length - 1 && <Icon name="arrowRight" className="w-3 h-3 text-slate-600" />}

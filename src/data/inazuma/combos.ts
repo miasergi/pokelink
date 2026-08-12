@@ -1,12 +1,13 @@
 // TÉCNICAS COMBINADAS: las de dos o tres jugadores de la serie.
 //
-// No se aprenden ni se compran: se DESBLOQUEAN teniendo a los compañeros
-// correctos sobre el campo, como en el anime — el Tornado de Dragón existe
-// porque Axel y Kevin están los dos ahí. Es la recompensa por alinear a los
-// amigos en vez de a los once con mejor media.
+// NO son gratis. Para lanzar una hacen falta las dos cosas:
+//  1. Que ALGÚN miembro haya DESPERTADO la técnica (está al final de su
+//     cadena característica: el Tornado de Dragón es el segundo paso de la
+//     cadena de Kevin, la Zona Mortal el de Jude…), y
+//  2. que TODOS los miembros estén sobre el campo.
 //
-// Cualquiera de los miembros puede lanzarla cuando le toca decidir; el resto
-// solo tiene que estar en el once del campo.
+// Cumplidas las dos, cualquiera de los miembros puede lanzarla cuando le toca
+// decidir, con bono de potencia por combinarse.
 import { getTechnique } from '@/data/inazuma/techniques'
 import type { Technique } from '@/engine/inazuma/types'
 
@@ -43,9 +44,20 @@ export const COMBOS: Combo[] = [
 /** Bono de potencia por combinarse: son varias piernas empujando. */
 export const COMBO_MULT = 1.25
 
-/** Combos que este jugador puede LANZAR con los que hay ahora en el campo. */
-export function availableCombos(actorBaseId: string, onPitch: ReadonlySet<string>): Combo[] {
-  return COMBOS.filter((c) => c.members.includes(actorBaseId) && c.members.every((m) => onPitch.has(m)))
+/**
+ * Combos que este jugador puede LANZAR ahora mismo: él es miembro, todos los
+ * miembros están en el campo y alguno ha DESPERTADO la técnica (aprendida por
+ * cadena, casilla o manual — por eso no es un regalo).
+ */
+export function availableCombos(
+  actorBaseId: string,
+  onPitch: { baseId: string; techniques: string[] }[],
+): Combo[] {
+  const ids = new Set(onPitch.map((a) => a.baseId))
+  return COMBOS.filter((c) =>
+    c.members.includes(actorBaseId)
+    && c.members.every((m) => ids.has(m))
+    && onPitch.some((a) => c.members.includes(a.baseId) && a.techniques.includes(c.techniqueId)))
 }
 
 /** La técnica del combo, ya con el bono aplicado. */

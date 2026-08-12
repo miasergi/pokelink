@@ -15,16 +15,16 @@ import { getTeam, PLAYABLE_TEAMS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
   autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
-  learnSignature, recordMatchStats, signatureNext, startMatch, startPachanga,
+  learnSignature, recordMatchStats, signatureNext, SPIRIT_AWAKEN_LEVEL, startMatch, startPachanga,
 } from './game'
 import { EVENTS, getEvent } from '@/data/inazuma/events'
 import { availableCombos } from '@/data/inazuma/combos'
 import { nextRound, shoot } from './pachanga'
-import { buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
+import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  lineupError, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel, transferValue,
-  upgradeTechnique,
+  levelUp, lineupError, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel,
+  transferValue, upgradeTechnique,
 } from './roster'
 import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
@@ -354,6 +354,21 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         // de lo que es.
         resolveEventNode(save, node, rng, smart)
         break
+      case 'trade': {
+        // Cambia al peor del banquillo por uno al azar con +3 niveles: casi
+        // siempre renta, que es la gracia de la casilla.
+        const worst = save.roster
+          .filter((p) => !p.captain && !save.lineup.includes(p.uid))
+          .sort((a, b) => overall(a) - overall(b))[0]
+        if (worst) {
+          const pool = availableSignings(save)
+          if (pool.length) {
+            const nuevo = createPlayer(rng.pick(pool).id, worst.level + 3)
+            save.roster = [...save.roster.filter((p) => p.uid !== worst.uid), nuevo]
+          }
+        }
+        break
+      }
       case 'firma': {
         // Despierta la técnica del titular con menos técnicas: es la fuente
         // principal de supertécnicas desde que el equipo sale sin ninguna.
@@ -926,19 +941,53 @@ describe('coherencia', () => {
     }
   })
 
-  it('las técnicas combinadas aparecen cuando los compañeros están en el campo', () => {
-    // El once inicial del Raimon alinea a Axel y a Kevin: en algún mano a mano
-    // con Axel al balón tiene que ofrecerse el Tornado de Dragón combinado.
-    const xi = new Set(createSave(1).roster.map((p) => p.baseId))
-    expect(availableCombos('axel-blaze', xi).some((c) => c.techniqueId === 'dragon-tornado')).toBe(true)
-    // Sin Kevin, no hay combo.
-    const sinKevin = new Set([...xi].filter((id) => id !== 'kevin-dragonfly'))
+  it('la cadena se despierta sola al cruzar los umbrales de nivel', () => {
+    let p = createPlayer('mark-evans', 5)
+    expect(p.techniques).toHaveLength(0)
+    p = levelUp(p, 5) // nivel 10: primer paso
+    expect(p.techniques).toContain('god-hand')
+    p = levelUp(p, 15) // nivel 25: segundo
+    expect(p.techniques).toContain('mugen-the-hand')
+    p = levelUp(p, 20) // nivel 45: tercero
+    expect(p.techniques).toContain('majin-the-hand')
+    // Y un fichaje que LLEGA a nivel alto trae lo suyo despierto.
+    expect(createPlayer('axel-blaze', 30).techniques).toContain('fire-tornado')
+  })
+
+  it('el Espíritu Guerrero se despierta por nivel, no de serie', () => {
+    const save = createSave(3)
+    save.roster = save.roster.map((p) => ({ ...p, level: 10 }))
+    const low = startMatch(save, firstBoss(save))
+    if ('error' in low) throw new Error(low.error)
+    const mineLow = low.match.home
+    expect([mineLow.keeper, ...mineLow.defs, ...mineLow.mids, ...mineLow.fwds].every((a) => !a.spirit)).toBe(true)
+
+    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL }))
+    const high = startMatch(save, firstBoss(save))
+    if ('error' in high) throw new Error(high.error)
+    const mineHigh = high.match.home
+    expect([mineHigh.keeper, ...mineHigh.defs, ...mineHigh.mids, ...mineHigh.fwds].some((a) => a.spirit)).toBe(true)
+  })
+
+  it('las combinadas se GANAN: hace falta despertar la técnica y tener al socio', () => {
+    // Kevin sin su cadena despierta: NO hay combo aunque estén los dos.
+    const raw = createSave(1).roster.map((p) => ({ baseId: p.baseId, techniques: p.techniques }))
+    expect(availableCombos('axel-blaze', raw).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
+    // Kevin despierta el Tornado de Dragón (2º paso de su cadena) → combo.
+    const conCadena = raw.map((a) => (a.baseId === 'kevin-dragonfly'
+      ? { ...a, techniques: ['dragon-crash', 'dragon-tornado'] }
+      : a))
+    expect(availableCombos('axel-blaze', conCadena).some((c) => c.techniqueId === 'dragon-tornado')).toBe(true)
+    // Sin Kevin en el campo, no hay combo por muy despierta que esté.
+    const sinKevin = conCadena.filter((a) => a.baseId !== 'kevin-dragonfly')
     expect(availableCombos('axel-blaze', sinKevin).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
 
-    // Y en partido real: jugando varios, alguna decisión ofrece un combo.
+    // Y en partido real: con las cadenas despiertas (nivel 25 cruza el
+    // segundo umbral), alguna decisión acaba ofreciendo un combo.
     let seenCombo = false
     for (let seed = 0; seed < 6 && !seenCombo; seed++) {
       const save = createSave(seed)
+      save.roster = save.roster.map((p) => levelUp(p, 25))
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       let guard = 0

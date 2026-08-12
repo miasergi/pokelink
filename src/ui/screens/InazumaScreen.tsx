@@ -8,6 +8,7 @@ import PachangaView from '@/ui/inazuma/PachangaView'
 import BagView from '@/ui/inazuma/BagView'
 import EventView from '@/ui/inazuma/EventView'
 import FirmaView from '@/ui/inazuma/FirmaView'
+import TradeView from '@/ui/inazuma/TradeView'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
 } from '@/ui/inazuma/ExtraViews'
@@ -33,6 +34,7 @@ export default function InazumaScreen() {
       case 'bag': return <BagView />
       case 'evento': return <EventView />
       case 'firma': return <FirmaView />
+      case 'trade': return <TradeView />
       case 'stats': return <StatsView />
       case 'album': return <AlbumView />
       case 'teamSelect': return <TeamSelectView />

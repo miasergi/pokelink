@@ -10,7 +10,7 @@ import {
   levelUp, ptMax, slotRole, START_LEVEL, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
-import { createPachanga, participants, type PachangaState } from './pachanga'
+import { createPachanga, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import { buildScoutOffer, learnableByRoster } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
@@ -73,6 +73,13 @@ export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
 // Montaje del partido
 // ---------------------------------------------------------------------------
 
+/**
+ * Nivel al que un jugador DESPIERTA su Espíritu Guerrero. Antes estaba
+ * disponible desde el minuto uno y rompía el arranque: un duelo con ×2 de
+ * potencia en la primera ronda decide el partido él solo.
+ */
+export const SPIRIT_AWAKEN_LEVEL = 30
+
 function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
   const base = getPlayerBase(p.baseId)
   return {
@@ -90,7 +97,8 @@ function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
     ptMax: ptMax(p),
     techniques: p.techniques,
     techLevels: p.techLevels,
-    spirit: base.spirit,
+    // El Espíritu se despierta con la experiencia, no viene de serie.
+    spirit: p.level >= SPIRIT_AWAKEN_LEVEL ? base.spirit : undefined,
   }
 }
 
@@ -286,18 +294,18 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
 export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): void {
   const actors = [s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds]
   const byUid = new Map(actors.map((a) => [a.uid, a]))
-  const played = new Set(participants(s))
   const won = s.result === 'win'
   const levels = won ? (node.risky ? 4 : 3) : 0
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
     let next: PlayerInstance = a ? { ...p, stamina: a.stamina, pt: a.pt } : { ...p }
-    // Igual que en los partidos: quien la disputa se lleva los niveles enteros
-    // y el resto uno menos. Así rotar en las pachangas sigue teniendo sentido
-    // (llegas fresco al jefe) sin que el banquillo se descuelgue.
+    // La pachanga la juega TU ONCE (el mismo que alineas en el vestuario): los
+    // once se llevan los niveles enteros y el banquillo uno menos. Antes solo
+    // contaban «los que tocaron balón» en la tanda (3-5 jugadores) y nadie
+    // entendía por qué unos subían más que otros.
     if (levels) {
-      next = levelUp(next, played.has(p.uid) ? levels : Math.max(0, levels - BENCH_LEVEL_PENALTY))
+      next = levelUp(next, a ? levels : Math.max(0, levels - BENCH_LEVEL_PENALTY))
     }
     return next
   })

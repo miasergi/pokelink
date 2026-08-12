@@ -7,7 +7,7 @@ import { getTechnique } from '@/data/inazuma/techniques'
 import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
 import { getFormation } from '@/data/inazuma/formations'
 import {
-  SQUAD_SIZE,
+  SQUAD_SIZE, TECHNIQUE_SLOTS,
   type PlayerInstance, type PlayerBase, type Position, type RivalPlayer,
   type Stats, type Element,
 } from './types'
@@ -146,14 +146,41 @@ export function createPlayer(baseId: string, level: number, opts: { captain?: bo
     captain: opts.captain,
   }
   p.pt = ptMax(p)
-  return p
+  // Un fichaje que llega a nivel alto trae ya despierta la parte de su cadena
+  // que el nivel cubre: llegar «en blanco» a nivel 40 no tenía sentido.
+  return awakenByLevel(p)
+}
+
+/**
+ * Nivel al que se despierta cada paso de la CADENA característica. La casilla
+ * de Supertécnica Especial y el Manual avanzado siguen sirviendo para
+ * ADELANTARSE a estos umbrales; esto garantiza que, aunque no toque ninguna,
+ * el jugador acaba despertando lo suyo.
+ */
+export const SIGNATURE_LEVELS = [10, 25, 45]
+
+/** Despierta los pasos de la cadena que el nivel ya cubre. */
+function awakenByLevel(p: PlayerInstance): PlayerInstance {
+  const chain = getPlayerBase(p.baseId).signature ?? []
+  let out = p
+  chain.forEach((id, i) => {
+    const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+    if (out.level >= need && !out.techniques.includes(id)) {
+      const techs = out.techniques.slice()
+      if (techs.length >= TECHNIQUE_SLOTS) techs.shift()
+      out = { ...out, techniques: [...techs, id] }
+    }
+  })
+  return out
 }
 
 /** Sube niveles y rellena PT proporcionalmente (no regala depósito lleno). */
 export function levelUp(p: PlayerInstance, amount = 1): PlayerInstance {
   const before = ptMax(p)
-  const next = { ...p, level: Math.min(MAX_LEVEL, p.level + amount) }
+  let next: PlayerInstance = { ...p, level: Math.min(MAX_LEVEL, p.level + amount) }
   next.pt = Math.min(ptMax(next), p.pt + (ptMax(next) - before))
+  // Al cruzar un umbral de cadena, la técnica se despierta sola.
+  next = awakenByLevel(next)
   return next
 }
 

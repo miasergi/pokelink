@@ -80,6 +80,7 @@ export const NODE_ICON: Record<NodeKind, string> = {
   tecnica: 'node-tecnica',
   firma: 'node-firma2',
   ojeador: 'node-ojeador',
+  trade: 'node-trade',
   evento: 'node-evento',
   rairai: 'node-rairai',
   tienda: 'node-tienda',

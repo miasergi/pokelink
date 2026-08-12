@@ -24,8 +24,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'axel-blaze', name: 'Axel Blaze', team: 'raimon', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 113, control: 77, fisico: 55, defensa: 26, velocidad: 62, aguante: 40 },
-    techniques: ['fire-tornado', 'bakunetsu-storm'],
-    signature: ['fire-tornado', 'bakunetsu-storm'],
+    techniques: ['fire-tornado', 'inazuma-break'],
+    signature: ['fire-tornado', 'inazuma-break', 'bakunetsu-storm'],
     spirit: 'pegaso',
   },
   {
@@ -38,8 +38,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'kevin-dragonfly', name: 'Kevin Dragonfly', team: 'raimon', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 99, control: 68, fisico: 49, defensa: 23, velocidad: 56, aguante: 36 },
-    techniques: ['dragon-crash', 'death-zone'],
-    signature: ['dragon-crash', 'death-zone'],
+    techniques: ['dragon-crash', 'dragon-tornado'],
+    signature: ['dragon-crash', 'dragon-tornado'],
     spirit: 'ent',
   },
   {
@@ -722,8 +722,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'byron-love', name: 'Byron Love', team: 'zeus', position: 'MED', element: 'bosque', rarity: 5,
     stats: { tiro: 58, control: 100, fisico: 46, defensa: 62, velocidad: 65, aguante: 41 },
-    techniques: ['god-break', 'inazuma-break'],
-    signature: ['god-break', 'inazuma-break'],
+    techniques: ['god-break', 'eternal-blizzard'],
+    signature: ['god-break', 'eternal-blizzard'],
     spirit: 'ent',
   },
   {

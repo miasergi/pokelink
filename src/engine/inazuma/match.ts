@@ -518,9 +518,8 @@ function buildDecision(
   //    compañeros de la serie sobre el campo. Puede lanzarlas cualquiera de
   //    sus miembros cuando le toca decidir.
   if (mode === 'ataque') {
-    const onPitch = new Set(
-      [atkSide.keeper, ...atkSide.defs, ...atkSide.mids, ...atkSide.fwds].map((a) => a.baseId),
-    )
+    const onPitch = [atkSide.keeper, ...atkSide.defs, ...atkSide.mids, ...atkSide.fwds]
+      .map((a) => ({ baseId: a.baseId, techniques: a.techniques }))
     for (const combo of availableCombos(actor.baseId, onPitch)) {
       const t = comboTechnique(combo.techniqueId)
       if (!t || t.kind !== kind) continue

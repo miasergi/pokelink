@@ -23,7 +23,7 @@ import {
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
-import { buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
+import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
   autoLineup, createPlayer, levelUp, lineupError, transferValue,
 } from '@/engine/inazuma/roster'
@@ -199,6 +199,8 @@ interface InazumaState {
   resolveEvent: (optionIndex: number) => void
   /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
   resolveFirma: (uid: string) => void
+  /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
+  resolveTrade: (uid: string) => void
 
   // plantilla
   setLineup: (uids: string[]) => void
@@ -362,6 +364,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       case 'firma':
         // Elegir QUIÉN despierta su técnica es la gracia de la casilla.
         set({ save: next, matchNode: node, phase: 'firma' })
+        return
+      case 'trade':
+        set({ save: next, matchNode: node, phase: 'trade' })
         return
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
@@ -677,6 +682,38 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       matchNode: null,
       phase: 'map',
       message: `¡${who ? getPlayerBase(who.baseId).name : 'Alguien'} despierta ${learnt.name}!`,
+    })
+    void persist(next, 'map')
+  },
+
+  resolveTrade: (uid) => {
+    const { save, matchNode } = get()
+    if (!save || matchNode?.kind !== 'trade') return
+    const out = save.roster.find((p) => p.uid === uid)
+    if (!out) return
+    if (out.captain) { set({ message: 'El capitán no se cambia.' }); return }
+
+    const r = getRng(save)
+    const pool = availableSignings(save)
+    if (!pool.length) { set({ message: 'No queda nadie con quien cambiar.' }); return }
+    const incoming = r.pick(pool)
+    const level = out.level + 3
+    const nuevo = createPlayer(incoming.id, level)
+
+    const next: InazumaSave = {
+      ...save,
+      roster: [...save.roster.filter((p) => p.uid !== uid), nuevo],
+      // El nuevo hereda el HUECO del que se va: el once no se descoloca.
+      lineup: save.lineup.map((u) => (u === uid ? nuevo.uid : u)),
+      cleared: save.cleared.slice(),
+    }
+    advanceLayer(next, matchNode)
+    void persistInazumaMeta({ signed: [incoming.id] })
+    set({
+      save: next,
+      matchNode: null,
+      phase: 'map',
+      message: `${getPlayerBase(out.baseId).name} se marcha. ¡Llega ${incoming.name} (nv. ${level})!`,
     })
     void persist(next, 'map')
   },

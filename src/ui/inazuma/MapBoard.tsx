@@ -22,6 +22,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   tecnica: { icon: NODE_ICON.tecnica, color: '#fbbf24', label: 'Técnica' },
   firma: { icon: NODE_ICON.firma, color: '#f0abfc', label: 'S. Especial' },
   ojeador: { icon: NODE_ICON.ojeador, color: '#34d399', label: 'Ojeador' },
+  trade: { icon: NODE_ICON.trade, color: '#2dd4bf', label: 'Intercambio' },
   evento: { icon: NODE_ICON.evento, color: '#c084fc', label: 'Situación' },
   rairai: { icon: NODE_ICON.rairai, color: '#f472b6', label: 'Rai Rai' },
   tienda: { icon: NODE_ICON.tienda, color: '#fcd34d', label: 'Tienda' },

@@ -51,8 +51,8 @@ const SECTIONS: Section[] = [
       <>
         La barra fina de la parte de arriba del partido. Se llena encadenando jugadas ganadas y se gasta de
         una de dos maneras, una vez llena: <B>Supervibración</B> (tres acciones seguidas gratis y con
-        potencia extra) o <B>Espíritu Guerrero</B> (un único duelo demoledor, solo si el jugador tiene
-        espíritu). Una cosa o la otra.
+        potencia extra) o <B>Espíritu Guerrero</B> (un único duelo demoledor). El espíritu <B>se despierta
+        al nivel 30</B>: al principio del torneo nadie lo tiene disponible.
       </>
     ),
   },
@@ -61,11 +61,10 @@ const SECTIONS: Section[] = [
     title: 'Nivel — lo que se entrena',
     body: (
       <>
-        Escala los atributos del jugador. Sube al ganar: <B>pachangas</B> (+3 los que juegan),{' '}
-        <B>partidos oficiales</B> (+6 si ganas, +4 si empatas y +3 aunque pierdas) y algunas{' '}
-        <B>situaciones</B> del mapa. El <B>banquillo también sube, un nivel menos</B> que los que juegan —
-        por eso al volver al vestuario ves subidas distintas: los titulares del último partido ganaron un
-        nivel más que los suplentes.
+        Escala los atributos del jugador. Sube al ganar: <B>pachangas</B> (las juega TU ONCE, el mismo que
+        alineas en el vestuario: los once suben entero, p. ej. +3) y <B>partidos oficiales</B> (+6 si
+        ganas, +4 si empatas, +3 aunque pierdas), más algunas <B>situaciones</B>. El <B>banquillo sube un
+        nivel menos</B> que el once en todo — por eso ves subidas distintas al volver al vestuario.
       </>
     ),
   },
@@ -98,9 +97,22 @@ const SECTIONS: Section[] = [
     body: (
       <>
         Cada jugador tiene su <B>cadena característica</B>: las técnicas que puede despertar, en orden
-        (Mark Evans: Mano Celestial → Mano Infinita → Mano Demoníaca). Se despiertan en las casillas de{' '}
-        <B>Supertécnica Especial</B> del mapa y con el Manual avanzado. La cadena se ve en la ficha de cada
-        jugador, con lo pendiente en gris.
+        (Mark Evans: Mano Celestial → Mano Infinita → Mano Demoníaca). Se despiertan <B>solas por
+        nivel</B> — el 1.º paso al nivel 10, el 2.º al 25, el 3.º al 45 — y ANTES de tiempo en las
+        casillas de <B>Supertécnica Especial</B> o con el Manual avanzado. La cadena se ve en la ficha de
+        cada jugador, con lo pendiente en gris y su nivel de despertar.
+      </>
+    ),
+  },
+  {
+    icon: 'people',
+    title: 'Técnicas combinadas — de dos o tres',
+    body: (
+      <>
+        Tornado de Dragón (Axel + Kevin), Inazuma Break (Mark + Axel + Jude), Zona Mortal (Jude + David)…
+        Hacen falta <B>las dos cosas</B>: que un miembro haya <B>despertado la técnica en su cadena</B> y
+        que TODOS los miembros estén sobre el campo. Entonces aparece como opción extra en la jugada, con
+        bono de potencia.
       </>
     ),
   },
