@@ -32,12 +32,16 @@ const STEP_ZONE: Record<ChainStep, string> = {
   definicion: 'Área',
 }
 
-export default function MatchPitch({ match }: { match: MatchState }) {
+export default function MatchPitch({ match, frozen }: { match: MatchState; frozen?: boolean }) {
   // Entre posesión y posesión el motor deja `chain` a null. Si el campo se
   // vaciara en cada hueco, parpadearía sin parar; se mantiene la última.
+  //
+  // Y mientras una ANIMACIÓN cuenta un duelo (`frozen`), el campo NO avanza:
+  // el motor ya va por la siguiente jugada, y mover el balón aquí destripaba
+  // el desenlace por debajo del escenario.
   const last = useRef<ChainState | null>(null)
-  if (match.chain) last.current = match.chain
-  const chain = match.chain ?? last.current
+  if (!frozen && match.chain) last.current = match.chain
+  const chain = frozen ? last.current : (match.chain ?? last.current)
   if (!chain) return null
 
   const mine = playerSide(match)

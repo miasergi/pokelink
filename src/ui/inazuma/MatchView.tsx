@@ -82,6 +82,16 @@ export default function MatchView() {
   const theirs = sideOf(match, otherSide(playerSide(match)))
   const finished = match.phase === 'finished'
 
+  // CONGELACIÓN: mientras el escenario del duelo o la celebración están en
+  // pantalla, nada de lo de debajo avanza. El motor ya sabe el desenlace, pero
+  // la narración, el campo y las barras de Ruptura esperan a que la animación
+  // termine de contarlo — si no, el partido «seguía por debajo».
+  const frozen = stage !== null || gol !== null
+  // La línea de un duelo dice quién ganó: no aparece hasta que su escenario
+  // acaba (el escenario se llavea con feed.length, así que basta con ocultar
+  // la última línea mientras ese escenario viva).
+  const shownFeed = stage && stage.key === feed.length ? feed.slice(0, -1) : feed
+
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
       <DuelStage stage={stage} onDone={() => setStage(null)} />
@@ -90,8 +100,9 @@ export default function MatchView() {
         feed={feed}
         myTeamId={save?.teamId ?? 'raimon'}
         rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+        frozen={frozen}
       />
-      {!finished && <MatchPitch match={match} />}
+      {!finished && <MatchPitch match={match} frozen={frozen} />}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
           `min-h-full` hace las dos cosas a la vez: al principio del partido las
@@ -101,7 +112,7 @@ export default function MatchView() {
           navegador capaba el desplazamiento y el historial era inalcanzable. */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         <div className="min-h-full flex flex-col justify-end gap-1.5">
-          {feed.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
+          {shownFeed.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
           <div ref={bottom} />
         </div>
       </div>
@@ -180,15 +191,32 @@ function eventIsMine(match: MatchState, e: MatchEvent): boolean {
   return 'side' in e ? e.side === mine : false
 }
 
-function Scoreboard({ match, feed, myTeamId, rivalTeamId }: {
+function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen }: {
   match: MatchState
   feed: MatchEvent[]
   myTeamId?: string
   rivalTeamId?: string
+  frozen?: boolean
 }) {
   const mineSide = playerSide(match)
   const mine = sideOf(match, mineSide)
   const theirs = sideOf(match, otherSide(mineSide))
+
+  // La Ruptura sube al GANAR un duelo: si la barra se moviera durante la
+  // animación, contaría el desenlace antes de tiempo. Congelada mientras haya
+  // escenario o celebración en pantalla.
+  const burstRef = useRef({ mine: 0, theirs: 0, mineTurns: 0, theirsTurns: 0 })
+  if (!frozen) {
+    burstRef.current = {
+      mine: mine.burst, theirs: theirs.burst,
+      mineTurns: mine.burstTurns, theirsTurns: theirs.burstTurns,
+    }
+  }
+  const burst = burstRef.current
+
+  // El minuto también sale de lo REVELADO: el del motor va jugadas por delante.
+  let minute = 0
+  for (const e of feed) if ('minute' in e && e.minute > minute) minute = e.minute
 
   // El marcador se saca de lo REVELADO, no del motor: el motor ya sabe el gol
   // mientras el escenario del tiro aún se está contando, y ver moverse el
@@ -210,7 +238,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId }: {
         <TeamBadge name={mine.name} color={mine.color} teamId={myTeamId} />
         <div className="text-center px-2">
           <div className="text-2xl font-extrabold tabular-nums leading-none">{myGoals} – {theirGoals}</div>
-          <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">min. {match.minute}′</div>
+          <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">min. {minute}′</div>
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
       </div>
@@ -227,9 +255,9 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId }: {
       )}
       {/* Barras de Ruptura */}
       <div className="mt-1.5 flex items-center gap-2">
-        <BurstBar value={mine.burst} turns={mine.burstTurns} color="#f59e0b" />
+        <BurstBar value={burst.mine} turns={burst.mineTurns} color="#f59e0b" />
         <span className="text-[9px] uppercase tracking-widest text-slate-600 shrink-0">Ruptura</span>
-        <BurstBar value={theirs.burst} turns={theirs.burstTurns} color="#64748b" flip />
+        <BurstBar value={burst.theirs} turns={burst.theirsTurns} color="#64748b" flip />
       </div>
     </div>
   )
