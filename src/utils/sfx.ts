@@ -46,6 +46,29 @@ function sweep(f1: number, f2: number, dur: number, type: OscillatorType = 'sawt
   osc.stop(t0 + dur + 0.02)
 }
 
+/** Ráfaga de RUIDO filtrado: chut de balón, ovación de la grada. */
+function noiseBurst(dur: number, freq: number, gain = 0.05, delay = 0) {
+  const c = ac()
+  if (!c) return
+  const t0 = c.currentTime + delay
+  const len = Math.max(1, Math.floor(c.sampleRate * dur))
+  const buf = c.createBuffer(1, len, c.sampleRate)
+  const data = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1
+  const src = c.createBufferSource()
+  src.buffer = buf
+  const filter = c.createBiquadFilter()
+  filter.type = 'bandpass'
+  filter.frequency.value = freq
+  filter.Q.value = 0.8
+  const g = c.createGain()
+  g.gain.setValueAtTime(gain, t0)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+  src.connect(filter).connect(g).connect(c.destination)
+  src.start(t0)
+  src.stop(t0 + dur + 0.02)
+}
+
 function vibrate(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
@@ -59,6 +82,8 @@ function vibrate(pattern: number | number[]) {
 export type Sfx =
   | 'hit' | 'crit' | 'faint' | 'heal' | 'status' | 'levelup'
   | 'victory' | 'defeat' | 'select' | 'mega' | 'catch' | 'noEffect'
+  // --- fútbol (modo Inazuma) ---
+  | 'whistle' | 'kick' | 'gol' | 'parada' | 'supertecnica'
 
 export function play(kind: Sfx) {
   if (!useSettings.getState().sound) return
@@ -117,6 +142,38 @@ export function play(kind: Sfx) {
       break
     case 'select':
       tone(660, 0.04, 'square', 0.03)
+      break
+    // ------------------------------------------------- fútbol (Inazuma) ---
+    case 'whistle':
+      // Pitido de árbitro: trino agudo doble.
+      tone(2350, 0.13, 'square', 0.028)
+      tone(2350, 0.3, 'square', 0.028, 0.17)
+      break
+    case 'kick':
+      // Chut: golpe sordo de ruido grave.
+      noiseBurst(0.09, 240, 0.09)
+      vibrate(10)
+      break
+    case 'gol':
+      // ¡Gol!: fanfarria ascendente + rugido de grada.
+      tone(523, 0.1, 'square', 0.05)
+      tone(659, 0.1, 'square', 0.05, 0.1)
+      tone(784, 0.1, 'square', 0.05, 0.2)
+      tone(1047, 0.3, 'square', 0.055, 0.3)
+      noiseBurst(0.9, 900, 0.035, 0.25)
+      vibrate([0, 50, 40, 80])
+      break
+    case 'parada':
+      // Manotazo del portero: golpe seco y grave que corta.
+      noiseBurst(0.12, 500, 0.07)
+      tone(180, 0.14, 'sine', 0.05, 0.02)
+      vibrate(18)
+      break
+    case 'supertecnica':
+      // La técnica carga y estalla.
+      sweep(180, 1200, 0.35, 'sawtooth', 0.04)
+      noiseBurst(0.2, 1500, 0.03, 0.3)
+      vibrate([0, 15, 15, 30])
       break
   }
 }

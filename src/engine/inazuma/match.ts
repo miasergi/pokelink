@@ -17,6 +17,7 @@ import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, ty
 import { getSpirit } from '@/data/inazuma/spirits'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier } from './roster'
+import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
 import type {
   Actor, ChainStep, Decision, DecisionOption, Element, MatchEvent, MatchSide, MatchState,
   ShootoutState, Side, Technique,
@@ -513,7 +514,26 @@ function buildDecision(
     options.push(opt)
   }
 
-  // 3) Atacando: pasar a un compañero con otro elemento para esquivar un mal
+  // 3) Técnicas COMBINADAS: no se aprenden, se desbloquean teniendo a los
+  //    compañeros de la serie sobre el campo. Puede lanzarlas cualquiera de
+  //    sus miembros cuando le toca decidir.
+  if (mode === 'ataque') {
+    const onPitch = new Set(
+      [atkSide.keeper, ...atkSide.defs, ...atkSide.mids, ...atkSide.fwds].map((a) => a.baseId),
+    )
+    for (const combo of availableCombos(actor.baseId, onPitch)) {
+      const t = comboTechnique(combo.techniqueId)
+      if (!t || t.kind !== kind) continue
+      const cost = free ? 0 : t.cost
+      const opt = buildOption(m, step, mode, attacker, defender, momentum, {
+        id: `combo:${combo.techniqueId}`, label: `${t.name} (${combo.label})`, tech: t, cost,
+      })
+      if (!free && t.cost > actor.pt) opt.disabled = `Necesitas ${t.cost} PT`
+      options.push(opt)
+    }
+  }
+
+  // 4) Atacando: pasar a un compañero con otro elemento para esquivar un mal
   //    emparejamiento. Es la jugada de manual del modo: el elemento del que
   //    recibe cuenta contra el defensor, no el del que llevaba el balón.
   if (mode === 'ataque') {
@@ -525,7 +545,7 @@ function buildDecision(
     }
   }
 
-  // 4) Supervibración, si la barra está llena.
+  // 5) Supervibración, si la barra está llena.
   if (mySide.burst >= 100 && mySide.burstTurns === 0) {
     options.push({
       id: 'burst',
@@ -537,7 +557,7 @@ function buildDecision(
     })
   }
 
-  // 5) Espíritu Guerrero: compite con la Supervibración por la MISMA barra.
+  // 6) Espíritu Guerrero: compite con la Supervibración por la MISMA barra.
   //    Una sola vez por partido, y se lo lleva todo a un único duelo.
   const spirit = getSpirit(actor.spirit)
   if (spirit && mySide.burst >= 100 && !mySide.spiritUsed) {
@@ -692,6 +712,9 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   if (optionId.startsWith('tech:')) {
     // Se resuelve contra el actor que la lanza para aplicar sus Mejoras.
     myTech = actorTechnique(d.mode === 'ataque' ? attacker : defender, optionId.slice(5))
+  } else if (optionId.startsWith('combo:')) {
+    // Combinada: ya viene con su bono; no pasa por las Mejoras individuales.
+    myTech = comboTechnique(optionId.slice(6))
   } else if (optionId.startsWith('pass:')) {
     const mate = findActor(atkSide, optionId.slice(5))
     attacker = mate

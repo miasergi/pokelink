@@ -13,6 +13,7 @@ import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
 import TechniqueCutIn, { cutInFrom, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
 import { Pic } from '@/ui/inazuma/Glyphs'
+import { play } from '@/utils/sfx'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -41,6 +42,13 @@ export default function MatchView() {
     const delay = next.kind === 'goal' ? 950 : next.kind === 'save' ? 700 : next.kind === 'penalty' ? 800 : 220
     const t = setTimeout(() => {
       setShown((n) => n + 1)
+      // Sonido AL REVELAR, no al resolver el motor: si sonara antes de verse,
+      // el gol se destriparía un segundo antes de aparecer.
+      if (next.kind === 'goal' || (next.kind === 'penalty' && next.scored)) play('gol')
+      else if (next.kind === 'save' || (next.kind === 'penalty' && !next.scored)) play('parada')
+      else if (next.kind === 'duel' && next.step === 'definicion') play('kick')
+      else if (next.kind === 'duel' && (next.technique || next.counter)) play('supertecnica')
+      else if (next.kind === 'kickoff' || next.kind === 'halftime' || next.kind === 'fulltime' || next.kind === 'stage') play('whistle')
       if (next.kind === 'goal') {
         setGol({ scorer: next.scorer, mine: match ? next.side === playerSide(match) : false, key: shown })
       }
@@ -62,7 +70,7 @@ export default function MatchView() {
     seen.current = visible.length
     const mine = playerSide(match)
     for (let i = fresh.length - 1; i >= 0; i--) {
-      const c = cutInFrom(fresh[i], mine, visible.length)
+      const c = cutInFrom(fresh[i], mine, visible.length, (uid) => actorByUid(match, uid)?.baseId)
       if (c) { setCut(c); return }
     }
   }, [visible, match])

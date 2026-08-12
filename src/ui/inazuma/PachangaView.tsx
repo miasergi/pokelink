@@ -22,8 +22,24 @@ export default function PachangaView() {
     if (rounds.length <= seen.current) { seen.current = rounds.length; return }
     seen.current = rounds.length
     const last = rounds[rounds.length - 1]
+    // La técnica del tirador manda; si solo la puso el portero, la suya.
     const name = last.technique ?? last.counter
-    if (name) setCut({ key: rounds.length, name, id: techniqueIdByName(name), mine: last.mine })
+    const userName = last.technique ? last.shooter : last.keeper
+    // El retrato sale buscando al actor por nombre en los dos bandos.
+    const all = pachanga
+      ? [pachanga.mine, pachanga.theirs].flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
+      : []
+    const baseId = all.find((a) => a.name === userName)?.baseId
+    if (name) {
+      setCut({
+        key: rounds.length,
+        name,
+        id: techniqueIdByName(name),
+        mine: last.technique ? last.mine : !last.mine,
+        playerName: userName,
+        playerBaseId: baseId,
+      })
+    }
   }, [pachanga?.rounds.length, pachanga])
 
   if (!pachanga) return null

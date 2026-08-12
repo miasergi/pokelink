@@ -18,6 +18,7 @@ import {
   learnSignature, recordMatchStats, signatureNext, startMatch, startPachanga,
 } from './game'
 import { EVENTS, getEvent } from '@/data/inazuma/events'
+import { availableCombos } from '@/data/inazuma/combos'
 import { nextRound, shoot } from './pachanga'
 import { buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
 import {
@@ -905,6 +906,32 @@ describe('coherencia', () => {
         expect(save.roster.some((p) => p.baseId === o.playerId)).toBe(false)
       }
     }
+  })
+
+  it('las técnicas combinadas aparecen cuando los compañeros están en el campo', () => {
+    // El once inicial del Raimon alinea a Axel y a Kevin: en algún mano a mano
+    // con Axel al balón tiene que ofrecerse el Tornado de Dragón combinado.
+    const xi = new Set(createSave(1).roster.map((p) => p.baseId))
+    expect(availableCombos('axel-blaze', xi).some((c) => c.techniqueId === 'dragon-tornado')).toBe(true)
+    // Sin Kevin, no hay combo.
+    const sinKevin = new Set([...xi].filter((id) => id !== 'kevin-dragonfly'))
+    expect(availableCombos('axel-blaze', sinKevin).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
+
+    // Y en partido real: jugando varios, alguna decisión ofrece un combo.
+    let seenCombo = false
+    for (let seed = 0; seed < 6 && !seenCombo; seed++) {
+      const save = createSave(seed)
+      const setup = startMatch(save, firstBoss(save))
+      if ('error' in setup) throw new Error(setup.error)
+      let guard = 0
+      while (setup.match.phase !== 'finished' && guard++ < 5000) {
+        if (setup.match.phase === 'decision' && setup.match.decision) {
+          if (setup.match.decision.options.some((o) => o.id.startsWith('combo:'))) seenCombo = true
+          chooseOption(setup.match, setup.rng, setup.match.decision.options.filter((o) => !o.disabled)[0].id)
+        } else advance(setup.match, setup.rng)
+      }
+    }
+    expect(seenCombo).toBe(true)
   })
 
   it('traspasar paga y nunca deja la plantilla por debajo de once', () => {

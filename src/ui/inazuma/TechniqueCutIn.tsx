@@ -10,10 +10,11 @@ import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import { ELEMENT_ICON, techniqueImage } from '@/ui/inazuma/Glyphs'
+import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { MatchEvent } from '@/engine/inazuma/types'
 
 /** Cuánto se queda en pantalla. Corto a propósito: no interrumpe el ritmo. */
-const HOLD_MS = 1150
+const HOLD_MS = 1500
 
 export interface CutIn {
   /** Clave única para reiniciar la animación aunque se repita la técnica. */
@@ -21,6 +22,9 @@ export interface CutIn {
   name: string
   id: string | null
   mine: boolean
+  /** Quién la lanza: su nombre y su retrato. */
+  playerName?: string
+  playerBaseId?: string
 }
 
 /**
@@ -28,21 +32,38 @@ export interface CutIn {
  * es por NOMBRE porque es lo que traen los eventos; se resuelve al catálogo
  * para poder pintar la imagen.
  */
-export function cutInFrom(event: MatchEvent, mineSide: 'home' | 'away', seq: number): CutIn | null {
-  const named = (name: string | undefined, mine: boolean): CutIn | null => {
+export function cutInFrom(
+  event: MatchEvent,
+  mineSide: 'home' | 'away',
+  seq: number,
+  /** Resuelve un uid del partido a su `baseId`, para pintar el retrato. */
+  baseOf?: (uid: string) => string | undefined,
+): CutIn | null {
+  const named = (
+    name: string | undefined, mine: boolean, playerName?: string, playerUid?: string,
+  ): CutIn | null => {
     if (!name) return null
     const tech = getTechnique(idOf(name)) ?? findByName(name)
-    return { key: seq, name, id: tech?.id ?? null, mine }
+    return {
+      key: seq,
+      name,
+      id: tech?.id ?? null,
+      mine,
+      playerName,
+      playerBaseId: playerUid ? baseOf?.(playerUid) : undefined,
+    }
   }
   switch (event.kind) {
     case 'duel':
-      return named(event.technique, event.side === mineSide)
+      // La del atacante manda; si solo respondió el defensor, la suya.
+      if (event.technique) return named(event.technique, event.side === mineSide, event.attacker, event.attackerUid)
+      return named(event.counter, event.side !== mineSide, event.defender, event.defenderUid)
     case 'goal':
-      return named(event.technique, event.side === mineSide)
+      return named(event.technique, event.side === mineSide, event.scorer, event.scorerUid)
     case 'save':
-      return named(event.technique, event.side === mineSide)
+      return named(event.technique, event.side !== mineSide, event.keeper, event.keeperUid)
     case 'penalty':
-      return named(event.technique, event.side === mineSide)
+      return named(event.technique, event.side === mineSide, event.shooter, event.shooterUid)
     default:
       return null
   }
@@ -83,33 +104,57 @@ export default function TechniqueCutIn({ cut, onDone }: { cut: CutIn | null; onD
     >
       {/* Bandas diagonales: el recurso de toda la vida del anime. */}
       <div
-        className="absolute inset-x-0 h-32"
+        className="absolute inset-x-0 h-48"
         style={{
-          background: `linear-gradient(90deg, transparent, ${info.color}55 20%, ${info.color}aa 50%, ${info.color}55 80%, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${info.color}55 18%, ${info.color}aa 50%, ${info.color}55 82%, transparent)`,
           transform: 'skewY(-6deg)',
         }}
       />
-      <div className="relative flex flex-col items-center gap-1">
-        <div
-          className="w-28 h-28 rounded-2xl overflow-hidden border-4 grid place-items-center bg-slate-950 animate-pop-in"
-          style={{ borderColor: info.color, boxShadow: `0 0 28px ${info.color}` }}
-        >
-          <ImgFallback
-            src={shown.id ? techniqueImage(shown.id) : ''}
-            alt={shown.name}
-            className="w-full h-full object-cover"
-            fallback={<Icon name={ELEMENT_ICON[tech?.element ?? 'aire']} className="w-14 h-14" style={{ color: info.color }} />}
-          />
+      <div className="relative flex flex-col items-center gap-1.5">
+        {/* La técnica, EN GRANDE: es el fotograma estrella del partido. */}
+        <div className="relative">
+          <div
+            className="w-48 h-48 rounded-3xl overflow-hidden border-4 grid place-items-center bg-slate-950 animate-pop-in"
+            style={{ borderColor: info.color, boxShadow: `0 0 40px ${info.color}` }}
+          >
+            <ImgFallback
+              src={shown.id ? techniqueImage(shown.id) : ''}
+              alt={shown.name}
+              className="w-full h-full object-cover"
+              fallback={<Icon name={ELEMENT_ICON[tech?.element ?? 'aire']} className="w-20 h-20" style={{ color: info.color }} />}
+            />
+          </div>
+          {/* Quien la lanza, asomando por la esquina como en los cortes del anime. */}
+          {shown.playerBaseId && (
+            <div
+              className="absolute -bottom-3 -left-4 w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"
+              style={{ borderColor: shown.mine ? '#22c55e' : '#f43f5e' }}
+            >
+              <ImgFallback
+                src={portraitUrl(shown.playerBaseId)}
+                alt={shown.playerName ?? ''}
+                className="w-full h-full object-cover"
+                fallback={<span className="grid place-items-center w-full h-full text-sm font-extrabold text-white">
+                  {(shown.playerName ?? '?').slice(0, 2).toUpperCase()}
+                </span>}
+              />
+            </div>
+          )}
         </div>
         <div
-          className="px-3 py-1 rounded-full text-sm font-extrabold uppercase tracking-wider bg-slate-950/85 border"
+          className="px-4 py-1 rounded-full text-base font-extrabold uppercase tracking-wider bg-slate-950/85 border"
           style={{ color: info.color, borderColor: `${info.color}88` }}
         >
           {shown.name}
         </div>
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">
-          {shown.mine ? '¡vuestra!' : 'del rival'}
-        </div>
+        {shown.playerName && (
+          <div
+            className="px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-slate-950/80 border"
+            style={{ borderColor: shown.mine ? '#22c55e88' : '#f43f5e88', color: shown.mine ? '#bbf7d0' : '#fecdd3' }}
+          >
+            {shown.playerName}
+          </div>
+        )}
       </div>
     </div>
   )

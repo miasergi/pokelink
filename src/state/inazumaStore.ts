@@ -397,9 +397,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!playing) return
 
     const events = advance(match, matchRng)
-    if (events.some((e) => e.kind === 'goal')) play('victory')
-    else if (events.some((e) => e.kind === 'save')) play('heal')
-    else if (events.some((e) => e.kind === 'duel')) play('hit')
+    // Los sonidos del PARTIDO los dispara la pantalla al revelar cada evento:
+    // el motor resuelve tiro+parada+gol en el mismo latido, y sonar aquí
+    // destripaba el desenlace un segundo antes de verlo.
 
     set({ match: { ...match }, feed: match.events.slice() })
     ticker = setTimeout(() => get().tick(), events.length ? speed : 120)
