@@ -31,11 +31,11 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
  * las suyas. La curva se fijó MIDIENDO con qué nivel llega el bot a cada
  * eliminatoria; lo que decide el partido es la diferencia, no el número.
  */
-export const RIVAL_LEVELS = [7, 12, 21, 33, 44, 55, 65, 74]
+export const RIVAL_LEVELS = [6, 11, 19, 28, 38, 48, 58, 68]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
-export const ROUTE_LAYERS_PER_SEGMENT = 8
+export const ROUTE_LAYERS_PER_SEGMENT = 6
 /** Casillas ofrecidas por capa de ruta. */
 const NODES_PER_LAYER = 3
 
@@ -64,14 +64,14 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
  * principal de nivel, igual que los combates salvajes en el modo Pokémon.
  */
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
-  { kind: 'pachanga', weight: 30 },
-  { kind: 'evento', weight: 14 },
-  { kind: 'firma', weight: 12 },
-  { kind: 'objeto', weight: 12 },
-  { kind: 'tecnica', weight: 10 },
-  { kind: 'ojeador', weight: 10 },
-  { kind: 'rairai', weight: 7 },
-  { kind: 'tienda', weight: 5 },
+  { kind: 'pachanga', weight: 20 },
+  { kind: 'evento', weight: 17 },
+  { kind: 'firma', weight: 14 },
+  { kind: 'objeto', weight: 13 },
+  { kind: 'tecnica', weight: 11 },
+  { kind: 'ojeador', weight: 11 },
+  { kind: 'rairai', weight: 8 },
+  { kind: 'tienda', weight: 6 },
 ]
 
 function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
@@ -96,13 +96,14 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
     for (let r = 0; r < ROUTE_LAYERS_PER_SEGMENT; r++) {
       const ids: string[] = []
       const used = new Set<NodeKind>()
-      // Al menos UNA pachanga por capa: sin ella se podría cruzar un tramo
-      // entero sin subir de nivel y llegar al jefe sin opciones, que es
-      // exactamente el fallo que ya se corrigió en el mapa del modo Pokémon.
-      // La primera capa de la partida fuerza además una casilla de FIRMA: el
-      // equipo sale sin supertécnicas, y despertar la primera en los primeros
-      // pasos es el gancho del sistema.
-      const forced: NodeKind[] = seg === 0 && r === 0 ? ['pachanga', 'firma'] : ['pachanga']
+      // Una pachanga garantizada en capas ALTERNAS (no en todas: forzarla en
+      // cada capa llenaba el mapa de fútbol de barrio y mataba la variedad).
+      // En las impares puede tocar de todo. La primera capa de la partida
+      // fuerza además una casilla de FIRMA: el equipo sale sin supertécnicas y
+      // despertar la primera en los primeros pasos es el gancho del sistema.
+      const forced: NodeKind[] = seg === 0 && r === 0
+        ? ['pachanga', 'firma']
+        : r % 2 === 0 ? ['pachanga'] : []
       for (let c = 0; c < NODES_PER_LAYER; c++) {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.

@@ -13,7 +13,6 @@ import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
 import TechniqueCutIn, { cutInFrom, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
 import { Pic } from '@/ui/inazuma/Glyphs'
-import { play } from '@/utils/sfx'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -28,52 +27,33 @@ export default function MatchView() {
   const [cut, setCut] = useState<CutIn | null>(null)
   const seen = useRef(0)
 
-  // ----- RITMO: los eventos no se vuelcan de golpe, se revelan de uno en uno.
-  // El motor resuelve tiro+parada+gol en el mismo latido y antes aparecía todo
-  // junto: no había suspense ninguno. Ahora el disparo sale, respira, y DESPUÉS
-  // se sabe si el portero llegó. `shown` arranca en el tamaño del feed para no
-  // reproducir la retransmisión entera al volver a un partido guardado.
-  const [shown, setShown] = useState(() => feed.length)
+  // El RITMO lo marca el store: el feed llega ya revelado de uno en uno, con
+  // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
+  // solo se reacciona al último evento (celebración de gol y cut-in).
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number } | null>(null)
   useEffect(() => {
-    if (shown >= feed.length) return
-    const next = feed[shown]
-    // La pausa va ANTES del desenlace: más para goles y paradas.
-    const delay = next.kind === 'goal' ? 950 : next.kind === 'save' ? 700 : next.kind === 'penalty' ? 800 : 220
-    const t = setTimeout(() => {
-      setShown((n) => n + 1)
-      // Sonido AL REVELAR, no al resolver el motor: si sonara antes de verse,
-      // el gol se destriparía un segundo antes de aparecer.
-      if (next.kind === 'goal' || (next.kind === 'penalty' && next.scored)) play('gol')
-      else if (next.kind === 'save' || (next.kind === 'penalty' && !next.scored)) play('parada')
-      else if (next.kind === 'duel' && next.step === 'definicion') play('kick')
-      else if (next.kind === 'duel' && (next.technique || next.counter)) play('supertecnica')
-      else if (next.kind === 'kickoff' || next.kind === 'halftime' || next.kind === 'fulltime' || next.kind === 'stage') play('whistle')
-      if (next.kind === 'goal') {
-        setGol({ scorer: next.scorer, mine: match ? next.side === playerSide(match) : false, key: shown })
-      }
-      if (next.kind === 'penalty' && next.scored) {
-        setGol({ scorer: next.shooter, mine: match ? next.side === playerSide(match) : false, key: shown })
-      }
-    }, delay)
-    return () => clearTimeout(t)
-  }, [shown, feed, match])
-  const visible = feed.slice(0, shown)
+    if (!match || !feed.length) return
+    const last = feed[feed.length - 1]
+    if (last.kind === 'goal') {
+      setGol({ scorer: last.scorer, mine: last.side === playerSide(match), key: feed.length })
+    } else if (last.kind === 'penalty' && last.scored) {
+      setGol({ scorer: last.shooter, mine: last.side === playerSide(match), key: feed.length })
+    }
+  }, [feed.length, match, feed])
 
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [shown])
+  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
 
-  // Corte de supertécnica: sobre lo que se acaba de REVELAR (no sobre el feed
-  // crudo), para que la animación coincida con la línea que aparece.
+  // Corte de supertécnica sobre lo recién revelado.
   useEffect(() => {
     if (!match) return
-    const fresh = visible.slice(seen.current)
-    seen.current = visible.length
+    const fresh = feed.slice(seen.current)
+    seen.current = feed.length
     const mine = playerSide(match)
     for (let i = fresh.length - 1; i >= 0; i--) {
-      const c = cutInFrom(fresh[i], mine, visible.length, (uid) => actorByUid(match, uid)?.baseId)
+      const c = cutInFrom(fresh[i], mine, feed.length, (uid) => actorByUid(match, uid)?.baseId)
       if (c) { setCut(c); return }
     }
-  }, [visible, match])
+  }, [feed, match])
 
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
@@ -94,7 +74,7 @@ export default function MatchView() {
           navegador capaba el desplazamiento y el historial era inalcanzable. */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         <div className="min-h-full flex flex-col justify-end gap-1.5">
-          {visible.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
+          {feed.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
           <div ref={bottom} />
         </div>
       </div>

@@ -608,13 +608,15 @@ describe('torneo', () => {
       // El jefe cierra el tramo y va solo en su capa.
       expect(map.layers[seg.end]).toHaveLength(1)
       expect(seg.end - seg.start).toBe(ROUTE_LAYERS_PER_SEGMENT)
+      let pachangas = 0
       for (let li = seg.start; li < seg.end; li++) {
         const nodes = currentOffer(map, li)
         expect(nodes.length).toBeGreaterThan(1)
-        // Toda capa de ruta ofrece al menos una pachanga: sin ella se podría
-        // cruzar un tramo entero sin subir de nivel.
-        expect(nodes.some((n) => n.kind === 'pachanga')).toBe(true)
+        if (nodes.some((n) => n.kind === 'pachanga')) pachangas++
       }
+      // La pachanga se garantiza en capas ALTERNAS (forzarla en todas llenaba
+      // el mapa de fútbol de barrio): al menos la mitad del tramo la ofrece.
+      expect(pachangas).toBeGreaterThanOrEqual(ROUTE_LAYERS_PER_SEGMENT / 2)
     }
   })
 

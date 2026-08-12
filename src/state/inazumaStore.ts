@@ -34,6 +34,53 @@ import {
   type MatchState, type TournamentNode,
 } from '@/engine/inazuma/types'
 
+/**
+ * Cola de REVELADO de la retransmisión. El motor resuelve tiro+parada+gol en
+ * el mismo latido; si se volcara todo de golpe al feed, el gol pasaría tan
+ * deprisa como un pase. Los eventos esperan aquí y salen DE UNO EN UNO, cada
+ * uno con su tiempo en pantalla — y el motor NO avanza (ni aparece el panel de
+ * decisión) hasta que la cola está vacía.
+ */
+let revealQueue: MatchEvent[] = []
+
+/** Cuánto se queda cada evento en pantalla antes del siguiente (ms, a ×1). */
+function holdFor(e: MatchEvent): number {
+  switch (e.kind) {
+    case 'goal': return 2000        // la celebración necesita su segundo y medio
+    case 'penalty': return 1600
+    case 'save': return 1300        // el manotazo se saborea
+    case 'duel': return e.step === 'definicion' ? 1200 : (e.technique || e.counter ? 1100 : 500)
+    case 'spirit':
+    case 'burst':
+    case 'stage': return 1100
+    case 'kickoff':
+    case 'halftime':
+    case 'fulltime': return 900
+    default: return 420
+  }
+}
+
+/** Sonido de cada evento, disparado AL REVELARSE (nunca antes de verse). */
+function soundFor(e: MatchEvent): void {
+  switch (e.kind) {
+    case 'goal': play('gol'); break
+    case 'penalty': play(e.scored ? 'gol' : 'parada'); break
+    case 'save': play('parada'); break
+    case 'duel':
+      if (e.step === 'definicion') play('kick')
+      else if (e.technique || e.counter) play('supertecnica')
+      else play('hit')
+      break
+    case 'spirit':
+    case 'burst': play('supertecnica'); break
+    case 'kickoff':
+    case 'halftime':
+    case 'fulltime':
+    case 'stage': play('whistle'); break
+    default: break
+  }
+}
+
 /** RNG viva de la partida (se rehidrata del save y se vuelca al persistir). */
 let rng: RNG | null = null
 function getRng(save: InazumaSave): RNG {
@@ -180,6 +227,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   initInazuma: async () => {
     stopTicker()
+    revealQueue = []
     const save = await loadInazuma()
     rng = null
     matchRng = null
@@ -322,6 +370,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const setup = startMatch(save, matchNode)
     if ('error' in setup) { set({ message: setup.error }); return }
     matchRng = setup.rng
+    revealQueue = []
     set({ match: setup.match, feed: setup.match.events.slice(), phase: 'match', playing: true })
     get().tick()
   },
@@ -379,13 +428,29 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { match, playing, speed, autoPlay } = get()
     if (!match || !matchRng) return
 
-    // Todas las condiciones de parada se comprueban AQUÍ, al principio del
-    // latido, y nunca después de `advance` (que muta el partido). Así el bucle
-    // tiene un único sitio donde decidir si sigue.
+    // 1) Si hay eventos esperando, se revela UNO y se le da su tiempo en
+    //    pantalla. Mientras la cola no esté vacía el motor no avanza, así que
+    //    el partido se PARA de verdad en el tiro, la parada y el gol — y el
+    //    panel de decisión nunca aparece con jugadas a medio contar.
+    if (revealQueue.length) {
+      const e = revealQueue.shift()!
+      soundFor(e)
+      // El multiplicador de velocidad acelera el trámite, pero los momentos
+      // gordos conservan un mínimo: a ×4 el gol y la parada SIGUEN viéndose.
+      const factor = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
+      const important = e.kind === 'goal' || e.kind === 'save' || e.kind === 'penalty'
+      const hold = Math.max(Math.round(holdFor(e) * factor), important ? 1100 : 320)
+      set({ match: { ...match }, feed: [...get().feed, e] })
+      ticker = setTimeout(() => get().tick(), hold)
+      return
+    }
+
+    // 2) Cola vacía: ahora sí, las condiciones de parada. Todas AQUÍ, al
+    //    principio, y nunca después de `advance` (que muta el partido).
     const phase: MatchPhase = match.phase
     if (phase === 'finished') { set({ playing: false }); return }
     if (phase === 'decision') {
-      if (!autoPlay) { set({ playing: false }); return }
+      if (!autoPlay) { set({ playing: false, match: { ...match } }); return }
       // Auto: la opción con más estrellas y, a igualdad, la más barata en PT.
       const best = (match.decision?.options ?? [])
         .filter((o) => !o.disabled)
@@ -397,26 +462,25 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!playing) return
 
     const events = advance(match, matchRng)
-    // Los sonidos del PARTIDO los dispara la pantalla al revelar cada evento:
-    // el motor resuelve tiro+parada+gol en el mismo latido, y sonar aquí
-    // destripaba el desenlace un segundo antes de verlo.
-
-    set({ match: { ...match }, feed: match.events.slice() })
-    ticker = setTimeout(() => get().tick(), events.length ? speed : 120)
+    revealQueue.push(...events)
+    set({ match: { ...match } })
+    ticker = setTimeout(() => get().tick(), events.length ? 40 : 120)
   },
 
   decide: (optionId) => {
-    const { match, speed, autoPlay } = get()
+    const { match, autoPlay } = get()
     if (!match || !matchRng || match.phase !== 'decision') return
     play('select')
-    chooseOption(match, matchRng, optionId)
-    set({ match: { ...match }, feed: match.events.slice(), playing: true })
+    const events = chooseOption(match, matchRng, optionId)
+    revealQueue.push(...events)
+    set({ match: { ...match }, playing: true })
     stopTicker()
-    ticker = setTimeout(() => get().tick(), autoPlay ? Math.min(speed, 700) : speed)
+    ticker = setTimeout(() => get().tick(), autoPlay ? 300 : 150)
   },
 
   finishMatch: () => {
     stopTicker()
+    revealQueue = []
     const { match, matchNode, save } = get()
     if (!match || !matchNode || !save || match.phase !== 'finished') return
     const next: InazumaSave = {
@@ -607,6 +671,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   resumePausedMatch: () => {
     const { save } = get()
     if (!save?.pausedMatch) return
+    revealQueue = []
     const node = save.map.nodes[save.pausedMatch.nodeId]
     if (!node) { set({ message: 'El partido guardado ya no existe.' }); return }
     matchRng = new RNG(save.seed)
