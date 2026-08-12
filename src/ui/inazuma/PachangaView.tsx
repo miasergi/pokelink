@@ -1,7 +1,7 @@
 // Pachanga: la tanda rápida de mano a mano. Una pantalla, cinco toques.
 // Deliberadamente MUY distinta del partido de jefe (que es una retransmisión de
 // 90 minutos): aquí se ve todo de golpe y se resuelve en segundos.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
 import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
 import { useInazuma } from '@/state/inazumaStore'
@@ -19,6 +19,10 @@ export default function PachangaView() {
   const auto = useSettings((s) => s.inazumaMode) === 'auto'
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  // Memoizados: pasados inline cambiaban de identidad en cada render y (antes
+  // del blindaje por ref en DuelStage) reiniciaban el duelo — se veía doble.
+  const clearStage = useCallback(() => setStage(null), [])
+  const clearGol = useCallback(() => setGol(null), [])
   // Rondas ya CONTADAS en pantalla. El motor resuelve la ronda al instante,
   // pero aquí no existe hasta que el escenario del duelo la ha narrado: sin
   // esto, el marcador se movía (y la siguiente decisión aparecía) antes de
@@ -87,9 +91,9 @@ export default function PachangaView() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-      <DuelStage stage={stage} onDone={() => setStage(null)} />
+      <DuelStage stage={stage} onDone={clearStage} />
       {gol && (
-        <GoalOverlay key={gol.key} scorer={gol.scorer} mine={gol.mine} teamId={gol.teamId} onDone={() => setGol(null)} />
+        <GoalOverlay key={gol.key} scorer={gol.scorer} mine={gol.mine} teamId={gol.teamId} onDone={clearGol} />
       )}
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">

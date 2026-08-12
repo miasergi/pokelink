@@ -7,7 +7,7 @@
 // no contra quién ni cómo acababa, y con dos técnicas seguidas se solapaba
 // todo. Aquí el partido está PARADO mientras dura (la cola de revelado del
 // store no avanza hasta que el escenario ha tenido su tiempo).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -52,6 +52,11 @@ export function techniqueByName(name: string | undefined): Technique | undefined
 export default function DuelStage({ stage, onDone }: { stage: StageData | null; onDone: () => void }) {
   const [shown, setShown] = useState<StageData | null>(null)
   const [phase, setPhase] = useState(0) // 0 atacante · 1 defensor · 2 desenlace
+  // `onDone` entra por ref: si estuviera en las deps del efecto, un padre que
+  // lo pase inline (identidad nueva en cada render) reiniciaría el escenario a
+  // mitad — el duelo se veía DOS veces. La animación solo depende del duelo.
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
 
   useEffect(() => {
     if (!stage) return
@@ -64,9 +69,9 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     const total = scoring ? 2300 : STAGE_MS
     const t1 = setTimeout(() => setPhase(1), T_DEFENDER)
     const t2 = setTimeout(() => setPhase(2), T_RESULT)
-    const t3 = setTimeout(() => { setShown(null); onDone() }, total)
+    const t3 = setTimeout(() => { setShown(null); onDoneRef.current() }, total)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [stage, onDone])
+  }, [stage])
 
   if (!shown) return null
   const atkTech = techniqueByName(shown.attacker.techName)
