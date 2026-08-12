@@ -25,7 +25,7 @@ import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
-  autoLineup, createPlayer, levelUp, lineupError, transferValue,
+  autoLineup, createPlayer, effectiveStats, levelUp, lineupError, ptMax, transferValue,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -34,6 +34,33 @@ import {
   type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent, type MatchPhase,
   type MatchState, type TournamentNode,
 } from '@/engine/inazuma/types'
+
+/** Barra animada del efecto de un objeto (de `from` a `to`). */
+export interface ItemFxBar { label: string; from: number; to: number; max: number; color: string }
+
+/**
+ * Lo que un objeto acaba de hacer, para que la pantalla lo ENSEÑE: barras que
+ * se curan, atributos que suben, niveles que saltan. Sin esto los objetos
+ * funcionaban en silencio y parecía que no hacían nada.
+ */
+export interface ItemFx {
+  key: number
+  title: string
+  /** id del objeto para su imagen; 'rairai' usa el icono del restaurante. */
+  itemId?: string
+  targetName: string
+  targetBaseId?: string
+  bars: ItemFxBar[]
+  stats?: { label: string; from: number; to: number }[]
+  level?: { from: number; to: number }
+}
+
+const STAT_TAG: Record<string, string> = {
+  tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU',
+}
+
+/** Objetos que actúan sobre TODA la plantilla (para el rótulo y las medias). */
+const TEAM_ITEMS = new Set(['gyoza', 'banquete', 'concentrado'])
 
 /**
  * Cola de REVELADO de la retransmisión. El motor resuelve tiro+parada+gol en
@@ -200,6 +227,8 @@ interface InazumaState {
   applyToPlayer: (uid: string) => void
   cancelTarget: () => void
   resolveEvent: (optionIndex: number) => void
+  itemFx: ItemFx | null
+  clearItemFx: () => void
   /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
   resolveFirma: (uid: string) => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
@@ -237,6 +266,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   draftPicks: 0,
   pendingTarget: null,
   message: null,
+  itemFx: null,
 
   initInazuma: async () => {
     stopTicker()
@@ -307,14 +337,30 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // El Rai Rai cura al entrar (es el centro Pokémon del modo) y ADEMÁS
       // te deja comprar comida para llevar.
       const next = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
-      if (node.kind === 'rairai') fullRest(next)
+      let fx: ItemFx | null = null
+      if (node.kind === 'rairai') {
+        // La cura de ENTRAR (gratis, como un centro Pokémon) se enseña con las
+        // barras curándose: antes pasaba en silencio y parecía que había que
+        // comprar comida para recuperarse.
+        const n = Math.max(1, save.roster.length)
+        const beforePt = save.roster.reduce((a, p) => a + p.pt, 0) / n
+        const beforeAgu = save.roster.reduce((a, p) => a + p.stamina, 0) / n
+        fullRest(next)
+        const maxPt = next.roster.reduce((a, p) => a + ptMax(p), 0) / n
+        fx = {
+          key: Date.now(),
+          title: 'Restaurante Rai Rai',
+          itemId: 'rairai',
+          targetName: 'Toda la plantilla, invitada a ramen',
+          bars: [
+            { label: 'PT', from: beforePt, to: maxPt, max: maxPt, color: '#38bdf8' },
+            { label: 'AGU', from: beforeAgu, to: 100, max: 100, color: '#22c55e' },
+          ],
+        }
+        play('heal')
+      }
       advanceLayer(next, node)
-      set({
-        save: next,
-        matchNode: node,
-        phase: 'shop',
-        message: node.kind === 'rairai' ? '¡Ramen para todos! Plantilla recuperada.' : null,
-      })
+      set({ save: next, matchNode: node, phase: 'shop', itemFx: fx ?? get().itemFx })
       void persist(next, 'shop')
       return
     }
@@ -641,6 +687,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   /** Vuelve a la carta sin gastarla: la recompensa sigue esperando. */
   cancelTarget: () => set({ pendingTarget: null, phase: get().draft.length ? 'draft' : 'map' }),
 
+  clearItemFx: () => set({ itemFx: null }),
+
   /**
    * Resuelve una situación del mapa. Las opciones con `chance` pueden salir mal
    * — es lo que las hace decisiones y no menús.
@@ -887,7 +935,31 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       bag,
       roster: save.roster.map((p) => (p.uid === uid ? { ...p, item: itemId } : p)),
     }
-    set({ save: next })
+
+    // Al EQUIPAR, se enseña qué atributos suben y de cuánto a cuánto: el
+    // porcentaje de la descripción no le dice nada a nadie.
+    let fx: ItemFx | null = null
+    if (itemId) {
+      const before = effectiveStats(target)
+      const after = effectiveStats({ ...target, item: itemId })
+      const stats = (Object.keys(before) as (keyof typeof before)[])
+        .filter((k) => after[k] !== before[k])
+        .map((k) => ({ label: STAT_TAG[k] ?? k, from: before[k], to: after[k] }))
+      if (stats.length) {
+        fx = {
+          key: Date.now(),
+          title: getItem(itemId)?.name ?? 'Equipado',
+          itemId,
+          targetName: getPlayerBase(target.baseId).name,
+          targetBaseId: target.baseId,
+          bars: [],
+          stats,
+        }
+        play('levelup')
+      }
+    }
+
+    set({ save: next, itemFx: fx ?? get().itemFx })
     void persist(next, get().phase)
   },
 
@@ -895,12 +967,57 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { save } = get()
     if (!save) return
     const next: InazumaSave = { ...save, bag: save.bag.slice(), roster: save.roster.slice() }
+
+    // Instantánea ANTES, para animar las barras del valor viejo al nuevo.
+    const team = TEAM_ITEMS.has(itemId)
+    const snap = (roster: typeof save.roster) => {
+      if (team) {
+        const n = Math.max(1, roster.length)
+        return {
+          pt: roster.reduce((a, p) => a + p.pt, 0) / n,
+          ptMax: roster.reduce((a, p) => a + ptMax(p), 0) / n,
+          stamina: roster.reduce((a, p) => a + p.stamina, 0) / n,
+          level: 0,
+        }
+      }
+      const p = roster.find((x) => x.uid === uid)
+      return p ? { pt: p.pt, ptMax: ptMax(p), stamina: p.stamina, level: p.level } : null
+    }
+    const before = snap(save.roster)
+
     // El efecto vive en el motor (`applyConsumable`), no aquí: los tests de
     // balance también consumen objetos, y duplicar la tabla en dos sitios es
     // la forma más rápida de que dejen de medir el juego real.
     const res = applyConsumable(next, itemId, uid)
     if (!res.ok) { set({ message: res.message }); return }
-    set({ save: next, message: res.message })
+
+    const after = snap(next.roster)
+    const target = next.roster.find((x) => x.uid === uid)
+    let fx: ItemFx | null = null
+    if (before && after) {
+      const bars: ItemFxBar[] = []
+      if (Math.round(after.pt - before.pt) !== 0) {
+        bars.push({ label: 'PT', from: before.pt, to: after.pt, max: after.ptMax, color: '#38bdf8' })
+      }
+      if (Math.round(after.stamina - before.stamina) !== 0) {
+        bars.push({ label: 'AGU', from: before.stamina, to: after.stamina, max: 100, color: '#22c55e' })
+      }
+      fx = {
+        key: Date.now(),
+        title: getItem(itemId)?.name ?? 'Objeto',
+        itemId,
+        targetName: team ? 'Toda la plantilla' : (target ? getPlayerBase(target.baseId).name : ''),
+        targetBaseId: team ? undefined : target?.baseId,
+        bars,
+        level: !team && target && before.level !== target.level
+          ? { from: before.level, to: target.level }
+          : undefined,
+      }
+      if (fx.bars.length || fx.level) play('heal')
+      else fx = null
+    }
+
+    set({ save: next, message: fx ? null : res.message, itemFx: fx ?? get().itemFx })
     void persist(next, get().phase)
   },
 

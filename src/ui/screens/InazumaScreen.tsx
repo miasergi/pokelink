@@ -9,6 +9,7 @@ import BagView from '@/ui/inazuma/BagView'
 import EventView from '@/ui/inazuma/EventView'
 import FirmaView from '@/ui/inazuma/FirmaView'
 import TradeView from '@/ui/inazuma/TradeView'
+import ItemFxOverlay from '@/ui/inazuma/ItemFxOverlay'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
 } from '@/ui/inazuma/ExtraViews'
@@ -48,6 +49,7 @@ export default function InazumaScreen() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {view}
+      <ItemFxOverlay />
       <Toast />
       {intro && <InazumaOnboarding onClose={() => { markOnboarded(); setIntro(false) }} />}
     </div>
