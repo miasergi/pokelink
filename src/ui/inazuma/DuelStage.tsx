@@ -67,8 +67,11 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
   const atkTech = techniqueByName(shown.attacker.techName)
   const defTech = techniqueByName(shown.defender.techName)
 
+  // Si el TIRO entra, aquí no se dice: el sello sería un spoiler de la
+  // celebración de gol, que llega justo después con el escudo y el marcador.
+  const spoiler = shown.attackerWins && shown.kind !== 'regate'
   const result = shown.attackerWins
-    ? (shown.kind === 'regate' ? '¡SE ESCAPA!' : '¡SUPERA AL PORTERO!')
+    ? '¡SE ESCAPA!'
     : (shown.kind === 'regate' ? '¡BALÓN ROBADO!' : '¡PARADÓN!')
   const winnerMine = shown.attackerWins ? shown.attackerMine : !shown.attackerMine
   const resultColor = winnerMine ? '#22c55e' : '#f43f5e'
@@ -93,7 +96,7 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
           </>
         )}
 
-        {phase >= 2 && (
+        {phase >= 2 && !spoiler && (
           <div
             className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-fit px-5 py-2 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal"
             style={{ color: resultColor, borderColor: resultColor, transform: 'rotate(-5deg)' }}

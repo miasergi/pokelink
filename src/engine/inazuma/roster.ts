@@ -61,7 +61,11 @@ export function scaleStats(base: Stats, level: number): Stats {
  * bot la compraba en bucle y los torneos salían idénticos a no comprar nada.
  */
 export function ptMax(p: PlayerInstance): number {
-  return Math.round(45 + effectiveStats(p).aguante * 0.75)
+  // 28 de base y no 45: con el depósito antiguo (y costes al 0.29 de la
+  // potencia) nadie se quedaba sin PT en un partido y las supertécnicas se
+  // tiraban a discreción. Ahora un jugador medio paga 2-3 técnicas medianas y
+  // a la cuarta está seco: administrar PT vuelve a ser una decisión.
+  return Math.round(28 + effectiveStats(p).aguante * 0.7)
 }
 
 /**
@@ -157,7 +161,7 @@ export function createPlayer(baseId: string, level: number, opts: { captain?: bo
  * ADELANTARSE a estos umbrales; esto garantiza que, aunque no toque ninguna,
  * el jugador acaba despertando lo suyo.
  */
-export const SIGNATURE_LEVELS = [10, 25, 45]
+export const SIGNATURE_LEVELS = [10, 22, 35, 50]
 
 /** Despierta los pasos de la cadena que el nivel ya cubre. */
 function awakenByLevel(p: PlayerInstance): PlayerInstance {

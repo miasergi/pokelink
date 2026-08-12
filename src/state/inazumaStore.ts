@@ -56,6 +56,9 @@ function holdFor(e: MatchEvent): number {
     case 'penalty': return 3700     // escenario completo del penalti
     case 'save': return 1200        // la línea respira tras el escenario del tiro
     case 'duel':
+      // El tiro que ACABA en gol corta antes: el escenario no pone sello (eso
+      // sería el spoiler) y la celebración del evento de gol toma el relevo.
+      if (e.step === 'definicion' && e.success) return 2600
       if (e.step === 'definicion' || e.technique || e.counter) return 3700
       return 500
     case 'spirit':

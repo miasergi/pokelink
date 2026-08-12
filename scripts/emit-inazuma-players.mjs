@@ -138,35 +138,63 @@ function statsFor(position, rarity, seedStr) {
  * (`techniques.ts`); si alguno faltara, se descarta con aviso.
  */
 const SIGNATURES = {
-  'Mark Evans': ['god-hand', 'mugen-the-hand', 'majin-the-hand'],
-  // El último paso de estas cadenas es una técnica COMBINADA: despertarla es
-  // lo que desbloquea el combo (además hacen falta los compañeros en el campo).
-  'Axel Blaze': ['fire-tornado', 'inazuma-break', 'bakunetsu-storm'],
-  'Kevin Dragonfly': ['dragon-crash', 'dragon-tornado'],
+  // El ORDEN es el canónico de la serie y MANDA sobre la potencia: Someoka
+  // aprende el Golpe de Dragón antes que el de Guiverno aunque la wiki les dé
+  // potencias raras. Las técnicas de combo van dentro de la cadena de su
+  // dueño: despertarlas es lo que desbloquea el combo.
+  'Mark Evans': ['nekketsu-punch', 'god-hand', 'majin-the-hand', 'mugen-the-hand'],
+  'Axel Blaze': ['fire-tornado', 'honoo-no-kazamidori', 'inazuma-break', 'bakunetsu-storm'],
+  'Kevin Dragonfly': ['dragon-crash', 'dragon-tornado', 'wyvern-crash'],
   'Jude Sharp': ['illusion-ball', 'death-zone'],
-  'Nathan Swift': ['coil-turn', 'the-tower'],
-  'Byron Love': ['god-break', 'eternal-blizzard'],
+  'Byron Love': ['god-knows', 'heaven-s-time'],
 }
 
+const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 /**
- * Cadena de técnicas de un jugador: la curada si existe; si no, una generada de
- * su clase y elemento, ascendente en potencia. Las estrellas marcan el techo:
- * un ★5 puede despertar hasta la definitiva, un ★1 se queda en la media.
+ * Cadena de técnicas de un jugador. Prioridad:
+ *  1. Sus técnicas CANÓNICAS: la lista `hissatsu` que el crawler saca de su
+ *     ficha en la wiki (los movesets reales de los juegos), filtrada a las que
+ *     existen en el catálogo Y son de la clase de su demarcación, ordenada de
+ *     menos a más potencia. Aquí puede haber técnicas de OTRO elemento — es lo
+ *     canónico (Someoka es de bosque y su Tornado de Dragón es de fuego) y la
+ *     cadena se lo salta a propósito: son SUYAS.
+ *  2. La tabla curada, que garantiza las técnicas de los combos.
+ *  3. Relleno generado por clase y elemento si con lo real no llega a dos.
  */
-function signatureFor(all, name, position, element, rarity) {
-  const curated = SIGNATURES[name]
+function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   const kind = KIND[position] ?? 'regate'
+  const byId = new Map(all.map((t) => [t.id, t]))
+
+  const curated = (SIGNATURES[name] ?? []).filter((id) => byId.has(id))
+
+  const real = hissatsu
+    .map(slugTech)
+    .filter((id) => byId.get(id)?.kind === kind && !curated.includes(id))
+    .sort((a, b) => byId.get(a).power - byId.get(b).power)
+
+  // Lo curado primero y EN SU ORDEN; lo real detrás por potencia. Si lo real
+  // solo ya pasa de cuatro, se muestrea repartido para no perder la definitiva
+  // (cortar por delante dejaba a Mark sin la Mano Demoníaca).
+  let merged = [...curated, ...real]
+  if (!curated.length && real.length > 4) {
+    const n = real.length
+    merged = [...new Set([0, Math.round(n / 3), Math.round((2 * n) / 3), n - 1].map((i) => real[i]))]
+  }
+  merged = merged.slice(0, 4)
+
+  if (merged.length >= 2) return merged
+
+  // Relleno: lo generado de siempre, sin machacar lo real que hubiera.
   const pool = all.filter((t) => t.kind === kind && t.element === element)
     .sort((a, b) => a.power - b.power)
-  if (curated) {
-    const valid = curated.filter((id) => all.some((t) => t.id === id))
-    if (valid.length !== curated.length) console.log(`  ! técnica curada desconocida en ${name}`)
-    if (valid.length) return valid
-  }
-  if (!pool.length) return []
+  if (!pool.length) return merged
   const at = (f) => pool[Math.min(pool.length - 1, Math.floor(pool.length * f))].id
   const steps = rarity >= 4 ? [0, 0.5, 0.95] : rarity === 3 ? [0, 0.55] : [0, 0.35]
-  return [...new Set(steps.map(at))]
+  return [...new Set([...merged, ...steps.map(at)])]
+    .sort((a, b) => byId.get(a).power - byId.get(b).power)
+    .slice(0, 4)
 }
 
 /**
@@ -236,7 +264,7 @@ async function main() {
 
       const rarity = STARS[cleanName] ?? rarityFor(idx, teamId)
       const st = statsFor(p.position, rarity, id)
-      const signature = signatureFor(allTechs, cleanName, p.position, p.element, rarity)
+      const signature = signatureFor(allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [])
       const techs = techsFor(signature, rarity)
       lines.push('  {')
       lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)

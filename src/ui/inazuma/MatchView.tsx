@@ -14,7 +14,7 @@ import MatchPitch from '@/ui/inazuma/MatchPitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import { Pic } from '@/ui/inazuma/Glyphs'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
-import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
 import type { Actor, MatchEvent, MatchState } from '@/engine/inazuma/types'
 
@@ -50,8 +50,14 @@ export default function MatchView() {
         kind: 'penalti',
       })
       if (last.scored) {
+        // La celebración espera a que el escenario cuente el lanzamiento: si
+        // saltara a la vez, el gol se sabría antes de ver el penalti.
         const isMine = last.side === mine
-        setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
+        const t = setTimeout(
+          () => setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) }),
+          1900,
+        )
+        return () => clearTimeout(t)
       }
     } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
       // Toda interacción con técnica de por medio (y todos los tiros) se cuenta
@@ -443,13 +449,20 @@ export function Mugshot({ actor, name, right, tiny }: {
         />
       </div>
       {!tiny && (
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-[12px] font-bold truncate">{name}</div>
           <div className="text-[10px] flex items-center gap-1" style={{ color: info.color }}>
             <Icon name={info.icon} className="w-3 h-3" />
             {info.label}
-            {actor && <span className="text-slate-500"> · {actor.pt} PT</span>}
           </div>
+          {/* PT y aguante A LA VISTA al decidir: sin esto parecía que las
+              supertécnicas eran infinitas (las tuyas y las del rival). */}
+          {actor && (
+            <div className="mt-0.5 flex flex-col gap-0.5">
+              <Meter value={actor.pt} max={actor.ptMax} color="#38bdf8" label="PT" />
+              <Meter value={actor.stamina} max={100} color={staminaColor(actor.stamina)} label="AGU" />
+            </div>
+          )}
         </div>
       )}
     </div>

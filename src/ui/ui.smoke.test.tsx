@@ -19,6 +19,7 @@ import InazumaScreen from '@/ui/screens/InazumaScreen'
 import { useInazuma } from '@/state/inazumaStore'
 import { createSave, startMatch, startPachanga } from '@/engine/inazuma/game'
 import { actorByUid, advance, chooseOption } from '@/engine/inazuma/match'
+import { signatureNext } from '@/engine/inazuma/game'
 import { nextRound, shoot } from '@/engine/inazuma/pachanga'
 import { buildSingleReward } from '@/engine/inazuma/rewards'
 import { RNG } from '@/utils/rng'
@@ -191,8 +192,11 @@ describe('render de pantallas (smoke)', () => {
     useInazuma.setState({ save, match: null, matchNode: firmaNode, phase: 'firma' })
     const firma = mount(InazumaScreen)
     expect(firma).toContain('Entrenamiento especial')
-    // Mark Evans tiene cadena curada: su próxima técnica aparece por nombre.
-    expect(firma).toContain('Mano Celestial')
+    // La próxima técnica de la cadena de Mark aparece por nombre (la cadena es
+    // la real de la wiki, así que se resuelve dinámicamente).
+    const mark = save.roster.find((p) => p.baseId === 'mark-evans')!
+    const next = signatureNext(mark)!
+    expect(firma).toContain(next.name)
 
     // Situación: la escena y todas sus opciones.
     useInazuma.setState({

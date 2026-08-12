@@ -31,7 +31,7 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
  * las suyas. La curva se fijó MIDIENDO con qué nivel llega el bot a cada
  * eliminatoria; lo que decide el partido es la diferencia, no el número.
  */
-export const RIVAL_LEVELS = [9, 17, 29, 44, 58, 70, 81, 90]
+export const RIVAL_LEVELS = [8, 15, 26, 40, 53, 65, 76, 85]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

@@ -23,8 +23,8 @@ import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, lineupError, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel,
-  transferValue, upgradeTechnique,
+  levelUp, lineupError, overall, ptMax, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
+  techLevel, transferValue, upgradeTechnique,
 } from './roster'
 import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
@@ -942,14 +942,16 @@ describe('coherencia', () => {
   })
 
   it('la cadena se despierta sola al cruzar los umbrales de nivel', () => {
+    // Sobre la cadena REAL del jugador (viene de la wiki), paso a paso.
+    const chain = getPlayerBase('mark-evans').signature ?? []
+    expect(chain.length).toBeGreaterThanOrEqual(3)
     let p = createPlayer('mark-evans', 5)
     expect(p.techniques).toHaveLength(0)
-    p = levelUp(p, 5) // nivel 10: primer paso
-    expect(p.techniques).toContain('god-hand')
-    p = levelUp(p, 15) // nivel 25: segundo
-    expect(p.techniques).toContain('mugen-the-hand')
-    p = levelUp(p, 20) // nivel 45: tercero
-    expect(p.techniques).toContain('majin-the-hand')
+    chain.forEach((id, i) => {
+      const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+      p = levelUp(p, need - p.level)
+      expect(p.techniques, `paso ${i} al nivel ${need}`).toContain(id)
+    })
     // Y un fichaje que LLEGA a nivel alto trae lo suyo despierto.
     expect(createPlayer('axel-blaze', 30).techniques).toContain('fire-tornado')
   })

@@ -172,7 +172,7 @@ function score(m: MatchState): [number, number] {
 function halftimeRecovery(m: MatchState): void {
   for (const side of [m.home, m.away]) {
     for (const a of allActors(side)) {
-      a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.34))
+      a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.22))
       a.stamina = Math.min(100, a.stamina + 8)
     }
   }
@@ -471,8 +471,10 @@ function duelText(
       ? `${move} ${atk.name} rompe la defensa de ${def.name}.${tail}`
       : `${def.name} aguanta la posición y frena a ${atk.name}.${block}`
   }
+  // La definición NO adelanta el desenlace: el gol lo anuncian el evento de
+  // gol y su celebración. «Fulano bate a Mengano» era un spoiler con patas.
   return success
-    ? `${move} ${atk.name} bate a ${def.name}.${tail}`
+    ? `${move} ¡${atk.name} arma la pierna!${tail}`
     : `${atk.name} dispara…${block}`
 }
 

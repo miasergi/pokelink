@@ -78,6 +78,22 @@ const OVERRIDES = {
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+/**
+ * Técnicas del personaje según su ficha, en orden de PRIMERA aparición (que en
+ * los movesets va de la carta básica a la rara: es la progresión canónica).
+ */
+function extractHissatsu(wt) {
+  const out = []
+  const seen = new Set()
+  const re = /\{\{H(?:issatsu nav)?\|[A-Z]{2}\|([^}|]+)/g
+  let m
+  while ((m = re.exec(wt))) {
+    const name = m[1].trim()
+    if (!seen.has(name)) { seen.add(name); out.push(name) }
+  }
+  return out
+}
+
 const cache = new Map()
 async function api(params) {
   const url = `${API}?${new URLSearchParams({ format: 'json', ...params })}`
@@ -168,7 +184,7 @@ async function main() {
     const roster = await teamRoster(pages)
     if (!roster) { console.log(`x ${teamId}: la wiki no tiene plantilla`); continue }
     out[teamId] = []
-    for (const short of roster.names) {
+    for (const short of [...(FORCED_MEMBERS[teamId] ?? []), ...roster.names]) {
       if (out[teamId].length >= 14) break
       const page = await resolvePage(short)
       if (!page) { missing.push(`${teamId}/${short}`); continue }
@@ -183,6 +199,10 @@ async function main() {
         id: slugify(name),
         element: ov.element ?? parseElement(fields(page.wt, 'element')),
         position: ov.position ?? parsePosition(fields(page.wt, 'position')),
+        // Sus técnicas CANÓNICAS, en orden de aparición en la ficha: la wiki
+        // las lista con plantillas {{H|SH|Fire Tornado}} (los movesets de los
+        // juegos). De aquí salen las cadenas características verdaderas.
+        hissatsu: extractHissatsu(page.wt),
       })
     }
     const full = out[teamId].filter((p) => p.element).length
