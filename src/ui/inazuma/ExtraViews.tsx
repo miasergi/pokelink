@@ -288,8 +288,18 @@ export function markOnboarded(seen = true): void {
  * Con qué instituto juegas. No es solo el escudo: cambia tu plantilla inicial
  * y, como tu equipo SALE del cuadro, también contra quién te enfrentas.
  */
+const DIFFICULTIES = [
+  { id: 'normal', label: 'Normal', desc: 'El Football Frontier tal cual.' },
+  { id: 'dificil', label: 'Difícil', desc: 'Todos los rivales +6 niveles.' },
+  { id: 'leyenda', label: 'Leyenda', desc: '+12 niveles. Para campeones.' },
+] as const
+
 export function TeamSelectView() {
   const { newTournament, goTo } = useInazuma()
+  // Modalidades de la partida: se eligen ANTES de tocar un instituto.
+  const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
+  const [randomSquad, setRandomSquad] = useState(false)
+  const begin = (teamId: string) => void newTournament(teamId, { difficulty, randomSquad })
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -301,6 +311,41 @@ export function TeamSelectView() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+        {/* Modalidades: dificultad y plantilla del bombo. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Dificultad</div>
+          <div className="flex gap-1.5">
+            {DIFFICULTIES.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => setDifficulty(d.id)}
+                className={`flex-1 rounded-xl border py-1.5 text-[12px] font-bold transition active:scale-95 ${
+                  difficulty === d.id
+                    ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                    : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1">
+            {DIFFICULTIES.find((d) => d.id === difficulty)!.desc}
+          </p>
+          <button
+            onClick={() => setRandomSquad(!randomSquad)}
+            className={`mt-2 w-full rounded-xl border px-3 py-2 text-left text-[12px] font-bold transition active:scale-[0.99] ${
+              randomSquad
+                ? 'border-fuchsia-500/70 bg-fuchsia-500/15 text-fuchsia-200'
+                : 'border-slate-700 bg-slate-800/60 text-slate-400'
+            }`}
+          >
+            🎲 Plantilla del bombo {randomSquad ? '· ACTIVADA' : ''}
+            <span className="block text-[10px] font-normal text-slate-500">
+              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). El instituto solo pone escudo y cuadro.
+            </span>
+          </button>
+        </div>
         {PLAYABLE_TEAMS.map((id) => {
           const team = getTeam(id)
           const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
@@ -310,7 +355,7 @@ export function TeamSelectView() {
             <Card
               key={id}
               className="p-3"
-              onClick={() => void newTournament(id)}
+              onClick={() => begin(id)}
               style={{ background: `linear-gradient(130deg, ${team.color}2e, rgba(15,23,42,.9) 62%)` }}
             >
               <div className="flex items-center gap-2.5">

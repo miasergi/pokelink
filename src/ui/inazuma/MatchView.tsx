@@ -92,7 +92,12 @@ export default function MatchView() {
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
   const theirs = sideOf(match, otherSide(playerSide(match)))
-  const finished = match.phase === 'finished'
+  // AL DÍA: todo lo que el motor generó ya se contó en pantalla. El panel
+  // final y el de decisión esperan a esto — el motor acaba (o pregunta) con
+  // eventos aún por revelar, y saltar antes destripaba el marcador final o
+  // pisaba la animación en curso.
+  const caughtUp = feed.length >= match.events.length
+  const finished = match.phase === 'finished' && caughtUp && stage === null && gol === null
 
   // CONGELACIÓN: mientras el escenario del duelo o la celebración están en
   // pantalla, nada de lo de debajo avanza. El motor ya sabe el desenlace, pero
@@ -142,8 +147,10 @@ export default function MatchView() {
         />
       )}
 
-      {/* Panel de decisión o controles */}
-      {match.phase === 'decision' && match.decision ? (
+      {/* Panel de decisión o controles. La decisión espera a estar AL DÍA y
+          sin animación en pantalla: el motor pregunta con eventos aún por
+          contar, y el panel (con su jugada y su rival) los destripaba. */}
+      {match.phase === 'decision' && match.decision && caughtUp && !frozen ? (
         <DecisionPanel decision={match.decision} match={match} onPick={decide} />
       ) : finished ? (
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 max-h-[62svh] overflow-y-auto">
@@ -516,7 +523,11 @@ function DecisionPanel({
                 <div className="font-bold text-[13px] truncate" style={el && !isBurst ? { color: el.color } : undefined}>
                   {o.label}
                 </div>
-                <div className="text-[10px] text-slate-400">{o.disabled ?? o.detail}</div>
+                <div className="text-[10px] text-slate-400">
+                  {o.disabled ?? (o.id.startsWith('pass:')
+                    ? 'El pase llega SIEMPRE; el que recibe elige su jugada'
+                    : o.detail)}
+                </div>
               </div>
               <Odds option={o} />
             </button>

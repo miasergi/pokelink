@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderToString } from 'react-dom/server'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react-dom/test-utils'
@@ -50,6 +50,26 @@ function mount(Comp: () => JSX.Element | null): string {
   const out = host.textContent ?? ''
   act(() => { root.unmount() })
   host.remove()
+  return out
+}
+
+/**
+ * Igual que `mount`, pero dejando TERMINAR las animaciones (escenario de duelo,
+ * celebración de gol) con timers falsos: el panel de decisión y el cierre del
+ * partido esperan a que lo revelado esté al día y sin animación en pantalla —
+ * que es exactamente lo que este montaje simula.
+ */
+function mountSettled(Comp: () => JSX.Element | null, ms = 8000): string {
+  vi.useFakeTimers()
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  act(() => { root.render(createElement(Comp)) })
+  act(() => { vi.advanceTimersByTime(ms) })
+  const out = host.textContent ?? ''
+  act(() => { root.unmount() })
+  host.remove()
+  vi.useRealTimers()
   return out
 }
 
@@ -177,8 +197,11 @@ describe('render de pantallas (smoke)', () => {
       if (setup.match.phase === 'decision') {
         decisions++
         const d = setup.match.decision!
-        expect(html).toContain(d.actorName)
-        expect(html).toContain(d.rivalName)
+        // El panel de decisión espera a que la animación del último duelo
+        // termine, así que se comprueba sobre el montaje «asentado».
+        const settled = mountSettled(InazumaScreen)
+        expect(settled).toContain(d.actorName)
+        expect(settled).toContain(d.rivalName)
         chooseOption(setup.match, setup.rng, d.options[0].id)
       } else {
         advance(setup.match, setup.rng)

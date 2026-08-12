@@ -124,7 +124,10 @@ export function ItemIcon({ itemId, className = 'w-5 h-5' }: { itemId: string; cl
       alt={item?.name ?? ''}
       title={item?.name}
       draggable={false}
+      // Los iconos son sprites DS reales (16-32 px): escalados con suavizado
+      // se veían borrosos; pixelados conservan el look del juego original.
       className={`${className} select-none object-contain`}
+      style={{ imageRendering: 'pixelated' }}
       onError={() => setBroken(true)}
     />
   )

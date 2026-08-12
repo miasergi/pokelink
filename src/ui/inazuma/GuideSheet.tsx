@@ -22,6 +22,20 @@ const B = ({ children }: { children: React.ReactNode }) => <b className="text-sl
 
 const SECTIONS: Section[] = [
   {
+    icon: 'ball',
+    title: 'Cómo se gesta un gol',
+    body: (
+      <>
+        Una posesión son <B>tres eslabones</B>: salida de balón → tres cuartos → área. Cada eslabón es un
+        duelo (regate contra bloqueo; en el área, disparo contra parada) y cada duelo se resuelve con los
+        <B> atributos</B> de los dos jugadores, su <B>técnica</B> (si la pagan), el <B>elemento</B> (bosque
+        &gt; montaña &gt; fuego &gt; viento &gt; bosque), el <B>aguante</B> y una pizca de azar — las
+        estrellas de cada opción son esa cuenta ya hecha. Los puntos del campo se encienden con cada eslabón
+        ganado: tres puntos y «¡OCASIÓN DE GOL!» significa disparo a puerta.
+      </>
+    ),
+  },
+  {
     icon: 'bolt',
     title: 'PT — la gasolina de las supertécnicas',
     body: (

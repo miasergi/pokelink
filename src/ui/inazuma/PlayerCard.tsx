@@ -103,8 +103,12 @@ export function PlayerCard({
         <ElementChip element={base.element} />
         {/* Talento innato, siempre a la vista pero sin gritar. */}
         <Stars n={base.rarity} className="w-2.5 h-2.5" />
-        <span className="ml-auto text-lg font-extrabold tabular-nums leading-none" style={{ color: info.color }}>
-          {overall(player)}
+        {/* Etiquetado: el numerazo sin rótulo se leía como «PT» y no lo es. */}
+        <span className="ml-auto flex flex-col items-end leading-none">
+          <span className="text-lg font-extrabold tabular-nums" style={{ color: info.color }}>
+            {overall(player)}
+          </span>
+          <span className="text-[7px] uppercase tracking-widest text-slate-500">media</span>
         </span>
       </div>
 
@@ -231,16 +235,22 @@ export function PlayerRow({
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
-          {/* PT y aguante, SIEMPRE los que le quedan: la fila es la ficha de
-              todas las listas y ahí es donde se decide a quién curar. */}
+          {/* PT y aguante, SIEMPRE los que le quedan y CON etiqueta: la fila
+              es la ficha de todas las listas y sin rótulos los números se
+              confundían con otra cosa. */}
           <div className="flex-1 flex flex-col gap-0.5">
-            <Meter value={player.pt} max={ptMax(player)} color="#38bdf8" />
-            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} />
+            <Meter value={player.pt} max={ptMax(player)} color="#38bdf8" label="PT" />
+            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} label="AGU" />
           </div>
         </div>
       </div>
       <div className="shrink-0 text-right">
-        {right ?? <span className="text-sm font-extrabold tabular-nums" style={{ color: info.color }}>{overall(player)}</span>}
+        {right ?? (
+          <span className="flex flex-col items-end leading-none">
+            <span className="text-sm font-extrabold tabular-nums" style={{ color: info.color }}>{overall(player)}</span>
+            <span className="text-[7px] uppercase tracking-widest text-slate-500">media</span>
+          </span>
+        )}
       </div>
     </button>
   )

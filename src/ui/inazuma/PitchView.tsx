@@ -40,7 +40,7 @@ interface DragState {
 }
 
 export default function PitchView({
-  save, onSwap, onPlace, onTap,
+  save, onSwap, onPlace, onTap, selected, onSelectDone,
 }: {
   save: InazumaSave
   /** Intercambia dos jugadores (uno puede ser del banquillo). */
@@ -48,6 +48,13 @@ export default function PitchView({
   /** Coloca a un jugador en un HUECO vacío del once. */
   onPlace: (uid: string, slot: number) => void
   onTap: (uid: string) => void
+  /**
+   * MODO MOVER (la alternativa fiable al arrastre en móvil): con un jugador
+   * seleccionado desde su ficha, el siguiente toque sobre otra ficha o un
+   * hueco ejecuta el cambio. El arrastre sigue funcionando igual.
+   */
+  selected?: string | null
+  onSelectDone?: () => void
 }) {
   const [drag, setDrag] = useState<DragState | null>(null)
   const [over, setOver] = useState<string | null>(null)
@@ -59,14 +66,19 @@ export default function PitchView({
   const formation = getFormation(save.formation)
 
   const start = (uid: string) => (e: React.PointerEvent) => {
-    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+    // La captura va en la FICHA (currentTarget), no en el nodo interior que
+    // pillara el dedo: capturar la <img> hacía que algunos moves se perdieran.
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     moved.current = false
     setDrag({ uid, x: e.clientX, y: e.clientY })
   }
 
   const move = (e: React.PointerEvent) => {
     if (!drag) return
-    if (Math.abs(e.clientX - drag.x) > 6 || Math.abs(e.clientY - drag.y) > 6) moved.current = true
+    // Umbral generoso (12 px): con 6, el micro-temblor del dedo convertía casi
+    // cualquier toque en «arrastre» y clicar para ver la ficha era una lotería.
+    if (Math.abs(e.clientX - drag.x) > 12 || Math.abs(e.clientY - drag.y) > 12) moved.current = true
+    if (!moved.current) return
     setDrag({ ...drag, x: e.clientX, y: e.clientY })
     // El elemento bajo el dedo marca el destino: otra ficha (intercambio) o
     // un hueco vacío (colocación). `elementFromPoint` ignora la ficha
@@ -80,9 +92,19 @@ export default function PitchView({
 
   const end = () => {
     if (!drag) return
-    if (!moved.current) onTap(drag.uid)
-    else if (over?.startsWith('slot:')) onPlace(drag.uid, Number(over.slice(5)))
+    if (!moved.current) {
+      // Toque: en modo MOVER ejecuta el cambio; si no, abre la ficha.
+      if (selected && selected !== drag.uid) { onSwap(selected, drag.uid); onSelectDone?.() }
+      else onTap(drag.uid)
+    } else if (over?.startsWith('slot:')) onPlace(drag.uid, Number(over.slice(5)))
     else if (over) onSwap(drag.uid, over)
+    setDrag(null)
+    setOver(null)
+  }
+
+  // El navegador se queda el gesto (scroll vertical con touch-pan-y): NO es un
+  // drop. Antes pasaba por `end` y soltaba al jugador donde pillara.
+  const cancel = () => {
     setDrag(null)
     setOver(null)
   }
@@ -90,7 +112,17 @@ export default function PitchView({
   const dragged = drag ? byUid.get(drag.uid) : null
 
   return (
-    <div className="flex flex-col gap-3" onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
+    <div className="flex flex-col gap-3" onPointerMove={move} onPointerUp={end} onPointerCancel={cancel}>
+      {/* Modo MOVER activo: el siguiente toque es el destino. */}
+      {selected && (
+        <div className="rounded-xl border border-amber-500/50 bg-amber-500/15 px-3 py-2 text-[12px] text-amber-100 flex items-center gap-2">
+          <span className="min-w-0 flex-1">
+            Moviendo a <b>{getPlayerBase(byUid.get(selected)?.baseId ?? '')?.name ?? 'jugador'}</b>:
+            toca a otro jugador o un hueco.
+          </span>
+          <button className="underline text-amber-300 shrink-0" onClick={onSelectDone}>cancelar</button>
+        </div>
+      )}
       {/* Campo */}
       <div
         className="relative rounded-2xl border border-emerald-900/60 overflow-hidden select-none"
@@ -125,9 +157,10 @@ export default function PitchView({
                         <span
                           key={`hole-${slot}`}
                           data-slot={slot}
+                          onClick={selected ? () => { onPlace(selected, slot); onSelectDone?.() } : undefined}
                           className={`grid place-items-center w-11 h-11 rounded-xl border-2 border-dashed text-lg transition ${
-                            over === `slot:${slot}` ? 'border-amber-300 text-amber-300 scale-110' : 'border-white/15 text-white/25'
-                          }`}
+                            over === `slot:${slot}` || selected ? 'border-amber-300 text-amber-300' : 'border-white/15 text-white/25'
+                          } ${over === `slot:${slot}` ? 'scale-110' : ''}`}
                         >
                           +
                         </span>
@@ -175,7 +208,7 @@ export default function PitchView({
       </div>
 
       <p className="text-[10px] text-slate-600">
-        Arrastra un jugador sobre otro para intercambiarlos. Un toque abre su ficha.
+        Un toque abre la ficha (y desde ella, «Mover»). Arrastrar sobre otro jugador también intercambia.
       </p>
 
       {/* Ficha que sigue al dedo */}

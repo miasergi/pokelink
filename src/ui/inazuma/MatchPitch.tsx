@@ -90,9 +90,29 @@ export default function MatchPitch({ match, frozen }: { match: MatchState; froze
         <Face actor={carrier} x={x} label="balón" ball />
 
         {/* Zona y quién ataca, en UNA línea: dos rótulos (arriba y abajo) se
-            comían el sitio de los retratos. */}
-        <div className="absolute top-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-bold uppercase tracking-widest text-white/75">
-          {STEP_ZONE[chain.step]} · ataca {attacking.name.replace('Instituto ', '')}
+            comían el sitio de los retratos. En el ÁREA el rótulo grita: es la
+            respuesta a «¿cómo sé si están a punto de marcar?» — una posesión
+            son tres eslabones (salida → tres cuartos → área) y cada punto
+            encendido es un duelo ganado hacia el gol. */}
+        <div className={`absolute top-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
+          chain.step === 'definicion'
+            ? (iAttack ? 'text-emerald-300 animate-pulse' : 'text-rose-300 animate-pulse')
+            : 'text-white/75'
+        }`}>
+          <span className="flex items-center gap-0.5">
+            {(['construccion', 'penetracion', 'definicion'] as ChainStep[]).map((s, i) => {
+              const reached = ['construccion', 'penetracion', 'definicion'].indexOf(chain.step) >= i
+              return (
+                <span
+                  key={s}
+                  className={`inline-block w-1.5 h-1.5 rounded-full ${
+                    reached ? (iAttack ? 'bg-emerald-400' : 'bg-rose-400') : 'bg-white/25'
+                  }`}
+                />
+              )
+            })}
+          </span>
+          {chain.step === 'definicion' ? '¡OCASIÓN DE GOL!' : STEP_ZONE[chain.step]} · ataca {attacking.name.replace('Instituto ', '')}
         </div>
       </div>
     </div>

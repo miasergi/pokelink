@@ -95,7 +95,7 @@ function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
   return pool[pool.length - 1]?.kind ?? 'pachanga'
 }
 
-export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
+export function generateMap(rng: RNG, playerTeamId = 'raimon', levelBonus = 0): InazumaMap {
   const bracket = buildBracket(playerTeamId)
   const layers: string[][] = []
   const nodes: Record<string, TournamentNode> = {}
@@ -124,7 +124,7 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.
         if (kind === 'rairai' || kind === 'tienda') used.add(kind)
-        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket, playerTeamId)
+        const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket, playerTeamId, levelBonus)
         nodes[node.id] = node
         ids.push(node.id)
       }
@@ -142,9 +142,9 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
       layer: layerIdx,
       col: 0,
       teamId: entry.teamId,
-      level: RIVAL_LEVELS[seg],
+      level: Math.min(99, RIVAL_LEVELS[seg] + levelBonus),
       title: team.name,
-      subtitle: `${entry.name} · nivel medio ${RIVAL_LEVELS[seg]}`,
+      subtitle: `${entry.name} · nivel medio ${Math.min(99, RIVAL_LEVELS[seg] + levelBonus)}`,
       // La recompensa dejó de ser un menú de tres cartas: ahora cae una al azar.
       reward: `${prizeMoney(seg)} ₽ + una recompensa`,
       next: [],
@@ -209,6 +209,7 @@ function buildRouteNode(
   id: string, kind: NodeKind, layer: number, col: number, seg: number, routeIndex: number, rng: RNG,
   bracket: { teamId: string; name: string }[] = BRACKET,
   playerTeamId = 'raimon',
+  levelBonus = 0,
 ): TournamentNode {
   const base: TournamentNode = { id, kind, layer, col, title: '', subtitle: '', reward: '', next: [] }
 
@@ -217,7 +218,7 @@ function buildRouteNode(
       // Casilla arriesgada: rival más fuerte pero premio doble. Nunca en la
       // primera capa del mapa (no tendrías con qué).
       const risky = layer > 0 && rng.chance(0.22)
-      const level = pachangaLevel(seg, routeIndex) + (risky ? RISKY_LEVEL_BONUS : 0)
+      const level = Math.min(99, pachangaLevel(seg, routeIndex) + (risky ? RISKY_LEVEL_BONUS : 0) + levelBonus)
       const rival = rng.pick(PACHANGA_RIVALS)
       return {
         ...base,

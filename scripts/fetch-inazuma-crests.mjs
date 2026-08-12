@@ -38,6 +38,19 @@ const WIKI_NAME = {
   kirkwood: ['Kidokawa Seishuu', 'Kirkwood'],
   royal: ['Teikoku Gakuen', 'Royal Academy'],
   zeus: ['Zeus'],
+  // Equipos EXTRA (temporada 2 y Academia Alius): no juegan el cuadro, pero
+  // sus jugadores salen en el ojeador y su escudo acompaña al nombre.
+  kfc: ['Inazuma KFC'],
+  oumihara: ['Oumihara'],
+  mikage: ['Mikage Sennou'],
+  manyuuji: ['Manyuuji'],
+  yokato: ['Yokato'],
+  'gemini-storm': ['Gemini Storm'],
+  epsilon: ['Epsilon'],
+  'diamond-dust': ['Diamond Dust'],
+  prominence: ['Prominence'],
+  genesis: ['Genesis', 'The Genesis'],
+  chaos: ['Chaos'],
 }
 
 async function api(params) {
@@ -116,7 +129,11 @@ async function main() {
   } catch { console.log('  ✗ logo del juego') }
 
   const src = await readFile(SOURCE, 'utf8')
-  const ids = [...src.matchAll(/id: '([a-z]+)', name: '([^']+)'/g)].map((m) => m[1])
+  const bracketIds = [...src.matchAll(/id: '([a-z]+)', name: '([^']+)'/g)].map((m) => m[1])
+  // También los equipos que solo existen en el catálogo de jugadores.
+  const playersSrc = await readFile(join(ROOT, 'src', 'data', 'inazuma', 'players.ts'), 'utf8')
+  const playerTeams = [...new Set([...playersSrc.matchAll(/team: '([a-z0-9-]+)'/g)].map((m) => m[1]))]
+  const ids = [...new Set([...bracketIds, ...playerTeams])]
 
   let ok = 0, skipped = 0
   const missing = []

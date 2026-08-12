@@ -77,6 +77,14 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
   const atkTech = techniqueByName(shown.attacker.techName)
   const defTech = techniqueByName(shown.defender.techName)
 
+  // CADA CLASE DE DUELO CON SU CARA: sin el rótulo (y su color), un regate
+  // contra un bloqueo y un disparo contra el portero se veían idénticos.
+  const kindBanner = shown.kind === 'regate'
+    ? { text: 'DUELO POR EL BALÓN', color: '#38bdf8' }
+    : shown.kind === 'penalti'
+      ? { text: '¡PENALTI!', color: '#f59e0b' }
+      : { text: '¡DISPARO A PUERTA!', color: '#f43f5e' }
+
   // Si el TIRO entra, aquí no se dice: el sello sería un spoiler de la
   // celebración de gol, que llega justo después con el escudo y el marcador.
   const spoiler = shown.attackerWins && shown.kind !== 'regate'
@@ -91,6 +99,12 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
       <div className="absolute inset-0 bg-slate-950/70 animate-fade-in" />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4">
+        <div
+          className="rounded-full border-2 px-4 py-1 text-[12px] font-black uppercase tracking-widest animate-pop-in"
+          style={{ color: kindBanner.color, borderColor: kindBanner.color, background: 'rgba(2,6,23,.85)' }}
+        >
+          {kindBanner.text}
+        </div>
         <Fighter side={shown.attacker} tech={atkTech} label={shown.kind === 'regate' ? 'ataca' : 'dispara'} />
 
         {/* VS y el defensor entran DESPUÉS: el orden cuenta la jugada. */}

@@ -3,12 +3,13 @@
 // banquillo. El partido no se reanuda hasta pulsar el botón.
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, ImgFallback } from '@/ui/components/kit'
+import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { getItem } from '@/data/inazuma/items'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { Meter, PlayerRow, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
+import { Meter, PlayerRow, staminaColor } from '@/ui/inazuma/PlayerCard'
+import LineupBoard from '@/ui/inazuma/LineupBoard'
 import { ItemIcon } from '@/ui/inazuma/Glyphs'
 import type { Actor } from '@/engine/inazuma/types'
 
@@ -46,41 +47,36 @@ export default function HalftimePanel() {
           </span>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
-          Toca a un jugador para darle un consumible o hacer un cambio.
+          Toca a un jugador sobre el campo para darle un consumible o hacer un cambio.
         </p>
 
-        <div className="flex flex-col gap-1.5">
-          {onPitch.map((a) => (
-            <button
-              key={a.uid}
-              onClick={() => { setTarget(a); setAction(null) }}
-              className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition active:scale-[0.99] ${
-                target?.uid === a.uid ? 'border-amber-500/70 bg-amber-500/10' : 'border-slate-700/60 bg-slate-800/50'
-              }`}
-            >
-              <span className="w-9 h-9 shrink-0 rounded-lg overflow-hidden border border-slate-600 grid place-items-center bg-slate-800">
-                <ImgFallback
-                  src={portraitUrl(a.baseId)}
-                  className="w-full h-full object-cover object-top"
-                  alt={a.name}
-                  fallback={<span className="text-[11px] font-extrabold">{a.name.slice(0, 2).toUpperCase()}</span>}
-                />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] font-bold truncate">{a.name} <span className="text-slate-500">· {a.position}</span></div>
-                <Meter value={a.pt} max={a.ptMax} color="#38bdf8" label="PT" />
-                <div className="mt-0.5">
-                  <Meter value={a.stamina} max={100} color={staminaColor(a.stamina)} label="AGU" />
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+        {/* El once SOBRE EL CAMPO, como en la previa y el vestuario: en lista
+            no se veía quién ocupaba qué hueco a la hora de decidir cambios. */}
+        <LineupBoard
+          chips={onPitch.map((a) => ({
+            key: a.uid,
+            name: a.name,
+            baseId: a.baseId,
+            element: a.element,
+            role: a.position,
+            position: getPlayerBase(a.baseId).position,
+            stamina: a.stamina,
+          }))}
+          onTap={(c) => {
+            const a = onPitch.find((x) => x.uid === c.key)
+            if (a) { setTarget(a); setAction(null) }
+          }}
+        />
 
         {/* Acciones sobre el elegido */}
         {target && (
           <div className="mt-3 rounded-2xl border border-amber-500/40 bg-slate-800/60 p-3">
-            <div className="text-[12px] font-extrabold mb-2">{target.name}</div>
+            <div className="text-[12px] font-extrabold mb-1">{target.name}</div>
+            {/* Sus depósitos, para decidir QUÉ darle (o si mejor cambiarlo). */}
+            <div className="mb-2 flex flex-col gap-0.5">
+              <Meter value={target.pt} max={target.ptMax} color="#38bdf8" label="PT" />
+              <Meter value={target.stamina} max={100} color={staminaColor(target.stamina)} label="AGU" />
+            </div>
             {!action && (
               <div className="flex gap-2">
                 <Button variant="secondary" full onClick={() => setAction('item')} disabled={!items.length}>

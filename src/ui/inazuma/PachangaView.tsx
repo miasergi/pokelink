@@ -9,7 +9,7 @@ import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
-import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET } from '@/engine/inazuma/pachanga'
+import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET, type PachangaRound } from '@/engine/inazuma/pachanga'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import { play } from '@/utils/sfx'
@@ -19,10 +19,32 @@ export default function PachangaView() {
   const auto = useSettings((s) => s.inazumaMode) === 'auto'
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  // La ronda cuyo desenlace está esperando a que el escenario TERMINE: contar
+  // (lista, marcador, sonido, celebración) a mitad de animación era el spoiler
+  // que se reportó dos veces. Ahora todo se consuma en el onDone del escenario.
+  const pendingReveal = useRef<{ round: PachangaRound; index: number } | null>(null)
   // Memoizados: pasados inline cambiaban de identidad en cada render y (antes
   // del blindaje por ref en DuelStage) reiniciaban el duelo — se veía doble.
-  const clearStage = useCallback(() => setStage(null), [])
+  const clearStage = useCallback(() => {
+    setStage(null)
+    const p = pendingReveal.current
+    if (!p) return
+    pendingReveal.current = null
+    setShown(p.index + 1)
+    play(p.round.scored ? 'gol' : 'parada')
+    if (p.round.scored) {
+      setGol({
+        scorer: p.round.shooter,
+        mine: p.round.mine,
+        key: p.index + 1,
+        teamId: p.round.mine ? saveTeamRef.current : undefined,
+      })
+    }
+  }, [])
   const clearGol = useCallback(() => setGol(null), [])
+  // El id del equipo, por ref: clearStage está memoizado sin dependencias.
+  const saveTeamRef = useRef<string>('raimon')
+  saveTeamRef.current = save?.teamId ?? 'raimon'
   // Rondas ya CONTADAS en pantalla. El motor resuelve la ronda al instante,
   // pero aquí no existe hasta que el escenario del duelo la ha narrado: sin
   // esto, el marcador se movía (y la siguiente decisión aparecía) antes de
@@ -51,22 +73,10 @@ export default function PachangaView() {
       attackerMine: next.mine,
       kind: 'tiro',
     })
-    // El desenlace se CONSUMA cuando el escenario llega a su sello (~1.75 s):
-    // entonces sí — marcador, sonido y, si hay gol, la celebración. SIN
-    // cleanup: el guard de arriba garantiza un único timer por ronda, y
-    // limpiarlo en re-renders era justo lo que lo mataba a medias.
-    setTimeout(() => {
-      setShown(shown + 1)
-      play(next.scored ? 'gol' : 'parada')
-      if (next.scored) {
-        setGol({
-          scorer: next.shooter,
-          mine: next.mine,
-          key: shown + 1,
-          teamId: next.mine ? save?.teamId ?? 'raimon' : undefined,
-        })
-      }
-    }, 1750)
+    // El desenlace (lista, marcador, sonido, celebración) NO se consuma aquí:
+    // espera al onDone del escenario. Contarlo a los 1.75 s, con la animación
+    // aún en pantalla hasta los ~3 s, era el spoiler reportado.
+    pendingReveal.current = { round: next, index: shown }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pachanga?.rounds.length, shown])
 

@@ -474,6 +474,8 @@ export function SquadView() {
   } = useInazuma()
   const [detail, setDetail] = useState<string | null>(null)
   const [tab, setTab] = useState<'campo' | 'lista'>('campo')
+  // Modo MOVER: el jugador elegido en su ficha espera un destino en el campo.
+  const [moveFor, setMoveFor] = useState<string | null>(null)
   if (!save) return null
 
   const starters = save.lineup
@@ -523,6 +525,8 @@ export function SquadView() {
             onSwap={swapPlayers}
             onPlace={placeAt}
             onTap={(uid) => (target ? applyToPlayer(uid) : setDetail(uid))}
+            selected={moveFor}
+            onSelectDone={() => setMoveFor(null)}
           />
         )}
 
@@ -599,6 +603,7 @@ export function SquadView() {
           starter={save.lineup.includes(detail)}
           onToggleStarter={() => toggleStarter(detail)}
           onRelease={() => { release(detail); setDetail(null) }}
+          onMove={() => { setMoveFor(detail); setDetail(null); setTab('campo') }}
         />
       )}
     </div>
@@ -738,7 +743,7 @@ function BagPanel({
 }
 
 function PlayerDetail({
-  player, bag, blocked, starter, onClose, onEquip, onRelease, onToggleStarter,
+  player, bag, blocked, starter, onClose, onEquip, onRelease, onToggleStarter, onMove,
 }: {
   player: PlayerInstance
   bag: string[]
@@ -750,6 +755,8 @@ function PlayerDetail({
   onEquip: (itemId: string | undefined) => void
   onRelease: () => void
   onToggleStarter: () => void
+  /** Modo MOVER: cierra la ficha y deja que el siguiente toque sea el destino. */
+  onMove?: () => void
 }) {
   const base = getPlayerBase(player.baseId)
   // Los RAROS también se equipan: son la versión cara del equipamiento, y
@@ -835,15 +842,34 @@ function PlayerDetail({
         )}
 
         <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Equipamiento</div>
-        <div className="flex flex-wrap gap-1.5 mt-1">
+        {/* Con icono y QUÉ HACE cada pieza, al estilo PokéRogue: lo puesto se
+            ve (y se quita con un toque), y lo de la mochila se equipa igual. */}
+        <div className="flex flex-col gap-1.5 mt-1">
           {player.item && (
-            <button onClick={() => onEquip(undefined)} className="rounded-lg border border-rose-600/50 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-200">
-              Quitar {getItem(player.item)?.name}
+            <button
+              onClick={() => onEquip(undefined)}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-left active:scale-[0.99] transition"
+            >
+              <ItemIcon itemId={player.item} className="w-6 h-6 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-bold text-amber-200">{getItem(player.item)?.name} · puesto</span>
+                <span className="block text-[10px] text-slate-400 leading-snug">{getItem(player.item)?.desc}</span>
+              </span>
+              <span className="shrink-0 text-[10px] font-bold text-rose-300">Quitar ✕</span>
             </button>
           )}
           {gear.map((id, i) => (
-            <button key={`${id}-${i}`} onClick={() => onEquip(id)} className="rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1 text-[11px]">
-              {getItem(id)?.name}
+            <button
+              key={`${id}-${i}`}
+              onClick={() => onEquip(id)}
+              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
+            >
+              <ItemIcon itemId={id} className="w-6 h-6 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-bold">{getItem(id)?.name}</span>
+                <span className="block text-[10px] text-slate-400 leading-snug">{getItem(id)?.desc}</span>
+              </span>
+              <span className="shrink-0 text-[10px] font-bold text-emerald-300">Equipar ›</span>
             </button>
           ))}
           {!gear.length && !player.item && <span className="text-[11px] text-slate-600">Nada en la mochila.</span>}
@@ -852,6 +878,13 @@ function PlayerDetail({
         {/* Rotar desde AQUÍ: la ficha se abre igual desde la lista y desde el
             campo, así que las dos vistas hacen exactamente lo mismo. */}
         <div className="mt-3 flex gap-2">
+          {onMove && (
+            <Button variant="secondary" full onClick={onMove}>
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <Icon name="arrowRight" className="w-4 h-4" /> Mover
+              </span>
+            </Button>
+          )}
           <Button
             variant="secondary"
             full
@@ -903,10 +936,15 @@ function PlayerDetail({
 
         {/* `getTeam` LANZA con un id desconocido, así que aquí se consulta el
             mapa directamente: una ficha de jugador no debe poder tumbar la UI. */}
-        <div className="text-[10px] text-slate-600 text-center mt-1">
+        <div className="text-[10px] text-slate-600 text-center mt-1 flex items-center justify-center gap-1">
           {base.team === 'libre'
             ? 'Agente libre'
-            : `Fichado del ${TEAM_BY_ID.get(base.team)?.name ?? TEAM_NAMES[base.team] ?? base.team}`}
+            : (
+              <>
+                <Crest teamId={base.team} className="w-3.5 h-3.5" />
+                Fichado del {TEAM_BY_ID.get(base.team)?.name ?? TEAM_NAMES[base.team] ?? base.team}
+              </>
+            )}
         </div>
       </div>
     </div>

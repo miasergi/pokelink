@@ -491,11 +491,18 @@ export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
   | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'trade' | 'victory' | 'gameover'
 
+/** Dificultad de la partida: cuánto nivel extra llevan TODOS los rivales. */
+export type Difficulty = 'normal' | 'dificil' | 'leyenda'
+
 export interface InazumaSave {
   seed: number
   rngState: number
   /** Instituto con el que juegas. Define tu plantilla inicial y el cuadro. */
   teamId: string
+  /** Dificultad elegida al empezar (ausente en partidas viejas = normal). */
+  difficulty?: Difficulty
+  /** true si la plantilla inicial salió del bombo (modo aleatorio). */
+  randomSquad?: boolean
   /** Mapa completo de la partida, generado al empezar. */
   map: InazumaMap
   /** Capa en la que estás. Avanza una casilla por elección. */

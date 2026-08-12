@@ -544,7 +544,9 @@ function buildDecision(
   // 4) Atacando: pasar a un compañero con otro elemento para esquivar un mal
   //    emparejamiento. Es la jugada de manual del modo: el elemento del que
   //    recibe cuenta contra el defensor, no el del que llevaba el balón.
-  if (mode === 'ataque') {
+  //    Un solo pase por posesión (ver `chooseOption`): sin el tope, pasarse
+  //    la pelota en bucle sería gratis.
+  if (mode === 'ataque' && !m.chain?.passed) {
     for (const mate of passCandidates(atkSide, attacker, rival.element)) {
       options.push(buildOption(
         m, step, mode, mate, defender, momentum,
@@ -734,12 +736,25 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     // Combinada: ya viene con su bono; no pasa por las Mejoras individuales.
     myTech = comboTechnique(optionId.slice(6))
   } else if (optionId.startsWith('pass:')) {
+    // El PASE no es un duelo: llega siempre, y el que recibe juega el duelo
+    // CON SUS OPCIONES (antes el receptor entraba al duelo sin poder elegir
+    // técnica, y parecía que «te cortaban el pase»). Se marca la jugada como
+    // «pase buscado» — un solo pase por posesión, o esto sería un peloteo
+    // infinito — y se vuelve a preguntar con el nuevo dueño del balón.
     const mate = findActor(atkSide, optionId.slice(5))
-    attacker = mate
     chain.carrier = mate.uid
-    // Marca la jugada como «pase buscado»: el que recibe se queda el balón el
-    // resto de la posesión en vez de devolvérselo al sorteo.
     chain.passed = true
+    const out: MatchEvent[] = [{
+      kind: 'possession',
+      minute: m.minute,
+      side: chain.side,
+      text: `${attacker.name} se la pasa a ${mate.name}.`,
+    }]
+    m.decision = null
+    m.phase = 'playing'
+    m.events.push(...out)
+    resolveStep(m, rng, [])
+    return out
   }
 
   const rivalKind = d.mode === 'ataque' ? DEFEND_KIND[chain.step] : ATTACK_KIND[chain.step]

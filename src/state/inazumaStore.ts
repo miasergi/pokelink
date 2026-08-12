@@ -20,13 +20,15 @@ import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult,
   applyPachangaResult, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnSignature,
+  type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore, substitute } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
-  autoLineup, createPlayer, effectiveStats, levelUp, lineupError, ptMax, transferValue,
+  autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
+  transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -233,7 +235,7 @@ interface InazumaState {
 
   initInazuma: () => Promise<void>
   exitInazuma: () => void
-  newTournament: (teamId?: string) => Promise<void>
+  newTournament: (teamId?: string, opts?: NewRunOptions) => Promise<void>
   continueTournament: () => void
   abandonTournament: () => Promise<void>
   goTo: (phase: InazumaPhase) => void
@@ -277,6 +279,10 @@ interface InazumaState {
   clearRevealPlayer: () => void
   /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
   resolveFirma: (uid: string) => void
+  /** Firma con la cadena COMPLETA: mejora una técnica ya despertada (+25 %). */
+  resolveFirmaUpgrade: (uid: string) => void
+  /** Consume la casilla actual sin hacer nada (pasar de largo). */
+  skipNode: () => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
   resolveTrade: (uid: string) => void
 
@@ -336,10 +342,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     useGame.getState().navigate('home')
   },
 
-  newTournament: async (teamId = 'raimon') => {
+  newTournament: async (teamId = 'raimon', opts = {}) => {
     stopTicker()
     const seed = Math.floor(Math.random() * 0xffffffff)
-    const save = createSave(seed, teamId)
+    const save = createSave(seed, teamId, opts)
     rng = new RNG(seed)
     rng.setState(save.rngState)
     await saveInazuma(save)
@@ -873,6 +879,36 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       phase: 'map',
       message: `¡${who ? getPlayerBase(who.baseId).name : 'Alguien'} despierta ${learnt.name}!`,
     })
+    void persist(next, 'map')
+  },
+
+  resolveFirmaUpgrade: (uid) => {
+    const { save, matchNode } = get()
+    if (!save || matchNode?.kind !== 'firma') return
+    const target = save.roster.find((p) => p.uid === uid)
+    const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
+    if (!target || !up) { set({ message: 'Ese jugador no tiene técnicas que mejorar.' }); return }
+    const next: InazumaSave = {
+      ...save,
+      roster: save.roster.map((p) => (p.uid === uid ? upgradeTechnique(p, up) : p)),
+      cleared: save.cleared.slice(),
+    }
+    advanceLayer(next, matchNode)
+    set({
+      save: next,
+      matchNode: null,
+      phase: 'map',
+      message: `${getTechnique(up)?.name} de ${getPlayerBase(target.baseId).name} mejorada: +25 % de potencia.`,
+    })
+    void persist(next, 'map')
+  },
+
+  skipNode: () => {
+    const { save, matchNode } = get()
+    if (!save || !matchNode) return
+    const next: InazumaSave = { ...save, cleared: save.cleared.slice() }
+    advanceLayer(next, matchNode)
+    set({ save: next, matchNode: null, phase: 'map' })
     void persist(next, 'map')
   },
 

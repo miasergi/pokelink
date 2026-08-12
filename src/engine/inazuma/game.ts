@@ -2,7 +2,7 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
+import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
@@ -19,8 +19,8 @@ import {
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
-  Actor, DecisionMode, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats,
-  Position, Technique,
+  Actor, DecisionMode, Difficulty, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerBase,
+  PlayerInstance, PlayerStats, Position, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
 
@@ -41,16 +41,45 @@ export const BENCH_LEVEL_PENALTY = 1
 const REST_STAMINA = 18
 const REST_PT_FRACTION = 0.35
 
-export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
+/** Opciones al empezar torneo: dificultad y plantilla del bombo. */
+export interface NewRunOptions {
+  difficulty?: Difficulty
+  randomSquad?: boolean
+}
+
+/** Nivel EXTRA de todos los rivales según la dificultad elegida. */
+export const DIFFICULTY_LEVEL_BONUS: Record<Difficulty, number> = {
+  normal: 0,
+  dificil: 6,
+  leyenda: 12,
+}
+
+/**
+ * Plantilla del BOMBO: 14 jugadores al azar de TODO el catálogo, con las
+ * cuotas por demarcación de una convocatoria de verdad (2 porteros, 4-4-4).
+ * El más raro capitanea. Es el modo «random» de un roguelike: cada partida,
+ * un vestuario que no has entrenado nunca.
+ */
+function randomSquadIds(rng: RNG): string[] {
+  const byPos = (pos: PlayerBase['position'], n: number) =>
+    rng.shuffle(PLAYERS.filter((p) => p.position === pos).map((p) => p.id)).slice(0, n)
+  const picks = [...byPos('POR', 2), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 4)]
+  return picks.sort((a, b) => getPlayerBase(b).rarity - getPlayerBase(a).rarity)
+}
+
+export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions = {}): InazumaSave {
   const rng = new RNG(seed)
+  const difficulty = opts.difficulty ?? 'normal'
   const formation = formationFor(teamId)
-  const roster = startingSquad(teamId, formation).map((id, i) =>
-    createPlayer(id, START_LEVEL, { captain: i === 0 }))
-  const map = generateMap(rng, teamId)
+  const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
+  const roster = squadIds.map((id, i) => createPlayer(id, START_LEVEL, { captain: i === 0 }))
+  const map = generateMap(rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty])
   const lineup = autoLineup(roster, formation)
   return {
     seed,
     teamId,
+    difficulty,
+    randomSquad: opts.randomSquad || undefined,
     rngState: rng.getState(),
     map,
     layer: 0,
