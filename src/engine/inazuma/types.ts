@@ -214,6 +214,15 @@ export interface Decision {
   /** Nombre del rival al que se enfrenta. */
   rivalName: string
   rivalElement: Element
+  /**
+   * DEFENDIENDO: lo que el atacante viene a hacer — el nombre de su técnica, o
+   * null si llega sin técnica. Se ve venir la jugada ANTES de decidir qué
+   * gastar (la IA elige en el momento con la misma regla determinista con la
+   * que se calculan las estrellas, así que esto no es una estimación: es lo
+   * que va a pasar). En ataque no aplica (undefined).
+   */
+  rivalTech?: string | null
+  rivalTechElement?: Element
   headline: string
   options: DecisionOption[]
 }

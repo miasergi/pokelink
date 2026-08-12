@@ -302,9 +302,17 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const won = s.result === 'win'
   const levels = won ? (node.risky ? 4 : 3) : 0
 
+  // El desgaste es de TODO el once, no solo de los que tocaron balón: correr
+  // detrás de la pelota cansa igual. Y PERDER pasa factura de verdad — la
+  // pachanga es una apuesta: ganas niveles o vuelves con el equipo fundido.
+  const baseFatigue = Math.round(s.rounds.length * 1.5)
+  const lossFatigue = won ? 0 : 18
+
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
-    let next: PlayerInstance = a ? { ...p, stamina: a.stamina, pt: a.pt } : { ...p }
+    let next: PlayerInstance = a
+      ? { ...p, stamina: Math.max(0, a.stamina - baseFatigue - lossFatigue), pt: a.pt }
+      : { ...p }
     // La pachanga la juega TU ONCE (el mismo que alineas en el vestuario): los
     // once se llevan los niveles enteros y el banquillo uno menos. Antes solo
     // contaban «los que tocaron balón» en la tanda (3-5 jugadores) y nadie

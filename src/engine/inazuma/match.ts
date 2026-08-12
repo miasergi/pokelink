@@ -580,6 +580,14 @@ function buildDecision(
     })
   }
 
+  // Defendiendo se VE VENIR la jugada: la técnica que el atacante va a lanzar.
+  // Es la misma elección determinista que hará `chooseOption` al resolver, así
+  // que enseñarla no es una pista — es información de verdad para decidir qué
+  // gastar en pararla.
+  const incoming = mode === 'defensa'
+    ? pickAiTechnique(affordable(attacker, ATTACK_KIND[step], atkSide.burstTurns > 0), attacker.pt, defender.element, step)
+    : undefined
+
   return {
     minute: m.minute,
     step,
@@ -589,6 +597,8 @@ function buildDecision(
     rivalUid: rival.uid,
     rivalName: rival.name,
     rivalElement: rival.element,
+    rivalTech: mode === 'defensa' ? (incoming?.name ?? null) : undefined,
+    rivalTechElement: incoming?.element,
     headline: mode === 'defensa'
       ? (step === 'definicion' ? '¡Disparo a puerta!' : '¡Te atacan! Corta la jugada')
       : STEP_HEADLINE[step],

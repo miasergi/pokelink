@@ -32,8 +32,8 @@ import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazu
 import { getFormation } from '@/data/inazuma/formations'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
-  type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent, type MatchPhase,
-  type MatchState, type TournamentNode,
+  type DecisionOption, type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent,
+  type MatchPhase, type MatchState, type TournamentNode,
 } from '@/engine/inazuma/types'
 
 /** Barra animada del efecto de un objeto (de `from` a `to`). */
@@ -253,6 +253,8 @@ interface InazumaState {
 
   // pachanga
   pachangaShoot: (optionId: string) => void
+  /** Modo AUTO: el banquillo elige la mejor opción pagable y tira/para él. */
+  pachangaAutoShoot: () => void
   finishPachanga: () => void
 
   // recompensas
@@ -526,6 +528,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // estrechada a 'decision' y no sabe que `shoot` la ha mutado).
     nextRound(pachanga, matchRng)
     set({ pachanga: { ...pachanga } })
+  },
+
+  pachangaAutoShoot: () => {
+    const { pachanga } = get()
+    if (!pachanga || pachanga.phase !== 'decision') return
+    // La misma vara de medir que el banquillo del partido: la opción con más
+    // probabilidad, con un pelín de tacañería para no fundir el PT en tiros
+    // que la opción gratis ya gana casi igual.
+    const usable = pachanga.options.filter((o) => !o.disabled)
+    if (!usable.length) return
+    const score = (o: DecisionOption) => o.chance - o.cost * 0.003
+    const best = usable.reduce((a, b) => (score(b) > score(a) ? b : a))
+    get().pachangaShoot(best.id)
   },
 
   finishPachanga: () => {

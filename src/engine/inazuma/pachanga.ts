@@ -7,7 +7,9 @@
 // entera se juega en cinco toques y dura menos de un minuto.
 //
 // Sirve para dos cosas, que es justo lo que se le pidió:
-//  - CANSA: cada ronda gasta aguante de los dos que la disputan, ganes o pierdas.
+//  - CANSA: los duelistas gastan aguante por ronda AQUÍ, y al cerrarse todo el
+//    once paga el partidillo (y la derrota, un buen pico extra) en
+//    `applyPachangaResult` — perder una pachanga tiene que doler.
 //  - SUBE DE NIVEL: si ganas, todo el que haya jugado se lleva niveles.
 import { RNG } from '@/utils/rng'
 import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
@@ -61,8 +63,19 @@ export interface PachangaState {
   mine: MatchSide
   theirs: MatchSide
   phase: PachangaPhase
-  /** Duelo pendiente de que elijas técnica. */
-  pending: { shooter: Actor; keeper: Actor; mine: boolean } | null
+  /**
+   * Duelo pendiente de que elijas técnica. Cuando paras tú (`mine: false`),
+   * `rivalTech` es el tiro que viene: el nombre de la técnica del tirador, o
+   * null si dispara sin técnica. Es la MISMA elección determinista que hará
+   * `shoot`, así que se puede enseñar antes de decidir qué gastar.
+   */
+  pending: {
+    shooter: Actor
+    keeper: Actor
+    mine: boolean
+    rivalTech?: string | null
+    rivalTechElement?: Technique['element']
+  } | null
   options: DecisionOption[]
   rounds: PachangaRound[]
   result: 'win' | 'loss' | null
@@ -156,7 +169,6 @@ export function nextRound(s: PachangaState, rng: RNG): void {
   const mineTurn = s.round % 2 === 0
   const shooter = shooterFor(mineTurn ? s.mine : s.theirs, rng)
   const keeper = (mineTurn ? s.theirs : s.mine).keeper
-  s.pending = { shooter, keeper, mine: mineTurn }
 
   // Decides SIEMPRE: tirando eliges el disparo, defendiendo eliges la parada.
   const actor = mineTurn ? shooter : keeper
@@ -165,6 +177,14 @@ export function nextRound(s: PachangaState, rng: RNG): void {
   const rivalTech = pickAiTechnique(
     affordable(rival, mineTurn ? 'parada' : 'tiro'), rival.pt, actor.element, 'definicion',
   )
+  s.pending = {
+    shooter,
+    keeper,
+    mine: mineTurn,
+    // Parando tú, el tiro que viene se ve venir (ver `PachangaState.pending`).
+    rivalTech: mineTurn ? undefined : (rivalTech?.name ?? null),
+    rivalTechElement: mineTurn ? undefined : rivalTech?.element,
+  }
 
   const options: DecisionOption[] = []
   const build = (id: string, label: string, tech: Technique | undefined, cost: number): DecisionOption => {

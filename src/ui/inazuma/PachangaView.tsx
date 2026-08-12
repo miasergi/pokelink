@@ -1,10 +1,11 @@
 // Pachanga: la tanda rápida de mano a mano. Una pantalla, cinco toques.
 // Deliberadamente MUY distinta del partido de jefe (que es una retransmisión de
 // 90 minutos): aquí se ve todo de golpe y se resuelve en segundos.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
-import { Crest, Pic } from '@/ui/inazuma/Glyphs'
+import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
 import { useInazuma } from '@/state/inazumaStore'
+import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
@@ -14,7 +15,8 @@ import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import { play } from '@/utils/sfx'
 
 export default function PachangaView() {
-  const { pachanga, pachangaShoot, finishPachanga, save } = useInazuma()
+  const { pachanga, pachangaShoot, pachangaAutoShoot, finishPachanga, save } = useInazuma()
+  const auto = useSettings((s) => s.inazumaMode) === 'auto'
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
   // Rondas ya CONTADAS en pantalla. El motor resuelve la ronda al instante,
@@ -22,11 +24,17 @@ export default function PachangaView() {
   // esto, el marcador se movía (y la siguiente decisión aparecía) antes de
   // ver el tiro — el spoiler que se reportó.
   const [shown, setShown] = useState(() => pachanga?.rounds.length ?? 0)
+  // Ronda ya ESCENIFICADA. La pachanga cambia de identidad con cada `set` del
+  // store, y con ella en las deps el efecto re-montaba el MISMO duelo (se veía
+  // doble) y de paso mataba el timer del desenlace. El mismo guard que en el
+  // partido: cada ronda pisa el escenario UNA vez.
+  const staged = useRef(shown)
 
   useEffect(() => {
     if (!pachanga) return
     const rounds = pachanga.rounds
-    if (rounds.length <= shown) return
+    if (rounds.length <= shown || staged.current > shown) return
+    staged.current = shown + 1
     const next = rounds[shown]
     const all = [pachanga.mine, pachanga.theirs]
       .flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
@@ -40,8 +48,10 @@ export default function PachangaView() {
       kind: 'tiro',
     })
     // El desenlace se CONSUMA cuando el escenario llega a su sello (~1.75 s):
-    // entonces sí — marcador, sonido y, si hay gol, la celebración.
-    const t = setTimeout(() => {
+    // entonces sí — marcador, sonido y, si hay gol, la celebración. SIN
+    // cleanup: el guard de arriba garantiza un único timer por ronda, y
+    // limpiarlo en re-renders era justo lo que lo mataba a medias.
+    setTimeout(() => {
       setShown(shown + 1)
       play(next.scored ? 'gol' : 'parada')
       if (next.scored) {
@@ -53,8 +63,18 @@ export default function PachangaView() {
         })
       }
     }, 1750)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pachanga?.rounds.length, shown])
+
+  // Modo AUTO: cuando la pantalla está al día y hay decisión, el banquillo
+  // tira/para solo tras una pausa para que se pueda seguir la tanda.
+  const decisionUp = !!pachanga && pachanga.phase === 'decision'
+    && shown >= pachanga.rounds.length && !gol && !stage
+  useEffect(() => {
+    if (!auto || !decisionUp) return
+    const t = setTimeout(() => pachangaAutoShoot(), 900)
     return () => clearTimeout(t)
-  }, [pachanga, shown, save?.teamId])
+  }, [auto, decisionUp, pachangaAutoShoot])
 
   if (!pachanga) return null
   const revealed = pachanga.rounds.slice(0, shown)
@@ -159,16 +179,45 @@ export default function PachangaView() {
           </div>
           <p className="text-[11px] text-slate-400 text-center mb-2">
             {pachanga.result === 'win'
-              ? 'Los que han jugado suben de nivel. Y todos vuelven más cansados.'
-              : 'Nadie sube de nivel, pero el desgaste os lo lleváis igual.'}
+              ? 'Los que han jugado suben de nivel. Y todo el once vuelve más cansado.'
+              : 'Nadie sube de nivel y la derrota pasa factura: todo el once vuelve fundido.'}
           </p>
           <Button variant="primary" full onClick={finishPachanga}>Volver al mapa</Button>
+        </div>
+      ) : pending && pachanga.phase === 'decision' && auto ? (
+        <div className="shrink-0 border-t border-slate-800 bg-slate-900 p-3 safe-bottom">
+          <div className="text-center text-[11px] text-slate-400 animate-pulse">
+            El banquillo decide (modo auto)…
+          </div>
         </div>
       ) : pending && pachanga.phase === 'decision' ? (
         <div className="shrink-0 border-t border-amber-500/40 bg-slate-900 p-3 safe-bottom animate-pop-in">
           <div className="text-sm font-extrabold text-amber-200">
             {pending.mine ? 'Mano a mano' : 'Te la juegan'}
           </div>
+          {/* Parando tú, el tiro que viene SE VE VENIR: es la elección
+              determinista del rival, la misma con la que se calculan las
+              estrellas. Así se sabe si merece gastar una parada cara. */}
+          {!pending.mine && pending.rivalTech !== undefined && (
+            <div
+              className="mt-1 mb-1 flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2 py-1"
+              style={pending.rivalTechElement ? { borderColor: `${ELEMENT_INFO[pending.rivalTechElement].color}88` } : undefined}
+            >
+              <KindIcon kind="tiro" className="w-3.5 h-3.5 shrink-0 text-rose-300" />
+              <span className="text-[11px] text-slate-300 min-w-0 truncate">
+                {pending.rivalTech ? (
+                  <>
+                    {pending.shooter.name} arma{' '}
+                    <b style={pending.rivalTechElement ? { color: ELEMENT_INFO[pending.rivalTechElement].color } : undefined}>
+                      ¡{pending.rivalTech}!
+                    </b>
+                  </>
+                ) : (
+                  <>{pending.shooter.name} llega sin técnica.</>
+                )}
+              </span>
+            </div>
+          )}
           {/* Cara a cara con retratos: quién tira y quién para. Con nombres
               sueltos no había forma de saber a quién estabas mirando. */}
           <div className="mb-2 flex items-center gap-2">

@@ -443,6 +443,33 @@ function DecisionPanel({
         <span className="text-sm font-extrabold text-amber-200">{decision.headline}</span>
       </div>
 
+      {/* Defendiendo, la jugada SE VE VENIR: la técnica que el atacante va a
+          lanzar (elección determinista del motor, no una estimación). Sin esto
+          no había forma de saber si merecía gastar una parada cara. */}
+      {decision.mode === 'defensa' && decision.rivalTech !== undefined && (
+        <div
+          className="mb-2 flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2 py-1"
+          style={decision.rivalTechElement ? { borderColor: `${ELEMENT_INFO[decision.rivalTechElement].color}88` } : undefined}
+        >
+          <KindIcon
+            kind={decision.step === 'definicion' ? 'tiro' : 'regate'}
+            className="w-3.5 h-3.5 shrink-0 text-rose-300"
+          />
+          <span className="text-[11px] text-slate-300 min-w-0 truncate">
+            {decision.rivalTech ? (
+              <>
+                {decision.rivalName} arma{' '}
+                <b style={decision.rivalTechElement ? { color: ELEMENT_INFO[decision.rivalTechElement].color } : undefined}>
+                  ¡{decision.rivalTech}!
+                </b>
+              </>
+            ) : (
+              <>{decision.rivalName} llega sin técnica.</>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Cara a cara: quién decide y contra quién. El texto solo daba nombres,
           y con 22 jugadores en el campo un nombre no basta para reconocer a
           nadie. */}
