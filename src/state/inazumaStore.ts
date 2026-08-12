@@ -8,6 +8,7 @@
 import { create } from 'zustand'
 import { RNG } from '@/utils/rng'
 import { play } from '@/utils/sfx'
+import { useSettings } from '@/state/settingsStore'
 import { useGame } from '@/state/gameStore'
 import { clearInazuma, loadInazuma, loadMeta, saveInazuma, saveMeta } from '@/persistence/db'
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
@@ -17,11 +18,11 @@ import { getEvent } from '@/data/inazuma/events'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
 import {
-  advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult, canLearn,
-  createSave, fullRest, isEliminated, isMapComplete, learnSignature, LEVELS_BY_RESULT, startMatch,
-  startPachanga,
+  advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult,
+  applyPachangaResult, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnSignature,
+  LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
+import { advance, chooseOption, playerScore, substitute } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
@@ -62,6 +63,29 @@ const STAT_TAG: Record<string, string> = {
 /** Objetos que actúan sobre TODA la plantilla (para el rótulo y las medias). */
 const TEAM_ITEMS = new Set(['gyoza', 'banquete', 'concentrado'])
 
+/** Instantánea completa del equipo, para el historial al terminar el rogue. */
+function teamSnapshot(save: InazumaSave, result: 'campeon' | 'eliminado') {
+  return {
+    finishedAt: Date.now(),
+    teamId: save.teamId ?? 'raimon',
+    result,
+    round: bossIndexForLayer(save.layer),
+    record: [...save.record] as [number, number, number],
+    goalsFor: save.goalsFor,
+    goalsAgainst: save.goalsAgainst,
+    coins: save.coins,
+    roster: save.roster.map((p) => ({
+      baseId: p.baseId,
+      level: p.level,
+      techniques: p.techniques.slice(),
+      item: p.item,
+      captain: p.captain,
+    })),
+    lineup: save.lineup.slice(),
+    formation: save.formation,
+  }
+}
+
 /**
  * Cola de REVELADO de la retransmisión. El motor resuelve tiro+parada+gol en
  * el mismo latido; si se volcara todo de golpe al feed, el gol pasaría tan
@@ -79,8 +103,8 @@ let revealQueue: MatchEvent[] = []
  */
 function holdFor(e: MatchEvent): number {
   switch (e.kind) {
-    case 'goal': return 2200        // la celebración necesita su tiempo
-    case 'penalty': return 3700     // escenario completo del penalti
+    case 'goal': return 2500        // la celebración entera (1.9s) + aire
+    case 'penalty': return 4200     // escenario (2.3s) + celebración retardada
     case 'save': return 1200        // la línea respira tras el escenario del tiro
     case 'duel':
       // El tiro que ACABA en gol corta antes: el escenario no pone sello (eso
@@ -152,13 +176,22 @@ async function persist(save: InazumaSave, phase: InazumaPhase) {
 
 /** Meta-progresión del modo. Es read-modify-write, así que va en cola. */
 let metaQueue: Promise<void> = Promise.resolve()
-export function persistInazumaMeta(extra: { title?: boolean; round?: number; signed?: string[] }): Promise<void> {
+export function persistInazumaMeta(extra: {
+  title?: boolean
+  round?: number
+  signed?: string[]
+  /** Equipo completo al terminar el torneo (se guardan los últimos 20). */
+  team?: NonNullable<Awaited<ReturnType<typeof loadMeta>>['inazumaTeams']>[number]
+}): Promise<void> {
   metaQueue = metaQueue.then(async () => {
     const meta = await loadMeta()
     if (extra.title) meta.inazumaTitles = (meta.inazumaTitles ?? 0) + 1
     if (extra.round != null) meta.inazumaBestRound = Math.max(meta.inazumaBestRound ?? 0, extra.round)
     if (extra.signed?.length) {
       meta.inazumaSigned = [...new Set([...(meta.inazumaSigned ?? []), ...extra.signed])]
+    }
+    if (extra.team) {
+      meta.inazumaTeams = [...(meta.inazumaTeams ?? []), extra.team].slice(-20)
     }
     const ach = checkInazumaAchievements(meta)
     if (ach.length) meta.achievements = [...new Set([...meta.achievements, ...ach])]
@@ -229,6 +262,14 @@ interface InazumaState {
   resolveEvent: (optionIndex: number) => void
   itemFx: ItemFx | null
   clearItemFx: () => void
+  /** true mientras el panel del DESCANSO está abierto (el partido espera). */
+  halftimeBreak: boolean
+  /** Reanuda la segunda parte tras el panel del descanso. */
+  resumeSecondHalf: () => void
+  /** Consumible sobre un jugador DEL PARTIDO, en el descanso. */
+  halftimeUseItem: (itemId: string, actorUid: string) => void
+  /** Cambio en el descanso: sale `outUid` del campo, entra `benchUid`. */
+  halftimeSubstitute: (outUid: string, benchUid: string) => void
   /** Carta de un jugador para ENSEÑAR (p. ej. el que llega en un intercambio). */
   revealPlayer: { uid: string; title: string } | null
   clearRevealPlayer: () => void
@@ -270,6 +311,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   pendingTarget: null,
   message: null,
   itemFx: null,
+  halftimeBreak: false,
   revealPlayer: null,
 
   initInazuma: async () => {
@@ -454,11 +496,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
 
-    const setup = startMatch(save, matchNode)
+    // El modo de decisión sale de los ajustes; en «auto» el banquillo decide y
+    // en «completo» el motor te pregunta TODAS las acciones.
+    const mode = useSettings.getState().inazumaMode
+    const setup = startMatch(save, matchNode, mode)
     if ('error' in setup) { set({ message: setup.error }); return }
     matchRng = setup.rng
     revealQueue = []
-    set({ match: setup.match, feed: setup.match.events.slice(), phase: 'match', playing: true })
+    set({
+      match: setup.match,
+      feed: setup.match.events.slice(),
+      phase: 'match',
+      playing: true,
+      autoPlay: mode === 'auto' ? true : get().autoPlay,
+    })
     get().tick()
   },
 
@@ -524,6 +575,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (revealQueue.length) {
       const e = revealQueue.shift()!
       soundFor(e)
+      // El DESCANSO abre su panel (consumibles y cambios) y el partido espera.
+      if (e.kind === 'halftime') {
+        set({ match: { ...match }, feed: [...get().feed, e], playing: false, halftimeBreak: true })
+        return
+      }
       // El multiplicador de velocidad acelera el trámite, pero los momentos
       // gordos conservan un mínimo: a ×4 el gol y la parada SIGUEN viéndose.
       const factor = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
@@ -583,6 +639,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
     if (isEliminated(matchNode, result)) {
       next.finishedAt = Date.now()
+      // El equipo completo queda guardado en la meta: material para modos
+      // futuros (revanchas, exhibición, exportar tu once).
+      void persistInazumaMeta({ team: teamSnapshot(next, 'eliminado') })
       void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
       set({ save: next, phase: 'gameover', match: null, matchNode: null })
       void persist(next, 'gameover')
@@ -593,7 +652,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     advanceLayer(next, matchNode)
     if (isMapComplete(next)) {
       next.finishedAt = Date.now()
-      void persistInazumaMeta({ title: true, round: 8 })
+      void persistInazumaMeta({ title: true, round: 8, team: teamSnapshot(next, 'campeon') })
       set({ save: next, phase: 'victory', match: null, matchNode: null })
       void persist(next, 'victory')
       play('victory')
@@ -696,6 +755,63 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   clearItemFx: () => set({ itemFx: null }),
 
   clearRevealPlayer: () => set({ revealPlayer: null }),
+
+  resumeSecondHalf: () => {
+    set({ halftimeBreak: false, playing: true })
+    stopTicker()
+    ticker = setTimeout(() => get().tick(), 250)
+  },
+
+  halftimeUseItem: (itemId, actorUid) => {
+    const { match, save } = get()
+    if (!match || !save || !get().halftimeBreak) return
+    const i = save.bag.indexOf(itemId)
+    if (i < 0) return
+    const side = match.home.isPlayer ? match.home : match.away
+    const actor = [side.keeper, ...side.defs, ...side.mids, ...side.fwds].find((a) => a.uid === actorUid)
+    if (!actor) return
+    const before = { pt: actor.pt, stamina: actor.stamina }
+    const res = applyConsumableToActor(actor, itemId)
+    if (!res.ok) { set({ message: res.message }); return }
+    const bag = save.bag.slice()
+    bag.splice(i, 1)
+    const next = { ...save, bag }
+    const bars: ItemFxBar[] = []
+    if (actor.pt !== before.pt) bars.push({ label: 'PT', from: before.pt, to: actor.pt, max: actor.ptMax, color: '#38bdf8' })
+    if (actor.stamina !== before.stamina) bars.push({ label: 'AGU', from: before.stamina, to: actor.stamina, max: 100, color: '#22c55e' })
+    play('heal')
+    set({
+      save: next,
+      match: { ...match },
+      itemFx: {
+        key: Date.now(),
+        title: getItem(itemId)?.name ?? 'Objeto',
+        itemId,
+        targetName: actor.name,
+        targetBaseId: actor.baseId,
+        bars,
+      },
+    })
+    void persist(next, get().phase)
+  },
+
+  halftimeSubstitute: (outUid, benchUid) => {
+    const { match, save } = get()
+    if (!match || !save || !get().halftimeBreak) return
+    const side = match.home.isPlayer ? match.home : match.away
+    const out = [side.keeper, ...side.defs, ...side.mids, ...side.fwds].find((a) => a.uid === outUid)
+    const role = out?.position
+    if (!out || !role) return
+    const incoming = subActor(save, benchUid, role)
+    if (!incoming) return
+    const err = substitute(match, outUid, incoming)
+    if (err) { set({ message: err }); return }
+    play('select')
+    set({
+      match: { ...match },
+      message: `${incoming.name} entra por ${out.name}. Quedan ${match.subsLeft} cambios.`,
+    })
+  },
 
   /**
    * Resuelve una situación del mapa. Las opciones con `chance` pueden salir mal

@@ -31,8 +31,12 @@ const HARD_CAP_ROUNDS = 61
  * muerte súbita no se eterniza.
  */
 const KEEPER_FATIGUE_FROM = 9
-/** Aguante que cuesta cada mano a mano, al tirador y al portero. */
-const STAMINA_PER_ROUND = 6
+/**
+ * Aguante que cuesta cada mano a mano, al tirador y al portero. Bajado de 6:
+ * perder una pachanga larga dejaba a los implicados temblando y se sentía
+ * castigo doble (sin niveles Y fundido).
+ */
+const STAMINA_PER_ROUND = 4
 
 export interface PachangaRound {
   index: number

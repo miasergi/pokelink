@@ -130,6 +130,21 @@ export function ItemIcon({ itemId, className = 'w-5 h-5' }: { itemId: string; cl
   )
 }
 
+/** Icono SVG de cada CLASE de acción, para acompañar técnicas y jugadas. */
+export const KIND_ICON: Record<Technique['kind'], string> = {
+  tiro: 'shoot',
+  regate: 'dribble',
+  bloqueo: 'shield',
+  parada: 'glove',
+}
+
+export function KindIcon({ kind, className = 'w-3.5 h-3.5' }: {
+  kind: Technique['kind']
+  className?: string
+}) {
+  return <Icon name={KIND_ICON[kind]} className={className} title={kind} />
+}
+
 /**
  * Escudo de un instituto, para acompañar SIEMPRE a su nombre. Si el equipo no
  * tiene escudo (los extra del pool de fichajes), no pinta nada.

@@ -42,6 +42,30 @@ interface MetaRecord {
   /** Inazuma Rogue: Football Frontiers ganados y mejor ronda alcanzada. */
   inazumaTitles?: number
   inazumaBestRound?: number
+  /**
+   * EQUIPOS con los que se terminó un torneo (campeón o eliminado), con toda
+   * la información útil: base para modos futuros (revanchas, exhibiciones,
+   * exportar tu once…). Se guardan los últimos 20.
+   */
+  inazumaTeams?: {
+    finishedAt: number
+    teamId: string
+    result: 'campeon' | 'eliminado'
+    round: number
+    record: [number, number, number]
+    goalsFor: number
+    goalsAgainst: number
+    coins: number
+    roster: {
+      baseId: string
+      level: number
+      techniques: string[]
+      item?: string
+      captain?: boolean
+    }[]
+    lineup: string[]
+    formation: string
+  }[]
   /** Inazuma Rogue: ids de jugadores que has llegado a fichar (su «Pokédex»). */
   inazumaSigned?: string[]
 }

@@ -19,7 +19,7 @@ export default function EventView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 flex flex-col items-center justify-center text-center gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center justify-center text-center gap-3">
         {/* La loseta con la IMAGEN de la escena, calcada a la del modo Pokémon:
             un cuadro grande con degradado radial y el dibujo en el centro. */}
         <div

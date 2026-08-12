@@ -37,7 +37,7 @@ export function StatsView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         {pichichi ? (
           <Card className="p-3 border-amber-500/50" style={{ background: 'linear-gradient(120deg,#f59e0b22,rgba(30,41,59,.7) 60%)' }}>
             <div className="text-[10px] uppercase tracking-widest text-amber-300">Pichichi</div>
@@ -130,7 +130,7 @@ export function AlbumView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         <p className="text-[11px] text-slate-500">
           Todos los jugadores que has llegado a tener en plantilla, entre todas tus partidas.
         </p>
@@ -300,7 +300,7 @@ export function TeamSelectView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         {PLAYABLE_TEAMS.map((id) => {
           const team = getTeam(id)
           const squad = startingSquad(id).map((pid) => getPlayerBase(pid))

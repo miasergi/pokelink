@@ -27,7 +27,7 @@ export default function FirmaView() {
         <div className="font-extrabold text-sm">Entrenamiento especial</div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
         <p className="text-[12px] text-slate-400">
           Elige quién despierta <b className="text-slate-200">su</b> supertécnica. Cada jugador tiene su
           propia cadena y solo puede seguirla en orden.

@@ -19,7 +19,8 @@ import {
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
-  Actor, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats, Position, Technique,
+  Actor, DecisionMode, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats,
+  Position, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
 
@@ -155,7 +156,11 @@ function nodeRng(save: InazumaSave, node: TournamentNode): RNG {
   return new RNG(h)
 }
 
-export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup | { error: string } {
+export function startMatch(
+  save: InazumaSave,
+  node: TournamentNode,
+  decisionMode: DecisionMode = 'dinamico',
+): MatchSetup | { error: string } {
   const lineup = buildLineup(save.roster, save.lineup, save.formation)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
@@ -169,7 +174,7 @@ export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup 
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
-  return { match: createMatch({ seed: rng.getState(), home, away }, rng), rng, node }
+  return { match: createMatch({ seed: rng.getState(), home, away, decisionMode }, rng), rng, node }
 }
 
 export interface PachangaSetup {
@@ -517,6 +522,40 @@ export function applyConsumable(
     }
     default:
       return { ok: false, message: 'Eso no se usa así.' }
+  }
+}
+
+/** Actor listo para entrar de SUPLENTE en el hueco indicado. */
+export function subActor(save: InazumaSave, uid: string, role: Position): Actor | null {
+  const p = save.roster.find((x) => x.uid === uid)
+  return p ? actorFromPlayer(p, role) : null
+}
+
+/**
+ * Consumible aplicado a un ACTOR del partido (en el descanso). Solo curas de
+ * PT/aguante: los planes de entrenamiento y los manuales no caben en 15
+ * minutos de vestuario.
+ */
+export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean; message: string } {
+  switch (itemId) {
+    case 'bebida-isotonica':
+      a.pt = Math.min(a.ptMax, a.pt + 40)
+      return { ok: true, message: '+40 PT' }
+    case 'bebida-doble':
+      a.pt = a.ptMax
+      return { ok: true, message: 'Depósito de PT lleno' }
+    case 'masaje':
+      a.stamina = Math.min(100, a.stamina + 50)
+      return { ok: true, message: '+50 de aguante' }
+    case 'ramen-rai-rai':
+      a.stamina = Math.min(100, a.stamina + 60)
+      return { ok: true, message: '+60 de aguante' }
+    case 'ramen-especial':
+      a.stamina = 100
+      a.pt = a.ptMax
+      return { ok: true, message: 'Como nuevo' }
+    default:
+      return { ok: false, message: 'Eso no se puede usar en el descanso.' }
   }
 }
 

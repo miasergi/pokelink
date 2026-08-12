@@ -9,8 +9,6 @@ import { signablePool } from './roster'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
 import { beatenTeams, bossIndexForLayer } from './tournament'
 
-/** Rareza en palabras: la descripción es texto plano y aquí no caben iconos. */
-const RARITY_WORD = ['', 'suplente', 'de rotación', 'titular', 'estrella', 'crack']
 
 /** Nivel al que llega un fichaje: el del resto de tu plantilla, para que sirva. */
 export function signingLevel(save: InazumaSave): number {
@@ -76,7 +74,9 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
     title: `Fichar a ${pick.name}`,
     // Los fichajes NO cuestan dinero: son la recompensa de la casilla, como
     // una captura en el modo Pokémon. El dinero es solo para la tienda.
-    desc: `${RARITY_WORD[pick.rarity]} · ${pick.position} · nivel ${level}`,
+    // Sin la palabra de rareza: la UI pinta las ESTRELLAS y los atributos
+    // reales, que informan más que «titular» o «de rotación».
+    desc: `${pick.position} · nivel ${level}`,
     playerId: pick.id,
     level,
   }

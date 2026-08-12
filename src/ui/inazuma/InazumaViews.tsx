@@ -11,12 +11,12 @@ import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, Pic, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, effectiveStats, lineupError, overall, ptMax, rivalPreviewStats, rivalStartingXI,
-  SIGNATURE_LEVELS, slotRole, transferValue,
+  scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -298,7 +298,7 @@ export function PreviewView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         <div
           className="rounded-2xl border border-slate-700 p-4 text-center"
           style={{ background: `linear-gradient(150deg, ${team.color}33, rgba(15,23,42,0.9) 60%)` }}
@@ -485,7 +485,7 @@ export function SquadView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
         {target && (
           <div className="rounded-xl border border-amber-500/50 bg-amber-500/15 px-3 py-2 text-[12px] text-amber-100">
             <b>{target.title}</b> — elige a quién aplicárselo.
@@ -632,9 +632,12 @@ function TechniqueStock() {
             <div className="flex items-center gap-2.5">
               <TechniqueBadge tech={t} size={40} />
               <div className="min-w-0 flex-1">
-                <div className="font-bold text-sm" style={{ color: info.color }}>{t.name}</div>
+                <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
+                  <KindIcon kind={t.kind} className="w-3.5 h-3.5" />
+                  {t.name}
+                </div>
                 <div className="text-[11px] text-slate-400">
-                  {t.kind} · {info.label} · potencia {t.power} · {t.cost} PT
+                  {info.label} · potencia {t.power} · {t.cost} PT
                 </div>
               </div>
               <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
@@ -711,7 +714,7 @@ function BagPanel({
             <div className="font-extrabold text-center">{getItem(use)?.name}</div>
             <p className="text-[11px] text-slate-400 text-center mb-2">{getItem(use)?.desc}</p>
             <div className="text-[11px] text-slate-500 mb-1">¿A quién?</div>
-            <div className="overflow-y-auto no-scrollbar flex flex-col gap-1.5">
+            <div className="overflow-y-auto flex flex-col gap-1.5">
               {save.roster.map((p) => (
                 <PlayerRow
                   key={p.uid}
@@ -756,7 +759,7 @@ function PlayerDetail({
   const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <PlayerCard player={player} />
 
         {/* Las dos barras de la carta no se explican solas. En el playtest los
@@ -782,8 +785,9 @@ function PlayerDetail({
                 <TechniqueBadge tech={t} size={30} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
+                    <KindIcon kind={t.kind} className="w-3.5 h-3.5 text-slate-400" />
                     <span className="font-bold text-[12px]" style={{ color: info.color }}>{t.name}</span>
-                    <span className="text-[10px] text-slate-500">{t.kind} · {t.power} pot. · {t.cost} PT</span>
+                    <span className="text-[10px] text-slate-500">{t.power} pot. · {t.cost} PT</span>
                   </div>
                   {t.desc && <div className="text-[10px] text-slate-500 italic truncate">{t.desc}</div>}
                 </div>
@@ -949,7 +953,7 @@ export function ShopView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
         {!isRaiRai && <TechniqueStock />}
 
 
@@ -1000,7 +1004,7 @@ export function DraftView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         {last && (
           <div className={`rounded-2xl border p-3 text-center ${
             last.result === 'win' ? 'border-emerald-500/50 bg-emerald-500/10'
@@ -1040,10 +1044,20 @@ export function DraftView() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-extrabold text-sm">{o.title}</div>
+                {/* En los fichajes: estrellas y datos ANTES de decidir. */}
+                {o.kind === 'fichaje' && (
+                  <Stars n={getPlayerBase(o.playerId).rarity} className="w-2.5 h-2.5" />
+                )}
                 <div className="text-[11px] text-slate-400">{o.desc}</div>
               </div>
               <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
             </div>
+            {/* Los atributos con los que llegaría, para no fichar a ciegas. */}
+            {o.kind === 'fichaje' && (
+              <div className="mt-2">
+                <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
+              </div>
+            )}
           </Card>
         ))}
       </div>
@@ -1062,7 +1076,7 @@ export function EndView({ won }: { won: boolean }) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 safe-top flex flex-col items-center gap-3 text-center">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 safe-top flex flex-col items-center gap-3 text-center">
         <Icon name={won ? 'trophy' : 'sad'} className={`w-16 h-16 mt-4 ${won ? 'text-amber-300' : 'text-slate-400'}`} />
         <h2 className={`text-2xl font-extrabold ${won ? 'text-amber-300' : 'text-slate-300'}`}>
           {won ? '¡CAMPEONES DEL FOOTBALL FRONTIER!' : 'Eliminados'}

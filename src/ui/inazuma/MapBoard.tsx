@@ -84,7 +84,7 @@ export default function MapBoard({
     .reduce((a, p, _i, arr) => a + p.level / arr.length, 0)
 
   return (
-    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
       <div ref={wrapRef} className="relative w-full" style={{ height: totalHeight }}>
         {/* caminos */}
         <svg className="absolute inset-0 pointer-events-none" width={width} height={totalHeight}>
@@ -214,7 +214,7 @@ export function NodePreview({
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div
-        className="w-full max-w-sm max-h-[88svh] overflow-y-auto no-scrollbar rounded-3xl border bg-slate-900 p-4 animate-pop-in"
+        className="w-full max-w-sm max-h-[88svh] overflow-y-auto rounded-3xl border bg-slate-900 p-4 animate-pop-in"
         style={{ borderColor: `${meta.color}66` }}
         onClick={(e) => e.stopPropagation()}
       >

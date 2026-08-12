@@ -13,10 +13,14 @@ export default function GoalOverlay({ scorer, mine, teamId, onDone }: {
   teamId?: string
   onDone: () => void
 }) {
+  // El timer corre UNA vez por montaje (la celebración se remonta por `key`).
+  // Con `onDone` en las deps, cada re-render del padre lo reiniciaba y la
+  // celebración podía alargarse o cortarse a destiempo.
   useEffect(() => {
     const t = setTimeout(onDone, GOAL_OVERLAY_MS)
     return () => clearTimeout(t)
-  }, [onDone])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const color = mine ? '#22c55e' : '#f43f5e'
   return (
     <div className="absolute inset-0 z-[65] grid place-items-center pointer-events-none">

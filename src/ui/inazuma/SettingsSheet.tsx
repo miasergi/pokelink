@@ -60,7 +60,8 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
   const {
     sound, music, showOdds, toggleSound, toggleMusic, toggleShowOdds,
   } = useSettings()
-  const { speed, autoPlay, setSpeed, setAutoPlay, abandonTournament, exitInazuma } = useInazuma()
+  const { speed, setSpeed, setAutoPlay, abandonTournament, exitInazuma } = useInazuma()
+  const { inazumaMode, setInazumaMode } = useSettings()
   const [confirm, setConfirm] = useState(false)
 
   // El ritmo se guarda como milisegundos entre jugadas: menos es más rápido.
@@ -78,7 +79,7 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[95]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
       <div
-        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md max-h-[86svh] overflow-y-auto no-scrollbar rounded-t-3xl border-t border-x border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-sheet-up"
+        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md max-h-[86svh] overflow-y-auto rounded-t-3xl border-t border-x border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-sheet-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-3">
@@ -106,13 +107,35 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
+        <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en el partido</div>
+        <div className="flex gap-1.5 mb-1">
+          {([
+            ['auto', 'Auto'],
+            ['dinamico', 'Dinámico'],
+            ['completo', 'Completo'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => { setInazumaMode(id); if (id === 'auto') setAutoPlay(true); else setAutoPlay(false) }}
+              className={`flex-1 rounded-xl border py-2 text-[12px] font-bold transition active:scale-95 ${
+                inazumaMode === id
+                  ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-slate-500 mb-3 leading-snug">
+          {inazumaMode === 'auto'
+            ? 'El banquillo lo juega todo: te sientas a mirar.'
+            : inazumaMode === 'completo'
+              ? 'TODAS las acciones pasan por ti, duelo a duelo. Partidos largos.'
+              : 'Decides en las jugadas con chicha (tiros, técnicas); el resto fluye.'}
+        </p>
+
         <div className="flex flex-col gap-1.5">
-          <Toggle
-            label="Decidir por mí"
-            hint="El banquillo elige las jugadas clave. Puedes activarlo también desde el partido."
-            on={autoPlay}
-            onClick={() => setAutoPlay(!autoPlay)}
-          />
           <Toggle
             label="Mostrar porcentajes"
             hint="Junto a las estrellas de cada opción, la probabilidad real."

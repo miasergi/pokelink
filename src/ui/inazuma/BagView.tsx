@@ -12,7 +12,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ItemIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ItemIcon, KindIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
@@ -68,7 +68,7 @@ export default function BagView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
         {empty && (
           <div className="text-center text-slate-500 text-sm py-10">
             La mochila está vacía.<br />
@@ -92,7 +92,10 @@ export default function BagView() {
                   <div className="flex items-center gap-2.5">
                     <TechniqueBadge tech={t} size={40} />
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-sm" style={{ color: info.color }}>{t.name}</div>
+                      <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
+                        <KindIcon kind={t.kind} className="w-3.5 h-3.5" />
+                        {t.name}
+                      </div>
                       <div className="text-[11px] text-slate-400">
                         {KIND_LABEL[t.kind]} · potencia {t.power} · {t.cost} PT
                       </div>
@@ -150,7 +153,7 @@ export default function BagView() {
                 ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
                 : 'Elige a quién se lo das'}
             </p>
-            <div className="overflow-y-auto no-scrollbar flex flex-col gap-1.5">
+            <div className="overflow-y-auto flex flex-col gap-1.5">
               {save.roster.map((p) => {
                 const why = eligible(p)
                 return (

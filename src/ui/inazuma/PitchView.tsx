@@ -210,7 +210,11 @@ function PitchChip({
     <div
       data-uid={floating ? undefined : player.uid}
       onPointerDown={onPointerDown}
-      className={`relative w-11 shrink-0 touch-none ${ghost ? 'opacity-30' : ''}`}
+      // `touch-pan-y` y no `touch-none`: con none, tocar una ficha bloqueaba el
+      // scroll vertical de TODA la vista en móvil (las fichas cubren el campo).
+      // Con pan-y el gesto vertical hace scroll y el horizontal inicia el
+      // arrastre; para llevarla a otra fila basta empezar en horizontal.
+      className={`relative w-11 shrink-0 touch-pan-y ${ghost ? 'opacity-30' : ''}`}
       style={{ cursor: 'grab' }}
     >
       <div

@@ -151,7 +151,7 @@ export default function GuideSheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[95]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
       <div
-        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md max-h-[86svh] overflow-y-auto no-scrollbar rounded-t-3xl border-t border-x border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-sheet-up"
+        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md max-h-[86svh] overflow-y-auto rounded-t-3xl border-t border-x border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-sheet-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-3">

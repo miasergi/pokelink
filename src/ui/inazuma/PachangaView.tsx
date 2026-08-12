@@ -120,7 +120,7 @@ export default function PachangaView() {
       )}
 
       {/* Rondas jugadas */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col justify-end gap-1.5">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col justify-end gap-1.5">
         {/* Al empezar no hay nada que contar y quedaba media pantalla vacía. */}
         {!revealed.length && (
           <p className="m-auto text-center text-[11px] text-slate-600 max-w-[16rem]">
@@ -181,7 +181,7 @@ export default function PachangaView() {
             </div>
             <Mugshot actor={pending.keeper} name={pending.keeper.name} right />
           </div>
-          <div className="flex flex-col gap-1.5 max-h-[36svh] overflow-y-auto no-scrollbar">
+          <div className="flex flex-col gap-1.5 max-h-[36svh] overflow-y-auto">
             {pachanga.options.map((o) => {
               const el = o.element ? ELEMENT_INFO[o.element] : null
               return (

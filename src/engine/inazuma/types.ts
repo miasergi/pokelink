@@ -285,6 +285,15 @@ export interface MatchSide {
 export type MatchPhase = 'playing' | 'decision' | 'finished'
 
 /**
+ * Cuánto decide el usuario en un partido:
+ *  - auto: el banquillo lo juega todo (las decisiones existen pero se
+ *    resuelven solas).
+ *  - dinamico: paras en las jugadas con chicha (por defecto).
+ *  - completo: TODAS las acciones son tuyas, duelo a duelo.
+ */
+export type DecisionMode = 'auto' | 'dinamico' | 'completo'
+
+/**
  * Tramo del partido. Un partido de instituto NO puede acabar en tablas: si a
  * los 90 hay empate se juega prórroga, y si sigue el empate, penaltis.
  */
@@ -323,6 +332,10 @@ export interface MatchState {
   halftimeDone: boolean
   /** Reglamentario, prórroga o penaltis. */
   stage: MatchStage
+  /** Cuánto decide el usuario (ver `DecisionMode`). */
+  decisionMode: DecisionMode
+  /** Cambios que quedan (el descanso permite hasta 3). */
+  subsLeft: number
   /** Tanda de penaltis, solo cuando `stage` es 'penaltis'. */
   shootout: ShootoutState | null
   /** Retransmisión completa, en orden. */

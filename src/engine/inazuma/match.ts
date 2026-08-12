@@ -19,8 +19,8 @@ import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier } from './roster'
 import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
 import type {
-  Actor, ChainStep, Decision, DecisionOption, Element, MatchEvent, MatchSide, MatchState,
-  ShootoutState, Side, Technique,
+  Actor, ChainStep, Decision, DecisionMode, DecisionOption, Element, MatchEvent, MatchSide,
+  MatchState, ShootoutState, Side, Technique,
 } from './types'
 
 /** Posesiones por partido. Con la conversión actual salen resultados 0-4. */
@@ -39,6 +39,7 @@ export interface MatchConfig {
   seed: number
   home: MatchSide
   away: MatchSide
+  decisionMode?: DecisionMode
 }
 
 export function createMatch(cfg: MatchConfig, rng: RNG): MatchState {
@@ -60,6 +61,8 @@ export function createMatch(cfg: MatchConfig, rng: RNG): MatchState {
     decision: null,
     result: null,
     halftimeDone: false,
+    decisionMode: cfg.decisionMode ?? 'dinamico',
+    subsLeft: 3,
     stage: 'reglamentario',
     shootout: null,
     events: [{ kind: 'kickoff', minute: 0 }],
@@ -295,11 +298,15 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   //    una decisión que tomar.
   const mine = playerSide(m)
   const iAttack = chain.side === mine
-  const isDecision = iAttack
-    ? chain.step !== 'construccion'
-      || affordable(attacker, ATTACK_KIND.construccion, atkSide.burstTurns > 0).length > 0
-    : chain.step === 'definicion'
-      || affordable(defender, DEFEND_KIND[chain.step], defSide.burstTurns > 0).length > 0
+  // En modo COMPLETO todas las acciones pasan por ti; en dinámico (y en auto,
+  // que es dinámico jugado por el banquillo) solo las jugadas con chicha.
+  const isDecision = m.decisionMode === 'completo'
+    ? true
+    : iAttack
+      ? chain.step !== 'construccion'
+        || affordable(attacker, ATTACK_KIND.construccion, atkSide.burstTurns > 0).length > 0
+      : chain.step === 'definicion'
+        || affordable(defender, DEFEND_KIND[chain.step], defSide.burstTurns > 0).length > 0
 
   if (isDecision) {
     m.decision = buildDecision(m, chain.step, iAttack ? 'ataque' : 'defensa', attacker, defender, atkSide, defSide, chain.momentum)
@@ -866,6 +873,26 @@ function resolvePenalty(
 
   if (shootoutDecided(sh)) finish(m, out)
   else m.phase = 'playing'
+}
+
+/**
+ * SUSTITUCIÓN en el descanso: saca a `outUid` de tu once y mete al actor
+ * `incoming` en su MISMO hueco (hereda el papel). Devuelve el error o null.
+ */
+export function substitute(m: MatchState, outUid: string, incoming: Actor): string | null {
+  if (m.subsLeft <= 0) return 'No te quedan cambios.'
+  const side = sideOf(m, playerSide(m))
+  const lines: Actor[][] = [[side.keeper], side.defs, side.mids, side.fwds]
+  for (const line of lines) {
+    const i = line.findIndex((a) => a.uid === outUid)
+    if (i < 0) continue
+    incoming.position = line[i].position
+    if (line === lines[0]) side.keeper = incoming
+    else line[i] = incoming
+    m.subsLeft -= 1
+    return null
+  }
+  return 'Ese jugador no está en el campo.'
 }
 
 /** Marcador desde el punto de vista del usuario, para cabeceras y resúmenes. */

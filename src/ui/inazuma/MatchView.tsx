@@ -4,7 +4,7 @@
 // La UI NO calcula nada: solo pinta los `MatchEvent` que emite el motor y manda
 // de vuelta el id de la opción elegida. Mismo reparto de responsabilidades que
 // `BattleScreen` en el roguelike Pokémon.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -13,11 +13,12 @@ import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
-import { Crest, Pic } from '@/ui/inazuma/Glyphs'
+import HalftimePanel from '@/ui/inazuma/HalftimePanel'
+import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
-import type { Actor, MatchEvent, MatchState } from '@/engine/inazuma/types'
+import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
@@ -31,10 +32,18 @@ export default function MatchView() {
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
   // solo se reacciona al último evento: escenario de duelo o celebración.
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  const clearGol = useCallback(() => setGol(null), [])
+  const clearStage = useCallback(() => setStage(null), [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
   const crestOf = (mine: boolean) => (mine ? save?.teamId ?? 'raimon' : matchNode?.teamId)
+  // Cada evento se ESCENIFICA una sola vez. El objeto `match` cambia de
+  // identidad en cada latido del ticker y el efecto se re-ejecutaba con el
+  // mismo evento: el escenario se reiniciaba y los duelos «se repetían».
+  const staged = useRef(0)
   useEffect(() => {
     if (!match || !feed.length) return
+    if (staged.current === feed.length) return
+    staged.current = feed.length
     const last = feed[feed.length - 1]
     const mine = playerSide(match)
     if (last.kind === 'goal') {
@@ -52,13 +61,15 @@ export default function MatchView() {
       })
       if (last.scored) {
         // La celebración espera a que el escenario cuente el lanzamiento: si
-        // saltara a la vez, el gol se sabría antes de ver el penalti.
+        // saltara a la vez, el gol se sabría antes de ver el penalti. El timer
+        // NO se limpia en el cleanup: con el guard de arriba ya no hay
+        // re-ejecuciones que lo dupliquen, y limpiarlo lo mataba antes de
+        // disparar (el gol de penalti no salía nunca).
         const isMine = last.side === mine
-        const t = setTimeout(
+        setTimeout(
           () => setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) }),
           1900,
         )
-        return () => clearTimeout(t)
       }
     } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
       // Toda interacción con técnica de por medio (y todos los tiros) se cuenta
@@ -72,7 +83,8 @@ export default function MatchView() {
         kind: last.step === 'definicion' ? 'tiro' : 'regate',
       })
     }
-  }, [feed.length, match, feed])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feed.length])
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
 
@@ -94,7 +106,8 @@ export default function MatchView() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-      <DuelStage stage={stage} onDone={() => setStage(null)} />
+      <DuelStage stage={stage} onDone={clearStage} />
+      <HalftimePanel />
       <Scoreboard
         match={match}
         feed={feed}
@@ -125,7 +138,7 @@ export default function MatchView() {
           scorer={gol.scorer}
           mine={gol.mine}
           teamId={gol.teamId}
-          onDone={() => setGol(null)}
+          onDone={clearGol}
         />
       )}
 
@@ -133,7 +146,7 @@ export default function MatchView() {
       {match.phase === 'decision' && match.decision ? (
         <DecisionPanel decision={match.decision} match={match} onPick={decide} />
       ) : finished ? (
-        <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90">
+        <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 max-h-[62svh] overflow-y-auto">
           <div className="text-center mb-2">
             <div className="text-3xl font-extrabold tabular-nums">{mine.goals} – {theirs.goals}</div>
             <div className={`text-sm font-bold ${
@@ -142,7 +155,8 @@ export default function MatchView() {
               {match.result === 'win' ? '¡Victoria!' : match.result === 'draw' ? 'Empate' : 'Derrota'}
             </div>
           </div>
-          <Button variant="primary" full onClick={finishMatch}>Ir al vestuario</Button>
+          <MatchSummary match={match} />
+          <Button variant="primary" full className="mt-2" onClick={finishMatch}>Ir al vestuario</Button>
         </div>
       ) : (
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 flex items-center gap-2">
@@ -253,10 +267,19 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen }: {
           })()}
         </div>
       )}
-      {/* Barras de Ruptura */}
+      {/* Barras de Ruptura. Con la Supervibración activa, el rótulo del centro
+          cuenta las acciones gratis que quedan: antes había que adivinarlo. */}
       <div className="mt-1.5 flex items-center gap-2">
         <BurstBar value={burst.mine} turns={burst.mineTurns} color="#f59e0b" />
-        <span className="text-[9px] uppercase tracking-widest text-slate-600 shrink-0">Ruptura</span>
+        <span className={`text-[9px] uppercase tracking-widest shrink-0 ${
+          burst.mineTurns > 0 || burst.theirsTurns > 0 ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
+        }`}>
+          {burst.mineTurns > 0
+            ? `¡Supervibración! quedan ${burst.mineTurns}`
+            : burst.theirsTurns > 0
+              ? `Rival vibrando · ${burst.theirsTurns}`
+              : 'Ruptura'}
+        </span>
         <BurstBar value={burst.theirs} turns={burst.theirsTurns} color="#64748b" flip />
       </div>
     </div>
@@ -407,10 +430,16 @@ function DecisionPanel({
 }) {
   const actor = actorByUid(match, decision.actorUid)
   const rival = actorByUid(match, decision.rivalUid)
+  // La CLASE de acción que se decide, para su icono: tiro/regate atacando,
+  // parada/bloqueo defendiendo.
+  const panelKind: Technique['kind'] = decision.mode === 'ataque'
+    ? (decision.step === 'definicion' ? 'tiro' : 'regate')
+    : (decision.step === 'definicion' ? 'parada' : 'bloqueo')
   return (
     <div className="shrink-0 border-t border-amber-500/40 bg-slate-900 p-3 safe-bottom animate-pop-in">
-      <div className="flex items-baseline gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-1">
         <span className="text-[10px] tabular-nums text-amber-300 font-bold">{decision.minute}′</span>
+        <KindIcon kind={panelKind} className="w-4 h-4 text-amber-200" />
         <span className="text-sm font-extrabold text-amber-200">{decision.headline}</span>
       </div>
 
@@ -427,7 +456,7 @@ function DecisionPanel({
         </div>
         <Mugshot actor={rival} name={decision.rivalName} right />
       </div>
-      <div className="flex flex-col gap-1.5 max-h-[38svh] overflow-y-auto no-scrollbar">
+      <div className="flex flex-col gap-1.5 max-h-[38svh] overflow-y-auto">
         {decision.options.map((o) => {
           const el = o.element ? ELEMENT_INFO[o.element] : null
           const isBurst = o.id === 'burst'
@@ -449,6 +478,13 @@ function DecisionPanel({
                 const mate = actorByUid(match, o.id.slice(5))
                 return mate ? <Mugshot actor={mate} name={mate.name} tiny /> : null
               })()}
+              {/* Icono de lo que ES la opción: la acción, un pase, la barra. */}
+              {!o.id.startsWith('pass:') && (
+                <KindIcon
+                  kind={panelKind}
+                  className={`w-4 h-4 shrink-0 ${isBurst ? 'text-amber-200' : 'text-slate-400'}`}
+                />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-[13px] truncate" style={el && !isBurst ? { color: el.color } : undefined}>
                   {o.label}
@@ -512,3 +548,81 @@ export function Mugshot({ actor, name, right, tiny }: {
   )
 }
 
+
+/**
+ * RESUMEN del partido, calculado de la retransmisión completa: tiros, paradas,
+ * duelos, posesiones y técnicas de cada lado, más el jugador del partido.
+ */
+function MatchSummary({ match }: { match: MatchState }) {
+  const mineSide = playerSide(match)
+  const rows: { label: string; a: number; b: number }[] = []
+  const count = (fn: (e: MatchEvent, mine: boolean) => boolean) => [
+    match.events.filter((e) => fn(e, true)).length,
+    match.events.filter((e) => fn(e, false)).length,
+  ] as const
+
+  const isMine = (e: MatchEvent, want: boolean) => 'side' in e && (e.side === mineSide) === want
+  const [tA, tB] = count((e, m) => e.kind === 'duel' && e.step === 'definicion' && isMine(e, m))
+  const [sA, sB] = count((e, m) => e.kind === 'save' && isMine(e, m))
+  const [dA, dB] = count((e, m) => e.kind === 'duel' && (e.success ? isMine(e, m) : isMine(e, !m)))
+  const [pA, pB] = count((e, m) => e.kind === 'possession' && isMine(e, m))
+  const [qA, qB] = count((e, m) => e.kind === 'duel' && ((m && isMine(e, true) && !!e.technique)
+    || (m && isMine(e, false) && !!e.counter)
+    || (!m && isMine(e, false) && !!e.technique)
+    || (!m && isMine(e, true) && !!e.counter)))
+  rows.push({ label: 'Tiros', a: tA, b: tB })
+  rows.push({ label: 'Paradas', a: sA, b: sB })
+  rows.push({ label: 'Duelos ganados', a: dA, b: dB })
+  rows.push({ label: 'Posesiones', a: pA, b: pB })
+  rows.push({ label: 'Supertécnicas', a: qA, b: qB })
+
+  // Jugador del partido: goles ×3 + duelos ganados, de los DOS equipos.
+  const score = new Map<string, number>()
+  for (const e of match.events) {
+    if (e.kind === 'goal') score.set(e.scorer, (score.get(e.scorer) ?? 0) + 3)
+    if (e.kind === 'duel') {
+      const winner = e.success ? e.attacker : e.defender
+      score.set(winner, (score.get(winner) ?? 0) + 1)
+    }
+    if (e.kind === 'save') score.set(e.keeper, (score.get(e.keeper) ?? 0) + 1)
+  }
+  const mvp = [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+  const scorers = match.scorers
+
+  return (
+    <div className="rounded-2xl border border-slate-700/70 bg-slate-800/40 p-3">
+      <div className="text-[10px] uppercase tracking-widest text-slate-500 text-center mb-1.5">
+        Estadísticas del partido
+      </div>
+      <div className="flex flex-col gap-1">
+        {rows.map((r) => {
+          const max = Math.max(r.a, r.b, 1)
+          return (
+            <div key={r.label} className="grid grid-cols-[2rem_1fr_7rem_1fr_2rem] items-center gap-1.5">
+              <span className={`text-[12px] font-extrabold tabular-nums text-right ${r.a >= r.b ? 'text-emerald-300' : 'text-slate-400'}`}>{r.a}</span>
+              <div className="h-1.5 rounded-full bg-slate-900 overflow-hidden rotate-180">
+                <div className="h-full bg-emerald-500/70" style={{ width: `${(r.a / max) * 100}%` }} />
+              </div>
+              <span className="text-[10px] uppercase tracking-wide text-slate-500 text-center">{r.label}</span>
+              <div className="h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                <div className="h-full bg-rose-500/70" style={{ width: `${(r.b / max) * 100}%` }} />
+              </div>
+              <span className={`text-[12px] font-extrabold tabular-nums ${r.b >= r.a ? 'text-rose-300' : 'text-slate-400'}`}>{r.b}</span>
+            </div>
+          )
+        })}
+      </div>
+      {scorers.length > 0 && (
+        <div className="mt-2 text-[11px] text-slate-300 text-center flex items-center justify-center gap-1 flex-wrap">
+          <Pic name="ball" className="w-3.5 h-3.5" />
+          {scorers.join(', ')}
+        </div>
+      )}
+      {mvp && (
+        <div className="mt-1 text-[11px] text-center text-amber-300 font-bold">
+          Jugador del partido: {mvp}
+        </div>
+      )}
+    </div>
+  )
+}

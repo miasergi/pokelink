@@ -108,6 +108,9 @@ const SVGS: Record<string, SvgIcon> = {
   dumbbell: S(<><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" /></>),
   vending: S(<><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 6h4v5H8zM8 14h8M15 6h1" /></>),
   target2: S(<><circle cx="12" cy="12" r="8" /><path d="M12 4v3M12 17v3M4 12h3M17 12h3" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></>),
+  // Acciones del duelo: tiro (balón con estela), regate (zigzag con balón).
+  shoot: S(<><circle cx="16.5" cy="12" r="4.5" /><path d="M2.5 8.5h7M4.5 12h7.5M2.5 15.5h7" /></>),
+  dribble: S(<><path d="M4 19l5-5-3.5-3.5L11 5" /><circle cx="15.5" cy="16.5" r="3.5" /><path d="M13 7.5h.01" /></>),
 }
 
 interface Props { name: string; className?: string; size?: number; style?: CSSProperties; title?: string }
