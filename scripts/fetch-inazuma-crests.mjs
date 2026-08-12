@@ -51,6 +51,20 @@ const WIKI_NAME = {
   prominence: ['Prominence'],
   genesis: ['Genesis', 'The Genesis'],
   chaos: ['Chaos'],
+  // Saga FFI (IE3): las selecciones del mundial.
+  'inazuma-japan': ['Inazuma Japan'],
+  'big-waves': ['Big Waves'],
+  'desert-lion': ['Desert Lion'],
+  'fire-dragon': ['Fire Dragon (team)', 'Fire Dragon'],
+  'the-empire': ['The Empire'],
+  'knights-of-queen': ['Knights of Queen'],
+  unicorn: ['Unicorn (team)', 'Unicorn'],
+  orpheus: ['Orpheus (team)', 'Orpheus'],
+  'little-gigant': ['Little Gigant'],
+  // Equipos de reclutamiento (fichables sueltos).
+  windies: ['The Windies'],
+  'extra-stars': ['Extra Stars'],
+  'kage-no-hero': ['Kage no Hero'],
 }
 
 async function api(params) {

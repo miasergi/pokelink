@@ -15,7 +15,7 @@
 // cuadro de torneo, no un mapa. Se cambió por petición explícita del usuario
 // para que se pareciese al roguelike Pokémon.
 import type { RNG } from '@/utils/rng'
-import { BRACKET, buildBracket, getTeam } from '@/data/inazuma/teams'
+import { BRACKET, buildBracket, getTeam, ROUND_NAMES } from '@/data/inazuma/teams'
 import { lootPool } from '@/data/inazuma/items'
 import { EVENTS } from '@/data/inazuma/events'
 import { TECHNIQUES } from '@/data/inazuma/techniques'
@@ -95,8 +95,8 @@ function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
   return pool[pool.length - 1]?.kind ?? 'pachanga'
 }
 
-export function generateMap(rng: RNG, playerTeamId = 'raimon', levelBonus = 0): InazumaMap {
-  const bracket = buildBracket(playerTeamId)
+export function generateMap(rng: RNG, playerTeamId = 'raimon', levelBonus = 0, sagaId?: string): InazumaMap {
+  const bracket = buildBracket(playerTeamId, sagaId)
   const layers: string[][] = []
   const nodes: Record<string, TournamentNode> = {}
   let layerIdx = 0
@@ -354,7 +354,9 @@ export function mapSegments(map: InazumaMap): MapSegment[] {
   for (let li = 0; li < map.layers.length; li++) {
     const boss = map.layers[li].map((id) => map.nodes[id]).find((n) => n.kind === 'jefe' || n.kind === 'final')
     if (boss) {
-      segs.push({ index: segs.length, name: BRACKET[segs.length]?.name ?? '', start, end: li, boss })
+      // El nombre de la ronda sale de ROUND_NAMES, no del cuadro por defecto:
+      // vale igual para cualquier saga.
+      segs.push({ index: segs.length, name: ROUND_NAMES[segs.length] ?? '', start, end: li, boss })
       start = li + 1
     }
   }
@@ -378,18 +380,20 @@ export function bossIndexForLayer(layer: number): number {
 }
 
 /** Institutos ya derrotados: definen a quién puedes fichar. */
-export function beatenTeams(layer: number, playerTeamId?: string): string[] {
+export function beatenTeams(layer: number, playerTeamId?: string, sagaId?: string): string[] {
   const done = Math.floor(layer / (ROUTE_LAYERS_PER_SEGMENT + 1))
   // El cuadro depende del instituto con el que juegues (el que descartas entra
-  // en él), así que mirar el cuadro por defecto daba equipos equivocados a
-  // quien no jugara con el Raimon.
-  const bracket = playerTeamId ? buildBracket(playerTeamId) : BRACKET
+  // en él) Y de la saga, así que mirar el cuadro por defecto daba equipos
+  // equivocados a quien no jugara con el Raimon en la saga clásica.
+  const bracket = playerTeamId ? buildBracket(playerTeamId, sagaId) : BRACKET
   return bracket.slice(0, done).map((b) => b.teamId)
 }
 
 /** Nombre visible del punto del mapa en el que estás. */
-export function layerName(layer: number): string {
+export function layerName(layer: number, playerTeamId?: string, sagaId?: string): string {
   const seg = bossIndexForLayer(layer)
   const isBoss = (layer + 1) % (ROUTE_LAYERS_PER_SEGMENT + 1) === 0
-  return isBoss ? BRACKET[seg].name : `Camino a ${getTeam(BRACKET[seg].teamId).name}`
+  const bracket = playerTeamId ? buildBracket(playerTeamId, sagaId) : BRACKET
+  const entry = bracket[seg] ?? BRACKET[seg]
+  return isBoss ? entry.name : `Camino a ${getTeam(entry.teamId).name}`
 }

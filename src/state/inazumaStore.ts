@@ -1281,7 +1281,7 @@ function closeDraft(
 
 /** Dónde estás del mapa, para la cabecera. */
 export function currentPlaceName(save: InazumaSave | null): string {
-  return save ? layerName(save.layer) : ''
+  return save ? layerName(save.layer, save.teamId, save.saga) : ''
 }
 
 /** Marcador del partido en curso, tal y como lo ve el usuario. */

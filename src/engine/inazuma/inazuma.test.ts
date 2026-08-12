@@ -11,7 +11,7 @@ import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { getTeam, PLAYABLE_TEAMS, TEAMS } from '@/data/inazuma/teams'
+import { getTeam, PLAYABLE_TEAMS, SAGAS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
   autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
@@ -883,6 +883,28 @@ describe('coherencia', () => {
         // (Que además no la sepa ya depende de la partida, no del generador.)
         expect(save.roster.some((p) => learnBlocker(p, n.techniqueId!) === null
           || learnBlocker(p, n.techniqueId!) === 'Ya la conoce')).toBe(true)
+      }
+    }
+  })
+
+  it('cada saga arma su torneo completo: cuadro propio, jugables válidos y ojeador con oferta', () => {
+    for (const saga of SAGAS) {
+      for (const teamId of saga.playable) {
+        const save = createSave(11, teamId, { saga: saga.id })
+        // Ocho jefes, todos de los equipos de ESTA saga y sin el tuyo.
+        const bosses = Object.values(save.map.nodes).filter((n) => n.kind === 'jefe' || n.kind === 'final')
+        expect(bosses).toHaveLength(8)
+        for (const b of bosses) {
+          expect(saga.teams).toContain(b.teamId!)
+          expect(b.teamId).not.toBe(teamId)
+        }
+        // Plantilla inicial jugable: once válido y 14 convocados.
+        expect(save.roster.length).toBeGreaterThanOrEqual(11)
+        expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
+        // El ojeador tiene a quien ofrecer desde la primera casilla.
+        expect(buildScoutOffer(save, new RNG(1)).length).toBeGreaterThan(0)
+        // Y todos los rivales pueden armar su once de la previa.
+        for (const b of bosses) expect(rivalStartingXI(b.teamId!).length).toBeGreaterThan(0)
       }
     }
   })

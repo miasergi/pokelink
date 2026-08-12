@@ -41,10 +41,11 @@ export const BENCH_LEVEL_PENALTY = 1
 const REST_STAMINA = 18
 const REST_PT_FRACTION = 0.35
 
-/** Opciones al empezar torneo: dificultad y plantilla del bombo. */
+/** Opciones al empezar torneo: saga, dificultad y plantilla del bombo. */
 export interface NewRunOptions {
   difficulty?: Difficulty
   randomSquad?: boolean
+  saga?: 'ff' | 'alius' | 'ffi'
 }
 
 /** Nivel EXTRA de todos los rivales según la dificultad elegida. */
@@ -73,12 +74,13 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const formation = formationFor(teamId)
   const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
   const roster = squadIds.map((id, i) => createPlayer(id, START_LEVEL, { captain: i === 0 }))
-  const map = generateMap(rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty])
+  const map = generateMap(rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga)
   const lineup = autoLineup(roster, formation)
   return {
     seed,
     teamId,
     difficulty,
+    saga: opts.saga ?? 'ff',
     randomSquad: opts.randomSquad || undefined,
     rngState: rng.getState(),
     map,

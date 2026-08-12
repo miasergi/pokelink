@@ -51,6 +51,21 @@ const TEAMS = {
   prominence: ['Prominence'],
   genesis: ['The Genesis', 'Genesis'],
   chaos: ['Chaos'],
+  // --- saga FFI (Inazuma Eleven 3): las selecciones del mundial ---
+  'inazuma-japan': ['Inazuma Japan'],
+  'big-waves': ['Big Waves'],
+  'desert-lion': ['Desert Lion'],
+  'fire-dragon': ['Fire Dragon'],
+  'the-empire': ['The Empire'],
+  'knights-of-queen': ['Knights of Queen'],
+  unicorn: ['Unicorn (team)', 'Unicorn'],
+  orpheus: ['Orpheus (team)', 'Orpheus'],
+  'little-gigant': ['Little Gigant'],
+  // --- equipos de RECLUTAMIENTO del juego (fichables sueltos: Konpeito,
+  //     Yamino Kageto y compañía). Nunca juegan el cuadro: solo nutren el pool.
+  windies: ['The Windies'],
+  'extra-stars': ['Extra Stars'],
+  'kage-no-hero': ['Kage no Hero'],
 }
 
 /** Los cuatro elementos, como los escribe la wiki en inglés. */
@@ -73,10 +88,23 @@ const OVERRIDES = {
   Tamagorou: { position: 'DEF', element: 'aire' },
   Gojou: { position: 'DEF', element: 'bosque' },
   Sakiyama: { position: 'MED', element: 'bosque' },
+  // Alius: fichas sin infobox completo en la wiki, datos del juego.
+  Desarm: { position: 'POR', element: 'montana' },
+  Zel: { element: 'fuego' },
+  Gran: { position: 'DEL' },
 }
 
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+/**
+ * Miembros FORZADOS por equipo: gente que la plantilla del wikitext omite pero
+ * que canónicamente juega ahí. El caso que lo motivó: la Royal olvida a Kidou
+ * (Jude Sharp) y sin él dos de los tres combos del modo eran imposibles.
+ */
+const FORCED_MEMBERS = {
+  royal: ['Kidou'],
+}
 
 /**
  * Técnicas del personaje según su ficha, en orden de PRIMERA aparición (que en
@@ -131,9 +159,26 @@ async function resolvePage(short) {
   // apellido, y quedarse con ellas dejaba sin datos justo a los titulares
   // (entre ellos el portero del Raimon, que rompía el once entero).
   if (direct && /\|name_dub\s*=/.test(direct)) return { title: short, wt: direct }
-  const j = await api({ action: 'query', list: 'search', srsearch: short, srnamespace: '0', srlimit: '5' })
-  for (const hit of j?.query?.search ?? []) {
-    if (!hit.title.toLowerCase().startsWith(short.toLowerCase().split('_')[0])) continue
+  // El alias sin sufijo («Burn_FD» → «Burn») suele ser un redirect al
+  // personaje; `wikitext` ya sigue redirects.
+  const base = short.split('_')[0]
+  if (base !== short) {
+    const redir = await wikitext(base)
+    if (redir && /\|name_dub\s*=/.test(redir)) return { title: base, wt: redir }
+  }
+  const j = await api({ action: 'query', list: 'search', srsearch: base, srnamespace: '0', srlimit: '5' })
+  const hits = j?.query?.search ?? []
+  for (const hit of hits) {
+    if (!hit.title.toLowerCase().startsWith(base.toLowerCase())) continue
+    const wt = await wikitext(hit.title)
+    if (wt && /\|name_dub\s*=/.test(wt)) return { title: hit.title, wt }
+  }
+  // Segunda pasada RELAJADA, para los alias coreanos del FFI: el corto
+  // «Changsoo» apunta a la página «Choi Chang-soo» — no empieza igual, pero
+  // normalizando (solo letras) el título CONTIENE el alias.
+  const norm = (s) => s.toLowerCase().replace(/[^a-z]/g, '')
+  for (const hit of hits) {
+    if (!norm(hit.title).includes(norm(base))) continue
     const wt = await wikitext(hit.title)
     if (wt && /\|name_dub\s*=/.test(wt)) return { title: hit.title, wt }
   }
@@ -177,10 +222,19 @@ function parseElement(values) {
 
 async function main() {
   await mkdir(dirname(OUT), { recursive: true })
-  const out = {}
+  // `--only equipo1,equipo2`: re-crawlea SOLO esos equipos y fusiona el
+  // resultado con el cache existente (para reparar un equipo sin pagar la
+  // pasada completa).
+  const onlyArg = process.argv.find((a) => a.startsWith('--only'))
+  const only = onlyArg ? new Set((process.argv[process.argv.indexOf(onlyArg) + 1] ?? '').split(',')) : null
+  let out = {}
+  if (only) {
+    try { out = JSON.parse(await (await import('node:fs/promises')).readFile(OUT, 'utf8')) } catch { /* vacío */ }
+  }
   const missing = []
 
   for (const [teamId, pages] of Object.entries(TEAMS)) {
+    if (only && !only.has(teamId)) continue
     const roster = await teamRoster(pages)
     if (!roster) { console.log(`x ${teamId}: la wiki no tiene plantilla`); continue }
     out[teamId] = []

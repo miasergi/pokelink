@@ -7,7 +7,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getTeam, TEAM_BY_ID, PLAYABLE_TEAMS } from '@/data/inazuma/teams'
+import { getTeam, TEAM_BY_ID, getSaga, SAGAS, type SagaId } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
 import type { PlayerStats } from '@/engine/inazuma/types'
 
@@ -297,20 +297,44 @@ const DIFFICULTIES = [
 export function TeamSelectView() {
   const { newTournament, goTo } = useInazuma()
   // Modalidades de la partida: se eligen ANTES de tocar un instituto.
+  const [saga, setSaga] = useState<SagaId>('ff')
   const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
   const [randomSquad, setRandomSquad] = useState(false)
-  const begin = (teamId: string) => void newTournament(teamId, { difficulty, randomSquad })
+  const begin = (teamId: string) => void newTournament(teamId, { difficulty, randomSquad, saga })
+  const sagaInfo = getSaga(saga)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2">
-        <div className="font-extrabold text-sm">Elige instituto</div>
+        <div className="font-extrabold text-sm">Elige saga y equipo</div>
         <div className="text-[11px] text-slate-400">
           Cambia con quién empiezas y a quién te enfrentas: el que descartas entra en el cuadro.
         </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+        {/* LA SAGA: la «región» del roguelike. Cambia el cuadro entero, los
+            equipos jugables y el pool de fichajes. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Saga</div>
+          <div className="flex gap-1.5">
+            {SAGAS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSaga(s.id)}
+                className={`flex-1 rounded-xl border py-1.5 px-1 text-[11px] font-bold leading-tight transition active:scale-95 ${
+                  saga === s.id
+                    ? 'border-sky-500/70 bg-sky-500/15 text-sky-200'
+                    : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                }`}
+              >
+                {s.id === 'ff' ? 'Football Frontier' : s.id === 'alius' ? 'Academia Alius' : 'FF Internacional'}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1">{sagaInfo.desc}</p>
+        </div>
+
         {/* Modalidades: dificultad y plantilla del bombo. */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
           <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Dificultad</div>
@@ -346,7 +370,7 @@ export function TeamSelectView() {
             </span>
           </button>
         </div>
-        {PLAYABLE_TEAMS.map((id) => {
+        {sagaInfo.playable.map((id) => {
           const team = getTeam(id)
           const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
           const stars = squad.filter((p) => p.rarity >= 4)

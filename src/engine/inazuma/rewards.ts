@@ -57,7 +57,7 @@ export function learnableByRoster(save: InazumaSave) {
 /** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
-  return signablePool(beatenTeams(save.layer, save.teamId), save.teamId)
+  return signablePool(beatenTeams(save.layer, save.teamId, save.saga), save.teamId, save.saga)
     .filter((p) => !owned.has(p.id))
 }
 

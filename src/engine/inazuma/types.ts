@@ -501,6 +501,8 @@ export interface InazumaSave {
   teamId: string
   /** Dificultad elegida al empezar (ausente en partidas viejas = normal). */
   difficulty?: Difficulty
+  /** Saga (región) de la partida: 'ff' clásica, 'alius' (IE2), 'ffi' (IE3). */
+  saga?: 'ff' | 'alius' | 'ffi'
   /** true si la plantilla inicial salió del bombo (modo aleatorio). */
   randomSquad?: boolean
   /** Mapa completo de la partida, generado al empezar. */

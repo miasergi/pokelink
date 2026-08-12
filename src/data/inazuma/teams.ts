@@ -74,6 +74,101 @@ export const TEAMS: TeamBase[] = [
     taunt: 'Los dioses no pierden contra unos críos.',
     lineup: [],
   },
+
+  // ------------------------------------------------------------------
+  // SAGA ALIUS (Inazuma Eleven 2): la caravana Raimon contra la Academia
+  // Alius. Misma curva de `power` que el cuadro clásico (0.72 → 1.15).
+  // ------------------------------------------------------------------
+  {
+    id: 'yokato', name: 'Instituto Yokato', color: '#0284c7', element: 'aire', power: 0.72,
+    taunt: 'La caravana pasa por aquí… y aquí se queda.',
+    lineup: [],
+  },
+  {
+    id: 'oumihara', name: 'Instituto Oumihara', color: '#0d9488', element: 'bosque', power: 0.78,
+    taunt: 'El mar nos enseñó a no rendirnos nunca.',
+    lineup: [],
+  },
+  {
+    id: 'gemini-storm', name: 'Tormenta Géminis', color: '#818cf8', element: 'aire', power: 0.86,
+    taunt: 'Vuestro fútbol es de otro planeta. Del malo.',
+    lineup: [],
+  },
+  {
+    id: 'epsilon', name: 'Épsilon', color: '#22d3ee', element: 'montana', power: 0.94,
+    taunt: 'Somos la segunda oleada. No habrá tercera: no hará falta.',
+    lineup: [],
+  },
+  {
+    id: 'diamond-dust', name: 'Diamond Dust', color: '#7dd3fc', element: 'aire', power: 1.0,
+    taunt: 'El hielo no negocia.',
+    lineup: [],
+  },
+  {
+    id: 'prominence', name: 'Prominence', color: '#f97316', element: 'fuego', power: 1.05,
+    taunt: 'Arded con nosotros o apartaos.',
+    lineup: [],
+  },
+  {
+    id: 'chaos', name: 'Caos', color: '#a21caf', element: 'fuego', power: 1.1,
+    taunt: 'Fuego y hielo, juntos. No tenéis ninguna posibilidad.',
+    lineup: [],
+  },
+  {
+    id: 'genesis', name: 'Génesis', color: '#6d28d9', element: 'aire', power: 1.15,
+    taunt: 'Somos la obra maestra de la Academia Alius.',
+    lineup: [],
+  },
+
+  // ------------------------------------------------------------------
+  // SAGA FFI (Inazuma Eleven 3): las selecciones del Football Frontier
+  // Internacional.
+  // ------------------------------------------------------------------
+  {
+    id: 'inazuma-japan', name: 'Inazuma Japan', color: '#1d4ed8', element: 'montana', power: 1,
+    taunt: '¡Vamos a por el mundo, equipo!',
+    lineup: [],
+  },
+  {
+    id: 'big-waves', name: 'Big Waves', color: '#0891b2', element: 'bosque', power: 0.72,
+    taunt: 'Surfead nuestra ola… si podéis.',
+    lineup: [],
+  },
+  {
+    id: 'desert-lion', name: 'Desert Lion', color: '#d97706', element: 'montana', power: 0.78,
+    taunt: 'El desierto no perdona a los débiles.',
+    lineup: [],
+  },
+  {
+    id: 'knights-of-queen', name: 'Knights of Queen', color: '#4338ca', element: 'aire', power: 0.86,
+    taunt: 'Por la reina y por la corona.',
+    lineup: [],
+  },
+  {
+    id: 'fire-dragon', name: 'Fire Dragon', color: '#dc2626', element: 'fuego', power: 0.94,
+    taunt: 'El dragón escupe fuego. Vosotros, excusas.',
+    lineup: [],
+  },
+  {
+    id: 'the-empire', name: 'The Empire', color: '#16a34a', element: 'bosque', power: 1.0,
+    taunt: 'El imperio del fútbol no cede su trono.',
+    lineup: [],
+  },
+  {
+    id: 'unicorn', name: 'Unicorn', color: '#2563eb', element: 'aire', power: 1.05,
+    taunt: 'Sueño americano, pesadilla vuestra.',
+    lineup: [],
+  },
+  {
+    id: 'orpheus', name: 'Orpheus', color: '#0f766e', element: 'montana', power: 1.1,
+    taunt: 'El fútbol nació aquí. Venid a aprender.',
+    lineup: [],
+  },
+  {
+    id: 'little-gigant', name: 'Little Gigant', color: '#b91c1c', element: 'fuego', power: 1.15,
+    taunt: 'Pequeños de nombre. Gigantes en el campo.',
+    lineup: [],
+  },
 ]
 
 export const TEAM_BY_ID = new Map(TEAMS.map((t) => [t.id, t]))
@@ -91,25 +186,76 @@ export const ROUND_NAMES = [
 ]
 
 /**
- * Institutos que puedes elegir al empezar. Cada uno cambia la partida entera:
- * con quién arrancas y, como tu equipo sale del cuadro, contra quién juegas.
+ * SAGAS: cada una es un torneo completo con sus NUEVE equipos (el tuyo + ocho
+ * rivales), sus jugables y su pool de fichajes propio — la «región» del
+ * roguelike. Los equipos que no están en `teams` nunca entran en su cuadro.
  */
-export const PLAYABLE_TEAMS = ['raimon', 'occult', 'royal']
+export interface Saga {
+  id: 'ff' | 'alius' | 'ffi'
+  name: string
+  desc: string
+  /** Los NUEVE equipos del torneo (jugables incluidos). */
+  teams: string[]
+  playable: string[]
+  /** Equipos cuyos jugadores nutren el ojeador ADEMÁS de los ya derrotados. */
+  scoutTeams: string[]
+}
+
+export const SAGAS: Saga[] = [
+  {
+    id: 'ff',
+    name: 'Football Frontier',
+    desc: 'La primera temporada: el torneo nacional de institutos.',
+    teams: ['raimon', 'occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
+    playable: ['raimon', 'occult', 'royal'],
+    scoutTeams: ['kfc', 'oumihara', 'mikage', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero'],
+  },
+  {
+    id: 'alius',
+    name: 'Academia Alius',
+    desc: 'La segunda temporada: la caravana Raimon contra los equipos alienígenas.',
+    teams: ['raimon', 'yokato', 'oumihara', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis'],
+    playable: ['raimon', 'genesis'],
+    scoutTeams: ['occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero'],
+  },
+  {
+    id: 'ffi',
+    name: 'Football Frontier Internacional',
+    desc: 'La tercera temporada: las selecciones del mundial juvenil.',
+    teams: ['inazuma-japan', 'big-waves', 'desert-lion', 'knights-of-queen', 'fire-dragon', 'the-empire', 'unicorn', 'orpheus', 'little-gigant'],
+    playable: ['inazuma-japan', 'orpheus', 'unicorn'],
+    scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero'],
+  },
+]
+
+export const SAGA_BY_ID = new Map(SAGAS.map((s) => [s.id, s]))
+export type SagaId = Saga['id']
+
+export function getSaga(id?: string): Saga {
+  return SAGA_BY_ID.get((id ?? 'ff') as SagaId) ?? SAGAS[0]
+}
 
 /**
- * Cuadro del torneo: los OCHO institutos que no son el tuyo, ordenados de menos
- * a más fuertes. Así, elegir equipo no solo cambia tu plantilla — también mete
- * en el cuadro al que has descartado.
+ * Institutos que puedes elegir al empezar (saga clásica). Cada uno cambia la
+ * partida entera: con quién arrancas y contra quién juegas.
  */
-export function buildBracket(playerTeamId: string): { teamId: string; name: string }[] {
+export const PLAYABLE_TEAMS = SAGAS[0].playable
+
+/**
+ * Cuadro del torneo DE UNA SAGA: los OCHO equipos que no son el tuyo,
+ * ordenados de menos a más fuertes. Así, elegir equipo no solo cambia tu
+ * plantilla — también mete en el cuadro al que has descartado.
+ */
+export function buildBracket(playerTeamId: string, sagaId?: string): { teamId: string; name: string }[] {
+  const saga = getSaga(sagaId)
   const rivals = TEAMS
-    .filter((t) => t.id !== playerTeamId)
+    .filter((t) => saga.teams.includes(t.id) && t.id !== playerTeamId)
     .sort((a, b) => a.power - b.power)
     .slice(0, ROUND_NAMES.length)
   return rivals.map((t, i) => ({ teamId: t.id, name: ROUND_NAMES[i] }))
 }
 
-/** Cuadro por defecto (jugando con el Raimon), para datos y tipos. */
+/** Cuadro por defecto (Raimon, saga clásica), para datos y tipos. */
 export const BRACKET = buildBracket('raimon')
 
 /** Nombres de relleno para completar los onces rivales que no llegan a 11. */

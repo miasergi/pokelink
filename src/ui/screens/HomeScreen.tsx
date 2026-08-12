@@ -105,7 +105,7 @@ export default function HomeScreen() {
   const [hasCyber, setHasCyber] = useState(false)
   const today = dailyChallenge().date
   useEffect(() => {
-    void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer)}` : null))
+    void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
     void loadCyber().then((s) => setHasCyber(!!s))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).

@@ -1,10 +1,10 @@
 // Plantilla: crear jugadores, escalarlos por nivel, calcular PT y aplicar
 // fatiga y objetos. Todo son funciones PURAS — el store solo las orquesta.
 import type { RNG } from '@/utils/rng'
-import { EXTRA_TEAMS, getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique } from '@/data/inazuma/techniques'
-import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
+import { getTeam, getSaga, FILLER_NAMES } from '@/data/inazuma/teams'
 import { getFormation } from '@/data/inazuma/formations'
 import {
   SQUAD_SIZE, TECHNIQUE_SLOTS,
@@ -458,11 +458,14 @@ export function upgradeTechnique(p: PlayerInstance, techId: string): PlayerInsta
  * reales y solo 11 salen de titulares, así que sin esto el ojeador de la
  * primera ronda no tenía a NADIE que ofrecer y pagaba una comisión de consuelo.
  */
-export function signablePool(beatenTeams: string[], ownTeam?: string): PlayerBase[] {
-  // También los equipos EXTRA (temporada 2 y Alius): no juegan el torneo, pero
-  // sus jugadores rondan por ahí y el ojeador los encuentra. El peso por
-  // rareza ya se encarga de que Génesis no aparezca en la primera ronda.
-  const allowed = new Set([...beatenTeams, 'libre', ...EXTRA_TEAMS])
+export function signablePool(beatenTeams: string[], ownTeam?: string, sagaId?: string): PlayerBase[] {
+  // El pool depende de la SAGA: además de los equipos ya derrotados, cada
+  // saga define qué equipos «rondan por ahí» para el ojeador (en la clásica,
+  // los de la temporada 2; en Alius, los institutos del año anterior; en el
+  // FFI, los cracks nacionales). El peso por rareza ya se encarga de que los
+  // galácticos no aparezcan en la primera ronda.
+  const extra = getSaga(sagaId).scoutTeams
+  const allowed = new Set([...beatenTeams, 'libre', ...extra])
   if (ownTeam) allowed.add(ownTeam)
   return PLAYERS.filter((p) => allowed.has(p.team))
 }

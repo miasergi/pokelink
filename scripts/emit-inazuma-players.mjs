@@ -255,7 +255,10 @@ async function main() {
       if (!p.position || !p.element) continue
       // La wiki añade sufijos de desambiguación al nombre del doblaje
       // («John Neville (game)»); fuera, que se ven en la carta del jugador.
-      const cleanName = p.name.replace(/\s*\([^)]*\)\s*$/, '').trim()
+      // Y algunas fichas ponen `name_dub={{PAGENAME}}` (el doblaje coincide
+      // con el título): ahí el nombre ES el título de la página.
+      const rawName = p.name.includes('{{') ? (p.wiki ?? p.name) : p.name
+      const cleanName = rawName.replace(/\s*\([^)]*\)\s*$/, '').trim()
       let id = slugify(cleanName)
       const baseId = id
       let n = 2
@@ -297,6 +300,9 @@ async function main() {
   lines.push("  prominence: 'Prominence',")
   lines.push("  genesis: 'Génesis',")
   lines.push("  chaos: 'Caos',")
+  lines.push("  windies: 'The Windies',")
+  lines.push("  'extra-stars': 'Extra Stars',")
+  lines.push("  'kage-no-hero': 'Kage no Hero',")
   lines.push('}')
   lines.push('')
   lines.push('export const PLAYER_BY_ID = new Map(PLAYERS.map((p) => [p.id, p]))')

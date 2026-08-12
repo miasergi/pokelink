@@ -67,7 +67,7 @@ export function TitleView() {
             <Button variant="success" full onClick={continueTournament}>
               <span className="inline-flex items-center justify-center gap-1.5">
                 <Icon name="play" className="w-4 h-4" />
-                Continuar · {layerName(save.layer)}
+                Continuar · {layerName(save.layer, save.teamId, save.saga)}
               </span>
             </Button>
             <div className="text-center text-[11px] text-slate-500">
@@ -236,6 +236,13 @@ function SaveHeader({ save }: { save: InazumaSave }) {
         <div className="font-extrabold text-[13px] leading-tight truncate">{team?.name ?? 'Instituto Raimon'}</div>
         <div className="text-[10px] text-slate-400 tabular-nums truncate">
           {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.goalsFor}:{save.goalsAgainst}
+          {/* La saga y la dificultad, si no son las de siempre. */}
+          {save.saga && save.saga !== 'ff' && (
+            <span className="text-sky-300"> · {save.saga === 'alius' ? 'Alius' : 'FFI'}</span>
+          )}
+          {save.difficulty && save.difficulty !== 'normal' && (
+            <span className="text-rose-300"> · {save.difficulty === 'leyenda' ? 'Leyenda' : 'Difícil'}</span>
+          )}
         </div>
       </div>
       <span className="text-[13px] font-bold text-amber-300 tabular-nums shrink-0">
@@ -1189,7 +1196,7 @@ export function EndView({ won }: { won: boolean }) {
         <p className="text-sm text-slate-400 max-w-[18rem]">
           {won
             ? 'El Raimon lo ha conseguido. Nadie apostaba por vosotros.'
-            : `El torneo se acaba aquí, en ${layerName(save.layer)}. La próxima vez.`}
+            : `El torneo se acaba aquí, en ${layerName(save.layer, save.teamId, save.saga)}. La próxima vez.`}
         </p>
         <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
           <Stat label="Ganados" value={save.record[0]} />
