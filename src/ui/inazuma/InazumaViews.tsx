@@ -199,19 +199,32 @@ export function TeamCrest({ teamId, size = 32 }: { teamId?: string; size?: numbe
 }
 
 function SaveHeader({ save }: { save: InazumaSave }) {
-  // El nombre y el color salen del instituto ELEGIDO: estaban fijos al Raimon
-  // y la cabecera mentía en cuanto jugabas con otro equipo.
+  // El nombre y el color salen del instituto ELEGIDO, con su ESCUDO delante.
+  // Todo lleva `min-w-0` + `truncate`: en pantallas estrechas el nombre cede
+  // sitio antes de chocar con el dinero o el engranaje.
   const team = TEAM_BY_ID.get(save.teamId ?? 'raimon')
   return (
-    <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 py-2 flex items-center gap-2">
-      <span className="w-2.5 h-6 rounded-sm shrink-0" style={{ background: team?.color ?? '#e11d48' }} />
+    <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2.5 py-1.5 flex items-center gap-2">
+      <span
+        className="w-8 h-8 shrink-0 grid place-items-center rounded-lg border overflow-hidden"
+        style={{ borderColor: `${team?.color ?? '#e11d48'}66`, background: `${team?.color ?? '#e11d48'}18` }}
+      >
+        <ImgFallback
+          src={`${import.meta.env.BASE_URL}inazuma/teams/${save.teamId ?? 'raimon'}.png`}
+          className="w-7 h-7 object-contain"
+          alt=""
+          fallback={<span className="w-2.5 h-5 rounded-sm" style={{ background: team?.color ?? '#e11d48' }} />}
+        />
+      </span>
       <div className="min-w-0 flex-1">
-        <div className="font-extrabold text-sm leading-none truncate">{team?.name ?? 'Instituto Raimon'}</div>
-        <div className="text-[10px] text-slate-400 mt-0.5 tabular-nums">
+        <div className="font-extrabold text-[13px] leading-tight truncate">{team?.name ?? 'Instituto Raimon'}</div>
+        <div className="text-[10px] text-slate-400 tabular-nums truncate">
           {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.goalsFor}:{save.goalsAgainst}
         </div>
       </div>
-      <span className="text-sm font-bold text-amber-300 tabular-nums shrink-0">{save.coins.toLocaleString('es-ES')} ₽</span>
+      <span className="text-[13px] font-bold text-amber-300 tabular-nums shrink-0">
+        {save.coins.toLocaleString('es-ES')} ₽
+      </span>
       <SettingsButton />
     </div>
   )
@@ -342,7 +355,7 @@ function MatchupHint({ teamElement, lineup }: { teamElement: keyof typeof ELEMEN
 export function SquadView() {
   const {
     save, toggleStarter, goTo, equip, useConsumable, release,
-    pendingTarget, applyToPlayer, cancelTarget, swapPlayers,
+    pendingTarget, applyToPlayer, cancelTarget, swapPlayers, placeAt,
   } = useInazuma()
   const [detail, setDetail] = useState<string | null>(null)
   const [tab, setTab] = useState<'campo' | 'lista'>('campo')
@@ -393,6 +406,7 @@ export function SquadView() {
           <PitchView
             save={save}
             onSwap={swapPlayers}
+            onPlace={placeAt}
             onTap={(uid) => (target ? applyToPlayer(uid) : setDetail(uid))}
           />
         )}
@@ -589,7 +603,8 @@ function BagPanel({
                   key={p.uid}
                   player={p}
                   onClick={() => {
-                    if (getItem(use)?.kind === 'equipo') onEquip(p.uid, use)
+                    const k = getItem(use)?.kind
+                    if (k === 'equipo' || k === 'raro') onEquip(p.uid, use)
                     else onUse(use, p.uid)
                     setUse(null)
                   }}
@@ -619,8 +634,11 @@ function PlayerDetail({
   onToggleStarter: () => void
 }) {
   const base = getPlayerBase(player.baseId)
-  const gear = bag.filter((id) => getItem(id)?.kind === 'equipo')
+  // Los RAROS también se equipan: son la versión cara del equipamiento, y
+  // dejarlos fuera del filtro los convertía en pisapapeles.
+  const gear = bag.filter((id) => { const k = getItem(id)?.kind; return k === 'equipo' || k === 'raro' })
   const fee = transferValue(base, player.level)
+  const [confirmSale, setConfirmSale] = useState(false)
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
@@ -645,16 +663,53 @@ function PlayerDetail({
             if (!t) return null
             const info = ELEMENT_INFO[t.element]
             return (
-              <div key={id} className="rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[12px]" style={{ color: info.color }}>{t.name}</span>
-                  <span className="text-[10px] text-slate-500">{t.kind} · {t.power} pot. · {t.cost} PT</span>
+              <div key={id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
+                <TechniqueBadge tech={t} size={30} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-[12px]" style={{ color: info.color }}>{t.name}</span>
+                    <span className="text-[10px] text-slate-500">{t.kind} · {t.power} pot. · {t.cost} PT</span>
+                  </div>
+                  {t.desc && <div className="text-[10px] text-slate-500 italic truncate">{t.desc}</div>}
                 </div>
-                {t.desc && <div className="text-[10px] text-slate-500 italic">{t.desc}</div>}
               </div>
             )
           })}
+          {!player.techniques.length && (
+            <div className="text-[11px] text-slate-600">
+              Todavía no ha despertado ninguna. Su cadena empieza en las casillas de firma.
+            </div>
+          )}
         </div>
+
+        {/* La CADENA característica: lo que este jugador puede llegar a
+            despertar, en orden, con lo pendiente en gris. Sin esto el sistema
+            de firmas sería una caja negra. */}
+        {(getPlayerBase(player.baseId).signature ?? []).length > 0 && (
+          <>
+            <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Su cadena</div>
+            <div className="mt-1 flex items-center gap-1 flex-wrap">
+              {(getPlayerBase(player.baseId).signature ?? []).map((id, i, arr) => {
+                const t = getTechnique(id)
+                if (!t) return null
+                const learnt = player.techniques.includes(id)
+                return (
+                  <span key={id} className="inline-flex items-center gap-1">
+                    <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
+                      learnt ? 'border-fuchsia-500/50 bg-fuchsia-500/10' : 'border-slate-700 bg-slate-800/40 opacity-55'
+                    }`}>
+                      <TechniqueBadge tech={t} size={22} />
+                      <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
+                        {t.name}
+                      </span>
+                    </span>
+                    {i < arr.length - 1 && <Icon name="arrowRight" className="w-3 h-3 text-slate-600" />}
+                  </span>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Equipamiento</div>
         <div className="flex flex-wrap gap-1.5 mt-1">
@@ -687,14 +742,27 @@ function PlayerDetail({
 
         <div className="mt-2 flex gap-2">
           <Button variant="primary" full onClick={onClose}>Cerrar</Button>
-          {/* Se enseña la cifra ANTES de pulsar: un botón de traspaso sin
-              precio es una decisión a ciegas. */}
-          {!player.captain && !blocked && (
-            <Button variant="danger" onClick={onRelease}>
+          {/* Traspasar pide CONFIRMACIÓN: es irreversible y estaba a un solo
+              toque de distancia del botón de cerrar. */}
+          {!player.captain && !blocked && !confirmSale && (
+            <Button variant="danger" onClick={() => setConfirmSale(true)}>
               Traspasar · {fee.toLocaleString('es-ES')} ₽
             </Button>
           )}
         </div>
+        {confirmSale && (
+          <div className="mt-2 rounded-xl border border-rose-600/60 bg-rose-500/10 p-3">
+            <p className="text-[12px] text-rose-200 mb-2">
+              ¿Seguro? {base.name} se va del equipo para siempre por{' '}
+              <b>{fee.toLocaleString('es-ES')} ₽</b>.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" full onClick={() => setConfirmSale(false)}>Se queda</Button>
+              <Button variant="danger" full onClick={onRelease}>Traspasar</Button>
+            </div>
+          </div>
+        )}
+
         {/* `getTeam` LANZA con un id desconocido, así que aquí se consulta el
             mapa directamente: una ficha de jugador no debe poder tumbar la UI. */}
         <div className="text-[10px] text-slate-600 text-center mt-1">

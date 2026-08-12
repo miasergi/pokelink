@@ -70,8 +70,18 @@ export interface PlayerBase {
   position: Position
   element: Element
   stats: Stats
-  /** Técnicas con las que aparece. Máximo 4 (`TECHNIQUE_SLOTS`). */
+  /**
+   * Técnicas con las que un RIVAL sale al campo. Tu plantilla NO las hereda:
+   * tus jugadores empiezan sin supertécnicas y las despiertan por el camino
+   * (ver `signature` y las casillas de firma).
+   */
   techniques: string[]
+  /**
+   * Cadena de técnicas CARACTERÍSTICAS, en orden: lo que este jugador puede
+   * despertar en las casillas de firma (Mark Evans: Mano Celestial → Mano
+   * Demoníaca → Mano Infinita). Generada por `emit-inazuma-players.mjs`.
+   */
+  signature?: string[]
   /** 1 = relleno, 5 = leyenda. Controla el precio y la rareza en el draft. */
   rarity: 1 | 2 | 3 | 4 | 5
   /** Slug del retrato en `public/inazuma/players/<slug>.webp`. Opcional. */
@@ -359,7 +369,7 @@ export interface ChainState {
  *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
  */
 export type NodeKind =
-  | 'pachanga' | 'objeto' | 'tecnica' | 'ojeador' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
+  | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
@@ -455,7 +465,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'victory' | 'gameover'
 
 export interface InazumaSave {
   seed: number

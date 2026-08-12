@@ -186,6 +186,14 @@ describe('render de pantallas (smoke)', () => {
     expect(setup.match.phase).toBe('finished')
     expect(decisions).toBeGreaterThan(0)
 
+    // Casilla de firma: la lista de jugadores con su próxima técnica.
+    const firmaNode = { ...node, kind: 'firma' as const }
+    useInazuma.setState({ save, match: null, matchNode: firmaNode, phase: 'firma' })
+    const firma = mount(InazumaScreen)
+    expect(firma).toContain('Entrenamiento especial')
+    // Mark Evans tiene cadena curada: su próxima técnica aparece por nombre.
+    expect(firma).toContain('Mano Celestial')
+
     // Situación: la escena y todas sus opciones.
     useInazuma.setState({
       save, match: null, matchNode: { ...node, kind: 'evento', eventId: EVENTS[0].id }, phase: 'evento',

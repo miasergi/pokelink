@@ -7,7 +7,7 @@ import { getTechnique } from '@/data/inazuma/techniques'
 import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
 import { getFormation } from '@/data/inazuma/formations'
 import {
-  SQUAD_SIZE, TECHNIQUE_SLOTS,
+  SQUAD_SIZE,
   type PlayerInstance, type PlayerBase, type Position, type RivalPlayer,
   type Stats, type Element,
 } from './types'
@@ -133,14 +133,16 @@ export const POSITION_WEIGHTS: Record<Position, Partial<Record<keyof Stats, numb
 // ---------------------------------------------------------------------------
 
 export function createPlayer(baseId: string, level: number, opts: { captain?: boolean } = {}): PlayerInstance {
-  const base = getPlayerBase(baseId)
   const p: PlayerInstance = {
     uid: nextPlayerUid(),
     baseId,
     level,
     pt: 0,
     stamina: 100,
-    techniques: base.techniques.slice(0, TECHNIQUE_SLOTS),
+    // SIN técnicas de salida: `base.techniques` es el repertorio del RIVAL.
+    // Las tuyas se despiertan en las casillas de firma (cadena `signature`),
+    // se aprenden de la mochila o las regala el mapa.
+    techniques: [],
     captain: opts.captain,
   }
   p.pt = ptMax(p)
@@ -160,7 +162,7 @@ export function levelUp(p: PlayerInstance, amount = 1): PlayerInstance {
  * llega al último instituto a 60 contra un rival de 60), así que subirlo sin
  * tocar `RIVAL_LEVELS` regalaría el torneo.
  */
-export const MAX_LEVEL = 70
+export const MAX_LEVEL = 99
 export const START_LEVEL = 5
 
 // ---------------------------------------------------------------------------
@@ -176,18 +178,35 @@ export interface Lineup {
   all: PlayerInstance[]
 }
 
-export function buildLineup(roster: PlayerInstance[], uids: string[]): Lineup | null {
+/**
+ * Papel que juega cada HUECO del once para una formación: el 0 es el portero,
+ * después vienen los de defensa, los del centro y los de arriba. El orden del
+ * array `lineup` ES la alineación.
+ */
+export function slotRole(formationId: string | undefined, i: number): Position {
+  const f = getFormation(formationId)
+  if (i === 0) return 'POR'
+  if (i <= f.defs) return 'DEF'
+  if (i <= f.defs + f.mids) return 'MED'
+  return 'DEL'
+}
+
+/**
+ * Monta el once POR HUECOS: quien ocupa el hueco de delantero juega de
+ * delantero, sea cual sea su demarcación natural. Es lo que permite poner a
+ * Axel de defensa si te da la gana — con sus atributos de delantero, claro, y
+ * sin poder tirar sus supertécnicas de tiro desde ahí.
+ */
+export function buildLineup(roster: PlayerInstance[], uids: string[], formationId?: string): Lineup | null {
   const byUid = new Map(roster.map((p) => [p.uid, p]))
   const all = uids.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
-  if (all.length < 7) return null
-  const pos = (p: PlayerInstance) => getPlayerBase(p.baseId).position
-  const keeper = all.find((p) => pos(p) === 'POR')
-  if (!keeper) return null
+  if (all.length < 11) return null
+  const role = (i: number) => slotRole(formationId, i)
   return {
-    keeper,
-    defs: all.filter((p) => pos(p) === 'DEF'),
-    mids: all.filter((p) => pos(p) === 'MED'),
-    fwds: all.filter((p) => pos(p) === 'DEL'),
+    keeper: all[0],
+    defs: all.filter((_, i) => role(i) === 'DEF'),
+    mids: all.filter((_, i) => role(i) === 'MED'),
+    fwds: all.filter((_, i) => role(i) === 'DEL'),
     all,
   }
 }
@@ -232,24 +251,18 @@ export function lineupShape(roster: PlayerInstance[], uids: string[]): Record<Po
  * ¿Es un once legal? 11 jugadores, un solo portero y las líneas cuadrando con
  * la formación elegida. Sin lo último la formación sería decorativa.
  */
-export function lineupError(roster: PlayerInstance[], uids: string[], formationId?: string): string | null {
+export function lineupError(roster: PlayerInstance[], uids: string[], _formationId?: string): string | null {
+  // Desde que el once va POR HUECOS ya no se exige que cada demarcación cuadre:
+  // puedes alinear a quien quieras donde quieras (con sus consecuencias). Lo
+  // único invalidante es no ser once, repetir a alguien o alinear fantasmas.
   if (uids.length > SQUAD_SIZE) return `Te sobran ${uids.length - SQUAD_SIZE} en el once`
   if (uids.length < SQUAD_SIZE) {
     const n = SQUAD_SIZE - uids.length
     return n === 1 ? 'Te falta 1 jugador en el once' : `Te faltan ${n} jugadores en el once`
   }
-  const shape = lineupShape(roster, uids)
-  if (shape.POR === 0) return 'Necesitas un portero en el once'
-  if (shape.POR > 1) return 'Solo puede haber un portero en el once'
-
-  const f = getFormation(formationId)
-  const need: [Position, number][] = [['DEF', f.defs], ['MED', f.mids], ['DEL', f.fwds]]
-  const LABEL: Record<Position, string> = { POR: 'porteros', DEF: 'defensas', MED: 'centrocampistas', DEL: 'delanteros' }
-  for (const [pos, want] of need) {
-    if (shape[pos] !== want) {
-      return `El ${f.name} pide ${want} ${LABEL[pos]} y tienes ${shape[pos]}`
-    }
-  }
+  if (new Set(uids).size !== uids.length) return 'Hay un jugador repetido en el once'
+  const byUid = new Set(roster.map((p) => p.uid))
+  if (!uids.every((u) => byUid.has(u))) return 'Hay alguien en el once que ya no está en la plantilla'
   return null
 }
 
@@ -257,11 +270,13 @@ export function lineupError(roster: PlayerInstance[], uids: string[], formationI
 // Onces rivales
 // ---------------------------------------------------------------------------
 
+// Ids del catálogo REAL (los antiguos `p-blocaje`… murieron con el catálogo
+// inventado y dejaban a los rellenos sin técnicas sin avisar).
 const FILLER_TECHS: Record<Position, string[]> = {
-  POR: ['p-blocaje', 'p-muralla'],
-  DEF: ['b-entrada', 'b-raices'],
-  MED: ['r-recorte', 'r-danza-hojas'],
-  DEL: ['t-tiro-raso', 't-volea'],
+  POR: ['tornado-catch'],
+  DEF: ['shikofumi'],
+  MED: ['dash-accel'],
+  DEL: ['tarzan-kick'],
 }
 
 /** Reparto de un once rival: 1 POR, 4 DEF, 4 MED, 2 DEL. */

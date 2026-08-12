@@ -130,22 +130,52 @@ function statsFor(position, rarity, seedStr) {
 }
 
 /**
- * Cuántas técnicas y de qué nivel según las estrellas. Los ★4-★5 se llevan una
- * potente y una de repuesto; los ★1 salen con una básica y a ganársela.
+ * Cadenas de técnicas CARACTERÍSTICAS escritas a mano para los personajes cuyo
+ * repertorio canónico conozco. El resto de jugadores recibe una cadena
+ * generada de su demarcación y elemento. Los ids son del catálogo real
+ * (`techniques.ts`); si alguno faltara, se descarta con aviso.
  */
-function techsFor(all, position, element, rarity) {
+const SIGNATURES = {
+  'Mark Evans': ['god-hand', 'mugen-the-hand', 'majin-the-hand'],
+  'Axel Blaze': ['fire-tornado', 'bakunetsu-storm'],
+  'Kevin Dragonfly': ['dragon-crash', 'death-zone'],
+  'Nathan Swift': ['coil-turn', 'the-tower'],
+  'Jude Sharp': ['illusion-ball', 'southern-crosscut'],
+  'Byron Love': ['god-break', 'inazuma-break'],
+}
+
+/**
+ * Cadena de técnicas de un jugador: la curada si existe; si no, una generada de
+ * su clase y elemento, ascendente en potencia. Las estrellas marcan el techo:
+ * un ★5 puede despertar hasta la definitiva, un ★1 se queda en la media.
+ */
+function signatureFor(all, name, position, element, rarity) {
+  const curated = SIGNATURES[name]
   const kind = KIND[position] ?? 'regate'
   const pool = all.filter((t) => t.kind === kind && t.element === element)
     .sort((a, b) => a.power - b.power)
+  if (curated) {
+    const valid = curated.filter((id) => all.some((t) => t.id === id))
+    if (valid.length !== curated.length) console.log(`  ! técnica curada desconocida en ${name}`)
+    if (valid.length) return valid
+  }
   if (!pool.length) return []
-  // OJO con subir estos percentiles: medido con el bot, dar a los ★5 la técnica
-  // del percentil 75 (una definitiva de salida) disparaba los títulos del 6 %
-  // al 22 %. Las definitivas hay que ganárselas por el mapa.
   const at = (f) => pool[Math.min(pool.length - 1, Math.floor(pool.length * f))].id
-  if (rarity >= 5) return [...new Set([at(0.45), pool[0].id])]
-  if (rarity === 4) return [...new Set([at(0.3), pool[0].id])]
-  if (rarity === 3) return [...new Set([at(0.15), pool[0].id])]
-  return [pool[0].id]
+  const steps = rarity >= 4 ? [0, 0.5, 0.95] : rarity === 3 ? [0, 0.55] : [0, 0.35]
+  return [...new Set(steps.map(at))]
+}
+
+/**
+ * Con qué sale un RIVAL al campo: un tramo de su cadena según sus estrellas.
+ * Tu plantilla NO hereda esto — tus jugadores empiezan sin técnicas y las
+ * despiertan en las casillas de firma.
+ */
+function techsFor(signature, rarity) {
+  if (!signature.length) return []
+  // OJO con subir esto: medido con el bot, dar definitivas de salida disparaba
+  // los títulos del 6 % al 22 %.
+  if (rarity >= 4) return signature.slice(0, 2)
+  return signature.slice(0, 1)
 }
 
 const q = (s) => `'${s.replace(/'/g, "\\'")}'`
@@ -202,11 +232,13 @@ async function main() {
 
       const rarity = STARS[cleanName] ?? rarityFor(idx, teamId)
       const st = statsFor(p.position, rarity, id)
-      const techs = techsFor(allTechs, p.position, p.element, rarity)
+      const signature = signatureFor(allTechs, cleanName, p.position, p.element, rarity)
+      const techs = techsFor(signature, rarity)
       lines.push('  {')
       lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)
       lines.push(`    stats: { tiro: ${st.tiro}, control: ${st.control}, fisico: ${st.fisico}, defensa: ${st.defensa}, velocidad: ${st.velocidad}, aguante: ${st.aguante} },`)
       lines.push(`    techniques: [${techs.map(q).join(', ')}],`)
+      if (signature.length) lines.push(`    signature: [${signature.map(q).join(', ')}],`)
       if (rarity >= 4) lines.push(`    spirit: ${q(SPIRIT[p.element])},`)
       lines.push('  },')
       idx++

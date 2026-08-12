@@ -13,7 +13,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ItemIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
-import { learnBlocker } from '@/engine/inazuma/game'
+import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
@@ -44,16 +44,16 @@ export default function BagView() {
       return p.techniques.some((t) => canUpgradeTechnique(p, t)) ? null : 'Sin técnicas que mejorar'
     }
     if (pending.id === 'manual-avanzado') {
-      const has = p.techniques.some((t) => getTechnique(t)?.evolvesTo)
-      return has ? null : 'Ninguna técnica evoluciona'
+      return signatureNext(p) ? null : 'Cadena completa'
     }
     return null
   }
 
   const apply = (uid: string) => {
     if (!pending) return
+    const kind = getItem(pending.id)?.kind
     if (pending.kind === 'tech') teachTechnique(pending.id, uid)
-    else if (getItem(pending.id)?.kind === 'equipo') equip(uid, pending.id)
+    else if (kind === 'equipo' || kind === 'raro') equip(uid, pending.id)
     else useConsumable(pending.id, uid)
     setPending(null)
   }
@@ -123,7 +123,7 @@ export default function BagView() {
                       <div className="text-[11px] text-slate-400">{item.desc}</div>
                     </div>
                     <span className="text-[10px] text-emerald-300 shrink-0">
-                      {item.kind === 'equipo' ? 'Equipar ›' : 'Usar ›'}
+                      {item.kind === 'equipo' || item.kind === 'raro' ? 'Equipar ›' : 'Usar ›'}
                     </span>
                   </div>
                 </Card>

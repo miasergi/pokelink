@@ -25,22 +25,17 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 /**
  * Nivel del instituto que cierra cada tramo.
  *
- * Sale por encima de tu plantilla (arrancas a nivel 5) y sube más deprisa que
- * antes: los institutos del final rondan el 40 en vez del 30. La curva se fijó
- * MIDIENDO con qué nivel llega el bot a cada eliminatoria — el número absoluto
- * da igual, lo que decide el partido es la diferencia:
- *
- *   llegas con  [11,20,29,41,50,56,58,60]
- *   el rival va [ 6,10,16,23,29,35,40,44]
- *
- * La ventaja crece porque el `power` del instituto también (0.72 → 1.16), así
- * que el margen que ganas grindeando pachangas se lo come su calidad.
+ * Recalibrada para los tramos de OCHO casillas y para el arranque sin
+ * supertécnicas: los dos primeros institutos van claramente por debajo de tu
+ * nivel de llegada porque tú aún juegas casi sin técnicas y ellos salen con
+ * las suyas. La curva se fijó MIDIENDO con qué nivel llega el bot a cada
+ * eliminatoria; lo que decide el partido es la diferencia, no el número.
  */
-export const RIVAL_LEVELS = [9, 16, 24, 32, 40, 47, 54, 60]
+export const RIVAL_LEVELS = [7, 12, 21, 33, 44, 55, 65, 74]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
-export const ROUTE_LAYERS_PER_SEGMENT = 4
+export const ROUTE_LAYERS_PER_SEGMENT = 8
 /** Casillas ofrecidas por capa de ruta. */
 const NODES_PER_LAYER = 3
 
@@ -69,13 +64,14 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
  * principal de nivel, igual que los combates salvajes en el modo Pokémon.
  */
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
-  { kind: 'pachanga', weight: 34 },
-  { kind: 'evento', weight: 16 },
-  { kind: 'objeto', weight: 14 },
-  { kind: 'tecnica', weight: 11 },
-  { kind: 'ojeador', weight: 11 },
-  { kind: 'rairai', weight: 8 },
-  { kind: 'tienda', weight: 6 },
+  { kind: 'pachanga', weight: 30 },
+  { kind: 'evento', weight: 14 },
+  { kind: 'firma', weight: 12 },
+  { kind: 'objeto', weight: 12 },
+  { kind: 'tecnica', weight: 10 },
+  { kind: 'ojeador', weight: 10 },
+  { kind: 'rairai', weight: 7 },
+  { kind: 'tienda', weight: 5 },
 ]
 
 function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
@@ -103,7 +99,10 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
       // Al menos UNA pachanga por capa: sin ella se podría cruzar un tramo
       // entero sin subir de nivel y llegar al jefe sin opciones, que es
       // exactamente el fallo que ya se corrigió en el mapa del modo Pokémon.
-      const forced: NodeKind[] = ['pachanga']
+      // La primera capa de la partida fuerza además una casilla de FIRMA: el
+      // equipo sale sin supertécnicas, y despertar la primera en los primeros
+      // pasos es el gancho del sistema.
+      const forced: NodeKind[] = seg === 0 && r === 0 ? ['pachanga', 'firma'] : ['pachanga']
       for (let c = 0; c < NODES_PER_LAYER; c++) {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.
@@ -249,6 +248,13 @@ function buildRouteNode(
         reward: `${tech.name} (${tech.kind})`,
       }
     }
+    case 'firma':
+      return {
+        ...base,
+        title: 'Entrenamiento especial',
+        subtitle: 'Un jugador despierta SU técnica',
+        reward: 'La siguiente supertécnica de su cadena',
+      }
     case 'ojeador':
       return { ...base, title: 'Ojeador', subtitle: 'Tiene tres fichas sobre la mesa', reward: 'Fichas a un jugador nuevo' }
     case 'rairai':

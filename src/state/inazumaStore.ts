@@ -18,7 +18,7 @@ import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult, canLearn,
-  createSave, fullRest, isEliminated, isMapComplete, startMatch, startPachanga,
+  createSave, fullRest, isEliminated, isMapComplete, learnSignature, startMatch, startPachanga,
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
@@ -142,10 +142,14 @@ interface InazumaState {
   applyToPlayer: (uid: string) => void
   cancelTarget: () => void
   resolveEvent: (optionIndex: number) => void
+  /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
+  resolveFirma: (uid: string) => void
 
   // plantilla
   setLineup: (uids: string[]) => void
   swapPlayers: (a: string, b: string) => void
+  /** Coloca a un jugador en un hueco concreto del once (alineación libre). */
+  placeAt: (uid: string, slot: number) => void
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string) => void
@@ -277,6 +281,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       case 'evento':
         // La situación se resuelve en su propia pantalla: hay que elegir.
         set({ save: next, matchNode: node, phase: 'evento' })
+        return
+      case 'firma':
+        // Elegir QUIÉN despierta su técnica es la gracia de la casilla.
+        set({ save: next, matchNode: node, phase: 'firma' })
         return
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
@@ -551,6 +559,23 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, 'map')
   },
 
+  resolveFirma: (uid) => {
+    const { save, matchNode } = get()
+    if (!save || matchNode?.kind !== 'firma') return
+    const next: InazumaSave = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
+    const learnt = learnSignature(next, uid)
+    if (!learnt) { set({ message: 'Ese jugador ya despertó toda su cadena.' }); return }
+    const who = next.roster.find((p) => p.uid === uid)
+    advanceLayer(next, matchNode)
+    set({
+      save: next,
+      matchNode: null,
+      phase: 'map',
+      message: `¡${who ? getPlayerBase(who.baseId).name : 'Alguien'} despierta ${learnt.name}!`,
+    })
+    void persist(next, 'map')
+  },
+
   /** Cambia de formación y recoloca el once para que cuadre con ella. */
   setFormation: (id) => {
     const { save } = get()
@@ -664,6 +689,16 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
     const next = { ...save, lineup }
+    set({ save: next })
+    void persist(next, get().phase)
+  },
+
+  placeAt: (uid, slot) => {
+    const { save } = get()
+    if (!save) return
+    const lineup = save.lineup.filter((u) => u !== uid)
+    lineup.splice(Math.max(0, Math.min(slot, lineup.length)), 0, uid)
+    const next = { ...save, lineup: lineup.slice(0, SQUAD_SIZE) }
     set({ save: next })
     void persist(next, get().phase)
   },

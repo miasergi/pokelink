@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
-import { ELEMENT_ICON, NODE_ICON } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, NODE_ICON, Pic } from '@/ui/inazuma/Glyphs'
 import { availableNextNodes, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import type { InazumaSave, NodeKind, TournamentNode } from '@/engine/inazuma/types'
@@ -20,6 +20,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   pachanga: { icon: NODE_ICON.pachanga, color: '#38bdf8', label: 'Pachanga' },
   objeto: { icon: NODE_ICON.objeto, color: '#a78bfa', label: 'Objeto' },
   tecnica: { icon: NODE_ICON.tecnica, color: '#fbbf24', label: 'Técnica' },
+  firma: { icon: NODE_ICON.firma, color: '#f0abfc', label: 'Firma' },
   ojeador: { icon: NODE_ICON.ojeador, color: '#34d399', label: 'Ojeador' },
   evento: { icon: NODE_ICON.evento, color: '#c084fc', label: 'Situación' },
   rairai: { icon: NODE_ICON.rairai, color: '#f472b6', label: 'Rai Rai' },
@@ -148,11 +149,9 @@ export default function MapBoard({
                         className="w-7 h-7 object-contain"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                       />
-                    : <Icon
-                        name={node.cleared ? 'check' : meta.icon}
-                        className="w-6 h-6"
-                        style={{ color: node.cleared ? '#64748b' : meta.color }}
-                      />}
+                    : node.cleared
+                      ? <Icon name="check" className="w-6 h-6" style={{ color: '#64748b' }} />
+                      : <Pic name={meta.icon} className="w-6 h-6" />}
                 </span>
 
                 {/* Aviso de dificultad, como las estrellas del mapa Pokémon.
@@ -223,7 +222,7 @@ export function NodePreview({
             className="grid place-items-center rounded-2xl shrink-0"
             style={{ width: 52, height: 52, background: `${meta.color}22` }}
           >
-            <Icon name={meta.icon} className="w-7 h-7" style={{ color: meta.color }} />
+            <Pic name={meta.icon} className="w-8 h-8" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</div>

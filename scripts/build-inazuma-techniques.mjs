@@ -57,7 +57,7 @@ const ELEMENTS = ['fuego', 'bosque', 'aire', 'montana']
  * potencia de cada clase.
  */
 const MUST_HAVE = [
-  'Fire Tornado', 'Dragon Crash', 'Inazuma Break', 'Death Zone', 'The Phoenix',
+  'Fire Tornado', 'Bakunetsu Storm', 'Dragon Crash', 'Inazuma Break', 'Death Zone', 'The Phoenix',
   'God Break', 'Eternal Blizzard', 'Wolf Legend', 'Dragon Tornado', 'Tri-Pegasus',
   'Illusion Ball', 'Spiral Draw', 'Heat Tackle',
   'The Tower', 'The Wall', 'Killer Slide', 'Ice Ground',
@@ -92,8 +92,48 @@ const GENERIC = {
   },
 }
 
-/** Nombre del doblaje español, cuando lo conozco. */
+/**
+ * Nombre en español, cuando lo conozco (doblaje de España o el que usa el
+ * fandom). Se busca por TÍTULO de la wiki y también por `name_dub`: antes solo
+ * se miraba una de las dos claves y la mitad de las traducciones no aplicaba
+ * (salía «Legendary Wolf» con «Wolf Legend» traducido en la tabla).
+ */
 const ES = {
+  'Legendary Wolf': 'Leyenda del Lobo',
+  'Bakunetsu Storm': 'Tormenta Explosiva',
+  'Land Of Ice': 'Suelo Helado',
+  'Fireball Knuckle': 'Puño Ardiente',
+  'Pressure Punch': 'Puño de Presión',
+  'Killer Blade': 'Cuchilla Asesina',
+  'Black Hole': 'Agujero Negro',
+  'Flower Power': 'Poder Floral',
+  Wormhole: 'Agujero de Gusano',
+  'Tornado Catch': 'Parada Tornado',
+  'Defence Scan': 'Escáner Defensivo',
+  'Coil Turn': 'Giro Espiral',
+  'Sumo Stomp': 'Pisotón de Sumo',
+  'Fake Bomber': 'Amago Explosivo',
+  'Planet Shield': 'Escudo Planetario',
+  'Flame Dance': 'Danza de Fuego',
+  'No Escape': 'Sin Escapatoria',
+  'Sleeping Dust': 'Polvo Somnífero',
+  'Attack Scan': 'Escáner Ofensivo',
+  'Whirlwind Twister': 'Torbellino',
+  'Dash Accelerator': 'Aceleración',
+  Breakthrough: 'Avance Imparable',
+  'Three-Legged Rush': 'Carrera a Tres',
+  Moonsault: 'Salto Mortal',
+  'Triple Dash': 'Triple Aceleración',
+  'Southern Cross': 'Cruz del Sur',
+  "Heaven's Time": 'Tiempo Celestial',
+  'Lightning Sprint': 'Esprint Relámpago',
+  'Grenade Shot': 'Disparo Granada',
+  'Tarzan Kick': 'Patada de Tarzán',
+  'Spectacle Crash': 'Choque de Gafas',
+  'Utter Gutsiness Club': 'Club del Coraje',
+  'Butterfly Trance': 'Sueño de Mariposa',
+  'Shine Drive': 'Disparo Luminoso',
+  'Majin The Hand': 'Mano Demoníaca',
   'Fire Tornado': 'Tornado de Fuego',
   'Dragon Crash': 'Golpe de Dragón',
   'Death Zone': 'Zona Mortal',
@@ -133,7 +173,6 @@ const ES = {
   Earthquake: 'Terremoto',
   'Perfect Tower': 'Torre Perfecta',
   'God Hand': 'Mano Celestial',
-  'Majin The Hand': 'Mano del Demonio',
   'Mugen The Hand': 'Mano Infinita',
   'Nekketsu Punch': 'Puño Ardiente',
   'Full Power Shield': 'Escudo Total',
@@ -426,7 +465,7 @@ async function emit(found) {
     // El id sale del TÍTULO de la wiki, que es único; el nombre puede repetirse
     // entre variantes y dejaba dos técnicas con la misma clave.
     const id = slug(t.title)
-    const name = ES[t.name] ?? t.name
+    const name = ES[t.name] ?? ES[t.title] ?? t.name
     const desc = DESC[t.name] ?? DESC[t.title] ?? GENERIC[t.type][t.element]
     lines.push(`  { id: '${id}', name: ${JSON.stringify(name)}, kind: '${t.type}', element: '${t.element}', power: ${t.power}, cost: ${t.cost}, desc: ${JSON.stringify(desc)} },`)
   }

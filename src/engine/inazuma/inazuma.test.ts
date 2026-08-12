@@ -15,14 +15,14 @@ import { getTeam, PLAYABLE_TEAMS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
   autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
-  recordMatchStats, startMatch, startPachanga,
+  learnSignature, recordMatchStats, signatureNext, startMatch, startPachanga,
 } from './game'
 import { EVENTS, getEvent } from '@/data/inazuma/events'
 import { nextRound, shoot } from './pachanga'
 import { buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
 import {
-  autoLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats, lineupError,
-  lineupShape, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel, transferValue,
+  autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
+  lineupError, overall, ptMax, rivalStartingXI, TECH_LEVEL_BONUS, techLevel, transferValue,
   upgradeTechnique,
 } from './roster'
 import {
@@ -347,6 +347,16 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         // de lo que es.
         resolveEventNode(save, node, rng, smart)
         break
+      case 'firma': {
+        // Despierta la técnica del titular con menos técnicas: es la fuente
+        // principal de supertécnicas desde que el equipo sale sin ninguna.
+        const pick = save.roster
+          .filter((p) => save.lineup.includes(p.uid) && signatureNext(p))
+          .sort((a, b) => a.techniques.length - b.techniques.length)[0]
+          ?? save.roster.find((p) => signatureNext(p))
+        if (pick) learnSignature(save, pick.uid)
+        break
+      }
       default:
         break
     }
@@ -630,28 +640,24 @@ describe('torneo', () => {
     }
   })
 
-  it('la formación manda: el once automático cuadra y el ilegal se detecta', () => {
+  it('el once va por huecos: cualquiera puede jugar en cualquier sitio', () => {
     const save = createSave(77)
     for (const f of FORMATIONS) {
       const lineup = autoLineup(save.roster, f.id)
-      const shape = lineupShape(save.roster, lineup)
       expect(lineup).toHaveLength(11)
-      expect(shape.POR).toBe(1)
-      // El Raimon inicial no tiene gente para todas las formaciones (solo 2
-      // delanteros), así que se comprueba lo que sí debe cumplirse siempre:
-      // que `lineupError` acepte lo que genera `autoLineup` cuando cuadra.
-      const err = lineupError(save.roster, lineup, f.id)
-      if (shape.DEF === f.defs && shape.MED === f.mids && shape.DEL === f.fwds) {
-        expect(err).toBeNull()
-      } else {
-        expect(err).not.toBeNull()
-      }
+      // Lo que genera autoLineup siempre es válido…
+      expect(lineupError(save.roster, lineup, f.id)).toBeNull()
+      // …e invertirlo ENTERO también: desde la alineación libre, el papel lo
+      // marca el hueco, no la demarcación. Axel de portero es legal (y mala idea).
+      expect(lineupError(save.roster, lineup.slice().reverse(), f.id)).toBeNull()
+      // El hueco 0 es SIEMPRE el portero del partido.
+      const built = buildLineup(save.roster, lineup.slice().reverse(), f.id)!
+      expect(built.keeper.uid).toBe(lineup[lineup.length - 1])
     }
-    // Un once con dos porteros nunca vale.
-    const keepers = save.roster.filter((p) => getPlayerBase(p.baseId).position === 'POR')
-    if (keepers.length > 1) {
-      expect(lineupError(save.roster, [keepers[0].uid, keepers[1].uid], '4-4-2')).not.toBeNull()
-    }
+    // Lo que sigue sin valer: repetir a alguien o no llegar a once.
+    const l = autoLineup(save.roster, FORMATIONS[0].id)
+    expect(lineupError(save.roster, l.slice(0, 10), FORMATIONS[0].id)).not.toBeNull()
+    expect(lineupError(save.roster, [l[0], ...l.slice(0, 10)], FORMATIONS[0].id)).not.toBeNull()
   })
 
   it('las estadísticas por jugador se acumulan de los eventos', () => {
@@ -671,7 +677,9 @@ describe('torneo', () => {
   })
 
   it('la Mejora sube la potencia de la técnica y se nota en el campo', () => {
-    const p = createPlayer('axel-blaze', 20)
+    // Los jugadores ya no traen técnicas de serie: se le enseña una para el test.
+    let p = createPlayer('axel-blaze', 20)
+    p = { ...p, techniques: ['fire-tornado'] }
     const tech = p.techniques[0]
     expect(techLevel(p, tech)).toBe(0)
     expect(canUpgradeTechnique(p, tech)).toBe(true)
@@ -906,6 +914,37 @@ describe('coherencia', () => {
     for (const p of save.roster) {
       expect(transferValue(getPlayerBase(p.baseId), p.level)).toBeGreaterThan(0)
     }
+  })
+
+  it('cada objeto HACE lo que dice: equipar sube atributos, consumir consume', () => {
+    const save = createSave(5)
+    for (const item of ITEMS) {
+      if (item.kind === 'equipo' || item.kind === 'raro') {
+        // Equipado, algún atributo tiene que subir DE VERDAD.
+        const p = save.roster[0]
+        const before = effectiveStats(p)
+        const after = effectiveStats({ ...p, item: item.id })
+        const sube = (Object.keys(after) as (keyof typeof after)[]).some((k) => after[k] > before[k])
+        expect(sube, `${item.id} no sube nada`).toBe(true)
+      } else if (item.id !== 'mejora' && item.id !== 'manual-avanzado') {
+        // Consumibles y comida: aplicados a un jugador gastado, no fallan y
+        // gastan el objeto de la mochila.
+        const s2 = {
+          ...save,
+          bag: [item.id],
+          roster: save.roster.map((x) => ({ ...x, stamina: 40, pt: 5 })),
+        }
+        const res = applyConsumable(s2, item.id, s2.roster[0].uid)
+        expect(res.ok, `${item.id}: ${res.message}`).toBe(true)
+        expect(s2.bag).toHaveLength(0)
+      }
+    }
+    // El manual avanzado avanza la cadena característica.
+    const s3 = { ...save, bag: ['manual-avanzado'], roster: save.roster.slice() }
+    const before = s3.roster[0].techniques.length
+    const res = applyConsumable(s3, 'manual-avanzado', s3.roster[0].uid)
+    expect(res.ok).toBe(true)
+    expect(s3.roster[0].techniques.length).toBe(before + 1)
   })
 
   it('los objetos de la tienda y los manuales tienen precio y efecto', () => {

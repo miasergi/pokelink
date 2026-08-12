@@ -286,13 +286,19 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   const defender = findActor(defSide, chain.defenderUid)
 
   // ¿Es una jugada en la que decides tú?
-  //  - Atacas y llegas a penetración o definición.
-  //  - Defiendes y te tiran a puerta (elige tu portero la parada).
+  //  - Atacando: penetración y definición siempre; la salida de balón solo si
+  //    el que la lleva tiene un regate que pagar (si no, sería un «continuar»
+  //    disfrazado y rompería el ritmo sin aportar nada).
+  //  - Defendiendo: la parada del portero siempre; los cortes de defensa solo
+  //    cuando TU defensor tiene un bloqueo pagable — que es justo cuando hay
+  //    una decisión que tomar.
   const mine = playerSide(m)
   const iAttack = chain.side === mine
   const isDecision = iAttack
     ? chain.step !== 'construccion'
+      || affordable(attacker, ATTACK_KIND.construccion, atkSide.burstTurns > 0).length > 0
     : chain.step === 'definicion'
+      || affordable(defender, DEFEND_KIND[chain.step], defSide.burstTurns > 0).length > 0
 
   if (isDecision) {
     m.decision = buildDecision(m, chain.step, iAttack ? 'ataque' : 'defensa', attacker, defender, atkSide, defSide, chain.momentum)
@@ -483,7 +489,8 @@ function buildDecision(
   m: MatchState, step: ChainStep, mode: 'ataque' | 'defensa',
   attacker: Actor, defender: Actor, atkSide: MatchSide, defSide: MatchSide, momentum: number,
 ): Decision {
-  // En defensa el que decide es TU portero, que aquí es el `defender`.
+  // En defensa decide el que está tapando ESTE eslabón: el portero en el mano
+  // a mano y el defensor de turno en los cortes.
   const actor = mode === 'ataque' ? attacker : defender
   const rival = mode === 'ataque' ? defender : attacker
   const mySide = mode === 'ataque' ? atkSide : defSide
@@ -554,13 +561,15 @@ function buildDecision(
     rivalUid: rival.uid,
     rivalName: rival.name,
     rivalElement: rival.element,
-    headline: mode === 'defensa' ? '¡Disparo a puerta!' : STEP_HEADLINE[step],
+    headline: mode === 'defensa'
+      ? (step === 'definicion' ? '¡Disparo a puerta!' : '¡Te atacan! Corta la jugada')
+      : STEP_HEADLINE[step],
     options,
   }
 }
 
 function plainLabel(step: ChainStep, mode: 'ataque' | 'defensa'): string {
-  if (mode === 'defensa') return 'Achicar y blocar'
+  if (mode === 'defensa') return step === 'definicion' ? 'Achicar y blocar' : 'Entrada firme'
   if (step === 'definicion') return 'Disparo sencillo'
   return 'Regate simple'
 }
@@ -634,7 +643,9 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   // El Espíritu se invoca y DESPUÉS eliges el tiro, igual que la Supervibración:
   // no consume la jugada, se vuelve a preguntar con el espíritu ya rugiendo.
   if (optionId === 'spirit') {
-    const actor = d.mode === 'ataque' ? findActor(atkSide, chain.carrier) : defSide.keeper
+    const actor = d.mode === 'ataque'
+      ? findActor(atkSide, chain.carrier)
+      : findActor(defSide, chain.defenderUid)
     const spirit = getSpirit(actor.spirit)
     if (!spirit) return []
     mySide.spiritUsed = true

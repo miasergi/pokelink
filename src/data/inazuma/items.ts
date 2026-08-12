@@ -51,7 +51,10 @@ export const ITEMS: InazumaItem[] = [
   // Pokémon conviven la Mejora (sube el tier de potencia del ataque) y las
   // evoluciones (cambian el movimiento por otro).
   { id: 'mejora', name: 'Mejora', kind: 'manual', desc: '+25 % de potencia a una supertécnica. Se puede aplicar dos veces a la misma.', price: 1600, consumable: true },
-  { id: 'manual-avanzado', name: 'Manual avanzado', kind: 'manual', desc: 'Evoluciona una supertécnica a su versión definitiva (nº1 → nº2).', price: 3000, consumable: true },
+  // Con el catálogo real ya no hay «versión nº2» de cada técnica: lo que hay es
+  // la CADENA característica de cada jugador. El manual la avanza un paso, como
+  // una casilla de firma de bolsillo.
+  { id: 'manual-avanzado', name: 'Manual avanzado', kind: 'manual', desc: 'Despierta la siguiente técnica de la cadena del jugador, como una casilla de firma.', price: 3000, consumable: true },
 ]
 
 export const ITEM_BY_ID = new Map(ITEMS.map((i) => [i.id, i]))

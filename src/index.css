@@ -166,3 +166,20 @@ body {
   100% { opacity: 0; }
 }
 .animate-inazuma-flash { animation: inazuma-flash .35s ease-out forwards; }
+
+/* Celebración de gol: el rótulo entra rebotando y se queda. */
+@keyframes inazuma-goal {
+  0% { opacity: 0; transform: scale(0.4) rotate(-6deg); }
+  45% { opacity: 1; transform: scale(1.15) rotate(2deg); }
+  60% { transform: scale(0.97) rotate(0); }
+  80% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.95; }
+}
+.animate-goal { animation: inazuma-goal .7s cubic-bezier(.2,1.4,.4,1) both; }
+
+/* Hoja inferior de ajustes del modo Inazuma. */
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-sheet-up { animation: sheet-up .22s ease-out both; }

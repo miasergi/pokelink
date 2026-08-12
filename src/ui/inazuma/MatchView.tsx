@@ -12,6 +12,7 @@ import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
 import TechniqueCutIn, { cutInFrom, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
+import { Pic } from '@/ui/inazuma/Glyphs'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -26,21 +27,45 @@ export default function MatchView() {
   const [cut, setCut] = useState<CutIn | null>(null)
   const seen = useRef(0)
 
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
+  // ----- RITMO: los eventos no se vuelcan de golpe, se revelan de uno en uno.
+  // El motor resuelve tiro+parada+gol en el mismo latido y antes aparecía todo
+  // junto: no había suspense ninguno. Ahora el disparo sale, respira, y DESPUÉS
+  // se sabe si el portero llegó. `shown` arranca en el tamaño del feed para no
+  // reproducir la retransmisión entera al volver a un partido guardado.
+  const [shown, setShown] = useState(() => feed.length)
+  const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number } | null>(null)
+  useEffect(() => {
+    if (shown >= feed.length) return
+    const next = feed[shown]
+    // La pausa va ANTES del desenlace: más para goles y paradas.
+    const delay = next.kind === 'goal' ? 950 : next.kind === 'save' ? 700 : next.kind === 'penalty' ? 800 : 220
+    const t = setTimeout(() => {
+      setShown((n) => n + 1)
+      if (next.kind === 'goal') {
+        setGol({ scorer: next.scorer, mine: match ? next.side === playerSide(match) : false, key: shown })
+      }
+      if (next.kind === 'penalty' && next.scored) {
+        setGol({ scorer: next.shooter, mine: match ? next.side === playerSide(match) : false, key: shown })
+      }
+    }, delay)
+    return () => clearTimeout(t)
+  }, [shown, feed, match])
+  const visible = feed.slice(0, shown)
 
-  // Corte de supertécnica: se mira SOLO lo que ha entrado nuevo en la
-  // retransmisión, y se enseña la última técnica del lote. Si se mirara el
-  // feed entero volvería a saltar en cada repintado.
+  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [shown])
+
+  // Corte de supertécnica: sobre lo que se acaba de REVELAR (no sobre el feed
+  // crudo), para que la animación coincida con la línea que aparece.
   useEffect(() => {
     if (!match) return
-    const fresh = feed.slice(seen.current)
-    seen.current = feed.length
+    const fresh = visible.slice(seen.current)
+    seen.current = visible.length
     const mine = playerSide(match)
     for (let i = fresh.length - 1; i >= 0; i--) {
-      const c = cutInFrom(fresh[i], mine, feed.length)
+      const c = cutInFrom(fresh[i], mine, visible.length)
       if (c) { setCut(c); return }
     }
-  }, [feed, match])
+  }, [visible, match])
 
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
@@ -53,13 +78,22 @@ export default function MatchView() {
       <Scoreboard match={match} />
       {!finished && <MatchPitch match={match} />}
 
-      {/* Narración. `justify-end` para que se lea como una retransmisión: las
-          jugadas nuevas aparecen justo encima del panel de decisión en lugar de
-          dejar media pantalla en blanco al principio del partido. */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-3 py-2 flex flex-col justify-end gap-1.5">
-        {feed.slice(-40).map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
-        <div ref={bottom} />
+      {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
+          `min-h-full` hace las dos cosas a la vez: al principio del partido las
+          líneas aparecen pegadas abajo (como una retransmisión) y, cuando hay
+          más de una pantalla, se puede hacer scroll hacia arriba para releer lo
+          que pasó — con `justify-end` en el propio contenedor de scroll, el
+          navegador capaba el desplazamiento y el historial era inalcanzable. */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+        <div className="min-h-full flex flex-col justify-end gap-1.5">
+          {visible.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
+          <div ref={bottom} />
+        </div>
       </div>
+
+      {/* ¡GOL! La celebración para el partido un instante: sin ella, el gol
+          pasaba tan deprisa como un regate cualquiera. */}
+      {gol && <GoalOverlay key={gol.key} scorer={gol.scorer} mine={gol.mine} onDone={() => setGol(null)} />}
 
       {/* Panel de decisión o controles */}
       {match.phase === 'decision' && match.decision ? (
@@ -220,7 +254,7 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
         }`}>
           <div className="text-[10px] tabular-nums text-slate-400">{event.minute}′</div>
           <div className="font-extrabold text-sm">
-            <Icon name="ball" className="w-4 h-4 inline-block mr-1 align-[-3px]" />
+            <Pic name="ball" className="w-4 h-4 inline-block mr-1 align-[-3px]" />
             ¡GOL de {event.scorer}!{event.technique ? ` (${event.technique})` : ''}
           </div>
           <div className="text-xs text-slate-300 tabular-nums">{event.score[0]} – {event.score[1]}</div>
@@ -394,6 +428,34 @@ export function Mugshot({ actor, name, right, tiny }: {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Celebración de gol: se planta encima del partido un segundo y medio con el
+ * balón (imagen), el rótulo y el goleador. Verde si es tuyo, rojo si te lo
+ * meten — que también hay que enterarse de esos.
+ */
+function GoalOverlay({ scorer, mine, onDone }: { scorer: string; mine: boolean; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1600)
+    return () => clearTimeout(t)
+  }, [onDone])
+  const color = mine ? '#22c55e' : '#f43f5e'
+  return (
+    <div className="absolute inset-0 z-[65] grid place-items-center pointer-events-none">
+      <div className="absolute inset-0 animate-inazuma-flash" style={{ background: color }} />
+      <div className="relative flex flex-col items-center gap-1 animate-goal">
+        <Pic name="ball" className="w-16 h-16 drop-shadow-lg" />
+        <div
+          className="px-4 py-1 rounded-full text-2xl font-black uppercase tracking-widest bg-slate-950/85 border-2"
+          style={{ color, borderColor: color }}
+        >
+          {mine ? '¡GOOOL!' : 'Gol rival'}
+        </div>
+        <div className="text-[12px] font-bold text-white/85 bg-slate-950/70 rounded-full px-2 py-0.5">{scorer}</div>
+      </div>
     </div>
   )
 }

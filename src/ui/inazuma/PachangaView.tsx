@@ -3,7 +3,7 @@
 // 90 minutos): aquí se ve todo de golpe y se resuelve en segundos.
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
-import Icon from '@/ui/components/Icon'
+import { Pic } from '@/ui/inazuma/Glyphs'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
@@ -74,7 +74,7 @@ export default function PachangaView() {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-white/80">
               {pending.mine ? `${pending.shooter.name} avanza…` : `${pending.shooter.name} se planta delante…`}
             </div>
-            <Icon name="ball" className="absolute right-10 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
+            <Pic name="ball" className="absolute right-10 top-1/2 -translate-y-1/2 w-5 h-5" />
           </div>
         </div>
       )}
@@ -101,7 +101,7 @@ export default function PachangaView() {
               Ronda {r.index + 1} · {r.mine ? 'tiras tú' : 'tiran ellos'}
             </div>
             <div className="text-[12px] text-slate-200 leading-snug">
-              <Icon
+              <Pic
                 name={r.scored ? 'ball' : 'glove'}
                 className="w-3.5 h-3.5 inline-block mr-1 align-[-3px]"
               />
@@ -134,7 +134,7 @@ export default function PachangaView() {
           <div className="mb-2 flex items-center gap-2">
             <Mugshot actor={pending.shooter} name={pending.shooter.name} />
             <div className="text-center px-1">
-              <Icon name="ball" className="w-4 h-4 mx-auto text-slate-500" />
+              <Pic name="ball" className="w-4 h-4 mx-auto opacity-70" />
               <div className="text-[9px] text-slate-500 whitespace-nowrap">
                 {pending.mine ? 'tiras' : 'paras'}
               </div>

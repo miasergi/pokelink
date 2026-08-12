@@ -7,7 +7,7 @@ import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, ptMax, START_LEVEL, upgradeTechnique,
+  levelUp, ptMax, slotRole, START_LEVEL, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, participants, type PachangaState } from './pachanga'
@@ -15,11 +15,11 @@ import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import { buildScoutOffer, learnableByRoster } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
-  ROSTER_MAX,
+  ROSTER_MAX, TECHNIQUE_SLOTS,
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
-  Actor, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats,
+  Actor, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerInstance, PlayerStats, Position, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
 
@@ -73,13 +73,16 @@ export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
 // Montaje del partido
 // ---------------------------------------------------------------------------
 
-function actorFromPlayer(p: PlayerInstance): Actor {
+function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
   const base = getPlayerBase(p.baseId)
   return {
     uid: p.uid,
     baseId: base.id,
     name: base.name,
-    position: base.position,
+    // El papel EN ESTE PARTIDO es el hueco que ocupa en el once, no su
+    // demarcación natural: si pones a Axel de defensa, defiende (mal, y sin
+    // poder tirar sus supertécnicas de tiro — son de otra clase de duelo).
+    position: role ?? base.position,
     element: base.element,
     stats: effectiveStats(p),
     stamina: p.stamina,
@@ -145,7 +148,7 @@ function nodeRng(save: InazumaSave, node: TournamentNode): RNG {
 }
 
 export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup | { error: string } {
-  const lineup = buildLineup(save.roster, save.lineup)
+  const lineup = buildLineup(save.roster, save.lineup, save.formation)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
   const rng = nodeRng(save, node)
@@ -154,7 +157,8 @@ export function startMatch(save: InazumaSave, node: TournamentNode): MatchSetup 
   const rivals = buildRivalTeam(teamId, node.level ?? 10, rng)
 
   const mineTeam = getTeam(save.teamId ?? 'raimon')
-  const home = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true, lineup.all.map(actorFromPlayer))
+  const home = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true,
+    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
   return { match: createMatch({ seed: rng.getState(), home, away }, rng), rng, node }
@@ -172,13 +176,14 @@ export interface PachangaSetup {
  * salvaje.
  */
 export function startPachanga(save: InazumaSave, node: TournamentNode): PachangaSetup | { error: string } {
-  const lineup = buildLineup(save.roster, save.lineup)
+  const lineup = buildLineup(save.roster, save.lineup, save.formation)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
   const rng = nodeRng(save, node)
   const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng)
   const mineTeam = getTeam(save.teamId ?? 'raimon')
-  const mine = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true, lineup.all.map(actorFromPlayer))
+  const mine = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true,
+    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const theirs = sideFromActors(node.title, '#64748b', 'montana', false, rivals.map(actorFromRival))
 
   return {
@@ -497,14 +502,42 @@ export function applyConsumable(
       return spend(`${getTechnique(up)?.name} mejorada (+25 % de potencia)`)
     }
     case 'manual-avanzado': {
-      const target = save.roster.find((p) => p.uid === uid)
-      const evolvable = target?.techniques.map((t) => getTechnique(t)).find((t) => t?.evolvesTo)
-      if (!target || !evolvable?.evolvesTo) return { ok: false, message: 'Ese jugador no tiene ninguna técnica que pueda evolucionar.' }
-      const to = evolvable.evolvesTo
-      one((p) => ({ ...p, techniques: p.techniques.map((t) => (t === evolvable.id ? to : t)) }))
-      return spend(`${evolvable.name} → ${getTechnique(to)?.name}`)
+      // Avanza la CADENA característica del jugador (una firma de bolsillo).
+      const learnt = learnSignature(save, uid)
+      if (!learnt) return { ok: false, message: 'Ese jugador ya despertó toda su cadena.' }
+      return spend(`¡Despierta ${learnt.name}!`)
     }
     default:
       return { ok: false, message: 'Eso no se usa así.' }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Técnicas características (casillas de firma)
+// ---------------------------------------------------------------------------
+
+/**
+ * La siguiente técnica de la CADENA de un jugador que aún no conoce, o null si
+ * ya la despertó entera. Es lo que ofrece la casilla de firma: Mark Evans
+ * despierta la Mano Celestial, después la Infinita, después la Demoníaca.
+ */
+export function signatureNext(p: PlayerInstance): Technique | null {
+  const chain = getPlayerBase(p.baseId).signature ?? []
+  const next = chain.find((id) => !p.techniques.includes(id))
+  return next ? getTechnique(next) ?? null : null
+}
+
+/** Despierta la siguiente técnica de la cadena. Devuelve qué aprendió o null. */
+export function learnSignature(save: InazumaSave, uid: string): Technique | null {
+  const p = save.roster.find((x) => x.uid === uid)
+  if (!p) return null
+  const t = signatureNext(p)
+  if (!t) return null
+  save.roster = save.roster.map((x) => {
+    if (x.uid !== uid) return x
+    const techs = x.techniques.slice()
+    if (techs.length >= TECHNIQUE_SLOTS) techs.shift()
+    return { ...x, techniques: [...techs, t.id] }
+  })
+  return t
 }

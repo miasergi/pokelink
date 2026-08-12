@@ -38,7 +38,11 @@ export interface EventOption {
 
 export interface InazumaEvent {
   id: string
-  /** Nombre del SVG en `Icon.tsx`. En este modo no se usan emojis. */
+  /**
+   * Ya no se usa para pintar: la escena usa la IMAGEN `event-<id>.png`
+   * (Twemoji, bajada por `fetch-inazuma-icons.mjs`). Se mantiene por
+   * compatibilidad con partidas guardadas.
+   */
   icon: string
   title: string
   text: string

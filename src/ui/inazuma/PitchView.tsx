@@ -16,13 +16,21 @@ import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import type { InazumaSave, PlayerInstance, Position } from '@/engine/inazuma/types'
 
-/** Filas del campo, de portería a ataque. */
+/** Filas del campo, de ataque a portería (arriba se ataca). */
 const ROWS: { pos: Position; label: string }[] = [
   { pos: 'DEL', label: 'Ataque' },
   { pos: 'MED', label: 'Centro' },
   { pos: 'DEF', label: 'Defensa' },
   { pos: 'POR', label: 'Portería' },
 ]
+
+/** Los índices de hueco del once que corresponden a cada fila. */
+function slotsOfRow(f: { defs: number; mids: number; fwds: number }, pos: Position): number[] {
+  if (pos === 'POR') return [0]
+  if (pos === 'DEF') return Array.from({ length: f.defs }, (_, i) => 1 + i)
+  if (pos === 'MED') return Array.from({ length: f.mids }, (_, i) => 1 + f.defs + i)
+  return Array.from({ length: f.fwds }, (_, i) => 1 + f.defs + f.mids + i)
+}
 
 interface DragState {
   uid: string
@@ -31,11 +39,13 @@ interface DragState {
 }
 
 export default function PitchView({
-  save, onSwap, onTap,
+  save, onSwap, onPlace, onTap,
 }: {
   save: InazumaSave
   /** Intercambia dos jugadores (uno puede ser del banquillo). */
   onSwap: (a: string, b: string) => void
+  /** Coloca a un jugador en un HUECO vacío del once. */
+  onPlace: (uid: string, slot: number) => void
   onTap: (uid: string) => void
 }) {
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -46,7 +56,6 @@ export default function PitchView({
   const starters = save.lineup.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
   const bench = save.roster.filter((p) => !save.lineup.includes(p.uid))
   const formation = getFormation(save.formation)
-  const posOf = (p: PlayerInstance) => getPlayerBase(p.baseId).position
 
   const start = (uid: string) => (e: React.PointerEvent) => {
     ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
@@ -58,17 +67,20 @@ export default function PitchView({
     if (!drag) return
     if (Math.abs(e.clientX - drag.x) > 6 || Math.abs(e.clientY - drag.y) > 6) moved.current = true
     setDrag({ ...drag, x: e.clientX, y: e.clientY })
-    // El elemento bajo el dedo marca el destino. `elementFromPoint` ignora la
-    // ficha que se arrastra porque lleva `pointer-events: none`.
+    // El elemento bajo el dedo marca el destino: otra ficha (intercambio) o
+    // un hueco vacío (colocación). `elementFromPoint` ignora la ficha
+    // arrastrada porque lleva `pointer-events: none`.
     const el = document.elementFromPoint(e.clientX, e.clientY)
-    const slot = el?.closest('[data-uid]') as HTMLElement | null
-    const uid = slot?.dataset.uid
-    setOver(uid && uid !== drag.uid ? uid : null)
+    const chip = el?.closest('[data-uid]') as HTMLElement | null
+    const hole = el?.closest('[data-slot]') as HTMLElement | null
+    const uid = chip?.dataset.uid
+    setOver(uid && uid !== drag.uid ? uid : hole ? `slot:${hole.dataset.slot}` : null)
   }
 
   const end = () => {
     if (!drag) return
     if (!moved.current) onTap(drag.uid)
+    else if (over?.startsWith('slot:')) onPlace(drag.uid, Number(over.slice(5)))
     else if (over) onSwap(drag.uid, over)
     setDrag(null)
     setOver(null)
@@ -94,29 +106,43 @@ export default function PitchView({
         </div>
 
         <div className="relative p-3 flex flex-col gap-2.5">
+          {/* Cada fila son HUECOS del once, no demarcaciones: quien ocupa un
+              hueco de arriba juega arriba, sea quien sea. Poner a Axel de
+              defensa es legal — y el aviso rojo recuerda que es mala idea. */}
           {ROWS.map(({ pos, label }) => {
-            const line = starters.filter((p) => posOf(p) === pos)
-            const want = pos === 'POR' ? 1 : pos === 'DEF' ? formation.defs : pos === 'MED' ? formation.mids : formation.fwds
+            const slots = slotsOfRow(formation, pos)
             return (
               <div key={pos}>
                 <div className="text-[8px] uppercase tracking-widest text-emerald-200/40 text-center mb-1">
-                  {label} · {line.length}/{want}
+                  {label}
                 </div>
                 <div className="flex justify-center gap-2 flex-wrap min-h-[52px]">
-                  {line.map((p) => (
-                    <PitchChip
-                      key={p.uid}
-                      player={p}
-                      onPointerDown={start(p.uid)}
-                      highlight={over === p.uid}
-                      ghost={drag?.uid === p.uid}
-                    />
-                  ))}
-                  {line.length < want && (
-                    <span className="grid place-items-center w-11 h-11 rounded-xl border-2 border-dashed border-white/15 text-white/25 text-lg">
-                      +
-                    </span>
-                  )}
+                  {slots.map((slot) => {
+                    const p = starters[slot]
+                    if (!p) {
+                      return (
+                        <span
+                          key={`hole-${slot}`}
+                          data-slot={slot}
+                          className={`grid place-items-center w-11 h-11 rounded-xl border-2 border-dashed text-lg transition ${
+                            over === `slot:${slot}` ? 'border-amber-300 text-amber-300 scale-110' : 'border-white/15 text-white/25'
+                          }`}
+                        >
+                          +
+                        </span>
+                      )
+                    }
+                    return (
+                      <PitchChip
+                        key={p.uid}
+                        player={p}
+                        role={pos}
+                        onPointerDown={start(p.uid)}
+                        highlight={over === p.uid}
+                        ghost={drag?.uid === p.uid}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -165,9 +191,11 @@ export default function PitchView({
 }
 
 function PitchChip({
-  player, onPointerDown, highlight, ghost, bench, floating,
+  player, role, onPointerDown, highlight, ghost, bench, floating,
 }: {
   player: PlayerInstance
+  /** Papel del hueco que ocupa; si no es su demarcación natural, se avisa. */
+  role?: Position
   onPointerDown?: (e: React.PointerEvent) => void
   highlight?: boolean
   ghost?: boolean
@@ -176,6 +204,7 @@ function PitchChip({
 }) {
   const base = getPlayerBase(player.baseId)
   const info = ELEMENT_INFO[base.element]
+  const outOfPosition = role != null && role !== base.position
   return (
     <div
       data-uid={floating ? undefined : player.uid}
@@ -213,6 +242,13 @@ function PitchChip({
       >
         {overall(player)}
       </span>
+      {/* Fuera de su sitio: su demarcación natural en rojo. Sus atributos y
+          sus técnicas son de OTRO puesto, y conviene verlo de un vistazo. */}
+      {outOfPosition && (
+        <span className="absolute -top-1.5 -left-1.5 rounded px-1 text-[8px] font-black leading-tight bg-rose-500 text-white border border-black/40">
+          {base.position}
+        </span>
+      )}
     </div>
   )
 }

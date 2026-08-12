@@ -4,6 +4,7 @@
 // El motivo no es estético: los emojis los dibuja el sistema operativo, así que
 // el mismo icono se ve distinto en cada móvil, no se puede teñir del color del
 // elemento y en Windows varios salen en blanco y negro.
+import { useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -50,17 +51,40 @@ export function Stars({ n, className = 'w-3 h-3' }: { n: number; className?: str
   )
 }
 
-/** Icono de cada tipo de casilla del mapa. */
+/**
+ * IMAGEN de un concepto del modo (PNG de Twemoji, bajadas por
+ * `scripts/fetch-inazuma-icons.mjs`). Se usan imágenes y no SVG monocromo en
+ * las casillas, los balones, los objetos y las situaciones: mismo dibujo en
+ * todos los dispositivos y con color.
+ */
+export function Pic({ name, className = 'w-6 h-6', alt = '' }: {
+  name: string
+  className?: string
+  alt?: string
+}) {
+  return (
+    <img
+      src={`${BASE}inazuma/icons/${name}.png`}
+      alt={alt}
+      draggable={false}
+      className={`${className} select-none object-contain`}
+      onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+    />
+  )
+}
+
+/** Imagen de cada tipo de casilla del mapa. */
 export const NODE_ICON: Record<NodeKind, string> = {
-  pachanga: 'ball',
-  objeto: 'bag',
-  tecnica: 'bolt',
-  ojeador: 'magnifier',
-  evento: 'question',
-  rairai: 'ramen',
-  tienda: 'cart',
-  jefe: 'crest',
-  final: 'trophy',
+  pachanga: 'node-pachanga',
+  objeto: 'node-objeto',
+  tecnica: 'node-tecnica',
+  firma: 'node-firma',
+  ojeador: 'node-ojeador',
+  evento: 'node-evento',
+  rairai: 'node-rairai',
+  tienda: 'node-tienda',
+  jefe: 'node-jefe',
+  final: 'node-final',
 }
 
 /**
@@ -83,15 +107,24 @@ export function itemIconName(item: InazumaItem | undefined): string {
   }
 }
 
+/**
+ * Imagen del objeto. Cada id tiene su PNG (`item-<id>.png`); si faltase, se cae
+ * al SVG por familia para que nunca quede un hueco.
+ */
 export function ItemIcon({ itemId, className = 'w-5 h-5' }: { itemId: string; className?: string }) {
   const item = getItem(itemId)
-  const rare = item?.kind === 'raro'
+  const [broken, setBroken] = useState(false)
+  if (broken) {
+    return <Icon name={itemIconName(item)} className={className} title={item?.name} />
+  }
   return (
-    <Icon
-      name={itemIconName(item)}
-      className={className}
-      style={{ color: rare ? '#fbbf24' : undefined }}
+    <img
+      src={`${BASE}inazuma/icons/item-${itemId}.png`}
+      alt={item?.name ?? ''}
       title={item?.name}
+      draggable={false}
+      className={`${className} select-none object-contain`}
+      onError={() => setBroken(true)}
     />
   )
 }

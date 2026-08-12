@@ -4,6 +4,7 @@
 // dentro de una partida no se llega a ellos sin abandonar el torneo. Aquí están
 // los que importan mientras juegas: ritmo del partido, ayudas y sonido.
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useSettings } from '@/state/settingsStore'
@@ -69,10 +70,15 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
     { label: '×4', ms: 220 },
   ]
 
-  return (
-    <div className="fixed inset-0 z-[85] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
+  // PORTAL a <body>: el botón vive dentro de la cabecera, que lleva
+  // `backdrop-blur`, y un `backdrop-filter` convierte a sus descendientes
+  // `fixed` en relativos A LA CABECERA — la hoja se pintaba fuera de pantalla
+  // (bbox con y negativa). Desde el body, `fixed` vuelve a ser la ventana.
+  return createPortal(
+    <div className="fixed inset-0 z-[95]" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
       <div
-        className="w-full max-w-sm max-h-[88svh] overflow-y-auto no-scrollbar rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in"
+        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md max-h-[86svh] overflow-y-auto no-scrollbar rounded-t-3xl border-t border-x border-slate-700 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-sheet-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-3">
@@ -153,6 +159,7 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           </span>
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
