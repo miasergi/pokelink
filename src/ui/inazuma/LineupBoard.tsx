@@ -39,7 +39,11 @@ export default function LineupBoard({ chips, onTap }: {
 }) {
   return (
     <div
-      className="relative rounded-2xl border border-emerald-900/60 overflow-hidden"
+      // shrink-0: con `overflow-hidden` este div pierde su tamaño mínimo como
+      // hijo flex, y en la previa del jefe (DOS tableros en la columna con
+      // scroll) los tableros se APLASTABAN para caber en vez de desbordar —
+      // se veían recortados y el scroll nunca llegaba a activarse.
+      className="relative shrink-0 rounded-2xl border border-emerald-900/60 overflow-hidden"
       style={{ background: 'repeating-linear-gradient(180deg,#14532d22 0 26px,#16653422 26px 52px), #0b2a1a' }}
     >
       <div aria-hidden className="absolute inset-0 pointer-events-none">

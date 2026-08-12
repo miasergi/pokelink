@@ -22,6 +22,7 @@ import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { COMBOS } from '@/data/inazuma/combos'
 import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
@@ -1044,9 +1045,12 @@ export function DraftView() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-extrabold text-sm">{o.title}</div>
-                {/* En los fichajes: estrellas y datos ANTES de decidir. */}
+                {/* En los fichajes: estrellas, elemento y datos ANTES de decidir. */}
                 {o.kind === 'fichaje' && (
-                  <Stars n={getPlayerBase(o.playerId).rarity} className="w-2.5 h-2.5" />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Stars n={getPlayerBase(o.playerId).rarity} className="w-2.5 h-2.5" />
+                    <ElementChip element={getPlayerBase(o.playerId).element} />
+                  </div>
                 )}
                 <div className="text-[11px] text-slate-400">{o.desc}</div>
               </div>
@@ -1054,13 +1058,76 @@ export function DraftView() {
             </div>
             {/* Los atributos con los que llegaría, para no fichar a ciegas. */}
             {o.kind === 'fichaje' && (
-              <div className="mt-2">
+              <div className="mt-2 flex flex-col gap-1.5">
                 <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
+                <SigningExtras baseId={o.playerId} save={save} />
               </div>
             )}
           </Card>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Lo que un FICHAJE trae bajo el brazo, antes de decidir: su cadena de
+ * supertécnicas (con el nivel al que despierta cada paso) y las técnicas
+ * COMBINADAS que desbloquearía con gente que ya está en tu plantilla.
+ */
+function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) {
+  const base = getPlayerBase(baseId)
+  const chain = base.signature ?? []
+  const rosterIds = new Set(save.roster.map((p) => p.baseId))
+  const combos = COMBOS.filter((c) => c.members.includes(baseId))
+  if (!chain.length && !combos.length) return null
+
+  return (
+    <div className="flex flex-col gap-1">
+      {chain.length > 0 && (
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[9px] uppercase tracking-widest text-slate-500 mr-0.5">Cadena</span>
+          {chain.map((id, i, arr) => {
+            const t = getTechnique(id)
+            if (!t) return null
+            const info = ELEMENT_INFO[t.element]
+            const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+            return (
+              <span key={id} className="inline-flex items-center gap-1">
+                <span
+                  className="inline-flex items-center gap-1 rounded-md border px-1 py-0.5 text-[9px] font-bold"
+                  style={{ color: info.color, borderColor: `${info.color}55`, background: `${info.color}12` }}
+                >
+                  <KindIcon kind={t.kind} className="w-2.5 h-2.5" />
+                  {t.name}
+                  <span className="text-slate-500">nv.{need}</span>
+                </span>
+                {i < arr.length - 1 && <Icon name="arrowRight" className="w-2.5 h-2.5 text-slate-600" />}
+              </span>
+            )
+          })}
+        </div>
+      )}
+      {combos.map((c) => {
+        const t = getTechnique(c.techniqueId)
+        if (!t) return null
+        const mates = c.members.filter((m) => m !== baseId)
+        const missing = mates.filter((m) => !rosterIds.has(m))
+        const ready = missing.length === 0
+        return (
+          <div
+            key={c.techniqueId}
+            className={`rounded-md border px-1.5 py-1 text-[10px] leading-snug ${
+              ready ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 bg-slate-800/40 text-slate-400'
+            }`}
+          >
+            <b>{t.name}</b> (combinada {c.label}){' '}
+            {ready
+              ? '— ¡ya tienes a los demás en plantilla!'
+              : `— te falta ${missing.map((m) => getPlayerBase(m).name).join(' y ')}`}
+          </div>
+        )
+      })}
     </div>
   )
 }

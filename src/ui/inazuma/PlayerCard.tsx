@@ -90,7 +90,7 @@ export function PlayerCard({
   return (
     <div
       onClick={onClick}
-      className={`relative rounded-2xl border overflow-hidden transition ${onClick ? 'active:scale-[0.98] cursor-pointer' : ''} ${
+      className={`relative shrink-0 rounded-2xl border overflow-hidden transition ${onClick ? 'active:scale-[0.98] cursor-pointer' : ''} ${
         selected ? 'border-white/70 ring-2 ring-white/30' : 'border-slate-700/70'
       }`}
       style={{ background: `linear-gradient(160deg, ${info.color}22, rgba(15,23,42,0.9) 55%)` }}
@@ -231,7 +231,12 @@ export function PlayerRow({
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
-          <div className="flex-1"><Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} /></div>
+          {/* PT y aguante, SIEMPRE los que le quedan: la fila es la ficha de
+              todas las listas y ahí es donde se decide a quién curar. */}
+          <div className="flex-1 flex flex-col gap-0.5">
+            <Meter value={player.pt} max={ptMax(player)} color="#38bdf8" />
+            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} />
+          </div>
         </div>
       </div>
       <div className="shrink-0 text-right">

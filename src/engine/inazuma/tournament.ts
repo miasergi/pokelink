@@ -31,7 +31,10 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
  * las suyas. La curva se fijó MIDIENDO con qué nivel llega el bot a cada
  * eliminatoria; lo que decide el partido es la diferencia, no el número.
  */
-export const RIVAL_LEVELS = [8, 15, 26, 40, 53, 65, 76, 85]
+// La cola sube desde que hay un Rai Rai GARANTIZADO antes de cada jefe:
+// llegar curado al partido gordo ya no es suerte, así que el jefe puede (y
+// debe) pegar más fuerte para que el tramo final siga siendo una final.
+export const RIVAL_LEVELS = [8, 15, 26, 44, 60, 74, 87, 99]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
@@ -74,7 +77,10 @@ const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
   { kind: 'objeto', weight: 16 },
   { kind: 'ojeador', weight: 10 },
   { kind: 'trade', weight: 7 },
-  { kind: 'rairai', weight: 9 },
+  // Peso bajado de 9: la última capa de CADA tramo ya trae un Rai Rai
+  // garantizado, así que el sorteo solo reparte los extra. Con el peso viejo
+  // la ruta se llenaba de ramen y farmear pachangas salía gratis.
+  { kind: 'rairai', weight: 3 },
   { kind: 'tienda', weight: 7 },
 ]
 
@@ -105,9 +111,15 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon'): InazumaMap {
       // En las impares puede tocar de todo. La primera capa de la partida
       // fuerza además una casilla de FIRMA: el equipo sale sin supertécnicas y
       // despertar la primera en los primeros pasos es el gancho del sistema.
+      // Y la ÚLTIMA capa antes del jefe garantiza un Rai Rai: pasar (o no) a
+      // curarse antes del partido gordo es una decisión que siempre existe.
+      const lastBeforeBoss = r === ROUTE_LAYERS_PER_SEGMENT - 1
       const forced: NodeKind[] = seg === 0 && r === 0
         ? ['pachanga', 'firma']
-        : r % 2 === 0 ? ['pachanga'] : []
+        : [
+          ...(r % 2 === 0 ? ['pachanga' as const] : []),
+          ...(lastBeforeBoss ? ['rairai' as const] : []),
+        ]
       for (let c = 0; c < NODES_PER_LAYER; c++) {
         const kind = forced[c] ?? pickKind(rng, used)
         // Ni dos descansos ni dos tiendas en la misma capa.

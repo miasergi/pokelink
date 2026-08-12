@@ -32,6 +32,19 @@ export default function BagView() {
 
   const empty = !save.bag.length && !save.techniqueBag.length
 
+  // Duplicados AGRUPADOS con contador: tres bebidas eran tres tarjetas
+  // idénticas y al usar una parecía que las otras «se gastaban solas» (no se
+  // veía cuántas quedaban ni cuál se iba). Cada uso gasta exactamente UNA.
+  const grouped = (ids: string[]): { id: string; count: number }[] => {
+    const out: { id: string; count: number }[] = []
+    for (const id of ids) {
+      const g = out.find((x) => x.id === id)
+      if (g) g.count += 1
+      else out.push({ id, count: 1 })
+    }
+    return out
+  }
+
   /** ¿A quién tiene sentido dárselo? Filtra para no dejar elegir en balde. */
   const eligible = (p: PlayerInstance): string | null => {
     if (!pending) return null
@@ -83,18 +96,19 @@ export default function BagView() {
             <div className="text-[11px] uppercase tracking-widest text-slate-500">
               Supertécnicas · {save.techniqueBag.length}
             </div>
-            {save.techniqueBag.map((id, i) => {
+            {grouped(save.techniqueBag).map(({ id, count }) => {
               const t = getTechnique(id)
               if (!t) return null
               const info = ELEMENT_INFO[t.element]
               return (
-                <Card key={`${id}-${i}`} className="p-3" onClick={() => setPending({ kind: 'tech', id })}>
+                <Card key={id} className="p-3" onClick={() => setPending({ kind: 'tech', id })}>
                   <div className="flex items-center gap-2.5">
                     <TechniqueBadge tech={t} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
                         <KindIcon kind={t.kind} className="w-3.5 h-3.5" />
                         {t.name}
+                        {count > 1 && <span className="text-[11px] font-extrabold text-amber-300">×{count}</span>}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         {KIND_LABEL[t.kind]} · potencia {t.power} · {t.cost} PT
@@ -114,15 +128,18 @@ export default function BagView() {
             <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-1">
               Objetos · {save.bag.length}
             </div>
-            {save.bag.map((id, i) => {
+            {grouped(save.bag).map(({ id, count }) => {
               const item = getItem(id)
               if (!item) return null
               return (
-                <Card key={`${id}-${i}`} className="p-3" onClick={() => setPending({ kind: 'item', id })}>
+                <Card key={id} className="p-3" onClick={() => setPending({ kind: 'item', id })}>
                   <div className="flex items-center gap-2.5">
                     <ItemIcon itemId={id} className="w-6 h-6 shrink-0 text-slate-300" />
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-sm">{item.name}</div>
+                      <div className="font-bold text-sm">
+                        {item.name}
+                        {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
+                      </div>
                       <div className="text-[11px] text-slate-400">{item.desc}</div>
                     </div>
                     <span className="text-[10px] text-emerald-300 shrink-0">

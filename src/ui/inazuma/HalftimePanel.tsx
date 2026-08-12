@@ -25,7 +25,14 @@ export default function HalftimePanel() {
   const onPitch = [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
   const onPitchUids = new Set(onPitch.map((a) => a.uid))
   const bench = save.roster.filter((p) => !onPitchUids.has(p.uid))
-  const items = save.bag.filter((id) => HALFTIME_ITEMS.has(id))
+  // Agrupados con contador, igual que en la mochila: cada uso gasta UNO.
+  const items: { id: string; count: number }[] = []
+  for (const id of save.bag) {
+    if (!HALFTIME_ITEMS.has(id)) continue
+    const g = items.find((x) => x.id === id)
+    if (g) g.count += 1
+    else items.push({ id, count: 1 })
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[88]">
@@ -86,15 +93,18 @@ export default function HalftimePanel() {
             )}
             {action === 'item' && (
               <div className="flex flex-col gap-1.5">
-                {items.map((id, i) => (
+                {items.map(({ id, count }) => (
                   <button
-                    key={`${id}-${i}`}
+                    key={id}
                     onClick={() => { halftimeUseItem(id, target.uid); setTarget(null); setAction(null) }}
                     className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-left active:scale-[0.99] transition"
                   >
                     <ItemIcon itemId={id} className="w-6 h-6" />
                     <div className="min-w-0">
-                      <div className="text-[12px] font-bold">{getItem(id)?.name}</div>
+                      <div className="text-[12px] font-bold">
+                        {getItem(id)?.name}
+                        {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
+                      </div>
                       <div className="text-[10px] text-slate-500 truncate">{getItem(id)?.desc}</div>
                     </div>
                   </button>

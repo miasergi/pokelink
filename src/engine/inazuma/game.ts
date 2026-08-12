@@ -62,7 +62,9 @@ export function createSave(seed: number, teamId = 'raimon'): InazumaSave {
     record: [0, 0, 0],
     goalsFor: 0,
     goalsAgainst: 0,
-    bag: [],
+    // Se empieza con tres CURATIVOS: sin ellos, el primer bajón de PT/aguante
+    // pillaba sin herramientas y sin haber visto aún ninguna tienda.
+    bag: ['bebida-isotonica', 'masaje', 'ramen-rai-rai'],
     techniqueBag: [],
     formation,
     playerStats: {},
