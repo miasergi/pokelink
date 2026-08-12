@@ -43,12 +43,12 @@ const CATEGORIES = [
 ]
 
 /**
- * Cuántas quedarse de cada clase Y ELEMENTO. El reparto por elemento no es un
- * capricho: una técnica solo la puede aprender quien comparte demarcación y
- * elemento con ella, así que un catálogo sin técnicas de bosque deja a media
- * plantilla sin nada que aprender.
+ * Cuántas quedarse de cada clase Y ELEMENTO. Con 999 entra TODO lo que la wiki
+ * tenga con imagen: al principio se muestreaba a ~53 para que el catálogo no
+ * abrumara, pero con las cadenas, la tienda y las casillas repartiendo por
+ * potencia, cuantas más reales haya, mejor.
  */
-const PER_KIND_ELEMENT = { tiro: 4, regate: 3, bloqueo: 3, parada: 3 }
+const PER_KIND_ELEMENT = { tiro: 999, regate: 999, bloqueo: 999, parada: 999 }
 const ELEMENTS = ['fuego', 'bosque', 'aire', 'montana']
 
 /**
