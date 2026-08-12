@@ -130,6 +130,24 @@ export function ItemIcon({ itemId, className = 'w-5 h-5' }: { itemId: string; cl
   )
 }
 
+/**
+ * Escudo de un instituto, para acompañar SIEMPRE a su nombre. Si el equipo no
+ * tiene escudo (los extra del pool de fichajes), no pinta nada.
+ */
+export function Crest({ teamId, className = 'w-4 h-4' }: { teamId?: string; className?: string }) {
+  const [broken, setBroken] = useState(false)
+  if (!teamId || broken) return null
+  return (
+    <img
+      src={`${BASE}inazuma/teams/${teamId}.png`}
+      alt=""
+      draggable={false}
+      className={`${className} select-none object-contain shrink-0`}
+      onError={() => setBroken(true)}
+    />
+  )
+}
+
 /** Ruta de la imagen REAL de una supertécnica (la de la ficha de la wiki). */
 export function techniqueImage(id: string): string {
   return `${BASE}inazuma/techniques/${id}.png`

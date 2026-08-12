@@ -354,6 +354,15 @@ export function buildRivalTeam(teamId: string, level: number, rng: RNG): RivalPl
   return out.slice(0, 11)
 }
 
+/**
+ * Atributos de UN rival de la previa: los mismos números con los que saldría
+ * al campo (nivel del nodo + `power` del instituto). Es lo que enseña la ficha
+ * al tocar a un rival en la alineación de la previa.
+ */
+export function rivalPreviewStats(base: PlayerBase, teamId: string, level: number): Stats {
+  return applyPower(scaleStats(base.stats, level), getTeam(teamId).power)
+}
+
 /** Aplica el `power` del instituto a todos los atributos ya escalados. */
 function applyPower(s: Stats, power: number): Stats {
   return {

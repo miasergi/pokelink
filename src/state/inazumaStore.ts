@@ -229,6 +229,9 @@ interface InazumaState {
   resolveEvent: (optionIndex: number) => void
   itemFx: ItemFx | null
   clearItemFx: () => void
+  /** Carta de un jugador para ENSEÑAR (p. ej. el que llega en un intercambio). */
+  revealPlayer: { uid: string; title: string } | null
+  clearRevealPlayer: () => void
   /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
   resolveFirma: (uid: string) => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
@@ -267,6 +270,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   pendingTarget: null,
   message: null,
   itemFx: null,
+  revealPlayer: null,
 
   initInazuma: async () => {
     stopTicker()
@@ -462,8 +466,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   pachangaShoot: (optionId) => {
     const { pachanga } = get()
     if (!pachanga || !matchRng || pachanga.phase !== 'decision') return
-    const round = shoot(pachanga, matchRng, optionId)
-    play(round?.scored ? 'crit' : 'hit')
+    shoot(pachanga, matchRng, optionId)
+    // Sonido NEUTRO: el desenlace suena cuando la vista lo revela. Sonar el
+    // «crit» aquí destripaba el gol antes de ver el duelo.
+    play('kick')
     // `nextRound` ya no hace nada si la tanda está decidida, así que se llama
     // sin condición: comprobar `phase` aquí no compila (TypeScript la da por
     // estrechada a 'decision' y no sabe que `shoot` la ha mutado).
@@ -689,6 +695,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   clearItemFx: () => set({ itemFx: null }),
 
+  clearRevealPlayer: () => set({ revealPlayer: null }),
+
   /**
    * Resuelve una situación del mapa. Las opciones con `chance` pueden salir mal
    * — es lo que las hace decisiones y no menús.
@@ -764,7 +772,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       save: next,
       matchNode: null,
       phase: 'map',
-      message: `${getPlayerBase(out.baseId).name} se marcha. ¡Llega ${incoming.name} (nv. ${level})!`,
+      // La carta COMPLETA del que llega, con sus stats: un nombre en un toast
+      // no le hace justicia a un fichaje a ciegas.
+      revealPlayer: { uid: nuevo.uid, title: `${getPlayerBase(out.baseId).name} se marcha. ¡Y llega…!` },
     })
     void persist(next, 'map')
   },

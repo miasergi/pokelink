@@ -1,61 +1,91 @@
 // Pachanga: la tanda rápida de mano a mano. Una pantalla, cinco toques.
 // Deliberadamente MUY distinta del partido de jefe (que es una retransmisión de
 // 90 minutos): aquí se ve todo de golpe y se resuelve en segundos.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/ui/components/kit'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import { Crest, Pic } from '@/ui/inazuma/Glyphs'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
 import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET } from '@/engine/inazuma/pachanga'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
+import GoalOverlay from '@/ui/inazuma/GoalOverlay'
+import { play } from '@/utils/sfx'
 
 export default function PachangaView() {
-  const { pachanga, pachangaShoot, finishPachanga } = useInazuma()
+  const { pachanga, pachangaShoot, finishPachanga, save } = useInazuma()
   const [stage, setStage] = useState<StageData | null>(null)
-  const seen = useRef(0)
+  const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  // Rondas ya CONTADAS en pantalla. El motor resuelve la ronda al instante,
+  // pero aquí no existe hasta que el escenario del duelo la ha narrado: sin
+  // esto, el marcador se movía (y la siguiente decisión aparecía) antes de
+  // ver el tiro — el spoiler que se reportó.
+  const [shown, setShown] = useState(() => pachanga?.rounds.length ?? 0)
 
-  // Mismo escenario de duelo que en el partido, sobre la última ronda resuelta:
-  // tirador contra portero, sus técnicas con imagen, y el sello del desenlace.
   useEffect(() => {
-    const rounds = pachanga?.rounds ?? []
-    if (!pachanga || rounds.length <= seen.current) { seen.current = rounds.length; return }
-    seen.current = rounds.length
-    const last = rounds[rounds.length - 1]
+    if (!pachanga) return
+    const rounds = pachanga.rounds
+    if (rounds.length <= shown) return
+    const next = rounds[shown]
     const all = [pachanga.mine, pachanga.theirs]
       .flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
     const baseOf = (name: string) => all.find((a) => a.name === name)?.baseId
     setStage({
-      key: rounds.length,
-      attacker: { name: last.shooter, baseId: baseOf(last.shooter), techName: last.technique },
-      defender: { name: last.keeper, baseId: baseOf(last.keeper), techName: last.counter },
-      attackerWins: last.scored,
-      attackerMine: last.mine,
+      key: shown + 1,
+      attacker: { name: next.shooter, baseId: baseOf(next.shooter), techName: next.technique },
+      defender: { name: next.keeper, baseId: baseOf(next.keeper), techName: next.counter },
+      attackerWins: next.scored,
+      attackerMine: next.mine,
       kind: 'tiro',
     })
-  }, [pachanga?.rounds.length, pachanga])
+    // El desenlace se CONSUMA cuando el escenario llega a su sello (~1.75 s):
+    // entonces sí — marcador, sonido y, si hay gol, la celebración.
+    const t = setTimeout(() => {
+      setShown(shown + 1)
+      play(next.scored ? 'gol' : 'parada')
+      if (next.scored) {
+        setGol({
+          scorer: next.shooter,
+          mine: next.mine,
+          key: shown + 1,
+          teamId: next.mine ? save?.teamId ?? 'raimon' : undefined,
+        })
+      }
+    }, 1750)
+    return () => clearTimeout(t)
+  }, [pachanga, shown, save?.teamId])
 
   if (!pachanga) return null
-  const [mine, theirs] = pachanga.goals
-  const done = pachanga.phase === 'finished'
-  const pending = pachanga.pending
+  const revealed = pachanga.rounds.slice(0, shown)
+  const mine = revealed.filter((r) => r.scored && r.mine).length
+  const theirs = revealed.filter((r) => r.scored && !r.mine).length
+  // El partido no «existe» del todo hasta contar la última ronda y su gol.
+  const caughtUp = shown >= pachanga.rounds.length && !gol
+  const done = pachanga.phase === 'finished' && caughtUp
+  const pending = caughtUp ? pachanga.pending : null
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
       <DuelStage stage={stage} onDone={() => setStage(null)} />
+      {gol && (
+        <GoalOverlay key={gol.key} scorer={gol.scorer} mine={gol.mine} teamId={gol.teamId} onDone={() => setGol(null)} />
+      )}
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
         <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
         <div className="flex items-center justify-center gap-3 mt-0.5">
-          <span className="text-[12px] font-bold text-rose-300 truncate max-w-[9rem]">{pachanga.mine.name}</span>
+          <span className="inline-flex items-center gap-1 min-w-0">
+            <Crest teamId={save?.teamId ?? 'raimon'} className="w-4 h-4" />
+            <span className="text-[12px] font-bold text-rose-300 truncate max-w-[8rem]">{pachanga.mine.name}</span>
+          </span>
           <span className="text-2xl font-extrabold tabular-nums">{mine} – {theirs}</span>
           <span className="text-[12px] font-bold text-slate-400 truncate max-w-[9rem]">{pachanga.rivalName}</span>
         </div>
         {/* Marcadores de ronda */}
         <div className="flex justify-center gap-1.5 mt-1.5">
           {Array.from({ length: PACHANGA_MAX_ROUNDS }, (_, i) => {
-            const r = pachanga.rounds[i]
+            const r = revealed[i]
             return (
               <span
                 key={i}
@@ -92,13 +122,13 @@ export default function PachangaView() {
       {/* Rondas jugadas */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 flex flex-col justify-end gap-1.5">
         {/* Al empezar no hay nada que contar y quedaba media pantalla vacía. */}
-        {!pachanga.rounds.length && (
+        {!revealed.length && (
           <p className="m-auto text-center text-[11px] text-slate-600 max-w-[16rem]">
             Cinco rondas alternando tiro y parada. El primero que saque {PACHANGA_TARGET} se la lleva;
             si acabáis igualados, muerte súbita.
           </p>
         )}
-        {pachanga.rounds.map((r) => (
+        {revealed.map((r) => (
           <div
             key={r.index}
             className={`rounded-xl border px-3 py-2 animate-pop-in ${

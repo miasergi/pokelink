@@ -6,13 +6,10 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { Stars } from '@/ui/inazuma/Glyphs'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getSpirit } from '@/data/inazuma/spirits'
 import { getTeam, TEAM_BY_ID, PLAYABLE_TEAMS } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
-import { rivalStartingXI } from '@/engine/inazuma/roster'
-import type { PlayerBase, PlayerStats } from '@/engine/inazuma/types'
+import type { PlayerStats } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
 // Estadísticas de la partida
@@ -282,104 +279,6 @@ export function markOnboarded(seen = true): void {
 // ---------------------------------------------------------------------------
 // Once rival (se usa en la previa del partido)
 // ---------------------------------------------------------------------------
-
-/**
- * El once rival EN FORMATO ALINEACIÓN, no como lista: antes de un partido
- * oficial lo que quieres ver es por dónde te van a hacer daño (de qué elemento
- * es su delantera, quién lleva Espíritu), y eso se lee en el campo, no en una
- * columna de nombres.
- *
- * Son los MISMOS once que monta el motor (`rivalStartingXI`), no los once
- * primeros de la plantilla: si aquí se enseñara otra cosa, la previa mentiría.
- */
-export function RivalLineup({ teamId, level }: { teamId: string; level: number }) {
-  const xi = rivalStartingXI(teamId)
-  const line = (pos: string) => xi.filter((p) => p.position === pos)
-  const rows: { pos: string; label: string }[] = [
-    { pos: 'DEL', label: 'Ataque' },
-    { pos: 'MED', label: 'Centro' },
-    { pos: 'DEF', label: 'Defensa' },
-    { pos: 'POR', label: 'Portería' },
-  ]
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="text-[11px] uppercase tracking-widest text-slate-500">
-        Su once · nivel {level}
-      </div>
-
-      <div
-        className="relative rounded-2xl border border-emerald-900/60 overflow-hidden"
-        style={{ background: 'repeating-linear-gradient(180deg,#14532d22 0 26px,#16653422 26px 52px), #0b2a1a' }}
-      >
-        <div aria-hidden className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-x-5 top-2 bottom-2 border-2 border-white/10 rounded-lg" />
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 w-14 h-14 -mt-7 border-2 border-white/10 rounded-full" />
-          <div className="absolute inset-x-5 top-1/2 h-0 border-t-2 border-white/10" />
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-2 w-24 h-8 border-2 border-white/10 rounded-sm" />
-        </div>
-
-        <div className="relative p-2.5 flex flex-col gap-2">
-          {rows.map(({ pos, label }) => {
-            const men = line(pos)
-            if (!men.length) return null
-            return (
-              <div key={pos}>
-                <div className="text-[8px] uppercase tracking-widest text-emerald-200/40 text-center mb-1">{label}</div>
-                <div className="flex justify-center gap-1.5 flex-wrap">
-                  {men.map((b) => <RivalChip key={b.id} base={b} />)}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {xi.length < 11 && (
-        <p className="text-[10px] text-slate-600">
-          Completan el once con jugadores de relleno, más flojos que estos.
-        </p>
-      )}
-    </div>
-  )
-}
-
-function RivalChip({ base }: { base: PlayerBase }) {
-  const info = ELEMENT_INFO[base.element]
-  const spirit = getSpirit(base.spirit)
-  return (
-    <div className="w-[52px] shrink-0 flex flex-col items-center">
-      <div className="relative">
-        <div
-          className="w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center"
-          style={{ borderColor: `${info.color}88`, background: `${info.color}22` }}
-        >
-          <ImgFallback
-            src={portraitUrl(base.id)}
-            className="w-full h-full object-cover object-top"
-            alt={base.name}
-            fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{base.name[0]}</span>}
-          />
-        </div>
-        <span
-          className="absolute -top-1 -left-1 grid place-items-center w-4 h-4 rounded-full text-[9px] border border-black/40"
-          style={{ background: info.color, color: '#0f172a' }}
-          title={info.label}
-        >
-          <Icon name={info.icon} className="w-4 h-4" />
-        </span>
-        {spirit && (
-          <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title={spirit.name} />
-        )}
-      </div>
-      <div className="text-[8px] leading-tight truncate w-full text-center text-slate-300 mt-0.5">
-        {base.name.split(' ')[0]}
-      </div>
-      <Stars n={base.rarity} className="w-2 h-2" />
-    </div>
-  )
-}
-
 
 // ---------------------------------------------------------------------------
 // Elección de instituto

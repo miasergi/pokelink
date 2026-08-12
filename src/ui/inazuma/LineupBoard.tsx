@@ -1,0 +1,126 @@
+// ALINEACIÓN de solo lectura, con el MISMO aspecto que la del vestuario: filas
+// de ataque a portería sobre el césped, fichas con retrato, media, nivel y
+// estrellas. La usan la previa del partido (tu once Y el del rival) para que
+// todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
+// para abrir los datos del jugador.
+import { ImgFallback } from '@/ui/components/kit'
+import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import Icon from '@/ui/components/Icon'
+import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
+import type { Element, Position } from '@/engine/inazuma/types'
+
+/** Una ficha del tablero, ya resuelta a datos pintables. */
+export interface BoardChip {
+  key: string
+  name: string
+  baseId: string
+  element: Element
+  /** Papel del hueco (fila en la que se pinta). */
+  role: Position
+  level?: number
+  rarity?: number
+  overall?: number
+  stamina?: number
+  /** Demarcación natural, para el aviso rojo si no coincide con `role`. */
+  position?: Position
+  hasSpirit?: boolean
+}
+
+const ROWS: { pos: Position; label: string }[] = [
+  { pos: 'DEL', label: 'Ataque' },
+  { pos: 'MED', label: 'Centro' },
+  { pos: 'DEF', label: 'Defensa' },
+  { pos: 'POR', label: 'Portería' },
+]
+
+export default function LineupBoard({ chips, onTap }: {
+  chips: BoardChip[]
+  onTap?: (chip: BoardChip) => void
+}) {
+  return (
+    <div
+      className="relative rounded-2xl border border-emerald-900/60 overflow-hidden"
+      style={{ background: 'repeating-linear-gradient(180deg,#14532d22 0 26px,#16653422 26px 52px), #0b2a1a' }}
+    >
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-x-5 top-2 bottom-2 border-2 border-white/10 rounded-lg" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 w-14 h-14 -mt-7 border-2 border-white/10 rounded-full" />
+        <div className="absolute inset-x-5 top-1/2 h-0 border-t-2 border-white/10" />
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-2 w-24 h-8 border-2 border-white/10 rounded-sm" />
+      </div>
+
+      <div className="relative p-2.5 flex flex-col gap-2">
+        {ROWS.map(({ pos, label }) => {
+          const line = chips.filter((c) => c.role === pos)
+          if (!line.length) return null
+          return (
+            <div key={pos}>
+              <div className="text-[8px] uppercase tracking-widest text-emerald-200/40 text-center mb-1">{label}</div>
+              <div className="flex justify-center gap-2 flex-wrap">
+                {line.map((c) => <Chip key={c.key} chip={c} onTap={onTap} />)}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void }) {
+  const info = ELEMENT_INFO[chip.element]
+  const outOfPosition = chip.position != null && chip.position !== chip.role
+  return (
+    <button
+      onClick={onTap ? () => onTap(chip) : undefined}
+      className={`relative w-[52px] shrink-0 flex flex-col items-center ${onTap ? 'active:scale-95 transition' : 'cursor-default'}`}
+    >
+      <div className="relative">
+        <div
+          className="w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center"
+          style={{ borderColor: `${info.color}88`, background: `${info.color}22` }}
+        >
+          <ImgFallback
+            src={portraitUrl(chip.baseId)}
+            className="w-full h-full object-cover object-top"
+            alt={chip.name}
+            fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{chip.name[0]}</span>}
+          />
+        </div>
+        {chip.overall != null && (
+          <span
+            className="absolute -top-1.5 -right-1.5 rounded-full px-1 text-[8px] font-black leading-tight border border-black/40"
+            style={{ background: info.color, color: '#0f172a' }}
+          >
+            {chip.overall}
+          </span>
+        )}
+        {outOfPosition && (
+          <span className="absolute -top-1.5 -left-1.5 rounded px-1 text-[8px] font-black leading-tight bg-rose-500 text-white border border-black/40">
+            {chip.position}
+          </span>
+        )}
+        {chip.hasSpirit && (
+          <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title="Espíritu Guerrero" />
+        )}
+      </div>
+      {chip.stamina != null && (
+        <div className="w-11 h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
+          <div className="h-full" style={{ width: `${chip.stamina}%`, background: staminaColor(chip.stamina) }} />
+        </div>
+      )}
+      <div className="text-[8px] leading-tight truncate w-full text-center text-slate-200 mt-0.5">
+        {chip.name.split(' ')[0]}
+      </div>
+      <div className="flex items-center justify-center gap-0.5 text-[7px] leading-none text-slate-400">
+        {chip.level != null && <>Nv.{chip.level}</>}
+        {chip.rarity != null && (
+          <>
+            <Icon name="star" className="w-1.5 h-1.5 text-amber-300/80" />
+            <span className="text-amber-300/80">{chip.rarity}</span>
+          </>
+        )}
+      </div>
+    </button>
+  )
+}

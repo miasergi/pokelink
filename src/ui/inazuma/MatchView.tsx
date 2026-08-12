@@ -12,7 +12,8 @@ import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import GoalOverlay from '@/ui/inazuma/GoalOverlay'
+import { Crest, Pic } from '@/ui/inazuma/Glyphs'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -84,7 +85,12 @@ export default function MatchView() {
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
       <DuelStage stage={stage} onDone={() => setStage(null)} />
-      <Scoreboard match={match} feed={feed} />
+      <Scoreboard
+        match={match}
+        feed={feed}
+        myTeamId={save?.teamId ?? 'raimon'}
+        rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+      />
       {!finished && <MatchPitch match={match} />}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
@@ -174,7 +180,12 @@ function eventIsMine(match: MatchState, e: MatchEvent): boolean {
   return 'side' in e ? e.side === mine : false
 }
 
-function Scoreboard({ match, feed }: { match: MatchState; feed: MatchEvent[] }) {
+function Scoreboard({ match, feed, myTeamId, rivalTeamId }: {
+  match: MatchState
+  feed: MatchEvent[]
+  myTeamId?: string
+  rivalTeamId?: string
+}) {
   const mineSide = playerSide(match)
   const mine = sideOf(match, mineSide)
   const theirs = sideOf(match, otherSide(mineSide))
@@ -196,12 +207,12 @@ function Scoreboard({ match, feed }: { match: MatchState; feed: MatchEvent[] }) 
   return (
     <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 pt-2 pb-2">
       <div className="flex items-center gap-2">
-        <TeamBadge name={mine.name} color={mine.color} />
+        <TeamBadge name={mine.name} color={mine.color} teamId={myTeamId} />
         <div className="text-center px-2">
           <div className="text-2xl font-extrabold tabular-nums leading-none">{myGoals} – {theirGoals}</div>
           <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">min. {match.minute}′</div>
         </div>
-        <TeamBadge name={theirs.name} color={theirs.color} right />
+        <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
       </div>
       {/* La tanda tiene su propio marcador, también sacado de lo revelado. */}
       {stage !== 'reglamentario' && (
@@ -224,10 +235,14 @@ function Scoreboard({ match, feed }: { match: MatchState; feed: MatchEvent[] }) 
   )
 }
 
-function TeamBadge({ name, color, right }: { name: string; color: string; right?: boolean }) {
+function TeamBadge({ name, color, teamId, right }: { name: string; color: string; teamId?: string; right?: boolean }) {
   return (
     <div className={`flex-1 min-w-0 flex items-center gap-1.5 ${right ? 'flex-row-reverse text-right' : ''}`}>
-      <span className="w-2.5 h-6 rounded-sm shrink-0" style={{ background: color }} />
+      {/* El escudo acompaña SIEMPRE al nombre; la barrita de color queda de
+          respaldo para equipos sin escudo (las pachangas de barrio). */}
+      {teamId
+        ? <Crest teamId={teamId} className="w-6 h-6" />
+        : <span className="w-2.5 h-6 rounded-sm shrink-0" style={{ background: color }} />}
       <span className="text-[11px] font-bold truncate">{name}</span>
     </div>
   )
@@ -469,48 +484,3 @@ export function Mugshot({ actor, name, right, tiny }: {
   )
 }
 
-/**
- * Celebración de gol: se planta encima del partido un segundo y medio con el
- * balón (imagen), el rótulo y el goleador. Verde si es tuyo, rojo si te lo
- * meten — que también hay que enterarse de esos.
- */
-function GoalOverlay({ scorer, mine, teamId, onDone }: {
-  scorer: string
-  mine: boolean
-  teamId?: string
-  onDone: () => void
-}) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 1900)
-    return () => clearTimeout(t)
-  }, [onDone])
-  const color = mine ? '#22c55e' : '#f43f5e'
-  return (
-    <div className="absolute inset-0 z-[65] grid place-items-center pointer-events-none">
-      <div className="absolute inset-0 animate-inazuma-flash" style={{ background: color }} />
-      <div className="relative flex flex-col items-center gap-1 animate-goal">
-        {/* El ESCUDO del equipo que marca, con el balón asomando. */}
-        {teamId ? (
-          <div className="relative">
-            <img
-              src={`${import.meta.env.BASE_URL}inazuma/teams/${teamId}.png`}
-              alt=""
-              className="w-24 h-24 object-contain drop-shadow-[0_0_16px_rgba(0,0,0,0.6)]"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-            />
-            <Pic name="ball" className="absolute -bottom-2 -right-3 w-10 h-10 drop-shadow-lg" />
-          </div>
-        ) : (
-          <Pic name="ball" className="w-16 h-16 drop-shadow-lg" />
-        )}
-        <div
-          className="px-4 py-1 rounded-full text-2xl font-black uppercase tracking-widest bg-slate-950/85 border-2"
-          style={{ color, borderColor: color }}
-        >
-          {mine ? '¡GOOOL!' : 'Gol rival'}
-        </div>
-        <div className="text-[12px] font-bold text-white/85 bg-slate-950/70 rounded-full px-2 py-0.5">{scorer}</div>
-      </div>
-    </div>
-  )
-}

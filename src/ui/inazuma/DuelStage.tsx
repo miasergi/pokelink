@@ -57,9 +57,14 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     if (!stage) return
     setShown(stage)
     setPhase(0)
+    // El tiro que ACABA en gol no pone sello (sería spoiler), así que el
+    // escenario cierra antes y le deja el foco a la celebración: si durase lo
+    // mismo, la celebración y el marcador se pisaban con él en pantalla.
+    const scoring = stage.attackerWins && stage.kind !== 'regate'
+    const total = scoring ? 2300 : STAGE_MS
     const t1 = setTimeout(() => setPhase(1), T_DEFENDER)
     const t2 = setTimeout(() => setPhase(2), T_RESULT)
-    const t3 = setTimeout(() => { setShown(null); onDone() }, STAGE_MS)
+    const t3 = setTimeout(() => { setShown(null); onDone() }, total)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [stage, onDone])
 

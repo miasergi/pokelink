@@ -4,16 +4,20 @@ import { useEffect, useState } from 'react'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
-import { PlayerCard, PlayerRow, ElementChip, portraitUrl } from '@/ui/inazuma/PlayerCard'
+import { PlayerCard, PlayerRow, ElementChip, portraitUrl, StatGrid } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
 import PitchView from '@/ui/inazuma/PitchView'
-import { RivalLineup } from '@/ui/inazuma/ExtraViews'
+import LineupBoard from '@/ui/inazuma/LineupBoard'
+import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { ElementIcon, ItemIcon, Pic, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, Pic, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
-import { buildLineup, lineupError, overall, ptMax, SIGNATURE_LEVELS, transferValue } from '@/engine/inazuma/roster'
+import {
+  buildLineup, effectiveStats, lineupError, overall, ptMax, rivalPreviewStats, rivalStartingXI,
+  SIGNATURE_LEVELS, slotRole, transferValue,
+} from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
@@ -277,6 +281,9 @@ function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void
 
 export function PreviewView() {
   const { save, matchNode, confirmMatch, goTo } = useInazuma()
+  // Ficha abierta al tocar una ficha de cualquiera de las dos alineaciones.
+  const [inspect, setInspect] = useState<CompareBlock | null>(null)
+  const [compare, setCompare] = useState<CompareBlock | null>(null)
   if (!save || !matchNode) return null
   const team = getTeam(matchNode.teamId ?? 'occult')
   // En una pachanga el rival es el equipo de barrio de la casilla, NO el
@@ -297,7 +304,10 @@ export function PreviewView() {
           style={{ background: `linear-gradient(150deg, ${team.color}33, rgba(15,23,42,0.9) 60%)` }}
         >
           <div className="text-[11px] uppercase tracking-widest text-slate-400">{matchNode.subtitle}</div>
-          <div className="text-xl font-extrabold mt-1">{rivalName}</div>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            {isBoss && <Crest teamId={matchNode.teamId} className="w-7 h-7" />}
+            <span className="text-xl font-extrabold">{rivalName}</span>
+          </div>
           <div className="mt-1.5 flex justify-center"><ElementChip element={team.element} /></div>
           {isBoss
             ? <p className="text-[12px] italic text-slate-400 mt-2">«{team.taunt}»</p>
@@ -307,24 +317,95 @@ export function PreviewView() {
         {/* Aviso de emparejamiento elemental: es LA decisión táctica del modo */}
         <MatchupHint teamElement={team.element} lineup={lineup?.all ?? []} />
 
-        {/* Su once. Sin esto, el sistema elemental era una adivinanza. */}
+        {/* Su once, en el MISMO formato de campo que el tuyo, y clicable. */}
         {matchNode.teamId && (matchNode.kind === 'jefe' || matchNode.kind === 'final') && (
-          <RivalLineup teamId={matchNode.teamId} level={matchNode.level ?? 10} />
+          <>
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-slate-500">
+              <Crest teamId={matchNode.teamId} className="w-4 h-4" />
+              Su once · nivel {matchNode.level ?? 10}
+            </div>
+            <LineupBoard
+              chips={rivalStartingXI(matchNode.teamId).map((b) => ({
+                key: b.id,
+                name: b.name,
+                baseId: b.id,
+                element: b.element,
+                role: b.position,
+                position: b.position,
+                rarity: b.rarity,
+                level: matchNode.level ?? 10,
+                hasSpirit: !!b.spirit,
+              }))}
+              onTap={(c) => {
+                const b = getPlayerBase(c.baseId)
+                setInspect({
+                  name: b.name,
+                  baseId: b.id,
+                  position: b.position,
+                  element: b.element,
+                  level: matchNode.level ?? 10,
+                  rarity: b.rarity,
+                  stats: rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10),
+                })
+              }}
+            />
+          </>
         )}
 
-        <div className="text-[11px] uppercase tracking-widest text-slate-500">
+        <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-slate-500">
+          <Crest teamId={save.teamId ?? 'raimon'} className="w-4 h-4" />
           Tu once · {getFormation(save.formation).name}
         </div>
-        <div className="flex flex-col gap-1.5">
-          {lineup?.all.map((p) => (
-            <PlayerRow
-              key={p.uid}
-              player={p}
-              right={<ElementBadgeVs mine={getPlayerBase(p.baseId).element} rival={team.element} />}
-            />
-          ))}
-        </div>
+        <LineupBoard
+          chips={(lineup?.all ?? []).map((p, i) => {
+            const b = getPlayerBase(p.baseId)
+            return {
+              key: p.uid,
+              name: b.name,
+              baseId: b.id,
+              element: b.element,
+              role: slotRole(save.formation, i),
+              position: b.position,
+              level: p.level,
+              rarity: b.rarity,
+              overall: overall(p),
+              stamina: p.stamina,
+            }
+          })}
+          onTap={(c) => {
+            const p = save.roster.find((x) => x.uid === c.key)
+            if (!p) return
+            const b = getPlayerBase(p.baseId)
+            setInspect({
+              name: b.name,
+              baseId: b.id,
+              position: b.position,
+              element: b.element,
+              level: p.level,
+              rarity: b.rarity,
+              stats: effectiveStats(p),
+            })
+          }}
+        />
       </div>
+
+      {/* Ficha del jugador tocado (tuyo o rival), con comparador. */}
+      {inspect && !compare && (
+        <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setInspect(null)}>
+          <div className="w-full max-w-xs rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <InspectCard block={inspect} />
+            <div className="mt-3 flex gap-2">
+              <Button variant="secondary" full onClick={() => setCompare(inspect)}>
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <Icon name="scales" className="w-4 h-4" /> Comparar
+                </span>
+              </Button>
+              <Button variant="primary" full onClick={() => setInspect(null)}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {compare && <CompareSheet a={compare} onClose={() => { setCompare(null); setInspect(null) }} />}
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">
         {err && <div className="text-[11px] text-rose-300 text-center">{err}</div>}
         <div className="flex gap-2">
@@ -337,17 +418,38 @@ export function PreviewView() {
   )
 }
 
-function ElementBadgeVs({ mine, rival }: { mine: keyof typeof ELEMENT_INFO; rival: keyof typeof ELEMENT_INFO }) {
-  const mult = elementMultiplier(mine, rival)
-  const info = ELEMENT_INFO[mine]
+/** Ficha compacta de un jugador CUALQUIERA (tuyo o rival) con sus atributos. */
+function InspectCard({ block }: { block: CompareBlock }) {
+  const info = ELEMENT_INFO[block.element]
   return (
-    <span className="inline-flex items-center text-sm" style={{ color: info.color }}>
-      <ElementIcon element={mine} className="w-3.5 h-3.5" />
-      {mult > 1 && <span className="ml-0.5 text-[10px] text-emerald-300">▲</span>}
-      {mult < 1 && <span className="ml-0.5 text-[10px] text-rose-300">▼</span>}
-    </span>
+    <div>
+      <div className="flex items-center gap-2.5">
+        <span className="w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 bg-slate-800" style={{ borderColor: info.color }}>
+          <ImgFallback
+            src={portraitUrl(block.baseId)}
+            className="w-full h-full object-cover object-top"
+            alt={block.name}
+            fallback={<span className="grid place-items-center w-full h-full text-base font-extrabold" style={{ color: info.color }}>
+              {block.name.slice(0, 2).toUpperCase()}
+            </span>}
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="font-extrabold text-sm truncate">{block.name}</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            {block.position} · Nv.{block.level}
+            <ElementIcon element={block.element} className="w-3 h-3" />
+          </div>
+          <Stars n={block.rarity} className="w-2.5 h-2.5" />
+        </div>
+      </div>
+      <div className="mt-2.5">
+        <StatGrid stats={block.stats} />
+      </div>
+    </div>
   )
 }
+
 
 function MatchupHint({ teamElement, lineup }: { teamElement: keyof typeof ELEMENT_INFO; lineup: PlayerInstance[] }) {
   const good = lineup.filter((p) => elementMultiplier(getPlayerBase(p.baseId).element, teamElement) > 1).length
@@ -651,6 +753,7 @@ function PlayerDetail({
   const gear = bag.filter((id) => { const k = getItem(id)?.kind; return k === 'equipo' || k === 'raro' })
   const fee = transferValue(base, player.level)
   const [confirmSale, setConfirmSale] = useState(false)
+  const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
@@ -743,17 +846,32 @@ function PlayerDetail({
 
         {/* Rotar desde AQUÍ: la ficha se abre igual desde la lista y desde el
             campo, así que las dos vistas hacen exactamente lo mismo. */}
-        <Button
-          variant="secondary"
-          full
-          className="mt-3"
-          onClick={() => { onToggleStarter(); onClose() }}
-        >
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Icon name={starter ? 'bench' : 'ball'} className="w-4 h-4" />
-            {starter ? 'Al banquillo' : 'Al once titular'}
-          </span>
-        </Button>
+        <div className="mt-3 flex gap-2">
+          <Button
+            variant="secondary"
+            full
+            onClick={() => { onToggleStarter(); onClose() }}
+          >
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <Icon name={starter ? 'bench' : 'ball'} className="w-4 h-4" />
+              {starter ? 'Al banquillo' : 'Al once'}
+            </span>
+          </Button>
+          <Button variant="secondary" full onClick={() => setCompareWith({
+            name: base.name,
+            baseId: base.id,
+            position: base.position,
+            element: base.element,
+            level: player.level,
+            rarity: base.rarity,
+            stats: effectiveStats(player),
+          })}>
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <Icon name="scales" className="w-4 h-4" /> Comparar
+            </span>
+          </Button>
+        </div>
+        {compareWith && <CompareSheet a={compareWith} onClose={() => setCompareWith(null)} />}
 
         <div className="mt-2 flex gap-2">
           <Button variant="primary" full onClick={onClose}>Cerrar</Button>

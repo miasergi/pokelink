@@ -10,6 +10,7 @@ import EventView from '@/ui/inazuma/EventView'
 import FirmaView from '@/ui/inazuma/FirmaView'
 import TradeView from '@/ui/inazuma/TradeView'
 import ItemFxOverlay from '@/ui/inazuma/ItemFxOverlay'
+import PlayerRevealOverlay from '@/ui/inazuma/PlayerRevealOverlay'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
 } from '@/ui/inazuma/ExtraViews'
@@ -50,6 +51,7 @@ export default function InazumaScreen() {
     <div className="flex flex-col flex-1 min-h-0">
       {view}
       <ItemFxOverlay />
+      <PlayerRevealOverlay />
       <Toast />
       {intro && <InazumaOnboarding onClose={() => { markOnboarded(); setIntro(false) }} />}
     </div>

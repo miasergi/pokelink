@@ -227,7 +227,17 @@ export function NodePreview({
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</div>
-            <div className="font-extrabold text-base leading-tight">{node.title}</div>
+            <div className="font-extrabold text-base leading-tight flex items-center gap-1.5">
+              {team && (
+                <img
+                  src={`${import.meta.env.BASE_URL}inazuma/teams/${node.teamId}.png`}
+                  alt=""
+                  className="w-5 h-5 object-contain shrink-0"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <span className="min-w-0 truncate">{node.title}</span>
+            </div>
             <div className="text-[11px] text-slate-400">{node.subtitle}</div>
           </div>
         </div>
