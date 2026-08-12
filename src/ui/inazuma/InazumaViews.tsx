@@ -10,14 +10,15 @@ import PitchView from '@/ui/inazuma/PitchView'
 import { RivalLineup } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { ElementIcon, ItemIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ElementIcon, ItemIcon, Pic, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
+import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import { buildLineup, lineupError, overall, ptMax, transferValue } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
-import { getPlayerBase } from '@/data/inazuma/players'
+import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
 import { techniquePrice, techniqueStock } from '@/data/inazuma/techniques'
@@ -35,9 +36,16 @@ export function TitleView() {
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom">
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-        <Icon name="ball" className="w-16 h-16 animate-float text-amber-300" />
-        <h1 className="text-3xl font-extrabold tracking-tight">
-          INAZUMA <span className="text-amber-400">ROGUE</span>
+        {/* El logo REAL del juego (bajado de la wiki con los escudos); si no
+            cargara, el título de texto de siempre sigue debajo. */}
+        <ImgFallback
+          src={`${import.meta.env.BASE_URL}inazuma/logo.png`}
+          alt="Inazuma Eleven"
+          className="w-56 max-w-[70vw] animate-float drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+          fallback={<Pic name="ball" className="w-16 h-16 animate-float" />}
+        />
+        <h1 className="text-2xl font-extrabold tracking-tight -mt-1">
+          <span className="text-amber-400">ROGUE</span>
         </h1>
         <p className="text-slate-400 text-sm max-w-[17rem]">
           Coge al Raimon, cruza el <b className="text-slate-200">Football Frontier</b> y levanta
@@ -204,7 +212,10 @@ function SaveHeader({ save }: { save: InazumaSave }) {
   // sitio antes de chocar con el dinero o el engranaje.
   const team = TEAM_BY_ID.get(save.teamId ?? 'raimon')
   return (
-    <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2.5 py-1.5 flex items-center gap-2">
+    <div
+      className="shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2.5 pb-1.5 flex items-center gap-2"
+      style={{ paddingTop: 'max(0.55rem, env(safe-area-inset-top))' }}
+    >
       <span
         className="w-8 h-8 shrink-0 grid place-items-center rounded-lg border overflow-hidden"
         style={{ borderColor: `${team?.color ?? '#e11d48'}66`, background: `${team?.color ?? '#e11d48'}18` }}
@@ -225,6 +236,7 @@ function SaveHeader({ save }: { save: InazumaSave }) {
       <span className="text-[13px] font-bold text-amber-300 tabular-nums shrink-0">
         {save.coins.toLocaleString('es-ES')} ₽
       </span>
+      <GuideButton />
       <SettingsButton />
     </div>
   )
@@ -766,7 +778,9 @@ function PlayerDetail({
         {/* `getTeam` LANZA con un id desconocido, así que aquí se consulta el
             mapa directamente: una ficha de jugador no debe poder tumbar la UI. */}
         <div className="text-[10px] text-slate-600 text-center mt-1">
-          {base.team === 'libre' ? 'Agente libre' : `Fichado del ${TEAM_BY_ID.get(base.team)?.name ?? base.team}`}
+          {base.team === 'libre'
+            ? 'Agente libre'
+            : `Fichado del ${TEAM_BY_ID.get(base.team)?.name ?? TEAM_NAMES[base.team] ?? base.team}`}
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   pachanga: { icon: NODE_ICON.pachanga, color: '#38bdf8', label: 'Pachanga' },
   objeto: { icon: NODE_ICON.objeto, color: '#a78bfa', label: 'Objeto' },
   tecnica: { icon: NODE_ICON.tecnica, color: '#fbbf24', label: 'Técnica' },
-  firma: { icon: NODE_ICON.firma, color: '#f0abfc', label: 'Firma' },
+  firma: { icon: NODE_ICON.firma, color: '#f0abfc', label: 'S. Especial' },
   ojeador: { icon: NODE_ICON.ojeador, color: '#34d399', label: 'Ojeador' },
   evento: { icon: NODE_ICON.evento, color: '#c084fc', label: 'Situación' },
   rairai: { icon: NODE_ICON.rairai, color: '#f472b6', label: 'Rai Rai' },

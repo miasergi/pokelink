@@ -78,7 +78,7 @@ export const NODE_ICON: Record<NodeKind, string> = {
   pachanga: 'node-pachanga',
   objeto: 'node-objeto',
   tecnica: 'node-tecnica',
-  firma: 'node-firma',
+  firma: 'node-firma2',
   ojeador: 'node-ojeador',
   evento: 'node-evento',
   rairai: 'node-rairai',

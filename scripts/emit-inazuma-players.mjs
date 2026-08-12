@@ -105,7 +105,9 @@ const STARS = {
  * el `power` del equipo, que para eso está.
  */
 function rarityFor(index, teamId) {
-  const elite = teamId === 'royal' || teamId === 'zeus'
+  // Los equipos Alius son la élite del juego: sus plantillas vienen cargadas.
+  const ALIUS = ['genesis', 'chaos', 'prominence', 'diamond-dust', 'epsilon', 'gemini-storm']
+  const elite = teamId === 'royal' || teamId === 'zeus' || ALIUS.includes(teamId)
   if (index === 0) return 5
   if (index <= 2) return 4
   if (index <= 8) return 3
@@ -245,6 +247,27 @@ async function main() {
     }
   }
   lines.push(']')
+  lines.push('')
+  lines.push('/** Institutos del torneo; el resto de equipos son SOLO fichables. */')
+  lines.push("const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])")
+  lines.push('')
+  lines.push('/** Equipos extra (temporada 2 y Alius): su gente entra por el ojeador. */')
+  lines.push('export const EXTRA_TEAMS: string[] = [...new Set(PLAYERS.map((p) => p.team))].filter((t) => !BRACKET_TEAMS.has(t))')
+  lines.push('')
+  lines.push('/** Nombre visible de los equipos extra (no están en `teams.ts`). */')
+  lines.push('export const TEAM_NAMES: Record<string, string> = {')
+  lines.push("  kfc: 'Inazuma KFC',")
+  lines.push("  oumihara: 'Instituto Oumihara',")
+  lines.push("  mikage: 'Mikage Sennou',")
+  lines.push("  manyuuji: 'Instituto Manyuuji',")
+  lines.push("  yokato: 'Instituto Yokato',")
+  lines.push("  'gemini-storm': 'Tormenta Géminis',")
+  lines.push("  epsilon: 'Épsilon',")
+  lines.push("  'diamond-dust': 'Diamond Dust',")
+  lines.push("  prominence: 'Prominence',")
+  lines.push("  genesis: 'Génesis',")
+  lines.push("  chaos: 'Caos',")
+  lines.push('}')
   lines.push('')
   lines.push('export const PLAYER_BY_ID = new Map(PLAYERS.map((p) => [p.id, p]))')
   lines.push('')

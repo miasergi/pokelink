@@ -18,7 +18,8 @@ import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult, canLearn,
-  createSave, fullRest, isEliminated, isMapComplete, learnSignature, startMatch, startPachanga,
+  createSave, fullRest, isEliminated, isMapComplete, learnSignature, LEVELS_BY_RESULT, startMatch,
+  startPachanga,
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
@@ -43,13 +44,20 @@ import {
  */
 let revealQueue: MatchEvent[] = []
 
-/** Cuánto se queda cada evento en pantalla antes del siguiente (ms, a ×1). */
+/**
+ * Cuánto se queda cada evento en pantalla antes del siguiente (ms, a ×1).
+ * Los duelos con técnica y TODOS los tiros abren el escenario de duelo, que
+ * dura ~2.6 s: su hold tiene que cubrirlo entero o el siguiente evento se
+ * pisaría con la animación (el «se superponen cosas» del playtest).
+ */
 function holdFor(e: MatchEvent): number {
   switch (e.kind) {
-    case 'goal': return 2000        // la celebración necesita su segundo y medio
-    case 'penalty': return 1600
-    case 'save': return 1300        // el manotazo se saborea
-    case 'duel': return e.step === 'definicion' ? 1200 : (e.technique || e.counter ? 1100 : 500)
+    case 'goal': return 2100        // la celebración necesita su segundo y medio
+    case 'penalty': return 3000     // escenario completo del penalti
+    case 'save': return 1200        // la línea respira tras el escenario del tiro
+    case 'duel':
+      if (e.step === 'definicion' || e.technique || e.counter) return 3000
+      return 500
     case 'spirit':
     case 'burst':
     case 'stage': return 1100
@@ -311,12 +319,33 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
     switch (node.kind) {
 
-      case 'objeto':
-        if (node.itemId) {
-          next.bag.push(node.itemId)
-          message = `${getItem(node.itemId)?.name ?? 'Objeto'} a la mochila.`
+      case 'objeto': {
+        // Se elige UNA de tres: dos objetos y una supertécnica (a la mochila).
+        // Encontrarse algo sin decidir nada era la casilla más sosa del mapa.
+        const options: DraftOption[] = []
+        for (const id of [node.itemId, node.itemId2]) {
+          const item = id ? getItem(id) : undefined
+          if (item) options.push({ kind: 'objeto', id: `node-item-${item.id}`, title: item.name, desc: item.desc, itemId: item.id })
+        }
+        const tech = node.techniqueId ? getTechnique(node.techniqueId) : undefined
+        if (tech) {
+          options.push({
+            kind: 'tecnica',
+            id: `node-tech-${tech.id}`,
+            title: `Supertécnica: ${tech.name}`,
+            desc: `${tech.kind} · potencia ${tech.power} · va a la mochila`,
+            techniqueId: tech.id,
+            toBag: true,
+          })
+        }
+        if (options.length) {
+          advanceLayer(next, node)
+          set({ save: next, matchNode: null, draft: options, draftPicks: 1, phase: 'draft' })
+          void persist(next, 'draft')
+          return
         }
         break
+      }
       case 'tecnica':
         // Va a la MOCHILA. Antes obligaba a elegir destinatario en el acto, y
         // eso es una decisión que casi siempre quieres tomar después de ver la
@@ -511,6 +540,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
     void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
+    // Se CUENTA la subida de nivel: en los playtests nadie sabía de dónde
+    // salían los niveles al volver al vestuario.
+    const gained = LEVELS_BY_RESULT[result]
     set({
       save: next,
       // Una sola carta, al azar: se probó con tres a elegir y cortaba el ritmo
@@ -520,6 +552,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       phase: 'draft',
       match: null,
       matchNode: null,
+      message: `Los que jugaron suben +${gained} niveles; el banquillo, +${Math.max(0, gained - 1)}.`,
     })
     void persist(next, 'draft')
   },
@@ -530,6 +563,14 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save) return
     const opt = draft.find((o) => o.id === optionId)
     if (!opt) return
+
+    // La técnica «a la mochila» no necesita destinatario: se guarda y listo.
+    if (opt.kind === 'tecnica' && opt.toBag) {
+      const next = { ...save, techniqueBag: [...save.techniqueBag, opt.techniqueId] }
+      closeDraft(set, next, draft, draftPicks, optionId,
+        `${getTechnique(opt.techniqueId)?.name ?? 'Supertécnica'} a la mochila.`)
+      return
+    }
 
     // Estas dos necesitan que señales a quién. El selector vive en el vestuario,
     // así que hay que LLEVAR ahí: antes solo se guardaba el objetivo y la

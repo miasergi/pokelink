@@ -63,15 +63,18 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
  * Reparto de casillas de ruta. Las pachangas pesan más que nada: son la fuente
  * principal de nivel, igual que los combates salvajes en el modo Pokémon.
  */
+// La antigua casilla «Técnica» ya no se sortea: la casilla de OBJETO ofrece
+// tres cosas a elegir y una de ellas es siempre una supertécnica, así que
+// tener las dos era redundante. `NodeKind` conserva 'tecnica' por las
+// partidas guardadas.
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
   { kind: 'pachanga', weight: 20 },
   { kind: 'evento', weight: 17 },
-  { kind: 'firma', weight: 14 },
-  { kind: 'objeto', weight: 13 },
-  { kind: 'tecnica', weight: 11 },
-  { kind: 'ojeador', weight: 11 },
-  { kind: 'rairai', weight: 8 },
-  { kind: 'tienda', weight: 6 },
+  { kind: 'firma', weight: 15 },
+  { kind: 'objeto', weight: 17 },
+  { kind: 'ojeador', weight: 12 },
+  { kind: 'rairai', weight: 9 },
+  { kind: 'tienda', weight: 7 },
 ]
 
 function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
@@ -214,14 +217,27 @@ function buildRouteNode(
       }
     }
     case 'objeto': {
-      const item = rng.pick(lootPool(seg))
-      const rare = item.kind === 'raro'
+      // La casilla ofrece TRES cosas a elegir: dos objetos y una supertécnica
+      // (que va a la mochila). El sorteo se hace aquí para que el mapa sea
+      // reproducible con su semilla y la previa pueda enseñar qué toca.
+      const pool = lootPool(seg)
+      const a = rng.pick(pool)
+      let b = rng.pick(pool)
+      if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length]
+      const target = 45 + seg * 9
+      const fits = teachableTo(playerTeamId)
+      const tp = TECHNIQUES.filter((t) => fits(t) && Math.abs(t.power - target) <= 25)
+      const wide = TECHNIQUES.filter(fits)
+      const tech = rng.pick(tp.length ? tp : wide.length ? wide : TECHNIQUES)
+      const rare = a.kind === 'raro' || b.kind === 'raro'
       return {
         ...base,
-        itemId: item.id,
+        itemId: a.id,
+        itemId2: b.id,
+        techniqueId: tech.id,
         title: rare ? '¡Algo brillante!' : 'Material tirado',
-        subtitle: rare ? 'Esto no se ve todos los días' : 'Alguien se dejó algo aquí',
-        reward: item.name,
+        subtitle: 'Elige una de tres',
+        reward: `${a.name}, ${b.name} o ${tech.name}`,
       }
     }
     case 'evento': {

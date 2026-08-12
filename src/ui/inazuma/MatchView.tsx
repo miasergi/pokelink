@@ -11,7 +11,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
-import TechniqueCutIn, { cutInFrom, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
+import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import { Pic } from '@/ui/inazuma/Glyphs'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
@@ -24,36 +24,45 @@ export default function MatchView() {
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
   } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
-  const [cut, setCut] = useState<CutIn | null>(null)
-  const seen = useRef(0)
+  const [stage, setStage] = useState<StageData | null>(null)
 
   // El RITMO lo marca el store: el feed llega ya revelado de uno en uno, con
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
-  // solo se reacciona al último evento (celebración de gol y cut-in).
+  // solo se reacciona al último evento: escenario de duelo o celebración.
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number } | null>(null)
   useEffect(() => {
     if (!match || !feed.length) return
     const last = feed[feed.length - 1]
+    const mine = playerSide(match)
     if (last.kind === 'goal') {
-      setGol({ scorer: last.scorer, mine: last.side === playerSide(match), key: feed.length })
-    } else if (last.kind === 'penalty' && last.scored) {
-      setGol({ scorer: last.shooter, mine: last.side === playerSide(match), key: feed.length })
+      setGol({ scorer: last.scorer, mine: last.side === mine, key: feed.length })
+    } else if (last.kind === 'penalty') {
+      // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
+      setStage({
+        key: feed.length,
+        attacker: { name: last.shooter, baseId: actorByUid(match, last.shooterUid)?.baseId, techName: last.technique },
+        defender: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId },
+        attackerWins: last.scored,
+        attackerMine: last.side === mine,
+        kind: 'penalti',
+      })
+      if (last.scored) setGol({ scorer: last.shooter, mine: last.side === mine, key: feed.length })
+    } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
+      // Toda interacción con técnica de por medio (y todos los tiros) se cuenta
+      // en el escenario: quién contra quién, con qué, y quién gana.
+      setStage({
+        key: feed.length,
+        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, techName: last.technique },
+        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, techName: last.counter },
+        attackerWins: last.success,
+        attackerMine: last.side === mine,
+        kind: last.step === 'definicion' ? 'tiro' : 'regate',
+      })
     }
   }, [feed.length, match, feed])
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
 
-  // Corte de supertécnica sobre lo recién revelado.
-  useEffect(() => {
-    if (!match) return
-    const fresh = feed.slice(seen.current)
-    seen.current = feed.length
-    const mine = playerSide(match)
-    for (let i = fresh.length - 1; i >= 0; i--) {
-      const c = cutInFrom(fresh[i], mine, feed.length, (uid) => actorByUid(match, uid)?.baseId)
-      if (c) { setCut(c); return }
-    }
-  }, [feed, match])
 
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
@@ -62,7 +71,7 @@ export default function MatchView() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-      <TechniqueCutIn cut={cut} onDone={() => setCut(null)} />
+      <DuelStage stage={stage} onDone={() => setStage(null)} />
       <Scoreboard match={match} />
       {!finished && <MatchPitch match={match} />}
 

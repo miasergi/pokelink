@@ -1,7 +1,7 @@
 // Plantilla: crear jugadores, escalarlos por nivel, calcular PT y aplicar
 // fatiga y objetos. Todo son funciones PURAS — el store solo las orquesta.
 import type { RNG } from '@/utils/rng'
-import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
+import { EXTRA_TEAMS, getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getTeam, FILLER_NAMES } from '@/data/inazuma/teams'
@@ -419,7 +419,10 @@ export function upgradeTechnique(p: PlayerInstance, techId: string): PlayerInsta
  * primera ronda no tenía a NADIE que ofrecer y pagaba una comisión de consuelo.
  */
 export function signablePool(beatenTeams: string[], ownTeam?: string): PlayerBase[] {
-  const allowed = new Set([...beatenTeams, 'libre'])
+  // También los equipos EXTRA (temporada 2 y Alius): no juegan el torneo, pero
+  // sus jugadores rondan por ahí y el ojeador los encuentra. El peso por
+  // rareza ya se encarga de que Génesis no aparezca en la primera ronda.
+  const allowed = new Set([...beatenTeams, 'libre', ...EXTRA_TEAMS])
   if (ownTeam) allowed.add(ownTeam)
   return PLAYERS.filter((p) => allowed.has(p.team))
 }

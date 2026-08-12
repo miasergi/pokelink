@@ -183,3 +183,9 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 .animate-sheet-up { animation: sheet-up .22s ease-out both; }
+
+/* Entradas laterales del escenario de duelo. */
+@keyframes slide-right { from { transform: translateX(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slide-left { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+.animate-slide-right { animation: slide-right .3s ease-out both; }
+.animate-slide-left { animation: slide-left .3s ease-out both; }

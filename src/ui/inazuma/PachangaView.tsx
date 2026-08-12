@@ -9,37 +9,31 @@ import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
 import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET } from '@/engine/inazuma/pachanga'
-import TechniqueCutIn, { techniqueIdByName, type CutIn } from '@/ui/inazuma/TechniqueCutIn'
+import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 
 export default function PachangaView() {
   const { pachanga, pachangaShoot, finishPachanga } = useInazuma()
-  const [cut, setCut] = useState<CutIn | null>(null)
+  const [stage, setStage] = useState<StageData | null>(null)
   const seen = useRef(0)
 
-  // Mismo corte que en el partido, sobre la última ronda resuelta.
+  // Mismo escenario de duelo que en el partido, sobre la última ronda resuelta:
+  // tirador contra portero, sus técnicas con imagen, y el sello del desenlace.
   useEffect(() => {
     const rounds = pachanga?.rounds ?? []
-    if (rounds.length <= seen.current) { seen.current = rounds.length; return }
+    if (!pachanga || rounds.length <= seen.current) { seen.current = rounds.length; return }
     seen.current = rounds.length
     const last = rounds[rounds.length - 1]
-    // La técnica del tirador manda; si solo la puso el portero, la suya.
-    const name = last.technique ?? last.counter
-    const userName = last.technique ? last.shooter : last.keeper
-    // El retrato sale buscando al actor por nombre en los dos bandos.
-    const all = pachanga
-      ? [pachanga.mine, pachanga.theirs].flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
-      : []
-    const baseId = all.find((a) => a.name === userName)?.baseId
-    if (name) {
-      setCut({
-        key: rounds.length,
-        name,
-        id: techniqueIdByName(name),
-        mine: last.technique ? last.mine : !last.mine,
-        playerName: userName,
-        playerBaseId: baseId,
-      })
-    }
+    const all = [pachanga.mine, pachanga.theirs]
+      .flatMap((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds])
+    const baseOf = (name: string) => all.find((a) => a.name === name)?.baseId
+    setStage({
+      key: rounds.length,
+      attacker: { name: last.shooter, baseId: baseOf(last.shooter), techName: last.technique },
+      defender: { name: last.keeper, baseId: baseOf(last.keeper), techName: last.counter },
+      attackerWins: last.scored,
+      attackerMine: last.mine,
+      kind: 'tiro',
+    })
   }, [pachanga?.rounds.length, pachanga])
 
   if (!pachanga) return null
@@ -49,7 +43,7 @@ export default function PachangaView() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-      <TechniqueCutIn cut={cut} onDone={() => setCut(null)} />
+      <DuelStage stage={stage} onDone={() => setStage(null)} />
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
         <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>

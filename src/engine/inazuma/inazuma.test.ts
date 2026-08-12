@@ -324,7 +324,13 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         if (useItems) shop(save, 'rairai')
         break
       case 'objeto':
-        if (node.itemId) save.bag.push(node.itemId)
+        // Elige como una persona: la técnica si alguien puede aprenderla ya,
+        // si no el primer objeto.
+        if (node.techniqueId && save.roster.some((p) => canLearn(p, node.techniqueId!))) {
+          learnTechnique(save, node.techniqueId)
+        } else if (node.itemId) {
+          save.bag.push(node.itemId)
+        }
         if (useItems) equipStarters(save)
         break
       case 'tecnica':
@@ -701,16 +707,25 @@ describe('torneo', () => {
       .toBe(Math.round(base.power * (1 + 2 * TECH_LEVEL_BONUS)))
   })
 
-  it('las casillas de objeto y técnica traen su contenido ya sorteado', () => {
+  it('la casilla de objeto trae sus TRES opciones ya sorteadas', () => {
     const map = generateMap(new RNG(3))
     const all = Object.values(map.nodes)
-    expect(all.filter((n) => n.kind === 'objeto').every((n) => !!n.itemId)).toBe(true)
-    expect(all.filter((n) => n.kind === 'tecnica').every((n) => !!n.techniqueId)).toBe(true)
-    // Y hay de todo: el mapa no puede salir monotemático.
+    const objetos = all.filter((n) => n.kind === 'objeto')
+    expect(objetos.length).toBeGreaterThan(0)
+    for (const n of objetos) {
+      // Dos objetos distintos y una supertécnica: la elección de tres.
+      expect(n.itemId).toBeTruthy()
+      expect(n.itemId2).toBeTruthy()
+      expect(n.itemId).not.toBe(n.itemId2)
+      expect(n.techniqueId).toBeTruthy()
+    }
+    // Y hay de todo: el mapa no puede salir monotemático. La antigua casilla
+    // «tecnica» ya no se genera (la absorbe la de objeto).
     const kinds = new Set(all.map((n) => n.kind))
-    for (const k of ['pachanga', 'objeto', 'tecnica', 'ojeador', 'jefe'] as const) {
+    for (const k of ['pachanga', 'objeto', 'firma', 'ojeador', 'evento', 'jefe'] as const) {
       expect(kinds.has(k)).toBe(true)
     }
+    expect(kinds.has('tecnica')).toBe(false)
   })
 
   it('la pachanga se decide rápido, cansa y solo da nivel si se gana', () => {
@@ -845,7 +860,8 @@ describe('coherencia', () => {
   it('las supertécnicas que ofrece el mapa las puede aprender alguien de tu plantilla', () => {
     for (const teamId of PLAYABLE_TEAMS) {
       const save = createSave(7, teamId)
-      const techNodes = Object.values(save.map.nodes).filter((n) => n.kind === 'tecnica')
+      // Las técnicas del mapa viven ahora en las casillas de objeto.
+      const techNodes = Object.values(save.map.nodes).filter((n) => n.kind === 'objeto' && n.techniqueId)
       expect(techNodes.length).toBeGreaterThan(0)
       for (const n of techNodes) {
         // Compatible por demarcación Y elemento con alguien de la plantilla.

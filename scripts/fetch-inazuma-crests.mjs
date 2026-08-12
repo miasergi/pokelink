@@ -28,14 +28,15 @@ const force = process.argv.includes('--force')
  * alternativas.
  */
 const WIKI_NAME = {
+  // El nombre JAPONÉS primero: es el que tiene el emblema (VR) a 512×512.
   raimon: ['Raimon'],
   occult: ['Occult'],
-  otaku: ['Otaku', 'Otaku Gakuen'],
-  wild: ['Wild', 'Wild Junior High', 'Yakuza Gakuen'],
-  shuriken: ['Shuriken'],
-  farm: ['Farm', 'Farm Junior High', 'Nose'],
-  kirkwood: ['Kirkwood', 'Kidokawa Seishuu'],
-  royal: ['Royal Academy', 'Teikoku Gakuen'],
+  otaku: ['Otaku Gakuen', 'Otaku'],
+  wild: ['Yakuza Gakuen', 'Wild'],
+  shuriken: ['Sengoku Igajima', 'Shuriken'],
+  farm: ['Nose', 'Farm'],
+  kirkwood: ['Kidokawa Seishuu', 'Kirkwood'],
+  royal: ['Teikoku Gakuen', 'Royal Academy'],
   zeus: ['Zeus'],
 }
 
@@ -50,15 +51,26 @@ function firstThumb(json) {
   const pages = json?.query?.pages ?? {}
   for (const key of Object.keys(pages)) {
     if (key === '-1') continue
-    const src = pages[key]?.thumbnail?.source ?? pages[key]?.imageinfo?.[0]?.thumburl
+    // El ORIGINAL (`url`), no `thumburl`: el thumbnailer de Fandom re-codifica
+    // a WebP aunque el fichero se llame .png, y el navegador de algunos
+    // usuarios no lo pintaba. Los originales son PNG de verdad.
+    const src = pages[key]?.imageinfo?.[0]?.url ?? pages[key]?.thumbnail?.source
     if (src) return src
   }
   return null
 }
 
-/** El emblema limpio, si existe. */
+/**
+ * El emblema limpio, si existe. Se prueba PRIMERO la versión «(VR)» (Victory
+ * Road): son los mismos escudos a 512×512, mientras que los ficheros base de
+ * la wiki miden 64×64 — y encima el thumbnailer los servía como WebP diminuto
+ * con extensión .png, que era el motivo de que varios «no tuvieran logo».
+ */
 async function findEmblem(name) {
-  for (const title of [`File:${name} emblem.png`, `File:${name} Emblem.png`, `File:${name} emblem.jpg`]) {
+  for (const title of [
+    `File:${name} emblem (VR).png`,
+    `File:${name} emblem.png`, `File:${name} Emblem.png`, `File:${name} emblem.jpg`,
+  ]) {
     try {
       const j = await api({ action: 'query', titles: title, prop: 'imageinfo', iiprop: 'url', iiurlwidth: String(SIZE) })
       const url = firstThumb(j)
@@ -88,6 +100,21 @@ async function exists(p) { try { await access(p); return true } catch { return f
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })
+
+  // El logo INTERNACIONAL del juego («(RE) English Logo.png», 680×406) para la
+  // pantalla de título. El «(IE) Logo.png» es el japonés.
+  try {
+    const j = await api({ action: 'query', titles: 'File:(RE) English Logo.png', prop: 'imageinfo', iiprop: 'url' })
+    const url = firstThumb(j)
+    if (url) {
+      const res = await fetch(`${url.split('?')[0]}?format=png`, { headers: { 'User-Agent': UA } })
+      if (res.ok) {
+        await writeFile(join(OUT_DIR, '..', 'logo.png'), Buffer.from(await res.arrayBuffer()))
+        console.log('  ✓ logo del juego → public/inazuma/logo.png')
+      }
+    }
+  } catch { console.log('  ✗ logo del juego') }
+
   const src = await readFile(SOURCE, 'utf8')
   const ids = [...src.matchAll(/id: '([a-z]+)', name: '([^']+)'/g)].map((m) => m[1])
 
@@ -104,7 +131,9 @@ async function main() {
         if (url) break
       }
       if (!url) { missing.push(id); console.log(`  ✗ ${id} — sin escudo`); continue }
-      const res = await fetch(url, { headers: { 'User-Agent': UA } })
+      // El CDN de Fandom re-codifica a WebP hagas lo que hagas con los
+      // headers; lo único que respeta es el parámetro `format=png` en la URL.
+      const res = await fetch(`${url.split('?')[0]}?format=png`, { headers: { 'User-Agent': UA } })
       if (!res.ok) throw new Error(`${res.status}`)
       await writeFile(dest, Buffer.from(await res.arrayBuffer()))
       ok++

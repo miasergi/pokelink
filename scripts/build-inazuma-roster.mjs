@@ -23,7 +23,12 @@ const OUT = join(ROOT, 'scripts', '.cache', 'inazuma-roster.json')
 const API = 'https://inazuma-eleven.fandom.com/api.php'
 const UA = 'pokelink-roster-builder/2.0 (script de un solo uso)'
 
-/** Página de la wiki de cada instituto. */
+/**
+ * Página de la wiki de cada equipo. Los nueve primeros son los institutos del
+ * torneo; el resto son equipos EXTRA cuyos jugadores entran solo en el pool de
+ * fichajes (ojeador y cazatalentos): los rivales de la segunda temporada y los
+ * equipos Alius, que es donde están los fichajes con caché de verdad.
+ */
 const TEAMS = {
   raimon: ['Raimon'],
   occult: ['Occult'],
@@ -34,6 +39,18 @@ const TEAMS = {
   kirkwood: ['Kidokawa Seishuu'],
   royal: ['Teikoku Gakuen'],
   zeus: ['Zeus'],
+  // --- extra: solo fichables ---
+  kfc: ['Inazuma KFC'],
+  oumihara: ['Oumihara'],
+  mikage: ['Mikage Sennou'],
+  manyuuji: ['Manyuuji'],
+  yokato: ['Yokato'],
+  'gemini-storm': ['Gemini Storm'],
+  epsilon: ['Epsilon'],
+  'diamond-dust': ['Diamond Dust'],
+  prominence: ['Prominence'],
+  genesis: ['The Genesis', 'Genesis'],
+  chaos: ['Chaos'],
 }
 
 /** Los cuatro elementos, como los escribe la wiki en inglés. */

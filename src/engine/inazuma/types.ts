@@ -394,6 +394,8 @@ export interface TournamentNode {
   cleared?: boolean
   /** Contenido ya sorteado al generar el mapa (para que la previa no mienta). */
   itemId?: string
+  /** Segundo objeto de la casilla de objeto (se elige uno de tres). */
+  itemId2?: string
   techniqueId?: string
   /** Situación de la casilla de evento (id de `EVENTS`). */
   eventId?: string
@@ -429,7 +431,7 @@ export type DraftOption =
   | { kind: 'fichaje'; id: string; title: string; desc: string; playerId: string; level: number }
   | { kind: 'objeto'; id: string; title: string; desc: string; itemId: string }
   | { kind: 'entrenamiento'; id: string; title: string; desc: string; levels: number }
-  | { kind: 'tecnica'; id: string; title: string; desc: string; techniqueId: string }
+  | { kind: 'tecnica'; id: string; title: string; desc: string; techniqueId: string; toBag?: boolean }
   | { kind: 'dinero'; id: string; title: string; desc: string; amount: number }
   | { kind: 'descanso'; id: string; title: string; desc: string }
 
