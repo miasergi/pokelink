@@ -10,6 +10,7 @@
 // convertirlos, y un PNG con extensión .webp NO se decodifica (GitHub Pages
 // sirve el Content-Type por extensión).
 import { ImgFallback } from '@/ui/components/kit'
+import { Stars } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon } from '@/ui/inazuma/Glyphs'
@@ -100,6 +101,8 @@ export function PlayerCard({
           {base.position}
         </span>
         <ElementChip element={base.element} />
+        {/* Talento innato, siempre a la vista pero sin gritar. */}
+        <Stars n={base.rarity} className="w-2.5 h-2.5" />
         <span className="ml-auto text-lg font-extrabold tabular-nums leading-none" style={{ color: info.color }}>
           {overall(player)}
         </span>
@@ -224,6 +227,7 @@ export function PlayerRow({
           <span className={`rounded px-1 text-[9px] font-extrabold border ${POSITION_COLOR[base.position]}`}>{base.position}</span>
           <span className="font-bold text-[13px] truncate">{base.name}</span>
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
+          <Stars n={base.rarity} className="w-2 h-2" />
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
