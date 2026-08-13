@@ -10,6 +10,7 @@ import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
 import PitchView from '@/ui/inazuma/PitchView'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
+import { MedalHint } from '@/ui/inazuma/BagView'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, Stars, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
@@ -796,9 +797,11 @@ function BagPanel({
                     <PlayerRow
                       key={p.uid}
                       player={p}
-                      // Su objeto actual a la vista, para saber a quién le
-                      // pisarías el equipamiento.
-                      right={p.item ? <ItemIcon itemId={p.item} className="w-4 h-4 opacity-80" /> : undefined}
+                      // Su objeto actual a la vista (y con la medalla, la
+                      // rareza actual → siguiente y el coste explicado).
+                      right={use === 'medalla-rareza'
+                        ? <MedalHint player={p} have={save.bag.filter((x) => x === 'medalla-rareza').length} />
+                        : p.item ? <ItemIcon itemId={p.item} className="w-4 h-4 opacity-80" /> : undefined}
                       onClick={() => {
                         const k = getItem(use)?.kind
                         if (k === 'equipo' || k === 'raro') { onEquip(p.uid, use); setUse(null); return }

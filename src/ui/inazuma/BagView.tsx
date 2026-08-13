@@ -12,9 +12,9 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ItemIcon, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ItemIcon, rarityBorder, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
-import { canUpgradeTechnique, MAX_RARITY, rarityOf, techLevel } from '@/engine/inazuma/roster'
+import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
 import { getPlayerBase } from '@/data/inazuma/players'
@@ -227,6 +227,22 @@ export default function BagView() {
                     ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
                     : 'Elige a quién se lo das'}
                 </p>
+                {/* La REGLA de la medalla, delante: sin esto, «pide 3
+                    medallas» parecía un capricho («no entiendo esto»). */}
+                {pending.kind === 'item' && pending.id === 'medalla-rareza' && (
+                  <div className="mb-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-center">
+                    <div className="text-[12px] font-bold text-amber-200 flex items-center justify-center gap-1.5">
+                      <ItemIcon itemId="medalla-rareza" className="w-4 h-4" />
+                      Llevas {save.bag.filter((x) => x === 'medalla-rareza').length} medallas
+                    </div>
+                    <div className="text-[10px] text-slate-300 leading-snug">
+                      Subir cuesta según la rareza actual:{' '}
+                      <b style={{ color: rarityBorder(1) }}>Normal</b> 1 ·{' '}
+                      <b style={{ color: rarityBorder(2) }}>Avanzado</b> 2 ·{' '}
+                      <b style={{ color: rarityBorder(3) }}>Ídolo</b> 3
+                    </div>
+                  </div>
+                )}
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
                   {save.roster.map((p) => {
                     const why = eligible(p)
@@ -249,11 +265,13 @@ export default function BagView() {
                                   : <span className="text-[9px] text-slate-600">sin objeto</span>
                               )}
                               {!isGear && worn && <ItemIcon itemId={p.item!} className="w-4 h-4 opacity-80" />}
-                              {why
-                                ? <span className="text-[9px] text-slate-500 text-right leading-tight">{why}</span>
-                                : pending.kind === 'item' && pending.id === 'mejora'
-                                  ? <UpgradeHint player={p} />
-                                  : null}
+                              {pending.kind === 'item' && pending.id === 'medalla-rareza'
+                                ? <MedalHint player={p} have={save.bag.filter((x) => x === 'medalla-rareza').length} />
+                                : why
+                                  ? <span className="text-[9px] text-slate-500 text-right leading-tight">{why}</span>
+                                  : pending.kind === 'item' && pending.id === 'mejora'
+                                    ? <UpgradeHint player={p} />
+                                    : null}
                             </span>
                           }
                         />
@@ -268,6 +286,33 @@ export default function BagView() {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * Qué hace la Medalla EN ESTE jugador: su rareza actual → la siguiente, y el
+ * coste con lo que te falta si no llega. Antes solo salía «pide 3 medallas»
+ * sin decir de dónde salía el número.
+ */
+export function MedalHint({ player, have }: { player: PlayerInstance; have: number }) {
+  const tier = rarityOf(player)
+  if (tier >= MAX_RARITY) {
+    return <span className="text-[9px] text-slate-500 text-right leading-tight">Ya es {RARITY_LABEL[MAX_RARITY]}</span>
+  }
+  const cost = tier
+  const short = cost - have
+  return (
+    <span className="text-[9px] text-right leading-tight flex flex-col items-end gap-0.5">
+      <span>
+        <b style={{ color: rarityBorder(tier) }}>{RARITY_LABEL[tier]}</b>
+        <span className="text-slate-500"> → </span>
+        <b style={{ color: rarityBorder(tier + 1) }}>{RARITY_LABEL[tier + 1]}</b>
+      </span>
+      <span className={`inline-flex items-center gap-0.5 font-bold ${short > 0 ? 'text-rose-300' : 'text-amber-300'}`}>
+        {cost}× <ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" />
+        {short > 0 && <span className="text-rose-300"> · te faltan {short}</span>}
+      </span>
+    </span>
   )
 }
 
