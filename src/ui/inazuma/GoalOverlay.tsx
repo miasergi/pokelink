@@ -5,7 +5,7 @@
 import { useEffect } from 'react'
 import { Pic } from '@/ui/inazuma/Glyphs'
 
-export const GOAL_OVERLAY_MS = 1900
+export const GOAL_OVERLAY_MS = 2400
 
 export default function GoalOverlay({ scorer, mine, teamId, onDone }: {
   scorer: string
@@ -25,23 +25,37 @@ export default function GoalOverlay({ scorer, mine, teamId, onDone }: {
   return (
     <div className="absolute inset-0 z-[65] grid place-items-center pointer-events-none">
       <div className="absolute inset-0 animate-inazuma-flash" style={{ background: color }} />
-      <div className="relative flex flex-col items-center gap-1 animate-goal">
-        {/* El ESCUDO del equipo que marca, con el balón asomando. */}
-        {teamId ? (
-          <div className="relative">
+      <div className="relative flex flex-col items-center gap-1">
+        {/* EL BALÓN PERFORA LA RED: la portería de frente, el balón que se te
+            viene encima y la red hinchándose con el impacto. */}
+        <div className="relative w-48 h-32">
+          <svg viewBox="0 0 192 128" className="absolute inset-0 w-full h-full">
+            {/* palos */}
+            <path d="M6 122V8h180v114" fill="none" stroke="#e2e8f0" strokeWidth="7" strokeLinecap="round" />
+            {/* la RED, que se hincha al recibir el balón */}
+            <g stroke="rgba(255,255,255,.55)" strokeWidth="1.4" fill="none" className="animate-net-bulge" style={{ transformOrigin: '50% 60%' }}>
+              {Array.from({ length: 11 }, (_, i) => (
+                <path key={`v${i}`} d={`M${14 + i * 16.5} 12 Q ${14 + i * 16.5} 70 ${18 + i * 15.8} 120`} />
+              ))}
+              {Array.from({ length: 7 }, (_, i) => (
+                <path key={`h${i}`} d={`M10 ${14 + i * 16} Q 96 ${20 + i * 17.5} 182 ${14 + i * 16}`} />
+              ))}
+            </g>
+          </svg>
+          {/* el balón entra creciendo hacia la escuadra */}
+          <Pic name="ball" className="absolute left-1/2 top-1/2 w-12 h-12 -ml-6 -mt-6 animate-ball-pierce drop-shadow-lg" />
+          {/* el escudo del que marca, asomado a la esquina */}
+          {teamId && (
             <img
               src={`${import.meta.env.BASE_URL}inazuma/teams/${teamId}.png`}
               alt=""
-              className="w-24 h-24 object-contain drop-shadow-[0_0_16px_rgba(0,0,0,0.6)]"
+              className="absolute -top-3 -right-4 w-14 h-14 object-contain drop-shadow-[0_0_16px_rgba(0,0,0,0.6)] animate-pop-in"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
             />
-            <Pic name="ball" className="absolute -bottom-2 -right-3 w-10 h-10 drop-shadow-lg" />
-          </div>
-        ) : (
-          <Pic name="ball" className="w-16 h-16 drop-shadow-lg" />
-        )}
+          )}
+        </div>
         <div
-          className="px-4 py-1 rounded-full text-2xl font-black uppercase tracking-widest bg-slate-950/85 border-2"
+          className="px-4 py-1 rounded-full text-2xl font-black uppercase tracking-widest bg-slate-950/85 border-2 animate-goal"
           style={{ color, borderColor: color }}
         >
           {mine ? '¡GOOOL!' : 'Gol rival'}

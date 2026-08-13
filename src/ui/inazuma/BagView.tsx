@@ -23,6 +23,8 @@ import type { PlayerInstance } from '@/engine/inazuma/types'
 type Pending =
   | { kind: 'item'; id: string }
   | { kind: 'tech'; id: string }
+  /** Mejora con varias técnicas mejorables: segundo paso, elegir CUÁL. */
+  | { kind: 'mejora-tech'; uid: string }
   | null
 
 export default function BagView() {
@@ -47,7 +49,7 @@ export default function BagView() {
 
   /** ¿A quién tiene sentido dárselo? Filtra para no dejar elegir en balde. */
   const eligible = (p: PlayerInstance): string | null => {
-    if (!pending) return null
+    if (!pending || pending.kind === 'mejora-tech') return null
     if (pending.kind === 'tech') {
       // El motivo REAL (demarcación o elemento), no un mensaje genérico: si a
       // un delantero de fuego no le cabe una técnica de bosque, hay que decirlo.
@@ -60,17 +62,27 @@ export default function BagView() {
       return signatureNext(p) ? null : 'Cadena completa'
     }
     if (pending.id === 'medalla-rareza') {
-      return rarityOf(p) < MAX_RARITY ? null : 'Ya es multicolor'
+      if (rarityOf(p) >= MAX_RARITY) return 'Ya es Legendario'
+      const need = rarityOf(p)
+      const have = save.bag.filter((x) => x === 'medalla-rareza').length
+      return have >= need ? null : `Pide ${need} medallas (llevas ${have})`
     }
     return null
   }
 
   const apply = (uid: string) => {
-    if (!pending) return
+    if (!pending || pending.kind === 'mejora-tech') return
     const kind = getItem(pending.id)?.kind
-    if (pending.kind === 'tech') teachTechnique(pending.id, uid)
-    else if (kind === 'equipo' || kind === 'raro') equip(uid, pending.id)
-    else useConsumable(pending.id, uid)
+    if (pending.kind === 'tech') { teachTechnique(pending.id, uid); setPending(null); return }
+    if (kind === 'equipo' || kind === 'raro') { equip(uid, pending.id); setPending(null); return }
+    if (pending.id === 'mejora') {
+      // Con más de una técnica mejorable, la elección es del jugador: antes
+      // caía en silencio a la primera aprendida.
+      const p = save.roster.find((x) => x.uid === uid)
+      const ups = p ? p.techniques.filter((t) => canUpgradeTechnique(p, t)) : []
+      if (ups.length > 1) { setPending({ kind: 'mejora-tech', uid }); return }
+    }
+    useConsumable(pending.id, uid)
     setPending(null)
   }
 
@@ -171,36 +183,86 @@ export default function BagView() {
             >
               <Icon name="x" className="w-4 h-4" />
             </button>
-            <div className="font-extrabold text-center">
-              {pending.kind === 'tech' ? getTechnique(pending.id)?.name : getItem(pending.id)?.name}
-            </div>
-            <p className="text-[11px] text-slate-400 text-center mb-2">
-              {pending.kind === 'tech'
-                ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
-                : 'Elige a quién se lo das'}
-            </p>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
-              {save.roster.map((p) => {
-                const why = eligible(p)
-                return (
-                  <div key={p.uid} className="flex items-center gap-2">
-                    <PlayerRow
-                      player={p}
-                      className="flex-1 min-w-0"
-                      dimmed={!!why}
-                      onClick={why ? undefined : () => apply(p.uid)}
-                      right={
-                        why
-                          ? <span className="text-[9px] text-slate-500 text-right leading-tight">{why}</span>
-                          : pending.id === 'mejora'
-                            ? <UpgradeHint player={p} />
-                            : undefined
-                      }
-                    />
+            {pending.kind === 'mejora-tech' ? (() => {
+              // PASO 2 de la Mejora: elegir QUÉ técnica sube de nivel.
+              const p = save.roster.find((x) => x.uid === pending.uid)
+              if (!p) return null
+              const ups = p.techniques.filter((t) => canUpgradeTechnique(p, t))
+              return (
+                <>
+                  <div className="font-extrabold text-center">¿Qué técnica mejora {playerName(p)}?</div>
+                  <p className="text-[11px] text-slate-400 text-center mb-2">+25 % de potencia a la elegida</p>
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
+                    {ups.map((id) => {
+                      const t = getTechnique(id)
+                      if (!t) return null
+                      const info = ELEMENT_INFO[t.element]
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => { useConsumable('mejora', p.uid, id); setPending(null) }}
+                          className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98] transition"
+                        >
+                          <TechniqueBadge tech={t} size={36} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13px] font-bold" style={{ color: info.color }}>{t.name}</span>
+                            <span className="block text-[10px] text-slate-400">
+                              {KIND_LABEL[t.kind]} · V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}
+                            </span>
+                          </span>
+                          <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
+                        </button>
+                      )
+                    })}
                   </div>
-                )
-              })}
-            </div>
+                </>
+              )
+            })() : (
+              <>
+                <div className="font-extrabold text-center">
+                  {pending.kind === 'tech' ? getTechnique(pending.id)?.name : getItem(pending.id)?.name}
+                </div>
+                <p className="text-[11px] text-slate-400 text-center mb-2">
+                  {pending.kind === 'tech'
+                    ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
+                    : 'Elige a quién se lo das'}
+                </p>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
+                  {save.roster.map((p) => {
+                    const why = eligible(p)
+                    // Su equipamiento ACTUAL, a la vista: al repartir objetos
+                    // hay que saber quién lleva ya algo (y qué le pisarías).
+                    const worn = p.item ? getItem(p.item) : undefined
+                    const isGear = pending.kind === 'item' && ['equipo', 'raro'].includes(getItem(pending.id)?.kind ?? '')
+                    return (
+                      <div key={p.uid} className="flex items-center gap-2">
+                        <PlayerRow
+                          player={p}
+                          className="flex-1 min-w-0"
+                          dimmed={!!why}
+                          onClick={why ? undefined : () => apply(p.uid)}
+                          right={
+                            <span className="flex flex-col items-end gap-0.5">
+                              {isGear && (
+                                worn
+                                  ? <span className="flex items-center gap-1 text-[9px] text-amber-300"><ItemIcon itemId={p.item!} className="w-4 h-4" />lleva</span>
+                                  : <span className="text-[9px] text-slate-600">sin objeto</span>
+                              )}
+                              {!isGear && worn && <ItemIcon itemId={p.item!} className="w-4 h-4 opacity-80" />}
+                              {why
+                                ? <span className="text-[9px] text-slate-500 text-right leading-tight">{why}</span>
+                                : pending.kind === 'item' && pending.id === 'mejora'
+                                  ? <UpgradeHint player={p} />
+                                  : null}
+                            </span>
+                          }
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
 
           </div>
         </div>

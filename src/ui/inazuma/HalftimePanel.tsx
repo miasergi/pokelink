@@ -60,6 +60,9 @@ export default function HalftimePanel() {
             element: a.element,
             role: a.position,
             position: getPlayerBase(a.baseId).position,
+            // La RAREZA colorea el marco (como en todas las alineaciones):
+            // sin ella, el descanso pintaba los bordes por elemento.
+            rarity: a.rarity,
             stamina: a.stamina,
             pt: a.pt,
             ptMax: a.ptMax,

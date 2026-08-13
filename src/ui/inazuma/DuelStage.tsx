@@ -16,11 +16,6 @@ import { Crest, ELEMENT_ICON, rarityBorder, techniqueImage } from '@/ui/inazuma/
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Technique } from '@/engine/inazuma/types'
 
-/** Duración total del escenario. El hold del store para estos eventos es mayor. */
-const STAGE_MS = 3300
-/** Cuándo entra cada fase (ms desde que aparece). */
-const T_DEFENDER = 650
-const T_RESULT = 1750
 
 export interface StageSide {
   name: string
@@ -54,9 +49,23 @@ export function techniqueByName(name: string | undefined): Technique | undefined
   return getTechnique(idOf(name)) ?? (BY_NAME.has(name.toLowerCase()) ? getTechnique(BY_NAME.get(name.toLowerCase())!) : undefined)
 }
 
+/**
+ * LÍNEA DE TIEMPO por clase de duelo (fases):
+ *  0 atacante · 1 defensor + CHOQUE · 2 PROTAGONISTA a pantalla grande (la
+ *  técnica en foto gigante, o la acción a pelo, con su nombre) · y en los
+ *  TIROS: 3 barra de suspense («¿entra?») · 4 desenlace (paradón del portero
+ *  a pantalla grande, o cierre y celebración con el balón perforando la red).
+ * El regate resuelve en la fase 2 (el protagonista ES el ganador del duelo).
+ */
+const TL = {
+  pase: { defender: 500, end: 1700 },
+  regate: { defender: 600, clash: 600, show: 1500, end: 3400 },
+  tiro: { defender: 600, clash: 600, show: 1450, bar: 2650, outcome: 3750, endGoal: 3900, endSave: 5400 },
+} as const
+
 export default function DuelStage({ stage, onDone }: { stage: StageData | null; onDone: () => void }) {
   const [shown, setShown] = useState<StageData | null>(null)
-  const [phase, setPhase] = useState(0) // 0 atacante · 1 defensor · 2 desenlace
+  const [phase, setPhase] = useState(0)
   // `onDone` entra por ref: si estuviera en las deps del efecto, un padre que
   // lo pase inline (identidad nueva en cada render) reiniciaría el escenario a
   // mitad — el duelo se veía DOS veces. La animación solo depende del duelo.
@@ -67,21 +76,32 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     if (!stage) return
     setShown(stage)
     setPhase(0)
-    // El tiro que ACABA en gol no pone sello (sería spoiler), así que el
-    // escenario cierra antes y le deja el foco a la celebración: si durase lo
-    // mismo, la celebración y el marcador se pisaban con él en pantalla.
-    // El PASE es un apunte, no un duelo: entra y sale rápido.
-    const scoring = stage.attackerWins && stage.kind !== 'regate'
-    const total = stage.kind === 'pase' ? 1700 : scoring ? 2300 : STAGE_MS
-    const t1 = setTimeout(() => setPhase(1), T_DEFENDER)
-    const t2 = setTimeout(() => setPhase(2), T_RESULT)
-    const t3 = setTimeout(() => { setShown(null); onDoneRef.current() }, total)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    const shooting = stage.kind === 'tiro' || stage.kind === 'penalti'
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms))
+    if (stage.kind === 'pase') {
+      at(TL.pase.defender, () => setPhase(1))
+      at(TL.pase.end, () => { setShown(null); onDoneRef.current() })
+    } else if (!shooting) {
+      at(TL.regate.defender, () => setPhase(1))
+      at(TL.regate.show, () => setPhase(2))
+      at(TL.regate.end, () => { setShown(null); onDoneRef.current() })
+    } else {
+      at(TL.tiro.defender, () => setPhase(1))
+      at(TL.tiro.show, () => setPhase(2))
+      at(TL.tiro.bar, () => setPhase(3))
+      at(TL.tiro.outcome, () => setPhase(4))
+      // El GOL no se cuenta aquí: el escenario cierra y la celebración (con la
+      // red perforada) toma el relevo. La parada sí: paradón a pantalla grande.
+      at(stage.attackerWins ? TL.tiro.endGoal : TL.tiro.endSave, () => { setShown(null); onDoneRef.current() })
+    }
+    return () => timers.forEach(clearTimeout)
   }, [stage])
 
   if (!shown) return null
   const atkTech = techniqueByName(shown.attacker.techName)
   const defTech = techniqueByName(shown.defender.techName)
+  const shooting = shown.kind === 'tiro' || shown.kind === 'penalti'
 
   // CADA CLASE DE DUELO CON SU CARA: sin el rótulo (y su color), un regate
   // contra un bloqueo y un disparo contra el portero se veían idénticos.
@@ -93,22 +113,20 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         ? { text: 'PASE AL HUECO', color: '#22c55e' }
         : { text: '¡DISPARO A PUERTA!', color: '#f43f5e' }
 
-  // Si el TIRO entra, aquí no se dice: el sello sería un spoiler de la
-  // celebración de gol, que llega justo después con el escudo y el marcador.
-  // El pase tampoco sella nada: llega siempre, no hay desenlace que contar.
-  const spoiler = shown.attackerWins && shown.kind !== 'regate'
-  const result = shown.attackerWins
-    ? '¡SE ESCAPA!'
-    : (shown.kind === 'regate' ? '¡BALÓN ROBADO!' : '¡PARADÓN!')
   const winnerMine = shown.attackerWins ? shown.attackerMine : !shown.attackerMine
   const resultColor = winnerMine ? '#22c55e' : '#f43f5e'
+
+  // El PROTAGONISTA de la fase 2: en el regate, el GANADOR del duelo con lo
+  // que hizo; en el tiro, el que dispara (el desenlace aún no se sabe).
+  const star = shooting || shown.attackerWins
+    ? { side: shown.attacker, tech: atkTech, crest: shown.attackerCrest, action: shooting ? '¡DISPARO!' : '¡REGATE!' }
+    : { side: shown.defender, tech: defTech, crest: shown.defenderCrest, action: shown.kind === 'regate' ? '¡ENTRADA!' : '¡BLOQUEO!' }
 
   return (
     <div key={shown.key} className="absolute inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-slate-950/70 animate-fade-in" />
       {/* TINTE por clase de duelo: azul el regate, rojo el disparo, ámbar el
-          penalti. Con el rótulo solo, las cinemáticas seguían pareciendo la
-          misma; el color se lee antes que el texto. */}
+          penalti. El color se lee antes que el texto. */}
       <div
         className="absolute inset-0 animate-fade-in"
         style={{ background: `radial-gradient(circle at 50% 42%, ${kindBanner.color}2e, transparent 72%)` }}
@@ -118,7 +136,8 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         style={{ background: kindBanner.color }}
       />
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4">
+      {/* FASES 0-1: el cara a cara (queda de fondo cuando entra el grande). */}
+      <div className={`absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 transition-opacity duration-300 ${phase >= 2 ? 'opacity-15' : ''}`}>
         <div
           className="rounded-full border-2 px-4 py-1 text-[12px] font-black uppercase tracking-widest animate-pop-in"
           style={{ color: kindBanner.color, borderColor: kindBanner.color, background: 'rgba(2,6,23,.85)' }}
@@ -137,8 +156,13 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
             pase no hay «contra»: el segundo es el COMPAÑERO que recibe. */}
         {phase >= 1 && (
           <>
-            <div className="text-xl font-black text-white/70 animate-pop-in leading-none">
+            <div className="relative text-xl font-black text-white/70 animate-pop-in leading-none">
               {shown.kind === 'pase' ? '→' : 'VS'}
+              {/* El CHOQUE: un fogonazo cuando las dos propuestas se cruzan. */}
+              {shown.kind !== 'pase' && (
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full animate-clash-pop"
+                  style={{ background: `radial-gradient(circle, #ffffffcc, ${kindBanner.color}55 55%, transparent 70%)` }} />
+              )}
             </div>
             <Fighter
               side={shown.defender}
@@ -150,20 +174,120 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
             />
           </>
         )}
+      </div>
 
-        {phase >= 2 && !spoiler && (
-          <div
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-fit px-5 py-2 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal flex items-center gap-2"
-            style={{ color: resultColor, borderColor: resultColor, transform: 'rotate(-5deg)' }}
-          >
-            {/* El escudo del que GANA el duelo, junto al sello. */}
-            <Crest teamId={shown.attackerWins ? shown.attackerCrest : shown.defenderCrest} className="w-7 h-7" />
-            {result}
+      {/* FASE 2: el PROTAGONISTA a pantalla grande — su técnica en foto
+          gigante (o la acción a pelo) con el nombre de lo que hace. */}
+      {phase >= 2 && shown.kind !== 'pase' && (!shooting || phase < 4) && (
+        <Showcase
+          side={star.side}
+          tech={star.tech}
+          crest={star.crest}
+          fallbackAction={star.action}
+          color={kindBanner.color}
+          stamp={!shooting ? {
+            text: shown.attackerWins ? '¡SE ESCAPA!' : '¡BALÓN ROBADO!',
+            color: resultColor,
+            crest: shown.attackerWins ? shown.attackerCrest : shown.defenderCrest,
+          } : undefined}
+        />
+      )}
+
+      {/* FASE 3 (tiros): la barra de suspense — ¿acaba en gol? */}
+      {shooting && phase === 3 && (
+        <div className="absolute inset-x-8 bottom-[18%] flex flex-col items-center gap-1.5">
+          <div className="text-lg font-black uppercase tracking-widest text-white animate-pulse drop-shadow">¿ENTRA?</div>
+          <div className="w-full max-w-xs h-3 rounded-full bg-slate-950/85 border border-white/25 overflow-hidden">
+            <div className="h-full rounded-full animate-suspense" style={{ background: 'linear-gradient(90deg,#38bdf8,#fbbf24,#f43f5e)' }} />
+          </div>
+        </div>
+      )}
+
+      {/* FASE 4 (tiros parados): el PARADÓN a pantalla grande. El gol no pasa
+          por aquí — el escenario ya cerró y la red la perfora la celebración. */}
+      {shooting && phase >= 4 && !shown.attackerWins && (
+        <Showcase
+          side={shown.defender}
+          tech={defTech}
+          crest={shown.defenderCrest}
+          fallbackAction="¡PARADA!"
+          color="#22c55e"
+          stamp={{ text: '¡PARADÓN!', color: resultColor, crest: shown.defenderCrest }}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * El momento estrella A PANTALLA GRANDE: la foto de la técnica ocupando el
+ * centro (o el icono de la acción si va a pelo), el nombre de lo que hace en
+ * letras gigantes y, si el duelo ya se resuelve aquí, el sello del desenlace.
+ */
+function Showcase({ side, tech, crest, fallbackAction, color, stamp }: {
+  side: StageSide
+  tech?: Technique
+  crest?: string
+  /** Rótulo si no hay técnica: la acción a pelo («¡REGATE!», «¡PARADA!»…). */
+  fallbackAction: string
+  color: string
+  stamp?: { text: string; color: string; crest?: string }
+}) {
+  const info = tech ? ELEMENT_INFO[tech.element] : null
+  const glow = info?.color ?? color
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 animate-pop-in">
+      {/* Quién lo hace, arriba y pequeño. */}
+      <div className="flex items-center gap-2">
+        {crest && <Crest teamId={crest} className="w-6 h-6" />}
+        <span className="text-[13px] font-extrabold text-white/90">{side.name}</span>
+      </div>
+      {/* LA FOTO, en grande de verdad. */}
+      <div
+        className="relative w-[min(72vw,19rem)] aspect-square rounded-3xl overflow-hidden border-4 grid place-items-center bg-slate-950"
+        style={{ borderColor: glow, boxShadow: `0 0 60px ${glow}88, 0 0 120px ${glow}44` }}
+      >
+        {tech ? (
+          <ImgFallback
+            src={techniqueImage(tech.id)}
+            alt={tech.name}
+            className="w-full h-full object-cover animate-showcase-zoom"
+            fallback={<Icon name={ELEMENT_ICON[tech.element]} className="w-1/2 h-1/2" style={{ color: glow }} />}
+          />
+        ) : (
+          <div className="w-full h-full grid place-items-center animate-showcase-zoom"
+            style={{ background: `radial-gradient(circle at 50% 45%, ${glow}33, #020617 75%)` }}>
+            <Icon name={KIND_FALLBACK_ICON[fallbackAction] ?? 'bolt'} className="w-1/2 h-1/2" style={{ color: glow }} />
           </div>
         )}
       </div>
+      {/* El NOMBRE de lo que hace, gigante. */}
+      <div
+        className="max-w-full px-4 py-1 rounded-2xl bg-slate-950/85 border-2 text-center text-2xl font-black uppercase tracking-wide leading-tight truncate"
+        style={{ color: glow, borderColor: `${glow}aa`, textShadow: `0 0 18px ${glow}` }}
+      >
+        {tech ? `¡${tech.name}!` : fallbackAction}
+      </div>
+      {stamp && (
+        <div
+          className="px-5 py-1.5 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal flex items-center gap-2"
+          style={{ color: stamp.color, borderColor: stamp.color, transform: 'rotate(-4deg)' }}
+        >
+          {stamp.crest && <Crest teamId={stamp.crest} className="w-7 h-7" />}
+          {stamp.text}
+        </div>
+      )}
     </div>
   )
+}
+
+/** Icono para la acción SIN técnica del protagonista. */
+const KIND_FALLBACK_ICON: Record<string, string> = {
+  '¡REGATE!': 'dribble',
+  '¡ENTRADA!': 'shield',
+  '¡BLOQUEO!': 'shield',
+  '¡DISPARO!': 'shoot',
+  '¡PARADA!': 'glove',
 }
 
 /** Un lado del duelo: retrato + nombre + su técnica (imagen real) o la acción simple. */
@@ -183,8 +307,9 @@ function Fighter({ side, tech, label, right, crest, plain }: {
       {crest && <Crest teamId={crest} className="w-9 h-9 shrink-0 drop-shadow" />}
       <div className="relative shrink-0">
         <div
-          className="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"
-          style={{ borderColor: side.rarity ? rarityBorder(side.rarity) : (info?.color ?? '#64748b') }}
+          className="relative w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"
+          // Legendario = anillo multicolor animado, no el borde rosa plano.
+          style={{ borderColor: side.rarity === 4 ? 'transparent' : side.rarity ? rarityBorder(side.rarity) : (info?.color ?? '#64748b') }}
         >
           <ImgFallback
             src={side.baseId ? portraitUrl(side.baseId) : ''}
@@ -194,6 +319,7 @@ function Fighter({ side, tech, label, right, crest, plain }: {
               {side.name.slice(0, 2).toUpperCase()}
             </span>}
           />
+          {side.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
       </div>
       <div className={`min-w-0 flex-1 ${right ? 'text-right' : ''}`}>

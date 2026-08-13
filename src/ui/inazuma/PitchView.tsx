@@ -9,7 +9,7 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, rarityChipStyle } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
@@ -256,8 +256,12 @@ function PitchChip({
           highlight ? 'scale-110 ring-2 ring-amber-300' : ''
         }`}
         style={{
-          // El borde cuenta la RAREZA (multicolor = degradado de verdad).
-          ...rarityChipStyle(rarityOf(player), `${info.color}22`),
+          // El borde cuenta la RAREZA. El multicolor va con el anillo animado
+          // a secas (fondo opaco): el marco degradado sobre fondo translúcido
+          // teñía toda la ficha.
+          ...(rarityOf(player) === 4
+            ? { border: '2px solid transparent', background: '#0f172a' }
+            : rarityChipStyle(rarityOf(player), `${info.color}22`)),
           ...(highlight ? { border: '2px solid #fcd34d' } : {}),
           ...(floating ? { boxShadow: '0 8px 20px rgba(0,0,0,.5)' } : {}),
         }}
@@ -270,6 +274,12 @@ function PitchChip({
         />
         {rarityOf(player) === 4 && <span className="mc-ring rounded-xl" />}
       </div>
+      {/* El objeto que lleva, asomando en la esquina. */}
+      {player.item && (
+        <span className="absolute top-8 -left-1 z-10 grid place-items-center w-4 h-4 rounded bg-slate-900/90 border border-slate-600">
+          <ItemIcon itemId={player.item} className="w-3 h-3" />
+        </span>
+      )}
       {/* PT (azul) y aguante: los dos depósitos también en el vestuario. */}
       <div className="h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
         <div className="h-full bg-sky-400" style={{ width: `${Math.min(100, (player.pt / Math.max(1, ptMax(player))) * 100)}%` }} />

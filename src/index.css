@@ -194,6 +194,46 @@ body {
    girando de tono. La máscara deja ver únicamente el aro, así que la
    animación de hue no toca el retrato de dentro. */
 @keyframes mc-hue { to { filter: hue-rotate(360deg) } }
+/* CHOQUE de propuestas en el duelo: fogonazo que crece y se apaga. */
+@keyframes clash-pop {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  70% { transform: translate(-50%, -50%) scale(1.5); opacity: .5; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+.animate-clash-pop { animation: clash-pop .55s ease-out forwards; }
+
+/* La foto del protagonista respira: zoom lento mientras está en pantalla. */
+@keyframes showcase-zoom {
+  from { transform: scale(1.12); }
+  to { transform: scale(1); }
+}
+.animate-showcase-zoom { animation: showcase-zoom 1.6s ease-out forwards; }
+
+/* Barra de suspense del tiro: se llena en un segundo largo. */
+@keyframes suspense-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-suspense { animation: suspense-fill 1s linear forwards; }
+
+/* GOL: la red se hincha con el impacto… */
+@keyframes net-bulge {
+  0%, 30% { transform: scale(1); }
+  55% { transform: scale(1.16, 1.22); }
+  75% { transform: scale(1.04, 1.06); }
+  100% { transform: scale(1.08, 1.1); }
+}
+.animate-net-bulge { animation: net-bulge 1.1s ease-out forwards; }
+
+/* …y el balón se te viene encima hasta clavarse en ella. */
+@keyframes ball-pierce {
+  0% { transform: scale(0.18) translateY(46px); opacity: .85; }
+  45% { transform: scale(0.9) translateY(8px); opacity: 1; }
+  60% { transform: scale(1.25) translateY(-4px); }
+  100% { transform: scale(1.05) translateY(-2px); }
+}
+.animate-ball-pierce { animation: ball-pierce .9s cubic-bezier(.2,.7,.3,1) forwards; }
+
 .mc-ring {
   position: absolute;
   inset: 0;

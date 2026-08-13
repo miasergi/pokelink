@@ -145,7 +145,9 @@ export function PlayerCard({
 
       {!compact && (
         <div className="px-2 pb-2 flex flex-col gap-1.5">
-          <StatGrid stats={stats} />
+          {/* La stat que sube el objeto equipado, en VERDE: que se vea qué
+              está haciendo el objeto sin tener que leer su descripción. */}
+          <StatGrid stats={stats} boosted={player.item ? getItem(player.item)?.stat : undefined} />
           <div className="flex flex-wrap gap-1">
             {player.techniques.map((id) => {
               const t = getTechnique(id)
@@ -179,13 +181,17 @@ const STAT_LABEL: Record<keyof Stats, string> = {
   tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU',
 }
 
-export function StatGrid({ stats }: { stats: Stats }) {
+export function StatGrid({ stats, boosted }: {
+  stats: Stats
+  /** Atributo subido por el objeto equipado: se pinta en VERDE. */
+  boosted?: keyof Stats
+}) {
   return (
     <div className="grid grid-cols-6 gap-1">
       {(Object.keys(STAT_LABEL) as (keyof Stats)[]).map((k) => (
-        <div key={k} className="rounded-md bg-slate-800/70 py-0.5 text-center">
-          <div className="text-[8px] text-slate-500 leading-none">{STAT_LABEL[k]}</div>
-          <div className="text-[11px] font-bold tabular-nums leading-tight">{stats[k]}</div>
+        <div key={k} className={`rounded-md py-0.5 text-center ${k === boosted ? 'bg-emerald-500/15 border border-emerald-500/50' : 'bg-slate-800/70'}`}>
+          <div className={`text-[8px] leading-none ${k === boosted ? 'text-emerald-300' : 'text-slate-500'}`}>{STAT_LABEL[k]}</div>
+          <div className={`text-[11px] font-bold tabular-nums leading-tight ${k === boosted ? 'text-emerald-300' : ''}`}>{stats[k]}</div>
         </div>
       ))}
     </div>

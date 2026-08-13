@@ -321,7 +321,7 @@ interface InazumaState {
   placeAt: (uid: string, slot: number) => void
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
-  useConsumable: (itemId: string, uid: string) => void
+  useConsumable: (itemId: string, uid: string, choiceId?: string) => void
   teachTechnique: (techId: string, uid: string) => void
   setFormation: (id: string) => void
   pauseAtHalftime: () => void
@@ -1260,7 +1260,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, get().phase)
   },
 
-  useConsumable: (itemId, uid) => {
+  useConsumable: (itemId, uid, choiceId) => {
     const { save } = get()
     if (!save) return
     const next: InazumaSave = { ...save, bag: save.bag.slice(), roster: save.roster.slice() }
@@ -1287,7 +1287,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // la forma más rápida de que dejen de medir el juego real.
     const rarityBefore = team ? 0 : rarityOf(save.roster.find((x) => x.uid === uid)!)
     const statsBefore = team ? null : effectiveStats(save.roster.find((x) => x.uid === uid)!)
-    const res = applyConsumable(next, itemId, uid)
+    const res = applyConsumable(next, itemId, uid, choiceId)
     if (!res.ok) { set({ message: res.message }); return }
 
     const after = snap(next.roster)

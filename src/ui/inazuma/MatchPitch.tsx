@@ -153,9 +153,10 @@ function Face({ actor, x, label, ball, dim }: {
     >
       <div className="relative">
         <div
-          className="w-9 h-9 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
+          className="relative w-9 h-9 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
           style={{
-            borderColor: actor.rarity ? rarityBorder(actor.rarity) : info.color,
+            // Legendario = anillo multicolor animado, no el rosa plano.
+            borderColor: actor.rarity === 4 ? 'transparent' : actor.rarity ? rarityBorder(actor.rarity) : info.color,
             boxShadow: ball ? `0 0 10px ${info.color}` : undefined,
           }}
         >
@@ -167,6 +168,7 @@ function Face({ actor, x, label, ball, dim }: {
               {actor.name.slice(0, 2).toUpperCase()}
             </span>}
           />
+          {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
         {ball && <Pic name="ball" className="absolute -bottom-1 -right-1.5 w-4 h-4 drop-shadow" />}
       </div>

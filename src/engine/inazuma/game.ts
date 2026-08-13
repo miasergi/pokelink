@@ -284,6 +284,20 @@ export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 
 /** Partidos: +4 a quien jugó (titular o cambio), +2 al banquillo. */
 export const MATCH_LEVELS_PLAYED = 4
 export const MATCH_LEVELS_BENCH = 2
+/**
+ * EL BANQUILLO NUNCA SE DESCUELGA: tras repartir niveles, cualquier jugador a
+ * más de esta distancia de la MEDIA del once se pone a esa distancia («los
+ * suplentes entrenan aparte»). Sin esto, a las pocas rondas el banquillo
+ * quedaba tan atrás que rotar o vender no tenía sentido — el banquillo entero
+ * estaba «en desuso».
+ */
+export const BENCH_CATCHUP_GAP = 3
+
+/** Sube a `p` hasta quedar como mucho a `BENCH_CATCHUP_GAP` de la media `ref`. */
+function catchUp(p: PlayerInstance, ref: number): PlayerInstance {
+  const target = Math.floor(ref) - BENCH_CATCHUP_GAP
+  return p.level < target ? levelUp(p, target - p.level) : p
+}
 
 /** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
 export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
@@ -320,12 +334,15 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   // en la segunda parte) da +4; el banquillo, +2 — gane quien gane.
   recordMatchStats(save, match.events, new Set(byUid.keys()))
 
+  // Media del once TRAS su subida: la referencia del catch-up del banquillo.
+  const xiLevels = save.roster.filter((p) => byUid.has(p.uid)).map((p) => p.level + MATCH_LEVELS_PLAYED)
+  const xiAvg = xiLevels.length ? xiLevels.reduce((x, y) => x + y, 0) / xiLevels.length : 0
+
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
-    // El banquillo también progresa, pero UN NIVEL MENOS que quien juega: si no
+    // El banquillo también progresa, pero MENOS que quien juega: si no
     // subiera nada, rotar te diluiría la plantilla y el banquillo sería una
-    // trampa; si subiera igual, jugar no tendría premio. Un nivel de diferencia
-    // hace que rotar cueste algo real sin castigar por hacerlo.
+    // trampa; si subiera igual, jugar no tendría premio.
     let next: PlayerInstance = levelUp(
       // El partido oficial cierra ronda: el equipo REPONE PT y aguante al
       // pitido final (el desgaste que se arrastra es el de las pachangas y la
@@ -333,6 +350,9 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
       a ? { ...p, stamina: 100, pt: ptMax(p) } : { ...p, stamina: 100, pt: ptMax(p) },
       a ? MATCH_LEVELS_PLAYED : MATCH_LEVELS_BENCH,
     )
+    // Y NUNCA descolgado: el suplente rezagado entrena hasta quedar a tiro de
+    // la media del once — el banquillo siempre es alineable.
+    if (!a) next = catchUp(next, xiAvg)
     // Descanso entre eliminatorias: algo, pero nunca del todo.
     next = {
       ...next,
@@ -397,6 +417,10 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 1))
   const beforeUp = new Map(save.roster.filter((p) => lucky.has(p.uid)).map((p) => [p.uid, effectiveStats(p)]))
 
+  // Media del once tras su subida, para el catch-up del banquillo.
+  const xiLevels = save.roster.filter((p) => byUid.has(p.uid)).map((p) => p.level + levels)
+  const xiAvg = xiLevels.length ? xiLevels.reduce((x, y) => x + y, 0) / xiLevels.length : 0
+
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
     let next: PlayerInstance = a
@@ -413,6 +437,8 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
         stamina: Math.min(100, next.stamina + 12),
         pt: Math.min(ptMax(next), next.pt + Math.round(ptMax(next) * 0.2)),
       }
+      // El suplente descolgado entrena aparte: nunca a más de 3 de la media.
+      next = catchUp(next, xiAvg)
     }
     if (lucky.has(p.uid)) next = upgradeRarity(next)
     return next
@@ -571,6 +597,11 @@ export function applyEventEffect(save: InazumaSave, effect: EventEffect, r: RNG)
   return {}
 }
 
+/** Medallas que cuesta subir la SIGUIENTE rareza de este jugador. */
+export function medalCost(p: PlayerInstance): number {
+  return Math.max(1, rarityOf(p))
+}
+
 /**
  * Gasta un objeto de la mochila. Muta `save` (ya clonado por el llamante) y
  * devuelve qué contar. Vive en el motor porque el bot de balance también bebe
@@ -579,6 +610,8 @@ export function applyEventEffect(save: InazumaSave, effect: EventEffect, r: RNG)
  */
 export function applyConsumable(
   save: InazumaSave, itemId: string, uid: string,
+  /** Para la Mejora: QUÉ técnica mejorar (sin ella cae a la primera mejorable). */
+  choiceId?: string,
 ): { ok: boolean; message: string } {
   const i = save.bag.indexOf(itemId)
   if (i < 0) return { ok: false, message: 'No llevas eso encima.' }
@@ -625,7 +658,12 @@ export function applyConsumable(
       return spend('+4 niveles')
     case 'mejora': {
       const target = save.roster.find((p) => p.uid === uid)
-      const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
+      // La técnica la ELIGE el que juega (`choiceId`); el fallback a la
+      // primera mejorable queda para el bot de balance. Antes siempre caía a
+      // la primera técnica aprendida sin preguntar.
+      const up = target && choiceId && canUpgradeTechnique(target, choiceId)
+        ? choiceId
+        : target?.techniques.find((t) => canUpgradeTechnique(target, t))
       if (!target || !up) return { ok: false, message: 'Ese jugador no tiene ninguna técnica que se pueda mejorar más.' }
       one((p) => upgradeTechnique(p, up))
       return spend(`${getTechnique(up)?.name} mejorada (+25 % de potencia)`)
@@ -633,10 +671,18 @@ export function applyConsumable(
     case 'medalla-rareza': {
       const target = save.roster.find((p) => p.uid === uid)
       if (!target) return { ok: false, message: 'No está en la plantilla.' }
-      if (rarityOf(target) >= MAX_RARITY) return { ok: false, message: 'Ya es multicolor: no hay rareza más alta.' }
+      if (rarityOf(target) >= MAX_RARITY) return { ok: false, message: 'Ya es Legendario: no hay rareza más alta.' }
+      // COSTE ESCALADO: subir cuesta tantas medallas como la rareza actual
+      // (1 → Avanzado, 2 → Ídolo, 3 → Legendario). Con coste plano, a cuartos
+      // se llegaba con medio equipo multicolor y el torneo se desinflaba.
+      const need = medalCost(target)
+      const have = save.bag.filter((x) => x === 'medalla-rareza').length
+      if (have < need) return { ok: false, message: `Subir a ${RARITY_LABEL[rarityOf(target) + 1]} pide ${need} medallas (llevas ${have}).` }
+      let left = need
+      save.bag = save.bag.filter((x) => (x === 'medalla-rareza' && left > 0 ? (left--, false) : true))
       one((p) => upgradeRarity(p))
       const now = rarityOf(save.roster.find((p) => p.uid === uid)!)
-      return spend(`¡Sube a ${RARITY_LABEL[now]}!`)
+      return { ok: true, message: `¡Sube a ${RARITY_LABEL[now]}! (${need} medalla${need > 1 ? 's' : ''})` }
     }
     case 'manual-avanzado': {
       // Avanza la CADENA característica del jugador (una firma de bolsillo).

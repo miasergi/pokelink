@@ -626,7 +626,7 @@ export function Mugshot({ actor, name, right, tiny }: {
           lleva su anillo animado de verdad, no un borde rosa. */}
       <div
         className={`relative ${size} shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-800`}
-        style={{ borderColor: actor?.rarity ? rarityBorder(actor.rarity) : info.color }}
+        style={{ borderColor: actor?.rarity === 4 ? 'transparent' : actor?.rarity ? rarityBorder(actor.rarity) : info.color }}
       >
         <ImgFallback
           src={portraitUrl(actor?.baseId ?? '')}

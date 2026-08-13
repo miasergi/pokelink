@@ -4,7 +4,7 @@
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, rarityChipStyle } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -28,6 +28,8 @@ export interface BoardChip {
   /** Demarcación natural, para el aviso rojo si no coincide con `role`. */
   position?: Position
   hasSpirit?: boolean
+  /** Objeto equipado: su imagen asoma en la esquina de la ficha. */
+  itemId?: string
 }
 
 const ROWS: { pos: Position; label: string }[] = [
@@ -86,9 +88,14 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
       <div className="relative">
         <div
           className="w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center"
-          style={chip.rarity != null
-            ? rarityChipStyle(chip.rarity, `${info.color}22`)
-            : { borderColor: `${info.color}88`, background: `${info.color}22` }}
+          // Rareza 4: SOLO el anillo animado (borde transparente y fondo
+          // opaco). Combinar el marco degradado con fondo translúcido teñía
+          // el cuadro entero y parecía que el marco «se desbordaba».
+          style={chip.rarity === 4
+            ? { border: '2px solid transparent', background: '#0f172a' }
+            : chip.rarity != null
+              ? rarityChipStyle(chip.rarity, `${info.color}22`)
+              : { borderColor: `${info.color}88`, background: `${info.color}22` }}
         >
           <ImgFallback
             src={portraitUrl(chip.baseId)}
@@ -107,6 +114,12 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
         )}
         {chip.hasSpirit && (
           <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title="Espíritu Guerrero" />
+        )}
+        {/* El objeto que lleva, asomando: se ve quién va equipado sin entrar. */}
+        {chip.itemId && (
+          <span className="absolute -bottom-1 -left-1 grid place-items-center w-4 h-4 rounded bg-slate-900/90 border border-slate-600">
+            <ItemIcon itemId={chip.itemId} className="w-3 h-3" />
+          </span>
         )}
       </div>
       {/* PT (azul) y aguante (verde→rojo): los dos depósitos, siempre. */}

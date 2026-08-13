@@ -169,44 +169,61 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
 
   const curated = (SIGNATURES[name] ?? []).filter((id) => byId.has(id))
 
+  // Clases ADMISIBLES: el portero vive de paradas; el resto puede llevar
+  // TIROS, REGATES y BLOQUEOS en la cadena — cualquiera defiende un córner o
+  // remata una jugada, y capar la cadena a la clase del puesto dejaba a los
+  // defensas sin nada que hacer al atacar (y viceversa).
+  const kinds = position === 'POR' ? ['parada'] : ['tiro', 'regate', 'bloqueo']
+
   const real = hissatsu
     .map(slugTech)
-    .filter((id) => byId.get(id)?.kind === kind && !curated.includes(id))
+    .filter((id) => kinds.includes(byId.get(id)?.kind) && !curated.includes(id))
     .sort((a, b) => byId.get(a).power - byId.get(b).power)
+  const realPrimary = real.filter((id) => byId.get(id).kind === kind)
+  const realOther = real.filter((id) => byId.get(id).kind !== kind)
 
-  // Lo curado primero y EN SU ORDEN; lo real detrás por potencia. Si lo real
-  // solo ya pasa de cuatro, se muestrea repartido para no perder la definitiva
-  // (cortar por delante dejaba a Mark sin la Mano Demoníaca).
-  let merged = [...curated, ...real]
-  if (!curated.length && real.length > 4) {
-    const n = real.length
-    merged = [...new Set([0, Math.round(n / 3), Math.round((2 * n) / 3), n - 1].map((i) => real[i]))]
+  // Lo curado primero y EN SU ORDEN (canon manda). Después lo real: hasta DOS
+  // de su clase, y una de cada clase que aún falte — así el moveset canónico
+  // mixto de la wiki entra entero en vez de tirarse a la basura.
+  const merged = [...curated]
+  const countKind = (k) => merged.filter((id) => byId.get(id)?.kind === k).length
+  for (const id of realPrimary) { if (merged.length < 4 && countKind(kind) < 2) merged.push(id) }
+  for (const k of kinds) {
+    if (k === kind) continue
+    if (merged.length >= 4 || countKind(k) > 0) continue
+    const cand = realOther.find((id) => byId.get(id).kind === k && !merged.includes(id))
+    if (cand) merged.push(cand)
   }
-  merged = merged.slice(0, 4)
+  for (const id of [...realPrimary, ...realOther]) { if (merged.length < 4 && !merged.includes(id)) merged.push(id) }
 
-  // Con la rareza DINÁMICA todo el mundo puede llegar a multicolor: la cadena
-  // potencial es SIEMPRE de cuatro pasos, y se completa con relleno coherente.
-  if (merged.length >= 4) return merged
+  if (merged.length >= 4) return merged.slice(0, 4)
 
-  // Relleno DETERMINISTA POR JUGADOR: cuatro bandas de potencia (floja →
-  // definitiva) y dentro de cada banda el hash de su nombre elige SU técnica.
-  // El relleno de antes cogía siempre los mismos percentiles del pool y medio
-  // catálogo compartía cadena — «muchos jugadores con las mismas técnicas».
+  // Relleno DETERMINISTA POR JUGADOR, cubriendo las clases que falten: la
+  // cadena de un no-portero acaba con AL MENOS un tiro, un regate y un
+  // bloqueo (salvo canon curado que diga otra cosa). Dentro de cada clase,
+  // banda de potencia por hueco y el hash del nombre elige SU técnica.
   let h = 2166136261
   for (const ch of name) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) }
   h = h >>> 0
-  const pool = all.filter((t) => t.kind === kind && t.element === element && !merged.includes(t.id))
-    .sort((a, b) => a.power - b.power)
+  // Qué clase pide cada hueco de relleno: primero las que faltan (empezando
+  // por la del puesto), luego repetir la del puesto.
+  const missing = kinds.filter((k) => countKind(k) === 0)
+  missing.sort((a, b) => (a === kind ? -1 : 0) - (b === kind ? -1 : 0))
+  const wanted = []
+  while (wanted.length + merged.length < 4) wanted.push(missing[wanted.length] ?? kind)
+
   const picks = []
-  const need = 4 - merged.length
-  for (let i = 0; i < need && pool.length; i++) {
+  wanted.forEach((k, i) => {
+    const pool = all
+      .filter((t) => t.kind === k && t.element === element && !merged.includes(t.id) && !picks.includes(t.id))
+      .sort((a, b) => a.power - b.power)
+    if (!pool.length) return
     const slot = merged.length + i
     const bandStart = Math.floor((pool.length * slot) / 4)
     const bandEnd = Math.max(bandStart + 1, Math.floor((pool.length * (slot + 1)) / 4))
     const idx = Math.min(pool.length - 1, bandStart + ((h >>> (i * 5)) % (bandEnd - bandStart)))
-    const t = pool[idx]
-    if (t && !picks.includes(t.id)) picks.push(t.id)
-  }
+    if (pool[idx]) picks.push(pool[idx].id)
+  })
   return [...merged, ...picks].slice(0, 4)
 }
 

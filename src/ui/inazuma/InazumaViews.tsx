@@ -16,7 +16,7 @@ import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, rarityBorder, rarityCardSt
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
+  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
   rivalKnownTechniques, rivalPreviewStats, rivalRarity, rivalRarityMap, rivalStartingXI, scaleStats,
   SIGNATURE_LEVELS, slotRole, techLevel, transferValue,
 } from '@/engine/inazuma/roster'
@@ -396,6 +396,7 @@ export function PreviewView() {
               stamina: p.stamina,
               pt: p.pt,
               ptMax: ptMax(p),
+              itemId: p.item,
             }
           })}
           onTap={(c) => {
@@ -711,10 +712,12 @@ function BagPanel({
   save, onUse, onEquip,
 }: {
   save: InazumaSave
-  onUse: (itemId: string, uid: string) => void
+  onUse: (itemId: string, uid: string, choiceId?: string) => void
   onEquip: (uid: string, itemId: string | undefined) => void
 }) {
   const [use, setUse] = useState<string | null>(null)
+  // Mejora con varias técnicas mejorables: segundo paso, elegir CUÁL.
+  const [mejoraFor, setMejoraFor] = useState<string | null>(null)
   if (!save.bag.length) return null
   return (
     <>
@@ -747,32 +750,70 @@ function BagPanel({
         })}
       </div>
       {use && (
-        <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setUse(null)}>
+        <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => { setUse(null); setMejoraFor(null) }}>
           <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[82svh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => setUse(null)}
+              onClick={() => { setUse(null); setMejoraFor(null) }}
               className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
             >
               <Icon name="x" className="w-4 h-4" />
             </button>
-            <div className="font-extrabold text-center">{getItem(use)?.name}</div>
-            <p className="text-[11px] text-slate-400 text-center mb-2">{getItem(use)?.desc}</p>
-            <div className="text-[11px] text-slate-500 mb-1">¿A quién?</div>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
-              {save.roster.map((p) => (
-                <PlayerRow
-                  key={p.uid}
-                  player={p}
-                  onClick={() => {
-                    const k = getItem(use)?.kind
-                    if (k === 'equipo' || k === 'raro') onEquip(p.uid, use)
-                    else onUse(use, p.uid)
-                    setUse(null)
-                  }}
-                />
-              ))}
-            </div>
-
+            {mejoraFor ? (() => {
+              const p = save.roster.find((x) => x.uid === mejoraFor)
+              if (!p) return null
+              const ups = p.techniques.filter((t) => canUpgradeTechnique(p, t))
+              return (
+                <>
+                  <div className="font-extrabold text-center">¿Qué técnica mejora?</div>
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5 mt-2">
+                    {ups.map((id) => {
+                      const t = getTechnique(id)
+                      if (!t) return null
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => { onUse('mejora', p.uid, id); setMejoraFor(null); setUse(null) }}
+                          className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98] transition"
+                        >
+                          <TechniqueBadge tech={t} size={36} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13px] font-bold">{t.name}</span>
+                            <span className="block text-[10px] text-slate-400">V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )
+            })() : (
+              <>
+                <div className="font-extrabold text-center">{getItem(use)?.name}</div>
+                <p className="text-[11px] text-slate-400 text-center mb-2">{getItem(use)?.desc}</p>
+                <div className="text-[11px] text-slate-500 mb-1">¿A quién?</div>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
+                  {save.roster.map((p) => (
+                    <PlayerRow
+                      key={p.uid}
+                      player={p}
+                      // Su objeto actual a la vista, para saber a quién le
+                      // pisarías el equipamiento.
+                      right={p.item ? <ItemIcon itemId={p.item} className="w-4 h-4 opacity-80" /> : undefined}
+                      onClick={() => {
+                        const k = getItem(use)?.kind
+                        if (k === 'equipo' || k === 'raro') { onEquip(p.uid, use); setUse(null); return }
+                        if (use === 'mejora' && p.techniques.filter((t) => canUpgradeTechnique(p, t)).length > 1) {
+                          setMejoraFor(p.uid)
+                          return
+                        }
+                        onUse(use, p.uid)
+                        setUse(null)
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
