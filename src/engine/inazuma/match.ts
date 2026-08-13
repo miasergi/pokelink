@@ -882,6 +882,8 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
       minute: m.minute,
       side: chain.side,
       text: `${attacker.name} se la pasa a ${mate.name}.`,
+      passFromUid: attacker.uid,
+      passToUid: mate.uid,
     }]
     m.decision = null
     m.phase = 'playing'

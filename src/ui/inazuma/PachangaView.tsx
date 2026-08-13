@@ -61,6 +61,10 @@ export default function PachangaView() {
 
   useEffect(() => {
     if (!pachanga) return
+    // Con SIM activo aquí no se escenifica NADA: el salto directo al resultado
+    // lo maneja el efecto de abajo (montar un duelo y matarlo dejaba
+    // cinemáticas sueltas «a veces»).
+    if (useSettings.getState().inazumaSimPachanga) return
     const rounds = pachanga.rounds
     if (rounds.length <= shown || staged.current > shown) return
     staged.current = shown + 1
@@ -85,11 +89,12 @@ export default function PachangaView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pachanga?.rounds.length, shown])
 
-  // SIMULACIÓN: la tanda resuelta salta DIRECTA al resultado — nada de ir
-  // revelando duelo a duelo (que era justo lo que el ajuste promete evitar).
+  // SIMULACIÓN: con el ajuste activo, la tanda se resuelve sola (venga de
+  // donde venga: también la entrada directa desde el mapa, que se colaba sin
+  // simular) y la pantalla salta DIRECTA al resultado, sin duelo a duelo.
   useEffect(() => {
-    if (!pachanga || pachanga.phase !== 'finished') return
-    if (!useSettings.getState().inazumaSimPachanga) return
+    if (!pachanga || !useSettings.getState().inazumaSimPachanga) return
+    if (pachanga.phase !== 'finished') { simulatePachanga(); return }
     if (shown >= pachanga.rounds.length && !stage && !gol) return
     pendingReveal.current = null
     staged.current = pachanga.rounds.length

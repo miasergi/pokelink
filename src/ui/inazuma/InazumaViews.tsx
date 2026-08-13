@@ -1087,9 +1087,11 @@ export function ShopView() {
 // ---------------------------------------------------------------------------
 
 export function DraftView() {
-  const { save, draft, draftPicks, pickDraft } = useInazuma()
+  const { save, draft, draftPicks, draftFromMatch, pickDraft } = useInazuma()
   if (!save) return null
-  const last = save.lastMatch
+  // El marcador SOLO cuando el draft viene de un partido: en la casilla de
+  // objeto salía el resultado del último partido, que no pintaba nada allí.
+  const last = draftFromMatch ? save.lastMatch : null
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

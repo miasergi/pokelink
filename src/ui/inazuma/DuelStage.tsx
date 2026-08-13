@@ -42,7 +42,7 @@ export interface StageData {
   /** Escudos de cada bando, para saber QUIÉN ataca y quién defiende. */
   attackerCrest?: string
   defenderCrest?: string
-  kind: 'regate' | 'tiro' | 'penalti'
+  kind: 'regate' | 'tiro' | 'penalti' | 'pase'
 }
 
 const idOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -70,8 +70,9 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     // El tiro que ACABA en gol no pone sello (sería spoiler), así que el
     // escenario cierra antes y le deja el foco a la celebración: si durase lo
     // mismo, la celebración y el marcador se pisaban con él en pantalla.
+    // El PASE es un apunte, no un duelo: entra y sale rápido.
     const scoring = stage.attackerWins && stage.kind !== 'regate'
-    const total = scoring ? 2300 : STAGE_MS
+    const total = stage.kind === 'pase' ? 1700 : scoring ? 2300 : STAGE_MS
     const t1 = setTimeout(() => setPhase(1), T_DEFENDER)
     const t2 = setTimeout(() => setPhase(2), T_RESULT)
     const t3 = setTimeout(() => { setShown(null); onDoneRef.current() }, total)
@@ -88,10 +89,13 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     ? { text: 'DUELO POR EL BALÓN', color: '#38bdf8' }
     : shown.kind === 'penalti'
       ? { text: '¡PENALTI!', color: '#f59e0b' }
-      : { text: '¡DISPARO A PUERTA!', color: '#f43f5e' }
+      : shown.kind === 'pase'
+        ? { text: 'PASE AL HUECO', color: '#22c55e' }
+        : { text: '¡DISPARO A PUERTA!', color: '#f43f5e' }
 
   // Si el TIRO entra, aquí no se dice: el sello sería un spoiler de la
   // celebración de gol, que llega justo después con el escudo y el marcador.
+  // El pase tampoco sella nada: llega siempre, no hay desenlace que contar.
   const spoiler = shown.attackerWins && shown.kind !== 'regate'
   const result = shown.attackerWins
     ? '¡SE ESCAPA!'
@@ -121,17 +125,27 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         >
           {kindBanner.text}
         </div>
-        <Fighter side={shown.attacker} tech={atkTech} label={shown.kind === 'regate' ? 'ataca' : 'dispara'} crest={shown.attackerCrest} />
+        <Fighter
+          side={shown.attacker}
+          tech={atkTech}
+          label={shown.kind === 'pase' ? 'pasa' : shown.kind === 'regate' ? 'ataca' : 'dispara'}
+          crest={shown.attackerCrest}
+          plain={shown.kind === 'pase'}
+        />
 
-        {/* VS y el defensor entran DESPUÉS: el orden cuenta la jugada. */}
+        {/* VS y el defensor entran DESPUÉS: el orden cuenta la jugada. En el
+            pase no hay «contra»: el segundo es el COMPAÑERO que recibe. */}
         {phase >= 1 && (
           <>
-            <div className="text-xl font-black text-white/70 animate-pop-in leading-none">VS</div>
+            <div className="text-xl font-black text-white/70 animate-pop-in leading-none">
+              {shown.kind === 'pase' ? '→' : 'VS'}
+            </div>
             <Fighter
               side={shown.defender}
               tech={defTech}
-              label={shown.kind === 'regate' ? 'defiende' : 'bajo palos'}
+              label={shown.kind === 'pase' ? 'recibe' : shown.kind === 'regate' ? 'defiende' : 'bajo palos'}
               crest={shown.defenderCrest}
+              plain={shown.kind === 'pase'}
               right
             />
           </>
@@ -153,13 +167,15 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
 }
 
 /** Un lado del duelo: retrato + nombre + su técnica (imagen real) o la acción simple. */
-function Fighter({ side, tech, label, right, crest }: {
+function Fighter({ side, tech, label, right, crest, plain }: {
   side: StageSide
   tech?: Technique
   label: string
   right?: boolean
   /** Escudo del equipo del luchador, en grande a su lado. */
   crest?: string
+  /** Sin hueco de técnica (los pases no llevan): retrato y nombre a secas. */
+  plain?: boolean
 }) {
   const info = tech ? ELEMENT_INFO[tech.element] : null
   return (
@@ -205,7 +221,7 @@ function Fighter({ side, tech, label, right, crest }: {
             {tech.name}
           </span>
         </div>
-      ) : (
+      ) : plain ? null : (
         <div className="shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-white/20 grid place-items-center text-[10px] font-bold text-white/40 text-center px-1">
           sin
           <br />

@@ -243,8 +243,17 @@ interface InazumaState {
   draft: DraftOption[]
   /** Cartas que quedan por elegir en esta tanda (salir «a por todas» da 2). */
   draftPicks: number
+  /** true si el draft viene de un PARTIDO: solo entonces se enseña su resultado. */
+  draftFromMatch: boolean
   /** Carta que necesita que señales a un jugador. */
   pendingTarget: DraftOption | null
+  /**
+   * true mientras hay una cinemática (duelo, gol) en pantalla: la cola de
+   * revelado NO avanza — revelar por debajo cambiaba el césped a mitad de
+   * animación y encadenaba cinemáticas.
+   */
+  uiBusy: boolean
+  setUiBusy: (v: boolean) => void
   message: string | null
 
   initInazuma: () => Promise<void>
@@ -335,11 +344,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   autoPlay: false,
   draft: [],
   draftPicks: 0,
+  draftFromMatch: false,
   pendingTarget: null,
+  uiBusy: false,
   message: null,
   itemFx: null,
   halftimeBreak: false,
   revealPlayer: null,
+
+  setUiBusy: (v) => {
+    if (get().uiBusy === v) return
+    set({ uiBusy: v })
+    // Al liberarse la pantalla, la retransmisión retoma el latido en el acto.
+    if (!v && get().match) { stopTicker(); ticker = setTimeout(() => get().tick(), 120) }
+  },
 
   initInazuma: async () => {
     stopTicker()
@@ -454,27 +472,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     switch (node.kind) {
 
       case 'objeto': {
-        // Se elige UNA de tres: dos objetos y una supertécnica (a la mochila).
-        // Encontrarse algo sin decidir nada era la casilla más sosa del mapa.
+        // Se elige UN objeto de los que trae la casilla. SOLO objetos: las
+        // supertécnicas tienen su propia casilla (y colarlas aquí confundía —
+        // «en la casilla objeto me siguen saliendo supertécnicas»).
         const options: DraftOption[] = []
         for (const id of [node.itemId, node.itemId2]) {
           const item = id ? getItem(id) : undefined
           if (item) options.push({ kind: 'objeto', id: `node-item-${item.id}`, title: item.name, desc: item.desc, itemId: item.id })
         }
-        const tech = node.techniqueId ? getTechnique(node.techniqueId) : undefined
-        if (tech) {
-          options.push({
-            kind: 'tecnica',
-            id: `node-tech-${tech.id}`,
-            title: `Supertécnica: ${tech.name}`,
-            desc: `${tech.kind} · potencia ${tech.power} · va a la mochila`,
-            techniqueId: tech.id,
-            toBag: true,
-          })
-        }
         if (options.length) {
           advanceLayer(next, node)
-          set({ save: next, matchNode: null, draft: options, draftPicks: 1, phase: 'draft' })
+          set({ save: next, matchNode: null, draft: options, draftPicks: 1, draftFromMatch: false, phase: 'draft' })
           void persist(next, 'draft')
           return
         }
@@ -514,6 +522,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
             { kind: 'objeto', id: 'conc-mejora', title: 'Mejora', desc: '+25 % de potencia a una técnica ya despertada (a la mochila).', itemId: 'mejora' },
           ],
           draftPicks: 1,
+          draftFromMatch: false,
           phase: 'draft',
         })
         void persist(next, 'draft')
@@ -522,7 +531,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
         advanceLayer(next, node)
-        set({ save: next, draft: offer, draftPicks: 1, phase: 'draft' })
+        set({ save: next, draft: offer, draftPicks: 1, draftFromMatch: false, phase: 'draft' })
         void persist(next, 'draft')
         return
       }
@@ -689,6 +698,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { match, playing, speed, autoPlay } = get()
     if (!match || !matchRng) return
 
+    // CINEMÁTICA EN PANTALLA: el latido espera. Revelar por debajo movía el
+    // césped a mitad de animación (los emparejamientos «bailaban») y dejaba
+    // cinemáticas en cola una detrás de otra. `setUiBusy(false)` retoma.
+    if (get().uiBusy) { ticker = setTimeout(() => get().tick(), 180); return }
+
     // 1) Si hay eventos esperando, se revela UNO y se le da su tiempo en
     //    pantalla. Mientras la cola no esté vacía el motor no avanza, así que
     //    el partido se PARA de verdad en el tiro, la parada y el gol — y el
@@ -789,6 +803,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // justo después del partido.
       draft: [buildSingleReward(next, getRng(next))],
       draftPicks: 1,
+      draftFromMatch: true,
       phase: 'draft',
       match: null,
       matchNode: null,

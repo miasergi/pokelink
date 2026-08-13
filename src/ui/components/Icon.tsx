@@ -81,7 +81,9 @@ const SVGS: Record<string, SvgIcon> = {
   ball: S(<><circle cx="12" cy="12" r="8.5" /><path d="M12 6.5l3.2 2.3-1.2 3.8h-4l-1.2-3.8L12 6.5Z" /><path d="M12 3.5v3M4.6 9.2l2.9 2M19.4 9.2l-2.9 2M7.6 19.4l1.4-3.4M16.4 19.4L15 16" /></>),
   whistle: S(<><path d="M13 8h6a2 2 0 0 1 2 2v3a5 5 0 1 1-8-4V8Z" /><circle cx="8" cy="14" r="2" /><path d="M13 5h-2" /></>),
   boot: S(<><path d="M4 7h5l1 5 8 2a2 2 0 0 1 2 2v3H4V7Z" /><path d="M4 15h16" /></>),
-  glove: S(<><path d="M7 20V10a2 2 0 0 1 4 0V6.5a1.75 1.75 0 0 1 3.5 0V10a2 2 0 0 1 4 0v5a5 5 0 0 1-5 5H7Z" /></>),
+  // Parada: MANO ABIERTA frenando el balón (la manopla cerrada parecía
+  // cualquier cosa menos un portero).
+  glove: S(<><path d="M8 11.5V5.9a1.3 1.3 0 0 1 2.6 0V10M10.6 10V4.9a1.3 1.3 0 0 1 2.6 0V10M13.2 10V5.9a1.3 1.3 0 0 1 2.6 0v5.6" /><path d="M8 11.3L6.6 9.6a1.5 1.5 0 0 0-2.4 1.8l3 4.9a6 6 0 0 0 5.1 2.9h.5a5.1 5.1 0 0 0 5-5.1v-2.6" /><circle cx="19" cy="4.8" r="2.2" /></>),
   jersey: S(<><path d="M9 4L4 6.5 6 11h2v9h8v-9h2l2-4.5L15 4a3 3 0 0 1-6 0Z" /></>),
   ramen: S(<><path d="M3.5 11h17a8.5 8.5 0 0 1-17 0Z" /><path d="M6 20h12" /><path d="M9 7.5c0-1.5 1.5-1.5 1.5-3M13 7.5c0-1.5 1.5-1.5 1.5-3" /></>),
   drink: S(<><path d="M6 4h12l-1.5 16.5h-9L6 4Z" /><path d="M6.6 10h10.8" /></>),
@@ -111,9 +113,10 @@ const SVGS: Record<string, SvgIcon> = {
   dumbbell: S(<><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" /></>),
   vending: S(<><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 6h4v5H8zM8 14h8M15 6h1" /></>),
   target2: S(<><circle cx="12" cy="12" r="8" /><path d="M12 4v3M12 17v3M4 12h3M17 12h3" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></>),
-  // Acciones del duelo: tiro (balón con estela), regate (zigzag con balón).
+  // Acciones del duelo: tiro (balón con estela), regate (balón que se va con
+  // un quiebro — el zigzag anterior no se leía como nada).
   shoot: S(<><circle cx="16.5" cy="12" r="4.5" /><path d="M2.5 8.5h7M4.5 12h7.5M2.5 15.5h7" /></>),
-  dribble: S(<><path d="M4 19l5-5-3.5-3.5L11 5" /><circle cx="15.5" cy="16.5" r="3.5" /><path d="M13 7.5h.01" /></>),
+  dribble: S(<><circle cx="6.8" cy="17.6" r="2.9" /><path d="M9.4 15.6C13.2 12.8 10.8 8.8 14.6 6" /><path d="M16.9 4.4l-3.7.6M16.9 4.4l-.6 3.7" /></>),
 }
 
 interface Props { name: string; className?: string; size?: number; style?: CSSProperties; title?: string }

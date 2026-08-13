@@ -178,7 +178,11 @@ export type ChainStep = 'construccion' | 'penetracion' | 'definicion'
  */
 export type MatchEvent =
   | { kind: 'kickoff'; minute: number }
-  | { kind: 'possession'; minute: number; side: Side; text: string }
+  | {
+    kind: 'possession'; minute: number; side: Side; text: string
+    /** Si la posesión es un PASE, quién lo da y quién lo recibe (cinemática). */
+    passFromUid?: string; passToUid?: string
+  }
   | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; text: string }
   | { kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number] }
   | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }

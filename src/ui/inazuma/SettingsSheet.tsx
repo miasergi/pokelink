@@ -113,18 +113,30 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
 
         {/* Modo de decisión POR CONTEXTO: partidos y pachangas por separado
             (hay quien quiere las pachangas en auto y los partidos completos). */}
+        {/* SIM es una opción MÁS del selector, a la izquierda de Auto (no un
+            interruptor aparte): simular es el escalón siguiente a auto. */}
         <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en PARTIDOS</div>
         <div className="flex gap-1.5 mb-1">
           {([
+            ['sim', 'Sim'],
             ['auto', 'Auto'],
             ['dinamico', 'Dinámico'],
             ['completo', 'Completo'],
           ] as const).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => { setInazumaModeMatch(id); if (id === 'auto') setAutoPlay(true); else setAutoPlay(false) }}
+              onClick={() => {
+                if (id === 'sim') {
+                  if (!inazumaSimMatch) toggleInazumaSimMatch()
+                  setAutoPlay(true)
+                } else {
+                  if (inazumaSimMatch) toggleInazumaSimMatch()
+                  setInazumaModeMatch(id)
+                  setAutoPlay(id === 'auto')
+                }
+              }}
               className={`flex-1 rounded-xl border py-2 text-[12px] font-bold transition active:scale-95 ${
-                inazumaModeMatch === id
+                (inazumaSimMatch ? 'sim' : inazumaModeMatch) === id
                   ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
                   : 'border-slate-700 bg-slate-800/60 text-slate-400'
               }`}
@@ -134,24 +146,34 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <p className="text-[10px] text-slate-500 mb-2 leading-snug">
-          {inazumaModeMatch === 'auto'
-            ? 'El banquillo lo juega todo: te sientas a mirar.'
-            : inazumaModeMatch === 'completo'
-              ? 'TODAS las acciones pasan por ti, duelo a duelo. Partidos largos.'
-              : 'Decides en las jugadas con chicha (tiros, técnicas); el resto fluye.'}
+          {inazumaSimMatch
+            ? 'Entras al partido y ves directamente el resultado (lo juega el banquillo).'
+            : inazumaModeMatch === 'auto'
+              ? 'El banquillo lo juega todo: te sientas a mirar.'
+              : inazumaModeMatch === 'completo'
+                ? 'TODAS las acciones pasan por ti, duelo a duelo. Partidos largos.'
+                : 'Decides en las jugadas con chicha (tiros, técnicas); el resto fluye.'}
         </p>
 
         <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en PACHANGAS</div>
         <div className="flex gap-1.5 mb-1">
           {([
+            ['sim', 'Sim'],
             ['auto', 'Auto'],
             ['dinamico', 'Decido yo'],
           ] as const).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => setInazumaModePachanga(id)}
+              onClick={() => {
+                if (id === 'sim') {
+                  if (!inazumaSimPachanga) toggleInazumaSimPachanga()
+                } else {
+                  if (inazumaSimPachanga) toggleInazumaSimPachanga()
+                  setInazumaModePachanga(id)
+                }
+              }}
               className={`flex-1 rounded-xl border py-2 text-[12px] font-bold transition active:scale-95 ${
-                (inazumaModePachanga === 'auto' ? 'auto' : 'dinamico') === id
+                (inazumaSimPachanga ? 'sim' : (inazumaModePachanga === 'auto' ? 'auto' : 'dinamico')) === id
                   ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
                   : 'border-slate-700 bg-slate-800/60 text-slate-400'
               }`}
@@ -161,24 +183,14 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <p className="text-[10px] text-slate-500 mb-3 leading-snug">
-          {inazumaModePachanga === 'auto'
-            ? 'El banquillo tira y para él solo; tú miras la tanda.'
-            : 'En la tanda decides SIEMPRE (cada ronda es tuya): no hay medias tintas.'}
+          {inazumaSimPachanga
+            ? 'La tanda se resuelve sola y saltas al resultado con las ganancias.'
+            : inazumaModePachanga === 'auto'
+              ? 'El banquillo tira y para él solo; tú miras la tanda.'
+              : 'En la tanda decides SIEMPRE (cada ronda es tuya): no hay medias tintas.'}
         </p>
 
         <div className="flex flex-col gap-1.5">
-          <Toggle
-            label="Simular PARTIDOS al instante"
-            hint="Entras al partido y ves directamente el resultado (lo juega el banquillo)."
-            on={inazumaSimMatch}
-            onClick={toggleInazumaSimMatch}
-          />
-          <Toggle
-            label="Simular PACHANGAS al instante"
-            hint="La tanda se resuelve sola y saltas al resultado."
-            on={inazumaSimPachanga}
-            onClick={toggleInazumaSimPachanga}
-          />
           <Toggle
             label="Mostrar porcentajes"
             hint="La probabilidad real de cada opción de duelo. Apagado, decides a ojo."

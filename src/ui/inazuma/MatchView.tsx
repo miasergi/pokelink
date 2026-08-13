@@ -15,7 +15,7 @@ import MatchPitch from '@/ui/inazuma/MatchPitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
-import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
+import { Crest, KindIcon, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -47,6 +47,9 @@ export default function MatchView() {
     if (!match || !feed.length) return
     if (staged.current === feed.length) return
     staged.current = feed.length
+    // SIMULANDO no se escenifica nada: el feed llega de golpe y estos efectos
+    // montaban una última cinemática suelta encima del resultado.
+    if (useSettings.getState().inazumaSimMatch) return
     const last = feed[feed.length - 1]
     const mine = playerSide(match)
     if (last.kind === 'goal') {
@@ -76,9 +79,10 @@ export default function MatchView() {
           1900,
         )
       }
-    } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
-      // Toda interacción con técnica de por medio (y todos los tiros) se cuenta
-      // en el escenario: quién contra quién, con qué, y quién gana.
+    } else if (last.kind === 'duel') {
+      // TODO duelo tiene su cinemática: también el regate a pelo y el bloqueo
+      // sin técnica — antes solo se escenificaban técnicas y tiros, y las
+      // acciones simples pasaban como una línea de texto más.
       setStage({
         key: feed.length,
         attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
@@ -89,12 +93,33 @@ export default function MatchView() {
         defenderCrest: crestOf(last.side !== mine),
         kind: last.step === 'definicion' ? 'tiro' : 'regate',
       })
+    } else if (last.kind === 'possession' && last.passFromUid && last.passToUid) {
+      // El PASE también se cuenta en grande: quién la da y quién la recibe.
+      setStage({
+        key: feed.length,
+        attacker: { name: actorByUid(match, last.passFromUid)?.name ?? '', baseId: actorByUid(match, last.passFromUid)?.baseId, rarity: actorByUid(match, last.passFromUid)?.rarity },
+        defender: { name: actorByUid(match, last.passToUid)?.name ?? '', baseId: actorByUid(match, last.passToUid)?.baseId, rarity: actorByUid(match, last.passToUid)?.rarity },
+        attackerWins: true,
+        attackerMine: last.side === mine,
+        attackerCrest: crestOf(last.side === mine),
+        defenderCrest: crestOf(last.side === mine),
+        kind: 'pase',
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed.length])
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [feed.length])
 
+  // La retransmisión NO revela nada más mientras una cinemática (duelo, pase,
+  // gol) está en pantalla: revelar por debajo movía el césped a mitad de
+  // animación y dejaba cinemáticas encadenadas.
+  const setUiBusy = useInazuma((s) => s.setUiBusy)
+  const busy = stage !== null || gol !== null
+  useEffect(() => {
+    setUiBusy(busy)
+    return () => setUiBusy(false)
+  }, [busy, setUiBusy])
 
   if (!match) return null
   const mine = sideOf(match, playerSide(match))
@@ -596,9 +621,12 @@ export function Mugshot({ actor, name, right, tiny }: {
   const size = tiny ? 'w-8 h-8' : 'w-11 h-11'
   return (
     <div className={`flex items-center gap-1.5 min-w-0 ${tiny ? '' : 'flex-1'} ${right ? 'flex-row-reverse text-right' : ''}`}>
+      {/* El borde del retrato cuenta la RAREZA (como en el césped y el duelo);
+          el elemento ya va en el icono y el rótulo de al lado. El multicolor
+          lleva su anillo animado de verdad, no un borde rosa. */}
       <div
-        className={`${size} shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-800`}
-        style={{ borderColor: info.color }}
+        className={`relative ${size} shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-800`}
+        style={{ borderColor: actor?.rarity ? rarityBorder(actor.rarity) : info.color }}
       >
         <ImgFallback
           src={portraitUrl(actor?.baseId ?? '')}
@@ -608,6 +636,7 @@ export function Mugshot({ actor, name, right, tiny }: {
             {name.slice(0, 2).toUpperCase()}
           </span>}
         />
+        {actor?.rarity === 4 && <span className="mc-ring rounded-full" />}
       </div>
       {!tiny && (
         <div className="min-w-0 flex-1">
