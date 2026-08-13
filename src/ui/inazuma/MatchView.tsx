@@ -58,6 +58,8 @@ export default function MatchView() {
         defender: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId },
         attackerWins: last.scored,
         attackerMine: last.side === mine,
+        attackerCrest: crestOf(last.side === mine),
+        defenderCrest: crestOf(last.side !== mine),
         kind: 'penalti',
       })
       if (last.scored) {
@@ -81,6 +83,8 @@ export default function MatchView() {
         defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, techName: last.counter },
         attackerWins: last.success,
         attackerMine: last.side === mine,
+        attackerCrest: crestOf(last.side === mine),
+        defenderCrest: crestOf(last.side !== mine),
         kind: last.step === 'definicion' ? 'tiro' : 'regate',
       })
     }
@@ -123,7 +127,20 @@ export default function MatchView() {
       />
       {/* El campo lee el feed YA CONTADO (sin la línea en animación): leer el
           motor en vivo enseñaba el siguiente emparejamiento antes de tiempo. */}
-      {!finished && <MatchPitch match={match} feed={shownFeed} />}
+      {!finished && (
+        <MatchPitch
+          match={match}
+          feed={shownFeed}
+          current={match.phase === 'decision' && match.decision && caughtUp && !frozen
+            ? {
+              attackerUid: match.decision.mode === 'ataque' ? match.decision.actorUid : match.decision.rivalUid,
+              defenderUid: match.decision.mode === 'ataque' ? match.decision.rivalUid : match.decision.actorUid,
+              step: match.decision.step,
+              side: match.decision.mode === 'ataque' ? playerSide(match) : otherSide(playerSide(match)),
+            }
+            : null}
+        />
+      )}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
           `min-h-full` hace las dos cosas a la vez: al principio del partido las

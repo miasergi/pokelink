@@ -36,7 +36,16 @@ const STEP_ZONE: Record<ChainStep, string> = {
 
 const STEPS: ChainStep[] = ['construccion', 'penetracion', 'definicion']
 
-export default function MatchPitch({ match, feed }: { match: MatchState; feed: MatchEvent[] }) {
+export default function MatchPitch({ match, feed, current }: {
+  match: MatchState
+  feed: MatchEvent[]
+  /**
+   * El emparejamiento de la DECISIÓN en pantalla, si la hay: el campo pinta a
+   * los MISMOS dos que el panel de abajo (leer solo el feed dejaba arriba a
+   * los del duelo anterior — «me aparecen jugadores diferentes»).
+   */
+  current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null
+}) {
   // El último DUELO revelado manda: quién llevaba el balón, contra quién y en
   // qué zona. Entre duelos (posesiones, goles…) se mantiene el último.
   let duel: Extract<MatchEvent, { kind: 'duel' }> | null = null
@@ -46,24 +55,27 @@ export default function MatchPitch({ match, feed }: { match: MatchState; feed: M
     // Un gol o un saque CIERRAN la jugada: campo limpio hasta el próximo duelo.
     if (e.kind === 'goal' || e.kind === 'kickoff') break
   }
-  if (!duel) return null
+  const shown = current
+    ? { attackerUid: current.attackerUid, defenderUid: current.defenderUid, step: current.step, side: current.side, success: false }
+    : duel
+  if (!shown) return null
 
   const mine = playerSide(match)
-  const attacking = sideOf(match, duel.side)
-  const carrier = actorByUid(match, duel.attackerUid)
-  const marker = actorByUid(match, duel.defenderUid)
+  const attacking = sideOf(match, shown.side)
+  const carrier = actorByUid(match, shown.attackerUid)
+  const marker = actorByUid(match, shown.defenderUid)
   if (!carrier || !marker) return null
 
   // Tú siempre atacas hacia la derecha, ataque tuyo o no: si el campo se diera
   // la vuelta a cada robo, no habría forma de leerlo de un vistazo.
-  const iAttack = duel.side === mine
-  const x = iAttack ? STEP_X[duel.step] : 100 - STEP_X[duel.step]
+  const iAttack = shown.side === mine
+  const x = iAttack ? STEP_X[shown.step] : 100 - STEP_X[shown.step]
   const defX = iAttack ? Math.min(88, x + 22) : Math.max(12, x - 22)
 
-  // Progreso de la jugada: eslabones superados. El duelo GANADO enciende el
-  // siguiente punto — tres puntos y el rótulo grita que huele a tiro.
-  const reached = STEPS.indexOf(duel.step) + (duel.success ? 1 : 0)
-  const danger = reached >= STEPS.length
+  // Progreso de la jugada: eslabones superados. Con decisión a la vista, el
+  // eslabón EN JUEGO; sin ella, el último contado (+1 si se ganó).
+  const reached = STEPS.indexOf(shown.step) + (shown.success ? 1 : 0)
+  const danger = reached >= STEPS.length || (current != null && shown.step === 'definicion')
 
   return (
     <div className="shrink-0 px-3 pt-2">
@@ -109,7 +121,7 @@ export default function MatchPitch({ match, feed }: { match: MatchState; feed: M
               />
             ))}
           </span>
-          {danger ? '¡OCASIÓN DE GOL!' : STEP_ZONE[duel.step]} · ataca {attacking.name.replace('Instituto ', '')}
+          {danger ? '¡OCASIÓN DE GOL!' : STEP_ZONE[shown.step]} · ataca {attacking.name.replace('Instituto ', '')}
         </div>
       </div>
     </div>

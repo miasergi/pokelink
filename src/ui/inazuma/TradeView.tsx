@@ -23,7 +23,7 @@ export default function TradeView() {
         <div className="font-extrabold text-sm">Cazatalentos ambulante</div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
         <p className="text-[12px] text-slate-400">
           «Dame a uno de los tuyos y te traigo a otro con <b className="text-slate-200">3 niveles más</b>.
           ¿Quién? Eso no se pregunta.» El capitán no entra en el trato.

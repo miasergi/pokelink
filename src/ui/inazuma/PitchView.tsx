@@ -9,7 +9,8 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { Stars } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, Stars } from '@/ui/inazuma/Glyphs'
+import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
 import { getFormation } from '@/data/inazuma/formations'
@@ -277,8 +278,10 @@ function PitchChip({
       <div className={`text-[8px] leading-tight truncate text-center ${bench ? 'text-slate-500' : 'text-slate-300'}`}>
         {base.name.split(' ')[0]}
       </div>
-      {/* Nivel y rareza, en miniatura: información sin ruido (la media, fuera). */}
+      {/* Demarcación + elemento + nivel + rareza, en miniatura. */}
       <div className="flex items-center justify-center gap-0.5 text-[7px] leading-none text-slate-500">
+        <span className="font-extrabold text-slate-300">{base.position}</span>
+        <Icon name={ELEMENT_ICON[base.element]} className="w-2 h-2" style={{ color: info.color }} />
         Nv.{player.level}
         <Stars n={rarityOf(player)} className="w-2 h-2" />
       </div>

@@ -184,17 +184,30 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   }
   merged = merged.slice(0, 4)
 
-  if (merged.length >= 2) return merged
+  // Con la rareza DINÁMICA todo el mundo puede llegar a multicolor: la cadena
+  // potencial es SIEMPRE de cuatro pasos, y se completa con relleno coherente.
+  if (merged.length >= 4) return merged
 
-  // Relleno: lo generado de siempre, sin machacar lo real que hubiera.
-  const pool = all.filter((t) => t.kind === kind && t.element === element)
+  // Relleno DETERMINISTA POR JUGADOR: cuatro bandas de potencia (floja →
+  // definitiva) y dentro de cada banda el hash de su nombre elige SU técnica.
+  // El relleno de antes cogía siempre los mismos percentiles del pool y medio
+  // catálogo compartía cadena — «muchos jugadores con las mismas técnicas».
+  let h = 2166136261
+  for (const ch of name) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) }
+  h = h >>> 0
+  const pool = all.filter((t) => t.kind === kind && t.element === element && !merged.includes(t.id))
     .sort((a, b) => a.power - b.power)
-  if (!pool.length) return merged
-  const at = (f) => pool[Math.min(pool.length - 1, Math.floor(pool.length * f))].id
-  const steps = rarity >= 4 ? [0, 0.5, 0.95] : rarity === 3 ? [0, 0.55] : [0, 0.35]
-  return [...new Set([...merged, ...steps.map(at)])]
-    .sort((a, b) => byId.get(a).power - byId.get(b).power)
-    .slice(0, 4)
+  const picks = []
+  const need = 4 - merged.length
+  for (let i = 0; i < need && pool.length; i++) {
+    const slot = merged.length + i
+    const bandStart = Math.floor((pool.length * slot) / 4)
+    const bandEnd = Math.max(bandStart + 1, Math.floor((pool.length * (slot + 1)) / 4))
+    const idx = Math.min(pool.length - 1, bandStart + ((h >>> (i * 5)) % (bandEnd - bandStart)))
+    const t = pool[idx]
+    if (t && !picks.includes(t.id)) picks.push(t.id)
+  }
+  return [...merged, ...picks].slice(0, 4)
 }
 
 /**

@@ -28,7 +28,7 @@ import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  rivalRarity, transferValue, upgradeTechnique,
+  RARITY_LABEL, rarityOf, rivalRarity, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -381,7 +381,14 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const node = availableNextNodes(save.map, save.currentNodeId).find((n) => n.id === nodeId)
     if (!node) return
 
-    // Jefes y pachangas pasan por la previa (ver rival y once); el resto se
+    // La PACHANGA arranca directa: entrar en la casilla es jugarla (si el
+    // once no es válido, se cae a la previa para arreglarlo).
+    if (node.kind === 'pachanga' && !lineupError(save.roster, save.lineup, save.formation)) {
+      set({ matchNode: node })
+      get().confirmMatch()
+      return
+    }
+    // Jefes pasan por la previa (ver rival y once); el resto se
     // resuelve al momento, como las casillas del mapa del modo Pokémon.
     if (node.kind === 'jefe' || node.kind === 'final' || node.kind === 'pachanga') {
       set({ matchNode: node, phase: 'preview' })
@@ -572,7 +579,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { pachanga, matchNode, save } = get()
     if (!pachanga || !matchNode || !save || pachanga.phase !== 'finished') return
     const next: InazumaSave = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
-    applyPachangaResult(next, pachanga, matchNode)
+    const { rarityUps } = applyPachangaResult(next, pachanga, matchNode)
     advanceLayer(next, matchNode)
     play(pachanga.result === 'win' ? 'victory' : 'defeat')
     set({
@@ -580,9 +587,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       pachanga: null,
       matchNode: null,
       phase: 'map',
-      message: pachanga.result === 'win'
-        ? `Pachanga ganada ${pachanga.goals[0]}-${pachanga.goals[1]}. Los que jugaron suben ${matchNode.risky ? 3 : 2} niveles.`
-        : `Pachanga perdida ${pachanga.goals[0]}-${pachanga.goals[1]}. Solo os llevasteis el cansancio.`,
+      message: (pachanga.result === 'win'
+        ? `Pachanga ganada ${pachanga.goals[0]}-${pachanga.goals[1]}. Los que jugaron suben de nivel.`
+        : `Pachanga perdida ${pachanga.goals[0]}-${pachanga.goals[1]}. Solo os llevasteis el cansancio.`)
+        + (rarityUps.length ? ` ★ Suben de rareza: ${rarityUps.join(', ')}.` : ''),
     })
     void persist(next, 'map')
   },
@@ -1184,11 +1192,37 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // El efecto vive en el motor (`applyConsumable`), no aquí: los tests de
     // balance también consumen objetos, y duplicar la tabla en dos sitios es
     // la forma más rápida de que dejen de medir el juego real.
+    const rarityBefore = team ? 0 : rarityOf(save.roster.find((x) => x.uid === uid)!)
+    const statsBefore = team ? null : effectiveStats(save.roster.find((x) => x.uid === uid)!)
     const res = applyConsumable(next, itemId, uid)
     if (!res.ok) { set({ message: res.message }); return }
 
     const after = snap(next.roster)
     const target = next.roster.find((x) => x.uid === uid)
+
+    // SUBIDA DE RAREZA: pantalla propia con la estrella nueva y los atributos
+    // que ha ganado — que se VEA lo que la medalla acaba de hacer.
+    if (!team && target && statsBefore && rarityOf(target) > rarityBefore) {
+      const statsAfter = effectiveStats(target)
+      const stats = (Object.keys(statsBefore) as (keyof typeof statsBefore)[])
+        .filter((k) => statsAfter[k] !== statsBefore[k])
+        .map((k) => ({ label: STAT_TAG[k] ?? k, from: statsBefore[k], to: statsAfter[k] }))
+      play('levelup')
+      set({
+        save: next,
+        itemFx: {
+          key: Date.now(),
+          title: `¡Rareza ${RARITY_LABEL[rarityOf(target)]}!`,
+          itemId,
+          targetName: getPlayerBase(target.baseId).name,
+          targetBaseId: target.baseId,
+          bars: [],
+          stats,
+        },
+      })
+      void persist(next, get().phase)
+      return
+    }
     let fx: ItemFx | null = null
     if (before && after) {
       const bars: ItemFxBar[] = []

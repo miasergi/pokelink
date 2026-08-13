@@ -109,6 +109,44 @@ export function rivalRarity(bossIndex: number): number {
   return 4
 }
 
+/**
+ * PLAN de rarezas del ONCE rival en los PARTIDOS, eliminatoria a eliminatoria
+ * (de mejor a peor dotado): el primero trae 3 platas, el segundo 7, el
+ * tercero todo plata y un oro… y la final es once multicolor. Los cracks del
+ * equipo (más rareza de catálogo) se llevan los tramos altos.
+ */
+export function rivalRarityPlan(bossIndex: number): number[] {
+  const PLAN: [number, number, number, number][] = [
+    // [multicolor, oro, plata, bronce] hasta sumar 11
+    [0, 0, 3, 8],
+    [0, 0, 7, 4],
+    [0, 1, 10, 0],
+    [0, 4, 7, 0],
+    [0, 8, 3, 0],
+    [3, 8, 0, 0],
+    [7, 4, 0, 0],
+    [11, 0, 0, 0],
+  ]
+  const [m, o, p, b] = PLAN[Math.max(0, Math.min(7, bossIndex))]
+  return [
+    ...Array(m).fill(4), ...Array(o).fill(3), ...Array(p).fill(2), ...Array(b).fill(1),
+  ]
+}
+
+/**
+ * Rareza de CADA rival del once en un partido: los cracks (por rareza de
+ * catálogo) se llevan los tramos altos del plan. La usa el partido Y la
+ * previa, para que lo que ves sea lo que salta al campo.
+ */
+export function rivalRarityMap(teamId: string, bossIndex: number): Map<string, number> {
+  const xi = rivalStartingXI(teamId)
+  const plan = rivalRarityPlan(bossIndex)
+  const ranked = [...xi].sort((a, b) => b.rarity - a.rarity)
+  const out = new Map<string, number>()
+  ranked.forEach((b, i) => out.set(b.id, plan[Math.min(i, plan.length - 1)] ?? 1))
+  return out
+}
+
 export const LEVEL_GROWTH = 0.03
 
 export function scaleStat(base: number, level: number): number {
@@ -433,14 +471,18 @@ export function spiritOf(baseId: string): string | undefined {
  * de relleno que hagan falta hasta 11, con atributos derivados del `power` del
  * instituto para que Zeus no juegue con reservas.
  */
-export function buildRivalTeam(teamId: string, level: number, rng: RNG, rarity = 2): RivalPlayer[] {
+export function buildRivalTeam(
+  teamId: string, level: number, rng: RNG, rarity = 2,
+  opts: { rarityMap?: Map<string, number>; elite?: boolean } = {},
+): RivalPlayer[] {
   const team = getTeam(teamId)
   // Su once sale de su plantilla REAL (14 jugadores por instituto) y se arma
   // POR LÍNEAS, igual que el tuyo. Cogerlos «los 11 primeros de la lista» era
   // asimétrico (a ellos les tocaban siempre los mejores y a ti no) y además
   // podía dejarles sin portero.
   const named = rivalStartingXI(teamId)
-  const out: RivalPlayer[] = named.map((b) => toRival(b, level, team.power, rarity))
+  const out: RivalPlayer[] = named.map((b) =>
+    toRival(b, level, team.power, opts.rarityMap?.get(b.id) ?? rarity, opts.elite ?? false))
 
   const needed = RIVAL_SHAPE.slice()
   for (const p of out) {
@@ -476,11 +518,19 @@ function applyPower(s: Stats, power: number): Stats {
   }
 }
 
-function toRival(b: PlayerBase, level: number, power: number, rarity: number): RivalPlayer {
+function toRival(b: PlayerBase, level: number, power: number, rarity: number, elite = false): RivalPlayer {
   // Misma vara que tus jugadores: atributos por RAREZA (la de la ronda), nivel
   // y el `power` del equipo como último empujón.
   const stats = applyPower(scaleStats(rarityStats(b.id, b.position, rarity), level), power)
-  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: b.techniques, rarity }
+  // Y sus TÉCNICAS también con tu misma regla: solo su cadena, capada por la
+  // rareza y desbloqueada por nivel. Antes salían con el repertorio entero del
+  // catálogo desde la primera ronda. En los PARTIDOS (`elite`), los cracks del
+  // equipo (★5 de catálogo) traen UN paso extra ya despierto: la estrella
+  // rival pega antes de tiempo, que para eso es la estrella.
+  const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
+  let known = chain.filter((_, i) => level >= SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])
+  if (elite && b.rarity >= 5 && known.length < chain.length) known = chain.slice(0, known.length + 1)
+  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: known, rarity }
 }
 
 function fillerRival(name: string, position: Position, element: Element, level: number, power: number, rng: RNG): RivalPlayer {

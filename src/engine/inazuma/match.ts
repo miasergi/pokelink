@@ -515,10 +515,13 @@ function buildDecision(
     { id: 'plain', label: plainLabel(step, mode), tech: undefined, cost: 0 },
   ))
 
-  // 2) Cada supertécnica conocida de la clase que toca.
+  // 2) Cada supertécnica conocida de la clase que toca (con sus Mejoras: V2…).
   for (const t of actor.techniques.map((id) => actorTechnique(actor, id)).filter((t): t is Technique => !!t && t.kind === kind)) {
     const cost = free ? 0 : t.cost
-    const opt = buildOption(m, step, mode, attacker, defender, momentum, { id: `tech:${t.id}`, label: t.name, tech: t, cost })
+    const vlvl = actor.techLevels?.[t.id] ?? 0
+    const opt = buildOption(m, step, mode, attacker, defender, momentum, {
+      id: `tech:${t.id}`, label: vlvl > 0 ? `${t.name} V${vlvl + 1}` : t.name, tech: t, cost,
+    })
     if (!free && t.cost > actor.pt) opt.disabled = `Necesitas ${t.cost} PT`
     options.push(opt)
   }

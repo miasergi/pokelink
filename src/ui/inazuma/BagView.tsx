@@ -84,7 +84,7 @@ export default function BagView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         {empty && (
           <div className="text-center text-slate-500 text-sm py-10">
             La mochila está vacía.<br />
@@ -173,7 +173,7 @@ export default function BagView() {
                 ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
                 : 'Elige a quién se lo das'}
             </p>
-            <div className="overflow-y-auto flex flex-col gap-1.5">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
               {save.roster.map((p) => {
                 const why = eligible(p)
                 return (

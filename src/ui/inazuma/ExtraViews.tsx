@@ -37,7 +37,7 @@ export function StatsView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         {pichichi ? (
           <Card className="p-3 border-amber-500/50" style={{ background: 'linear-gradient(120deg,#f59e0b22,rgba(30,41,59,.7) 60%)' }}>
             <div className="text-[10px] uppercase tracking-widest text-amber-300">Pichichi</div>
@@ -130,7 +130,7 @@ export function AlbumView() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         <p className="text-[11px] text-slate-500">
           Todos los jugadores que has llegado a tener en plantilla, entre todas tus partidas.
         </p>
@@ -303,13 +303,17 @@ export function TeamSelectView() {
   // Identidad del equipo del bombo: nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
   const [customCrest, setCustomCrest] = useState<string | null>(null)
-  const begin = (teamId: string) => void newTournament(teamId, {
-    difficulty,
-    randomSquad,
-    saga,
-    customName: randomSquad ? customName : undefined,
-    customCrest: randomSquad ? (customCrest ?? teamId) : undefined,
-  })
+  const begin = (teamId: string) => {
+    const crest = customCrest ?? teamId
+    void newTournament(teamId, {
+      difficulty,
+      randomSquad,
+      saga,
+      // Sin nombre escrito, el equipo se llama como el escudo elegido.
+      customName: randomSquad ? (customName.trim() || getTeam(crest).name) : undefined,
+      customCrest: randomSquad ? crest : undefined,
+    })
+  }
   const sagaInfo = getSaga(saga)
 
   return (
@@ -321,7 +325,7 @@ export function TeamSelectView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         {/* LA SAGA: la «región» del roguelike. Cambia el cuadro entero, los
             equipos jugables y el pool de fichajes. */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
@@ -386,7 +390,7 @@ export function TeamSelectView() {
               <input
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value.slice(0, 24))}
-                placeholder="FC Bombo (ponle nombre)"
+                placeholder={`${getTeam(customCrest ?? 'raimon').name} (ponle nombre)`}
                 className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60"
               />
               <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>

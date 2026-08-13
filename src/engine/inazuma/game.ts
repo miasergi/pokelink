@@ -7,8 +7,8 @@ import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalRarity, slotRole,
-  START_LEVEL, upgradeRarity, upgradeTechnique,
+  levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalRarity, rivalRarityMap,
+  slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
@@ -217,7 +217,11 @@ export function startMatch(
   const rng = nodeRng(save, node)
   const teamId = node.teamId ?? 'occult'
   const team = getTeam(teamId)
-  const rivals = buildRivalTeam(teamId, node.level ?? 10, rng, rivalRarity(bossIndexForLayer(node.layer)))
+  const bossIdx = bossIndexForLayer(node.layer)
+  const rivals = buildRivalTeam(teamId, node.level ?? 10, rng, rivalRarity(bossIdx), {
+    rarityMap: rivalRarityMap(teamId, bossIdx),
+    elite: true,
+  })
 
   const mineTeam = getTeam(save.teamId ?? 'raimon')
   const home = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
@@ -349,7 +353,7 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
  * Cierra una pachanga: devuelve el desgaste SIEMPRE (por eso cansa) y reparte
  * niveles solo si ganaste (por eso compensa jugarla).
  */
-export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): void {
+export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): { rarityUps: string[] } {
   const actors = [s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds]
   const byUid = new Map(actors.map((a) => [a.uid, a]))
   const won = s.result === 'win'
@@ -398,6 +402,12 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   save.goalsFor += s.goals[0]
   save.goalsAgainst += s.goals[1]
   if (won) save.coins += node.risky ? 300 : 120
+
+  return {
+    rarityUps: save.roster
+      .filter((p) => lucky.has(p.uid))
+      .map((p) => `${getPlayerBase(p.baseId).name} (${RARITY_LABEL[rarityOf(p)]})`),
+  }
 }
 
 /** ¿Se acabó la partida? Solo perder contra un instituto te elimina. */

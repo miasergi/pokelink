@@ -4,7 +4,7 @@
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
 import { ImgFallback } from '@/ui/components/kit'
-import { Stars } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, Stars } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -119,7 +119,11 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
       <div className="text-[8px] leading-tight truncate w-full text-center text-slate-200 mt-0.5">
         {chip.name.split(' ')[0]}
       </div>
+      {/* Demarcación REAL + elemento: el color del borde no bastaba para
+          saber qué es cada uno de un vistazo. */}
       <div className="flex items-center justify-center gap-0.5 text-[7px] leading-none text-slate-400">
+        {chip.position && <span className="font-extrabold text-slate-300">{chip.position}</span>}
+        <Icon name={ELEMENT_ICON[chip.element]} className="w-2 h-2" style={{ color: info.color }} />
         {chip.level != null && <>Nv.{chip.level}</>}
         {chip.rarity != null && <Stars n={chip.rarity} className="w-2 h-2" />}
       </div>

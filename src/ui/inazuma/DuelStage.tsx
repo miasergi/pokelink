@@ -12,7 +12,7 @@ import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import { ELEMENT_ICON, techniqueImage } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, techniqueImage } from '@/ui/inazuma/Glyphs'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Technique } from '@/engine/inazuma/types'
 
@@ -37,6 +37,9 @@ export interface StageData {
   attackerWins: boolean
   /** true si el ATACANTE es tuyo (colorea el sello). */
   attackerMine: boolean
+  /** Escudos de cada bando, para saber QUIÉN ataca y quién defiende. */
+  attackerCrest?: string
+  defenderCrest?: string
   kind: 'regate' | 'tiro' | 'penalti'
 }
 
@@ -116,7 +119,7 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         >
           {kindBanner.text}
         </div>
-        <Fighter side={shown.attacker} tech={atkTech} label={shown.kind === 'regate' ? 'ataca' : 'dispara'} />
+        <Fighter side={shown.attacker} tech={atkTech} label={shown.kind === 'regate' ? 'ataca' : 'dispara'} crest={shown.attackerCrest} />
 
         {/* VS y el defensor entran DESPUÉS: el orden cuenta la jugada. */}
         {phase >= 1 && (
@@ -126,6 +129,7 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
               side={shown.defender}
               tech={defTech}
               label={shown.kind === 'regate' ? 'defiende' : 'bajo palos'}
+              crest={shown.defenderCrest}
               right
             />
           </>
@@ -133,9 +137,11 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
 
         {phase >= 2 && !spoiler && (
           <div
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-fit px-5 py-2 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal"
+            className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-fit px-5 py-2 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal flex items-center gap-2"
             style={{ color: resultColor, borderColor: resultColor, transform: 'rotate(-5deg)' }}
           >
+            {/* El escudo del que GANA el duelo, junto al sello. */}
+            <Crest teamId={shown.attackerWins ? shown.attackerCrest : shown.defenderCrest} className="w-7 h-7" />
             {result}
           </div>
         )}
@@ -145,15 +151,18 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
 }
 
 /** Un lado del duelo: retrato + nombre + su técnica (imagen real) o la acción simple. */
-function Fighter({ side, tech, label, right }: {
+function Fighter({ side, tech, label, right, crest }: {
   side: StageSide
   tech?: Technique
   label: string
   right?: boolean
+  /** Escudo del equipo del luchador, en grande a su lado. */
+  crest?: string
 }) {
   const info = tech ? ELEMENT_INFO[tech.element] : null
   return (
     <div className={`flex items-center gap-3 w-full max-w-sm ${right ? 'flex-row-reverse animate-slide-left' : 'animate-slide-right'}`}>
+      {crest && <Crest teamId={crest} className="w-9 h-9 shrink-0 drop-shadow" />}
       <div className="relative shrink-0">
         <div
           className="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"

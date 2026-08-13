@@ -72,6 +72,8 @@ export default function PachangaView() {
       defender: { name: next.keeper, baseId: baseOf(next.keeper), techName: next.counter },
       attackerWins: next.scored,
       attackerMine: next.mine,
+      attackerCrest: next.mine ? saveTeamRef.current : undefined,
+      defenderCrest: next.mine ? undefined : saveTeamRef.current,
       kind: 'tiro',
     })
     // El desenlace (lista, marcador, sonido, celebración) NO se consuma aquí:

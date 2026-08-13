@@ -16,8 +16,9 @@ import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, Stars, TechniqueBadge } fr
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, effectiveStats, lineupError, overall, ptMax, rarityOf, rivalPreviewStats,
-  rivalRarity, rivalStartingXI, scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
+  buildLineup, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
+  rivalPreviewStats, rivalRarity, rivalRarityMap, rivalStartingXI, scaleStats, SIGNATURE_LEVELS,
+  slotRole, techLevel, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -261,7 +262,7 @@ function SaveHeader({ save }: { save: InazumaSave }) {
 }
 
 function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void }) {
-  const { exitInazuma, save } = useInazuma()
+  const { save } = useInazuma()
   const items = (save?.bag.length ?? 0) + (save?.techniqueBag.length ?? 0)
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
@@ -282,9 +283,8 @@ function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void
           </span>
         </Button>
       )}
-      <Button variant="ghost" onClick={exitInazuma}>
-        <Icon name="home" className="w-4 h-4" />
-      </Button>
+      {/* El «volver a inicio» vivía aquí y se pulsaba sin querer: fuera.
+          Salir del modo queda en ajustes. */}
     </div>
   )
 }
@@ -312,7 +312,7 @@ export function PreviewView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         <div
           className="rounded-2xl border border-slate-700 p-4 text-center"
           style={{ background: `linear-gradient(150deg, ${team.color}33, rgba(15,23,42,0.9) 60%)` }}
@@ -346,15 +346,16 @@ export function PreviewView() {
                 element: b.element,
                 role: b.position,
                 position: b.position,
-                // Rareza NIVELADA con el momento del rogue: bronce al empezar,
-                // multicolor en las últimas rondas.
-                rarity: rivalRarity(bossIndexForLayer(matchNode.layer)),
+                // Rareza según el PLAN del partido: los cracks del rival se
+                // llevan los tramos altos (3 platas en el primero… final
+                // multicolor entera).
+                rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
                 level: matchNode.level ?? 10,
                 hasSpirit: !!b.spirit,
               }))}
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)
-                const r = rivalRarity(bossIndexForLayer(matchNode.layer))
+                const r = rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1
                 setInspect({
                   name: b.name,
                   baseId: b.id,
@@ -410,7 +411,14 @@ export function PreviewView() {
       {/* Ficha del jugador tocado (tuyo o rival), con comparador. */}
       {inspect && !compare && (
         <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setInspect(null)}>
-          <div className="w-full max-w-xs rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-xs rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            {/* X arriba, como todo lo informativo: el botón de abajo estorbaba. */}
+            <button
+              onClick={() => setInspect(null)}
+              className="absolute top-2 right-2 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+            >
+              <Icon name="x" className="w-4 h-4" />
+            </button>
             <InspectCard block={inspect} />
             <div className="mt-3 flex gap-2">
               <Button variant="secondary" full onClick={() => setCompare(inspect)}>
@@ -418,7 +426,6 @@ export function PreviewView() {
                   <Icon name="scales" className="w-4 h-4" /> Comparar
                 </span>
               </Button>
-              <Button variant="primary" full onClick={() => setInspect(null)}>Cerrar</Button>
             </div>
           </div>
         </div>
@@ -430,7 +437,7 @@ export function PreviewView() {
           <Button variant="secondary" onClick={() => goTo('squad')}>Vestuario</Button>
           <Button variant="primary" full disabled={!!err} onClick={confirmMatch}>¡Saltar al campo!</Button>
         </div>
-        <button className="text-xs text-slate-500" onClick={() => goTo('map')}>Volver al cuadro</button>
+        {/* Sin «volver al cuadro»: entrar en la casilla es comprometerse. */}
       </div>
     </div>
   )
@@ -505,7 +512,7 @@ export function SquadView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
         {target && (
           <div className="rounded-xl border border-amber-500/50 bg-amber-500/15 px-3 py-2 text-[12px] text-amber-100">
             <b>{target.title}</b> — elige a quién aplicárselo.
@@ -748,7 +755,7 @@ function BagPanel({
             <div className="font-extrabold text-center">{getItem(use)?.name}</div>
             <p className="text-[11px] text-slate-400 text-center mb-2">{getItem(use)?.desc}</p>
             <div className="text-[11px] text-slate-500 mb-1">¿A quién?</div>
-            <div className="overflow-y-auto flex flex-col gap-1.5">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
               {save.roster.map((p) => (
                 <PlayerRow
                   key={p.uid}
@@ -822,7 +829,10 @@ function PlayerDetail({
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <KindIcon kind={t.kind} className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-bold text-[12px]" style={{ color: info.color }}>{t.name}</span>
+                    <span className="font-bold text-[12px]" style={{ color: info.color }}>
+                      {t.name}
+                      {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
+                    </span>
                     <span className="text-[10px] text-slate-500">{t.power} pot. · {t.cost} PT</span>
                   </div>
                   {t.desc && <div className="text-[10px] text-slate-500 italic truncate">{t.desc}</div>}
@@ -849,6 +859,10 @@ function PlayerDetail({
                 if (!t) return null
                 const learnt = player.techniques.includes(id)
                 const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+                // El paso i pide rareza i+1: el 2.º es de PLATA, el 3.º de ORO…
+                const needRarity = i + 1
+                const rarityLocked = rarityOf(player) < needRarity
+                const lvl = techLevel(player, id)
                 return (
                   <span key={id} className="inline-flex items-center gap-1">
                     <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
@@ -857,8 +871,17 @@ function PlayerDetail({
                       <TechniqueBadge tech={t} size={22} />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
                         {t.name}
-                        {/* Cuándo despierta sola, si aún no la tiene. */}
-                        {!learnt && <span className="ml-1 text-slate-500">nv.{need}</span>}
+                        {/* Las Mejoras aplicadas: V2, V3… */}
+                        {learnt && lvl > 0 && <span className="ml-1 text-amber-300">V{lvl + 1}</span>}
+                        {/* Qué le falta para despertar: nivel y/o rareza. */}
+                        {!learnt && (
+                          <span className="ml-1 text-slate-500">
+                            nv.{need}
+                            {rarityLocked && needRarity <= MAX_RARITY && (
+                              <span className="text-rose-300/90"> · {RARITY_LABEL[needRarity]}</span>
+                            )}
+                          </span>
+                        )}
                       </span>
                     </span>
                     {i < arr.length - 1 && <Icon name="arrowRight" className="w-3 h-3 text-slate-600" />}
@@ -940,11 +963,10 @@ function PlayerDetail({
         {compareWith && <CompareSheet a={compareWith} onClose={() => setCompareWith(null)} />}
 
         <div className="mt-2 flex gap-2">
-          <Button variant="primary" full onClick={onClose}>Cerrar</Button>
-          {/* Traspasar pide CONFIRMACIÓN: es irreversible y estaba a un solo
-              toque de distancia del botón de cerrar. */}
+          {/* Traspasar pide CONFIRMACIÓN: es irreversible. El cierre es la X
+              de arriba, como en todos los modales. */}
           {!player.captain && !blocked && !confirmSale && (
-            <Button variant="danger" onClick={() => setConfirmSale(true)}>
+            <Button variant="danger" full onClick={() => setConfirmSale(true)}>
               Traspasar · {fee.toLocaleString('es-ES')} ₽
             </Button>
           )}
@@ -1020,7 +1042,7 @@ export function ShopView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
         {!isRaiRai && <TechniqueStock />}
 
 
@@ -1071,7 +1093,7 @@ export function DraftView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
         {last && (
           <div className={`rounded-2xl border p-3 text-center ${
             last.result === 'win' ? 'border-emerald-500/50 bg-emerald-500/10'
@@ -1102,10 +1124,13 @@ export function DraftView() {
                     fallback={<Icon name="jersey" className="w-6 h-6 text-slate-400" />}
                   />
                 </div>
+              ) : o.kind === 'objeto' ? (
+                <ItemIcon itemId={o.itemId} className="w-9 h-9 shrink-0" />
+              ) : o.kind === 'tecnica' && getTechnique(o.techniqueId) ? (
+                <TechniqueBadge tech={getTechnique(o.techniqueId)!} size={40} />
               ) : (
                 <Icon
-                  name={o.kind === 'objeto' ? 'bag' : o.kind === 'entrenamiento' ? 'dumbbell'
-                    : o.kind === 'tecnica' ? 'bolt' : o.kind === 'dinero' ? 'coin' : 'bench'}
+                  name={o.kind === 'entrenamiento' ? 'dumbbell' : o.kind === 'dinero' ? 'coin' : 'bench'}
                   className="w-7 h-7 shrink-0 text-amber-300"
                 />
               )}

@@ -84,8 +84,16 @@ function defendStat(step: ChainStep, s: Stats): number {
   }
 }
 
+/**
+ * Cuánto pesa la técnica en el duelo. Con el 1:1 de antes, una técnica de 40
+ * de potencia solo movía el duelo ~8 puntos frente a ir a cuerpo — pagar PT
+ * apenas se notaba y el playtest lo cantó. Con 1.5, la misma técnica mueve
+ * ~13-15 puntos y la definitiva de 100 convierte un 50 % en un ~72 %.
+ */
+const TECH_IMPACT = 1.5
+
 function power(base: number, d: Duelist): number {
-  const tech = d.technique ? 1 + d.technique.power / 100 : 1
+  const tech = d.technique ? 1 + (d.technique.power / 100) * TECH_IMPACT : 1
   return base * tech * fatigueMultiplier(d.stamina) * (d.burst ? BURST_MULT : 1) * (d.boost ?? 1)
 }
 

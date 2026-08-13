@@ -37,7 +37,7 @@ export default function FirmaView() {
         <div className="font-extrabold text-sm">Entrenamiento especial</div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
         {candidates.length > 0 && (
           <>
             <p className="text-[12px] text-slate-400">
