@@ -39,6 +39,19 @@ const SECTIONS: Section[] = [
     ),
   },
   {
+    icon: 'star',
+    title: 'Rareza — bronce, plata, oro y multicolor',
+    body: (
+      <>
+        La estrella de color de cada jugador. Sube sus <B>atributos</B>, alarga su <B>cadena</B> (1, 2, 3
+        o 4 supertécnicas) y en <B>multicolor</B> despierta su Espíritu Guerrero (con nivel 30). CUALQUIERA
+        puede llegar al máximo: se empieza con todo bronces y se sube con <B>Medallas de talento</B> (4 por
+        partido, 1 por traspaso, también en tiendas) — y tras cada pachanga, tres del vestuario suben solos.
+        Los rivales van nivelados: bronce en las primeras rondas, multicolor en las últimas.
+      </>
+    ),
+  },
+  {
     icon: 'bolt',
     title: 'PT — la gasolina de las supertécnicas',
     body: (
@@ -82,17 +95,6 @@ const SECTIONS: Section[] = [
         alineas en el vestuario: los once suben entero, p. ej. +3) y <B>partidos oficiales</B> (+6 si
         ganas, +4 si empatas, +3 aunque pierdas), más algunas <B>situaciones</B>. El <B>banquillo sube un
         nivel menos</B> que el once en todo — por eso ves subidas distintas al volver al vestuario.
-      </>
-    ),
-  },
-  {
-    icon: 'star',
-    title: 'Estrellas — el talento de serie',
-    body: (
-      <>
-        De ★1 a ★5, y <B>no cambian nunca</B>: son la calidad innata del jugador (Axel Blaze es ★5, un
-        suplente de instituto es ★1). Dos jugadores al mismo nivel rinden distinto si sus estrellas no son
-        las mismas. El nivel se entrena; las estrellas se fichan.
       </>
     ),
   },

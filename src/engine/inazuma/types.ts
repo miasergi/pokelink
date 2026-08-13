@@ -98,6 +98,12 @@ export interface PlayerInstance {
   uid: string
   baseId: string
   level: number
+  /**
+   * RAREZA dinámica (1 bronce · 2 plata · 3 oro · 4 multicolor). Manda sobre
+   * los atributos, los pasos de cadena alcanzables y el Espíritu (solo 4).
+   * Ausente en saves viejos: `rarityOf` cae a la rareza de catálogo.
+   */
+  rarity?: number
   /** PT actuales. El máximo sale de `ptMax(player)`. */
   pt: number
   /** 0-100. Baja al disputar duelos y penaliza los atributos por debajo de 40. */
@@ -245,6 +251,8 @@ export interface RivalPlayer {
   level: number
   stats: Stats
   techniques: string[]
+  /** Rareza de la ronda (para la ficha y las estrellas de la previa). */
+  rarity?: number
 }
 
 /**
@@ -391,7 +399,7 @@ export interface ChainState {
  *   descanso ≈ centro Pokémon     ·  tienda ≈ tienda
  */
 export type NodeKind =
-  | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'trade' | 'rairai' | 'tienda' | 'evento' | 'jefe' | 'final'
+  | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'trade' | 'rairai' | 'tienda' | 'evento' | 'concentracion' | 'jefe' | 'final'
 
 export interface TournamentNode {
   id: string
@@ -505,6 +513,9 @@ export interface InazumaSave {
   saga?: 'ff' | 'alius' | 'ffi'
   /** true si la plantilla inicial salió del bombo (modo aleatorio). */
   randomSquad?: boolean
+  /** Nombre y escudo elegidos para el equipo del bombo. */
+  customName?: string
+  customCrest?: string
   /** Mapa completo de la partida, generado al empezar. */
   map: InazumaMap
   /** Capa en la que estás. Avanza una casilla por elección. */

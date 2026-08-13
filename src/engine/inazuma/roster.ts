@@ -33,6 +33,82 @@ export function nextPlayerUid(): string {
  * comía entero el `power` del instituto rival. Con 3 % son +27 % y ganar se
  * nota. Subirlo más aplanaría el valor de los fichajes.
  */
+// ---------------------------------------------------------------------------
+// RAREZA (1-4): bronce, plata, oro y multicolor. Es DINÁMICA por instancia —
+// cualquier jugador puede llegar al máximo — y manda sobre las tres cosas:
+//  · sus ATRIBUTOS (presupuesto por rareza, con la forma de su demarcación y
+//    un ruido determinista por identidad: dos oros no son clones),
+//  · cuántos pasos de su CADENA puede despertar (1/2/3/4),
+//  · y el ESPÍRITU GUERRERO, exclusivo del multicolor.
+// Los atributos ya NO salen de `base.stats`: así un Willy Glass multicolor es
+// de verdad de lo más top, que es el punto de poder subir a cualquiera.
+// ---------------------------------------------------------------------------
+
+export const MAX_RARITY = 4
+export const RARITY_BUDGET: Record<number, number> = { 1: 210, 2: 255, 3: 300, 4: 345 }
+export const RARITY_LABEL: Record<number, string> = { 1: 'bronce', 2: 'plata', 3: 'oro', 4: 'MULTICOLOR' }
+/** Color de la estrella de cada rareza (el multicolor anima aparte). */
+export const RARITY_COLOR: Record<number, string> = {
+  1: '#cd7f32', 2: '#c9d1d9', 3: '#fbbf24', 4: '#e879f9',
+}
+
+/** Reparto del presupuesto por demarcación (fracción de cada atributo). */
+const RARITY_SHAPE: Record<Position, Record<keyof Stats, number>> = {
+  POR: { tiro: 0.09, control: 0.13, fisico: 0.17, defensa: 0.30, velocidad: 0.13, aguante: 0.18 },
+  DEF: { tiro: 0.09, control: 0.14, fisico: 0.24, defensa: 0.27, velocidad: 0.12, aguante: 0.14 },
+  MED: { tiro: 0.15, control: 0.27, fisico: 0.13, defensa: 0.16, velocidad: 0.17, aguante: 0.12 },
+  DEL: { tiro: 0.30, control: 0.21, fisico: 0.14, defensa: 0.08, velocidad: 0.17, aguante: 0.10 },
+}
+
+/** Hash determinista pequeño, para el ruido por identidad. */
+function idHash(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+/** Atributos BASE de un jugador a una rareza dada (sin nivel ni objetos). */
+export function rarityStats(baseId: string, position: Position, rarity: number): Stats {
+  const budget = RARITY_BUDGET[Math.max(1, Math.min(MAX_RARITY, rarity))]
+  const shape = RARITY_SHAPE[position]
+  const h = idHash(baseId)
+  const out = {} as Stats
+  ;(Object.keys(shape) as (keyof Stats)[]).forEach((k, i) => {
+    // Ruido ±6 % por atributo, estable por identidad: le da personalidad sin
+    // romper el presupuesto de la rareza.
+    const noise = 0.94 + (((h >> (i * 4)) & 0xff) / 255) * 0.12
+    out[k] = Math.max(10, Math.round(budget * shape[k] * noise))
+  })
+  return out
+}
+
+/**
+ * Rareza de una instancia. Los saves de antes de la rareza dinámica no traen
+ * el campo: heredan la rareza de catálogo (capada al máximo nuevo).
+ */
+export function rarityOf(p: PlayerInstance): number {
+  return p.rarity ?? Math.min(MAX_RARITY, getPlayerBase(p.baseId).rarity)
+}
+
+/** Sube UNA rareza (tope multicolor). Devuelve el jugador nuevo (puro). */
+export function upgradeRarity(p: PlayerInstance): PlayerInstance {
+  return { ...p, rarity: Math.min(MAX_RARITY, rarityOf(p) + 1) }
+}
+
+/**
+ * Rareza de los RIVALES según la eliminatoria (0-7): niveladas con el momento
+ * del rogue — bronce al empezar, multicolor en las dos últimas rondas.
+ */
+export function rivalRarity(bossIndex: number): number {
+  if (bossIndex <= 1) return 1
+  if (bossIndex <= 3) return 2
+  if (bossIndex <= 5) return 3
+  return 4
+}
+
 export const LEVEL_GROWTH = 0.03
 
 export function scaleStat(base: number, level: number): number {
@@ -75,7 +151,9 @@ export function ptMax(p: PlayerInstance): number {
  */
 export function effectiveStats(p: PlayerInstance): Stats {
   const base = getPlayerBase(p.baseId)
-  const s = scaleStats(base.stats, p.level)
+  // Los atributos salen de la RAREZA de la instancia, no del catálogo: la
+  // rareza es dinámica y cualquiera puede llegar al tope (ver arriba).
+  const s = scaleStats(rarityStats(p.baseId, base.position, rarityOf(p)), p.level)
   if (p.boosts) {
     for (const k of Object.keys(s) as (keyof Stats)[]) s[k] += p.boosts[k] ?? 0
   }
@@ -146,11 +224,16 @@ export const POSITION_WEIGHTS: Record<Position, Partial<Record<keyof Stats, numb
 // Creación
 // ---------------------------------------------------------------------------
 
-export function createPlayer(baseId: string, level: number, opts: { captain?: boolean } = {}): PlayerInstance {
+export function createPlayer(
+  baseId: string, level: number, opts: { captain?: boolean; rarity?: number } = {},
+): PlayerInstance {
   const p: PlayerInstance = {
     uid: nextPlayerUid(),
     baseId,
     level,
+    // Rareza de LLEGADA: bronce por defecto (el once inicial entero), o la que
+    // toque por ronda para fichajes e intercambios.
+    rarity: Math.max(1, Math.min(MAX_RARITY, opts.rarity ?? 1)),
     pt: 0,
     stamina: 100,
     // SIN técnicas de salida: `base.techniques` es el repertorio del RIVAL.
@@ -173,9 +256,17 @@ export function createPlayer(baseId: string, level: number, opts: { captain?: bo
  */
 export const SIGNATURE_LEVELS = [10, 22, 35, 50]
 
-/** Despierta los pasos de la cadena que el nivel ya cubre. */
+/**
+ * La cadena ALCANZABLE de un jugador: los primeros N pasos, con N = su rareza
+ * (bronce 1 … multicolor 4). Subir de rareza desbloquea el siguiente paso.
+ */
+export function reachableChain(p: PlayerInstance): string[] {
+  return (getPlayerBase(p.baseId).signature ?? []).slice(0, rarityOf(p))
+}
+
+/** Despierta los pasos de la cadena que el nivel ya cubre (capada por rareza). */
 function awakenByLevel(p: PlayerInstance): PlayerInstance {
-  const chain = getPlayerBase(p.baseId).signature ?? []
+  const chain = reachableChain(p)
   let out = p
   chain.forEach((id, i) => {
     const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
@@ -342,14 +433,14 @@ export function spiritOf(baseId: string): string | undefined {
  * de relleno que hagan falta hasta 11, con atributos derivados del `power` del
  * instituto para que Zeus no juegue con reservas.
  */
-export function buildRivalTeam(teamId: string, level: number, rng: RNG): RivalPlayer[] {
+export function buildRivalTeam(teamId: string, level: number, rng: RNG, rarity = 2): RivalPlayer[] {
   const team = getTeam(teamId)
   // Su once sale de su plantilla REAL (14 jugadores por instituto) y se arma
   // POR LÍNEAS, igual que el tuyo. Cogerlos «los 11 primeros de la lista» era
   // asimétrico (a ellos les tocaban siempre los mejores y a ti no) y además
   // podía dejarles sin portero.
   const named = rivalStartingXI(teamId)
-  const out: RivalPlayer[] = named.map((b) => toRival(b, level, team.power))
+  const out: RivalPlayer[] = named.map((b) => toRival(b, level, team.power, rarity))
 
   const needed = RIVAL_SHAPE.slice()
   for (const p of out) {
@@ -369,8 +460,8 @@ export function buildRivalTeam(teamId: string, level: number, rng: RNG): RivalPl
  * al campo (nivel del nodo + `power` del instituto). Es lo que enseña la ficha
  * al tocar a un rival en la alineación de la previa.
  */
-export function rivalPreviewStats(base: PlayerBase, teamId: string, level: number): Stats {
-  return applyPower(scaleStats(base.stats, level), getTeam(teamId).power)
+export function rivalPreviewStats(base: PlayerBase, teamId: string, level: number, rarity = 2): Stats {
+  return applyPower(scaleStats(rarityStats(base.id, base.position, rarity), level), getTeam(teamId).power)
 }
 
 /** Aplica el `power` del instituto a todos los atributos ya escalados. */
@@ -385,9 +476,11 @@ function applyPower(s: Stats, power: number): Stats {
   }
 }
 
-function toRival(b: PlayerBase, level: number, power: number): RivalPlayer {
-  const stats = applyPower(scaleStats(b.stats, level), power)
-  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: b.techniques }
+function toRival(b: PlayerBase, level: number, power: number, rarity: number): RivalPlayer {
+  // Misma vara que tus jugadores: atributos por RAREZA (la de la ronda), nivel
+  // y el `power` del equipo como último empujón.
+  const stats = applyPower(scaleStats(rarityStats(b.id, b.position, rarity), level), power)
+  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: b.techniques, rarity }
 }
 
 function fillerRival(name: string, position: Position, element: Element, level: number, power: number, rng: RNG): RivalPlayer {

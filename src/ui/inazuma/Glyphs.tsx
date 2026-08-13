@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import { RARITY_COLOR, RARITY_LABEL } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import type { Element, InazumaItem, NodeKind, Technique } from '@/engine/inazuma/types'
 
@@ -41,12 +42,25 @@ export function ElementTag({ element, className = '' }: { element: Element; clas
 }
 
 /** Estrellas de rareza, en SVG y no con el carácter ★. */
+/**
+ * La estrella de RAREZA: una sola, coloreada por tramo — bronce, plata, oro y
+ * MULTICOLOR (que brilla). Sustituye a la fila de estrellitas: la rareza ahora
+ * es dinámica (1-4) y el color se lee más rápido que contar estrellas.
+ */
 export function Stars({ n, className = 'w-3 h-3' }: { n: number; className?: string }) {
+  const tier = Math.max(1, Math.min(4, Math.round(n)))
+  const color = RARITY_COLOR[tier]
   return (
-    <span className="inline-flex items-center gap-px align-middle text-amber-300">
-      {Array.from({ length: Math.max(0, n) }, (_, i) => (
-        <Icon key={i} name="star" className={className} />
-      ))}
+    <span
+      className="inline-flex items-center align-middle"
+      title={`Rareza: ${RARITY_LABEL[tier]}`}
+      style={tier === 4 ? { filter: `drop-shadow(0 0 3px ${color})` } : undefined}
+    >
+      <Icon
+        name="star"
+        className={`${className} ${tier === 4 ? 'animate-pulse' : ''}`}
+        style={{ color }}
+      />
     </span>
   )
 }
@@ -84,6 +98,8 @@ export const NODE_ICON: Record<NodeKind, string> = {
   evento: 'node-evento',
   rairai: 'node-rairai',
   tienda: 'node-tienda',
+  // La concentración reutiliza el icono del entrenamiento de firma.
+  concentracion: 'node-firma2',
   jefe: 'node-jefe',
   final: 'node-final',
 }

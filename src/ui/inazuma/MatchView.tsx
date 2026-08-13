@@ -15,6 +15,7 @@ import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
 import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
+import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -35,7 +36,7 @@ export default function MatchView() {
   const clearGol = useCallback(() => setGol(null), [])
   const clearStage = useCallback(() => setStage(null), [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
-  const crestOf = (mine: boolean) => (mine ? save?.teamId ?? 'raimon' : matchNode?.teamId)
+  const crestOf = (mine: boolean) => (mine ? teamDisplay(save ?? {}).crestId : matchNode?.teamId)
   // Cada evento se ESCENIFICA una sola vez. El objeto `match` cambia de
   // identidad en cada latido del ticker y el efecto se re-ejecutaba con el
   // mismo evento: el escenario se reiniciaba y los duelos «se repetían».
@@ -116,7 +117,7 @@ export default function MatchView() {
       <Scoreboard
         match={match}
         feed={feed}
-        myTeamId={save?.teamId ?? 'raimon'}
+        myTeamId={teamDisplay(save ?? {}).crestId}
         rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
         frozen={frozen}
       />

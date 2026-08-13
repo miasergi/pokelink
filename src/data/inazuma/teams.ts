@@ -45,8 +45,16 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
+    // LEGACY: «Wild» resultó ser el mismo Nose que Farm (redirect de la wiki).
+    // Se conserva para que los saves viejos no revienten, pero ya no entra en
+    // ningún cuadro (no está en `SAGAS`).
     id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 0.84,
     taunt: 'Aquí no se juega al fútbol. Aquí se sobrevive.',
+    lineup: [],
+  },
+  {
+    id: 'mikage', name: 'Instituto Brain', color: '#14b8a6', element: 'bosque', power: 0.84,
+    taunt: 'Vuestras jugadas están calculadas antes de que las penséis.',
     lineup: [],
   },
   {
@@ -173,6 +181,18 @@ export const TEAMS: TeamBase[] = [
 
 export const TEAM_BY_ID = new Map(TEAMS.map((t) => [t.id, t]))
 
+/**
+ * Nombre y escudo A PINTAR para el equipo del usuario: el del instituto, o los
+ * elegidos a mano en el modo bombo (nombre libre + cualquier escudo).
+ */
+export function teamDisplay(save: { teamId?: string; customName?: string; customCrest?: string }): { name: string; crestId: string } {
+  const team = TEAM_BY_ID.get(save.teamId ?? 'raimon')
+  return {
+    name: save.customName ?? team?.name ?? 'Mi equipo',
+    crestId: save.customCrest ?? save.teamId ?? 'raimon',
+  }
+}
+
 export function getTeam(id: string): TeamBase {
   const t = TEAM_BY_ID.get(id)
   if (!t) throw new Error(`Instituto desconocido: ${id}`)
@@ -206,9 +226,9 @@ export const SAGAS: Saga[] = [
     id: 'ff',
     name: 'Football Frontier',
     desc: 'La primera temporada: el torneo nacional de institutos.',
-    teams: ['raimon', 'occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
+    teams: ['raimon', 'occult', 'otaku', 'mikage', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
     playable: ['raimon', 'occult', 'royal'],
-    scoutTeams: ['kfc', 'oumihara', 'mikage', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero'],
+    scoutTeams: ['kfc', 'oumihara', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero'],
   },
   {
     id: 'alius',

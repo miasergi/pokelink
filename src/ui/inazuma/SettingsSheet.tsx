@@ -63,6 +63,7 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { speed, setSpeed, setAutoPlay, abandonTournament, exitInazuma } = useInazuma()
   const {
     inazumaModeMatch, inazumaModePachanga, setInazumaModeMatch, setInazumaModePachanga,
+    skipNodeInfo, toggleSkipNodeInfo,
   } = useSettings()
   const [confirm, setConfirm] = useState(false)
 
@@ -170,6 +171,12 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
             hint="La probabilidad real de cada opción de duelo. Apagado, decides a ojo."
             on={showOdds}
             onClick={toggleShowOdds}
+          />
+          <Toggle
+            label="Entrar directo en las casillas"
+            hint="Sin ventana informativa: tocar una casilla alcanzable entra del tirón."
+            on={skipNodeInfo}
+            onClick={toggleSkipNodeInfo}
           />
           <Toggle label="Sonido" on={sound} onClick={toggleSound} />
           <Toggle label="Música" on={music} onClick={toggleMusic} />

@@ -14,7 +14,7 @@ import { Stars } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon } from '@/ui/inazuma/Glyphs'
-import { effectiveStats, overall, ptMax } from '@/engine/inazuma/roster'
+import { effectiveStats, ptMax, rarityOf } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem } from '@/data/inazuma/items'
@@ -102,14 +102,8 @@ export function PlayerCard({
         </span>
         <ElementChip element={base.element} />
         {/* Talento innato, siempre a la vista pero sin gritar. */}
-        <Stars n={base.rarity} className="w-2.5 h-2.5" />
-        {/* Etiquetado: el numerazo sin rótulo se leía como «PT» y no lo es. */}
-        <span className="ml-auto flex flex-col items-end leading-none">
-          <span className="text-lg font-extrabold tabular-nums" style={{ color: info.color }}>
-            {overall(player)}
-          </span>
-          <span className="text-[7px] uppercase tracking-widest text-slate-500">media</span>
-        </span>
+        <Stars n={rarityOf(player)} className="w-3 h-3" />
+        {/* Fuera la media: con nivel + rareza ya hay vara de medir de sobra. */}
       </div>
 
       <div className="flex items-center gap-2.5 px-2 py-2">
@@ -231,7 +225,7 @@ export function PlayerRow({
           <span className={`rounded px-1 text-[9px] font-extrabold border ${POSITION_COLOR[base.position]}`}>{base.position}</span>
           <span className="font-bold text-[13px] truncate">{base.name}</span>
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
-          <Stars n={base.rarity} className="w-2 h-2" />
+          <Stars n={rarityOf(player)} className="w-2.5 h-2.5" />
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
@@ -244,14 +238,7 @@ export function PlayerRow({
           </div>
         </div>
       </div>
-      <div className="shrink-0 text-right">
-        {right ?? (
-          <span className="flex flex-col items-end leading-none">
-            <span className="text-sm font-extrabold tabular-nums" style={{ color: info.color }}>{overall(player)}</span>
-            <span className="text-[7px] uppercase tracking-widest text-slate-500">media</span>
-          </span>
-        )}
-      </div>
+      {right != null && <div className="shrink-0 text-right">{right}</div>}
     </button>
   )
 }

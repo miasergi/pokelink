@@ -28,7 +28,7 @@ import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  transferValue, upgradeTechnique,
+  rivalRarity, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -471,6 +471,25 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       case 'trade':
         set({ save: next, matchNode: node, phase: 'trade' })
         return
+      case 'concentracion': {
+        // Tres cartas de BUILDEO puro, a elegir una: subir una rareza, meter
+        // niveles o mejorar una técnica. Va a la mochila y se aplica cuando
+        // quieras — la concentración es preparar el partido gordo.
+        advanceLayer(next, node)
+        set({
+          save: next,
+          matchNode: null,
+          draft: [
+            { kind: 'objeto', id: 'conc-medalla', title: 'Medalla de talento', desc: 'Sube UNA rareza a un jugador (a la mochila).', itemId: 'medalla-rareza' },
+            { kind: 'objeto', id: 'conc-plan', title: 'Plan intensivo', desc: 'Sube 4 niveles a un jugador (a la mochila).', itemId: 'plan-intensivo' },
+            { kind: 'objeto', id: 'conc-mejora', title: 'Mejora', desc: '+25 % de potencia a una técnica ya despertada (a la mochila).', itemId: 'mejora' },
+          ],
+          draftPicks: 1,
+          phase: 'draft',
+        })
+        void persist(next, 'draft')
+        return
+      }
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
         advanceLayer(next, node)
@@ -727,7 +746,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         set({ message: `Tu plantilla está llena (${ROSTER_MAX}). Traspasa a alguien antes de fichar.` })
         return
       }
-      next.roster.push(createPlayer(opt.playerId, opt.level))
+      next.roster.push(createPlayer(opt.playerId, opt.level, { rarity: rivalRarity(bossIndexForLayer(next.layer)) }))
       void persistInazumaMeta({ signed: [opt.playerId] })
       message = `${getPlayerBase(opt.playerId).name} firma por el Raimon.`
     } else if (opt.kind === 'objeto') {
@@ -924,7 +943,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!pool.length) { set({ message: 'No queda nadie con quien cambiar.' }); return }
     const incoming = r.pick(pool)
     const level = out.level + 3
-    const nuevo = createPlayer(incoming.id, level)
+    const nuevo = createPlayer(incoming.id, level, { rarity: rivalRarity(bossIndexForLayer(save.layer)) })
 
     const next: InazumaSave = {
       ...save,
@@ -1219,6 +1238,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       ...save,
       roster,
       coins: save.coins + fee,
+      // El traspaso además deja una MEDALLA DE TALENTO: vender alimenta el
+      // sistema de rarezas, no solo la caja.
+      bag: [...save.bag, 'medalla-rareza'],
       lineup: lineup.length ? lineup : autoLineup(roster, save.formation),
     }
     set({

@@ -7,7 +7,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getTeam, TEAM_BY_ID, getSaga, SAGAS, type SagaId } from '@/data/inazuma/teams'
+import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, type SagaId } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
 import type { PlayerStats } from '@/engine/inazuma/types'
 
@@ -300,7 +300,16 @@ export function TeamSelectView() {
   const [saga, setSaga] = useState<SagaId>('ff')
   const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
   const [randomSquad, setRandomSquad] = useState(false)
-  const begin = (teamId: string) => void newTournament(teamId, { difficulty, randomSquad, saga })
+  // Identidad del equipo del bombo: nombre libre y CUALQUIER escudo.
+  const [customName, setCustomName] = useState('')
+  const [customCrest, setCustomCrest] = useState<string | null>(null)
+  const begin = (teamId: string) => void newTournament(teamId, {
+    difficulty,
+    randomSquad,
+    saga,
+    customName: randomSquad ? customName : undefined,
+    customCrest: randomSquad ? (customCrest ?? teamId) : undefined,
+  })
   const sagaInfo = getSaga(saga)
 
   return (
@@ -366,9 +375,41 @@ export function TeamSelectView() {
           >
             🎲 Plantilla del bombo {randomSquad ? '· ACTIVADA' : ''}
             <span className="block text-[10px] font-normal text-slate-500">
-              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). El instituto solo pone escudo y cuadro.
+              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). Todos bronce, como manda el rogue.
             </span>
           </button>
+
+          {/* Con el bombo activo, el equipo es TUYO: bautízalo y elige escudo.
+              Con un valor por defecto para los ansiosos («FC Bombo»). */}
+          {randomSquad && (
+            <div className="mt-2 rounded-xl border border-fuchsia-500/30 bg-slate-900/50 p-2">
+              <input
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value.slice(0, 24))}
+                placeholder="FC Bombo (ponle nombre)"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60"
+              />
+              <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>
+              <div className="mt-1 grid grid-cols-8 gap-1.5">
+                {TEAMS.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setCustomCrest(t.id)}
+                    className={`aspect-square grid place-items-center rounded-lg border transition active:scale-95 ${
+                      customCrest === t.id ? 'border-fuchsia-400 bg-fuchsia-500/15' : 'border-slate-700/60 bg-slate-800/50'
+                    }`}
+                    title={t.name}
+                  >
+                    <ImgFallback
+                      src={`${import.meta.env.BASE_URL}inazuma/teams/${t.id}.png`}
+                      className="w-6 h-6 object-contain"
+                      fallback={<span className="text-[9px] font-extrabold" style={{ color: t.color }}>{t.name[0]}</span>}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {sagaInfo.playable.map((id) => {
           const team = getTeam(id)

@@ -55,13 +55,18 @@ describe('plantilla', () => {
     }
   })
 
-  it('subir de nivel ENSANCHA la brecha entre una estrella y un suplente', () => {
-    // Se comparan atributos crudos, no `overall`: la valoración tiene tope 99 y
-    // pondera por demarcación, así que no sirve para medir brechas.
+  it('subir de nivel ENSANCHA la brecha entre rarezas (la brecha ES la rareza)', () => {
+    // Con la rareza dinámica, la brecha ya no viene del catálogo: viene de la
+    // ESTRELLA. Un multicolor pega más que un bronce, y el nivel lo amplifica.
     const gap = (lv: number) =>
-      effectiveStats(createPlayer('axel-blaze', lv)).tiro - effectiveStats(createPlayer('william-glass', lv)).tiro
+      effectiveStats(createPlayer('axel-blaze', lv, { rarity: 4 })).tiro
+      - effectiveStats(createPlayer('axel-blaze', lv, { rarity: 1 })).tiro
     expect(overall(createPlayer('axel-blaze', 40))).toBeGreaterThan(overall(createPlayer('axel-blaze', 1)))
     expect(gap(40)).toBeGreaterThan(gap(1))
+    // Y CUALQUIERA al máximo es de lo más top: Willy Glass multicolor supera
+    // de largo a un Axel bronce (el punto de poder subir a cualquiera).
+    expect(effectiveStats(createPlayer('william-glass', 20, { rarity: 4 })).defensa)
+      .toBeGreaterThan(effectiveStats(createPlayer('axel-blaze', 20, { rarity: 1 })).defensa)
   })
 
   it('el objeto equipado se refleja en los atributos, en porcentaje', () => {
@@ -967,7 +972,9 @@ describe('coherencia', () => {
     // Sobre la cadena REAL del jugador (viene de la wiki), paso a paso.
     const chain = getPlayerBase('mark-evans').signature ?? []
     expect(chain.length).toBeGreaterThanOrEqual(3)
-    let p = createPlayer('mark-evans', 5)
+    // Rareza MULTICOLOR: la cadena entera es alcanzable (un bronce se queda
+    // en el primer paso — eso lo cubre el test de rarezas).
+    let p = createPlayer('mark-evans', 5, { rarity: 4 })
     expect(p.techniques).toHaveLength(0)
     chain.forEach((id, i) => {
       const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
@@ -975,18 +982,25 @@ describe('coherencia', () => {
       expect(p.techniques, `paso ${i} al nivel ${need}`).toContain(id)
     })
     // Y un fichaje que LLEGA a nivel alto trae lo suyo despierto.
-    expect(createPlayer('axel-blaze', 30).techniques).toContain('fire-tornado')
+    expect(createPlayer('axel-blaze', 30, { rarity: 4 }).techniques).toContain('fire-tornado')
   })
 
-  it('el Espíritu Guerrero se despierta por nivel, no de serie', () => {
+  it('el Espíritu Guerrero pide nivel Y rareza multicolor', () => {
     const save = createSave(3)
-    save.roster = save.roster.map((p) => ({ ...p, level: 10 }))
+    save.roster = save.roster.map((p) => ({ ...p, level: 10, rarity: 4 }))
     const low = startMatch(save, firstBoss(save))
     if ('error' in low) throw new Error(low.error)
     const mineLow = low.match.home
     expect([mineLow.keeper, ...mineLow.defs, ...mineLow.mids, ...mineLow.fwds].every((a) => !a.spirit)).toBe(true)
 
-    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL }))
+    // Nivel sin rareza: tampoco.
+    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL, rarity: 1 }))
+    const mid = startMatch(save, firstBoss(save))
+    if ('error' in mid) throw new Error(mid.error)
+    const mineMid = mid.match.home
+    expect([mineMid.keeper, ...mineMid.defs, ...mineMid.mids, ...mineMid.fwds].every((a) => !a.spirit)).toBe(true)
+
+    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL, rarity: 4 }))
     const high = startMatch(save, firstBoss(save))
     if ('error' in high) throw new Error(high.error)
     const mineHigh = high.match.home
@@ -1011,7 +1025,8 @@ describe('coherencia', () => {
     let seenCombo = false
     for (let seed = 0; seed < 6 && !seenCombo; seed++) {
       const save = createSave(seed)
-      save.roster = save.roster.map((p) => levelUp(p, 25))
+      // Rareza suficiente para alcanzar el 2.º paso de la cadena + niveles.
+      save.roster = save.roster.map((p) => levelUp({ ...p, rarity: 3 }, 25))
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       let guard = 0

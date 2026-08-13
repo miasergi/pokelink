@@ -42,6 +42,7 @@ const MAP = {
   'plan-entrenamiento': 'Soccer Magazine icon.png',
   'plan-intensivo': 'Soccer Club Notebook icon.png',
   'mejora': 'Scrap of the Secret Notebook icon.png',
+  'medalla-rareza': 'GP Pendant Gold icon.png',
   'manual-avanzado': "Souichirou's Documents icon.png",
 }
 

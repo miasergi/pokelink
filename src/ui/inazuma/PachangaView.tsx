@@ -10,6 +10,7 @@ import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import { Mugshot } from '@/ui/inazuma/MatchView'
 import { PACHANGA_MAX_ROUNDS, PACHANGA_TARGET, type PachangaRound } from '@/engine/inazuma/pachanga'
+import { teamDisplay } from '@/data/inazuma/teams'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import { play } from '@/utils/sfx'
@@ -44,7 +45,7 @@ export default function PachangaView() {
   const clearGol = useCallback(() => setGol(null), [])
   // El id del equipo, por ref: clearStage está memoizado sin dependencias.
   const saveTeamRef = useRef<string>('raimon')
-  saveTeamRef.current = save?.teamId ?? 'raimon'
+  saveTeamRef.current = teamDisplay(save ?? {}).crestId
   // Rondas ya CONTADAS en pantalla. El motor resuelve la ronda al instante,
   // pero aquí no existe hasta que el escenario del duelo la ha narrado: sin
   // esto, el marcador se movía (y la siguiente decisión aparecía) antes de
@@ -110,7 +111,7 @@ export default function PachangaView() {
         <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
         <div className="flex items-center justify-center gap-3 mt-0.5">
           <span className="inline-flex items-center gap-1 min-w-0">
-            <Crest teamId={save?.teamId ?? 'raimon'} className="w-4 h-4" />
+            <Crest teamId={teamDisplay(save ?? {}).crestId} className="w-4 h-4" />
             <span className="text-[12px] font-bold text-rose-300 truncate max-w-[8rem]">{pachanga.mine.name}</span>
           </span>
           <span className="text-2xl font-extrabold tabular-nums">{mine} – {theirs}</span>

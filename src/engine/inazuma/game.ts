@@ -7,7 +7,8 @@ import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, ptMax, slotRole, START_LEVEL, upgradeTechnique,
+  levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalRarity, slotRole,
+  START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
@@ -46,6 +47,9 @@ export interface NewRunOptions {
   difficulty?: Difficulty
   randomSquad?: boolean
   saga?: 'ff' | 'alius' | 'ffi'
+  /** Nombre y escudo del equipo del bombo (a gusto del entrenador). */
+  customName?: string
+  customCrest?: string
 }
 
 /** Nivel EXTRA de todos los rivales según la dificultad elegida. */
@@ -82,6 +86,8 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     difficulty,
     saga: opts.saga ?? 'ff',
     randomSquad: opts.randomSquad || undefined,
+    customName: opts.randomSquad ? (opts.customName?.trim() || 'FC Bombo') : undefined,
+    customCrest: opts.randomSquad ? opts.customCrest : undefined,
     rngState: rng.getState(),
     map,
     layer: 0,
@@ -114,6 +120,11 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
  */
 export const SPIRIT_AWAKEN_LEVEL = 30
 
+/** Espíritu genérico por elemento, para los 4★ sin espíritu de catálogo. */
+const GENERIC_SPIRIT: Record<string, string> = {
+  fuego: 'pegaso', bosque: 'ent', aire: 'kraken', montana: 'majin',
+}
+
 function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
   const base = getPlayerBase(p.baseId)
   return {
@@ -131,8 +142,12 @@ function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
     ptMax: ptMax(p),
     techniques: p.techniques,
     techLevels: p.techLevels,
-    // El Espíritu se despierta con la experiencia, no viene de serie.
-    spirit: p.level >= SPIRIT_AWAKEN_LEVEL ? base.spirit : undefined,
+    // El Espíritu pide las DOS cosas: experiencia (nivel 30) y rareza
+    // MULTICOLOR. Si el catálogo no le asigna uno propio, invoca el genérico
+    // de su elemento — cualquier 4★ puede rugir.
+    spirit: p.level >= SPIRIT_AWAKEN_LEVEL && rarityOf(p) >= MAX_RARITY
+      ? (base.spirit ?? GENERIC_SPIRIT[base.element])
+      : undefined,
   }
 }
 
@@ -202,10 +217,10 @@ export function startMatch(
   const rng = nodeRng(save, node)
   const teamId = node.teamId ?? 'occult'
   const team = getTeam(teamId)
-  const rivals = buildRivalTeam(teamId, node.level ?? 10, rng)
+  const rivals = buildRivalTeam(teamId, node.level ?? 10, rng, rivalRarity(bossIndexForLayer(node.layer)))
 
   const mineTeam = getTeam(save.teamId ?? 'raimon')
-  const home = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true,
+  const home = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
@@ -228,9 +243,9 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
   const rng = nodeRng(save, node)
-  const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng)
+  const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng, rivalRarity(bossIndexForLayer(node.layer)))
   const mineTeam = getTeam(save.teamId ?? 'raimon')
-  const mine = sideFromActors(mineTeam.name, mineTeam.color, mineTeam.element, true,
+  const mine = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const theirs = sideFromActors(node.title, '#64748b', 'montana', false, rivals.map(actorFromRival))
 
@@ -325,6 +340,9 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   }
 
   save.coins += result === 'win' ? prizeMoney(bossIndexForLayer(save.layer)) : 200
+  // Tras CADA partido, 4 medallas de talento: el material de las rarezas
+  // llega jugando, no rezando al ojeador.
+  save.bag = [...save.bag, 'medalla-rareza', 'medalla-rareza', 'medalla-rareza', 'medalla-rareza']
 }
 
 /**
@@ -343,6 +361,12 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const baseFatigue = Math.round(s.rounds.length * 1.5)
   const lossFatigue = won ? 0 : 18
 
+  // El barrio te curte: tras CADA pachanga, tres del vestuario (al azar, de
+  // los que aún no son multicolor) suben una rareza — ganes o pierdas.
+  const rarityRng = new RNG(((save.rngState ^ Math.imul(save.layer + 1, 2654435761)) >>> 0) || 1)
+  const candidates = save.roster.filter((p) => rarityOf(p) < MAX_RARITY)
+  const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 3))
+
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
     let next: PlayerInstance = a
@@ -355,6 +379,7 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
     if (levels) {
       next = levelUp(next, a ? levels : Math.max(0, levels - BENCH_LEVEL_PENALTY))
     }
+    if (lucky.has(p.uid)) next = upgradeRarity(next)
     return next
   })
 
@@ -557,6 +582,14 @@ export function applyConsumable(
       one((p) => upgradeTechnique(p, up))
       return spend(`${getTechnique(up)?.name} mejorada (+25 % de potencia)`)
     }
+    case 'medalla-rareza': {
+      const target = save.roster.find((p) => p.uid === uid)
+      if (!target) return { ok: false, message: 'No está en la plantilla.' }
+      if (rarityOf(target) >= MAX_RARITY) return { ok: false, message: 'Ya es multicolor: no hay rareza más alta.' }
+      one((p) => upgradeRarity(p))
+      const now = rarityOf(save.roster.find((p) => p.uid === uid)!)
+      return spend(`¡Sube a ${RARITY_LABEL[now]}!`)
+    }
     case 'manual-avanzado': {
       // Avanza la CADENA característica del jugador (una firma de bolsillo).
       const learnt = learnSignature(save, uid)
@@ -612,7 +645,9 @@ export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean;
  * despierta la Mano Celestial, después la Infinita, después la Demoníaca.
  */
 export function signatureNext(p: PlayerInstance): Technique | null {
-  const chain = getPlayerBase(p.baseId).signature ?? []
+  // Capada por RAREZA: un bronce solo alcanza el primer paso; cada subida de
+  // rareza desbloquea el siguiente.
+  const chain = reachableChain(p)
   const next = chain.find((id) => !p.techniques.includes(id))
   return next ? getTechnique(next) ?? null : null
 }

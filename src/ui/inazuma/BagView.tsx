@@ -14,7 +14,7 @@ import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ItemIcon, KindIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
-import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
+import { canUpgradeTechnique, MAX_RARITY, rarityOf, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
 import { getPlayerBase } from '@/data/inazuma/players'
@@ -58,6 +58,9 @@ export default function BagView() {
     }
     if (pending.id === 'manual-avanzado') {
       return signatureNext(p) ? null : 'Cadena completa'
+    }
+    if (pending.id === 'medalla-rareza') {
+      return rarityOf(p) < MAX_RARITY ? null : 'Ya es multicolor'
     }
     return null
   }

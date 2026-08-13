@@ -81,6 +81,7 @@ const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
   // garantizado, así que el sorteo solo reparte los extra. Con el peso viejo
   // la ruta se llenaba de ramen y farmear pachangas salía gratis.
   { kind: 'rairai', weight: 3 },
+  { kind: 'concentracion', weight: 6 },
   { kind: 'tienda', weight: 7 },
 ]
 
@@ -114,11 +115,15 @@ export function generateMap(rng: RNG, playerTeamId = 'raimon', levelBonus = 0, s
       // Y la ÚLTIMA capa antes del jefe garantiza un Rai Rai: pasar (o no) a
       // curarse antes del partido gordo es una decisión que siempre existe.
       const lastBeforeBoss = r === ROUTE_LAYERS_PER_SEGMENT - 1
+      // Y la PENÚLTIMA garantiza una CONCENTRACIÓN: el momento de buildear
+      // (rarezas, niveles, mejoras) antes del partido gordo.
+      const buildLayer = r === ROUTE_LAYERS_PER_SEGMENT - 2
       const forced: NodeKind[] = seg === 0 && r === 0
         ? ['pachanga', 'firma']
         : [
           ...(r % 2 === 0 ? ['pachanga' as const] : []),
           ...(lastBeforeBoss ? ['rairai' as const] : []),
+          ...(buildLayer ? ['concentracion' as const] : []),
         ]
       for (let c = 0; c < NODES_PER_LAYER; c++) {
         const kind = forced[c] ?? pickKind(rng, used)
@@ -294,6 +299,13 @@ function buildRouteNode(
         title: 'Cazatalentos ambulante',
         subtitle: 'Un jugador por otro, a ciegas',
         reward: 'Cambia a quien elijas por otro al azar con +3 niveles',
+      }
+    case 'concentracion':
+      return {
+        ...base,
+        title: 'Concentración',
+        subtitle: 'Tarde de entrenamiento a puerta cerrada',
+        reward: 'Elige: medalla de talento, plan intensivo o una Mejora',
       }
     case 'rairai':
       return {

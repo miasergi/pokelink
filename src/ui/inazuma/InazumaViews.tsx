@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
+import { useSettings } from '@/state/settingsStore'
 import { PlayerCard, PlayerRow, ElementChip, portraitUrl, StatGrid } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
 import PitchView from '@/ui/inazuma/PitchView'
@@ -15,13 +16,13 @@ import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, Stars, TechniqueBadge } fr
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, effectiveStats, lineupError, overall, overallOf, ptMax, rivalPreviewStats,
-  rivalStartingXI, scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
+  buildLineup, effectiveStats, lineupError, overall, ptMax, rarityOf, rivalPreviewStats,
+  rivalRarity, rivalStartingXI, scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
-import { getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
 import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -114,6 +115,7 @@ export function TitleView() {
  */
 export function MapView() {
   const { save, chooseNode, goTo, resumePausedMatch } = useInazuma()
+  const skipNodeInfo = useSettings((s) => s.skipNodeInfo)
   const [preview, setPreview] = useState<TournamentNode | null>(null)
   if (!save) return null
   const segs = mapSegments(save.map)
@@ -151,7 +153,10 @@ export function MapView() {
         </button>
       )}
 
-      <MapBoard save={save} onPick={setPreview} />
+      {/* Con «entrar directo» activado, tocar una casilla ALCANZABLE entra
+          sin pasar por la ventana informativa. Las inalcanzables la abren
+          igual (explica por qué no se puede). */}
+      <MapBoard save={save} onPick={(n) => (skipNodeInfo && reachable.has(n.id) ? chooseNode(n.id) : setPreview(n))} />
 
       <BottomBar onSquad={() => goTo('squad')} onBag={() => goTo('bag')} />
 
@@ -216,6 +221,7 @@ function SaveHeader({ save }: { save: InazumaSave }) {
   // Todo lleva `min-w-0` + `truncate`: en pantallas estrechas el nombre cede
   // sitio antes de chocar con el dinero o el engranaje.
   const team = TEAM_BY_ID.get(save.teamId ?? 'raimon')
+  const display = teamDisplay(save)
   return (
     <div
       className="shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2.5 pb-1.5 flex items-center gap-2"
@@ -226,14 +232,14 @@ function SaveHeader({ save }: { save: InazumaSave }) {
         style={{ borderColor: `${team?.color ?? '#e11d48'}66`, background: `${team?.color ?? '#e11d48'}18` }}
       >
         <ImgFallback
-          src={`${import.meta.env.BASE_URL}inazuma/teams/${save.teamId ?? 'raimon'}.png`}
+          src={`${import.meta.env.BASE_URL}inazuma/teams/${display.crestId}.png`}
           className="w-7 h-7 object-contain"
           alt=""
           fallback={<span className="w-2.5 h-5 rounded-sm" style={{ background: team?.color ?? '#e11d48' }} />}
         />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="font-extrabold text-[13px] leading-tight truncate">{team?.name ?? 'Instituto Raimon'}</div>
+        <div className="font-extrabold text-[13px] leading-tight truncate">{display.name}</div>
         <div className="text-[10px] text-slate-400 tabular-nums truncate">
           {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.goalsFor}:{save.goalsAgainst}
           {/* La saga y la dificultad, si no son las de siempre. */}
@@ -340,23 +346,23 @@ export function PreviewView() {
                 element: b.element,
                 role: b.position,
                 position: b.position,
-                rarity: b.rarity,
+                // Rareza NIVELADA con el momento del rogue: bronce al empezar,
+                // multicolor en las últimas rondas.
+                rarity: rivalRarity(bossIndexForLayer(matchNode.layer)),
                 level: matchNode.level ?? 10,
                 hasSpirit: !!b.spirit,
-                // La MEDIA del rival, con la misma vara que la tuya: sin ella
-                // solo se veían sus estrellas y no había forma de compararos.
-                overall: overallOf(rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10), b.position),
               }))}
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)
+                const r = rivalRarity(bossIndexForLayer(matchNode.layer))
                 setInspect({
                   name: b.name,
                   baseId: b.id,
                   position: b.position,
                   element: b.element,
                   level: matchNode.level ?? 10,
-                  rarity: b.rarity,
-                  stats: rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10),
+                  rarity: r,
+                  stats: rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10, r),
                 })
               }}
             />
@@ -364,7 +370,7 @@ export function PreviewView() {
         )}
 
         <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-slate-500">
-          <Crest teamId={save.teamId ?? 'raimon'} className="w-4 h-4" />
+          <Crest teamId={teamDisplay(save).crestId} className="w-4 h-4" />
           Tu once · {getFormation(save.formation).name}
         </div>
         <LineupBoard
@@ -378,8 +384,7 @@ export function PreviewView() {
               role: slotRole(save.formation, i),
               position: b.position,
               level: p.level,
-              rarity: b.rarity,
-              overall: overall(p),
+              rarity: rarityOf(p),
               stamina: p.stamina,
               pt: p.pt,
               ptMax: ptMax(p),
@@ -395,7 +400,7 @@ export function PreviewView() {
               position: b.position,
               element: b.element,
               level: p.level,
-              rarity: b.rarity,
+              rarity: rarityOf(p),
               stats: effectiveStats(p),
             })
           }}
@@ -924,7 +929,7 @@ function PlayerDetail({
             position: base.position,
             element: base.element,
             level: player.level,
-            rarity: base.rarity,
+            rarity: rarityOf(player),
             stats: effectiveStats(player),
           })}>
             <span className="inline-flex items-center justify-center gap-1.5">
@@ -1109,7 +1114,7 @@ export function DraftView() {
                 {/* En los fichajes: estrellas, elemento y datos ANTES de decidir. */}
                 {o.kind === 'fichaje' && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Stars n={getPlayerBase(o.playerId).rarity} className="w-2.5 h-2.5" />
+                    <Stars n={rivalRarity(bossIndexForLayer(save.layer))} className="w-3 h-3" />
                     <ElementChip element={getPlayerBase(o.playerId).element} />
                   </div>
                 )}

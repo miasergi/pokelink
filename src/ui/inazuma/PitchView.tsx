@@ -9,9 +9,9 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import Icon from '@/ui/components/Icon'
+import { Stars } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { overall, ptMax } from '@/engine/inazuma/roster'
+import { ptMax, rarityOf } from '@/engine/inazuma/roster'
 import { getFormation } from '@/data/inazuma/formations'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -277,18 +277,11 @@ function PitchChip({
       <div className={`text-[8px] leading-tight truncate text-center ${bench ? 'text-slate-500' : 'text-slate-300'}`}>
         {base.name.split(' ')[0]}
       </div>
-      {/* Nivel y estrellas, en miniatura: información sin ruido. */}
+      {/* Nivel y rareza, en miniatura: información sin ruido (la media, fuera). */}
       <div className="flex items-center justify-center gap-0.5 text-[7px] leading-none text-slate-500">
         Nv.{player.level}
-        <Icon name="star" className="w-1.5 h-1.5 text-amber-300/80" />
-        <span className="text-amber-300/80">{base.rarity}</span>
+        <Stars n={rarityOf(player)} className="w-2 h-2" />
       </div>
-      <span
-        className="absolute -top-1.5 -right-1.5 rounded-full px-1 text-[8px] font-black leading-tight border border-black/40"
-        style={{ background: info.color, color: '#0f172a' }}
-      >
-        {overall(player)}
-      </span>
       {/* Fuera de su sitio: su demarcación natural en rojo. Sus atributos y
           sus técnicas son de OTRO puesto, y conviene verlo de un vistazo. */}
       {outOfPosition && (
