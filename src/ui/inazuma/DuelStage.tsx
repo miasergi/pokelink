@@ -97,6 +97,17 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
   return (
     <div key={shown.key} className="absolute inset-0 z-[60] pointer-events-none">
       <div className="absolute inset-0 bg-slate-950/70 animate-fade-in" />
+      {/* TINTE por clase de duelo: azul el regate, rojo el disparo, ámbar el
+          penalti. Con el rótulo solo, las cinemáticas seguían pareciendo la
+          misma; el color se lee antes que el texto. */}
+      <div
+        className="absolute inset-0 animate-fade-in"
+        style={{ background: `radial-gradient(circle at 50% 42%, ${kindBanner.color}2e, transparent 72%)` }}
+      />
+      <div
+        className="absolute inset-x-0 top-0 h-1 animate-fade-in"
+        style={{ background: kindBanner.color }}
+      />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4">
         <div

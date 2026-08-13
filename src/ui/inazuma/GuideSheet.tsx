@@ -30,8 +30,11 @@ const SECTIONS: Section[] = [
         duelo (regate contra bloqueo; en el área, disparo contra parada) y cada duelo se resuelve con los
         <B> atributos</B> de los dos jugadores, su <B>técnica</B> (si la pagan), el <B>elemento</B> (bosque
         &gt; montaña &gt; fuego &gt; viento &gt; bosque), el <B>aguante</B> y una pizca de azar — las
-        estrellas de cada opción son esa cuenta ya hecha. Los puntos del campo se encienden con cada eslabón
-        ganado: tres puntos y «¡OCASIÓN DE GOL!» significa disparo a puerta.
+        probabilidad de cada opción es esa cuenta ya hecha (actívala en ajustes con «Mostrar
+        porcentajes»). Los puntos del campo se encienden con cada eslabón
+        ganado: tres puntos y «¡OCASIÓN DE GOL!» significa disparo a puerta. Y ojo: <B>pasar NO es un
+        duelo</B> — el pase llega siempre, cambia el emparejamiento de elementos y el que recibe juega el
+        duelo con sus propias técnicas.
       </>
     ),
   },

@@ -1,28 +1,23 @@
-// Estrellas de probabilidad de una opción, con el porcentaje real detrás si el
-// ajuste está activo.
+// Probabilidad de una opción de duelo.
 //
-// Las estrellas solas son bonitas pero opacas: dos estrellas no dicen si es un
-// 45 % o un 60 %. El ajuste «Mostrar porcentajes» las acompaña del número para
-// quien quiera optimizar, sin obligar a nadie a leer decimales.
+// Por defecto NO se enseña nada: rankear cada jugada le quitaba el misterio a
+// los duelos y ensuciaba el panel. Quien quiera optimizar activa «Mostrar
+// porcentajes» en ajustes y ve el número real.
 import { useSettings } from '@/state/settingsStore'
-import Icon from '@/ui/components/Icon'
 import type { DecisionOption } from '@/engine/inazuma/types'
 
 export default function Odds({ option }: { option: DecisionOption }) {
   const showOdds = useSettings((s) => s.showOdds)
+  if (!showOdds) return null
   const pct = Math.round(option.chance * 100)
   return (
-    <span className="shrink-0 text-right leading-tight" title={`Probabilidad estimada: ${pct} %`}>
-      <span className="flex items-center justify-end gap-px">
-        {[0, 1, 2].map((i) => (
-          <Icon
-            key={i}
-            name="star"
-            className={`w-3 h-3 ${i < option.odds ? 'text-amber-300' : 'text-slate-700'}`}
-          />
-        ))}
-      </span>
-      {showOdds && <span className="text-[9px] text-slate-400 tabular-nums">{pct} %</span>}
+    <span
+      className={`shrink-0 text-right text-[11px] font-bold tabular-nums ${
+        pct >= 60 ? 'text-emerald-300' : pct >= 40 ? 'text-amber-300' : 'text-rose-300'
+      }`}
+      title={`Probabilidad estimada: ${pct} %`}
+    >
+      {pct} %
     </span>
   )
 }

@@ -61,6 +61,8 @@ export default function HalftimePanel() {
             role: a.position,
             position: getPlayerBase(a.baseId).position,
             stamina: a.stamina,
+            pt: a.pt,
+            ptMax: a.ptMax,
           }))}
           onTap={(c) => {
             const a = onPitch.find((x) => x.uid === c.key)

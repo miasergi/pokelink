@@ -11,8 +11,13 @@ interface SettingsState {
   skipNodeInfo: boolean
   /** Inazuma: enseñar el % de la jugada además de las estrellas. */
   showOdds: boolean
-  /** Inazuma: cuánto decides en los partidos (auto/dinamico/completo). */
-  inazumaMode: 'auto' | 'dinamico' | 'completo'
+  /**
+   * Inazuma: cuánto decides, POR CONTEXTO. Partidos y pachangas se configuran
+   * por separado: hay quien quiere las pachangas en auto y los partidos
+   * duelo a duelo.
+   */
+  inazumaModeMatch: 'auto' | 'dinamico' | 'completo'
+  inazumaModePachanga: 'auto' | 'dinamico' | 'completo'
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
@@ -20,7 +25,8 @@ interface SettingsState {
   toggleMusic: () => void
   toggleSkipNodeInfo: () => void
   toggleShowOdds: () => void
-  setInazumaMode: (m: 'auto' | 'dinamico' | 'completo') => void
+  setInazumaModeMatch: (m: 'auto' | 'dinamico' | 'completo') => void
+  setInazumaModePachanga: (m: 'auto' | 'dinamico' | 'completo') => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -41,7 +47,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaMode: s.inazumaMode, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaModeMatch: s.inazumaModeMatch, inazumaModePachanga: s.inazumaModePachanga, theme: s.theme }),
   )
 }
 
@@ -54,7 +60,9 @@ export const useSettings = create<SettingsState>((set, get) => ({
   music: saved.music ?? false,
   skipNodeInfo: saved.skipNodeInfo ?? false,
   showOdds: saved.showOdds ?? false,
-  inazumaMode: (saved.inazumaMode as 'auto' | 'dinamico' | 'completo') ?? 'dinamico',
+  // El ajuste viejo `inazumaMode` (único) migra como valor por defecto de ambos.
+  inazumaModeMatch: (saved.inazumaModeMatch ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
+  inazumaModePachanga: (saved.inazumaModePachanga ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
     set({ battleSpeed })
@@ -80,8 +88,12 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ showOdds: !get().showOdds })
     persist(get())
   },
-  setInazumaMode: (inazumaMode) => {
-    set({ inazumaMode })
+  setInazumaModeMatch: (inazumaModeMatch) => {
+    set({ inazumaModeMatch })
+    persist(get())
+  },
+  setInazumaModePachanga: (inazumaModePachanga) => {
+    set({ inazumaModePachanga })
     persist(get())
   },
   setTheme: (theme) => {

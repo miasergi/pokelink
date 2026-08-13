@@ -112,9 +112,19 @@ export function fatigueMultiplier(stamina: number): number {
 
 /** Valoración global 1-99 para pintar en la carta. */
 export function overall(p: PlayerInstance): number {
-  const s = effectiveStats(p)
   const base = getPlayerBase(p.baseId)
-  const w = POSITION_WEIGHTS[base.position]
+  return overallOf(effectiveStats(p), base.position)
+}
+
+/**
+ * La MEDIA a partir de unos atributos ya resueltos, para poder puntuar
+ * también a los RIVALES de la previa (que no son `PlayerInstance`). La media
+ * es rendimiento ACTUAL (crece con el nivel); las estrellas son el talento
+ * innato (rareza, fijo): dos jugadores ★5 pueden tener medias muy distintas
+ * según su nivel.
+ */
+export function overallOf(s: Stats, position: Position): number {
+  const w = POSITION_WEIGHTS[position]
   let total = 0
   let sum = 0
   for (const k of Object.keys(w) as (keyof Stats)[]) {

@@ -506,7 +506,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
     // El modo de decisión sale de los ajustes; en «auto» el banquillo decide y
     // en «completo» el motor te pregunta TODAS las acciones.
-    const mode = useSettings.getState().inazumaMode
+    const mode = useSettings.getState().inazumaModeMatch
     const setup = startMatch(save, matchNode, mode)
     if ('error' in setup) { set({ message: setup.error }); return }
     matchRng = setup.rng

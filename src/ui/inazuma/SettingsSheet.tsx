@@ -61,7 +61,9 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
     sound, music, showOdds, toggleSound, toggleMusic, toggleShowOdds,
   } = useSettings()
   const { speed, setSpeed, setAutoPlay, abandonTournament, exitInazuma } = useInazuma()
-  const { inazumaMode, setInazumaMode } = useSettings()
+  const {
+    inazumaModeMatch, inazumaModePachanga, setInazumaModeMatch, setInazumaModePachanga,
+  } = useSettings()
   const [confirm, setConfirm] = useState(false)
 
   // El ritmo se guarda como milisegundos entre jugadas: menos es más rápido.
@@ -107,7 +109,9 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en el partido</div>
+        {/* Modo de decisión POR CONTEXTO: partidos y pachangas por separado
+            (hay quien quiere las pachangas en auto y los partidos completos). */}
+        <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en PARTIDOS</div>
         <div className="flex gap-1.5 mb-1">
           {([
             ['auto', 'Auto'],
@@ -116,9 +120,36 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ] as const).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => { setInazumaMode(id); if (id === 'auto') setAutoPlay(true); else setAutoPlay(false) }}
+              onClick={() => { setInazumaModeMatch(id); if (id === 'auto') setAutoPlay(true); else setAutoPlay(false) }}
               className={`flex-1 rounded-xl border py-2 text-[12px] font-bold transition active:scale-95 ${
-                inazumaMode === id
+                inazumaModeMatch === id
+                  ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-slate-500 mb-2 leading-snug">
+          {inazumaModeMatch === 'auto'
+            ? 'El banquillo lo juega todo: te sientas a mirar.'
+            : inazumaModeMatch === 'completo'
+              ? 'TODAS las acciones pasan por ti, duelo a duelo. Partidos largos.'
+              : 'Decides en las jugadas con chicha (tiros, técnicas); el resto fluye.'}
+        </p>
+
+        <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">Decisiones en PACHANGAS</div>
+        <div className="flex gap-1.5 mb-1">
+          {([
+            ['auto', 'Auto'],
+            ['dinamico', 'Decido yo'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setInazumaModePachanga(id)}
+              className={`flex-1 rounded-xl border py-2 text-[12px] font-bold transition active:scale-95 ${
+                (inazumaModePachanga === 'auto' ? 'auto' : 'dinamico') === id
                   ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
                   : 'border-slate-700 bg-slate-800/60 text-slate-400'
               }`}
@@ -128,17 +159,15 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <p className="text-[10px] text-slate-500 mb-3 leading-snug">
-          {inazumaMode === 'auto'
-            ? 'El banquillo lo juega todo: te sientas a mirar.'
-            : inazumaMode === 'completo'
-              ? 'TODAS las acciones pasan por ti, duelo a duelo. Partidos largos.'
-              : 'Decides en las jugadas con chicha (tiros, técnicas); el resto fluye.'}
+          {inazumaModePachanga === 'auto'
+            ? 'El banquillo tira y para él solo; tú miras la tanda.'
+            : 'En la tanda decides SIEMPRE (cada ronda es tuya): no hay medias tintas.'}
         </p>
 
         <div className="flex flex-col gap-1.5">
           <Toggle
             label="Mostrar porcentajes"
-            hint="Junto a las estrellas de cada opción, la probabilidad real."
+            hint="La probabilidad real de cada opción de duelo. Apagado, decides a ojo."
             on={showOdds}
             onClick={toggleShowOdds}
           />

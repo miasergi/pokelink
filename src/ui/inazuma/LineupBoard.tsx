@@ -21,6 +21,9 @@ export interface BoardChip {
   rarity?: number
   overall?: number
   stamina?: number
+  /** PT restantes (con `ptMax`): la barra azul bajo la ficha. */
+  pt?: number
+  ptMax?: number
   /** Demarcación natural, para el aviso rojo si no coincide con `role`. */
   position?: Position
   hasSpirit?: boolean
@@ -108,6 +111,12 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
           <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title="Espíritu Guerrero" />
         )}
       </div>
+      {/* PT (azul) y aguante (verde→rojo): los dos depósitos, siempre. */}
+      {chip.pt != null && chip.ptMax != null && chip.ptMax > 0 && (
+        <div className="w-11 h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
+          <div className="h-full bg-sky-400" style={{ width: `${Math.min(100, (chip.pt / chip.ptMax) * 100)}%` }} />
+        </div>
+      )}
       {chip.stamina != null && (
         <div className="w-11 h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
           <div className="h-full" style={{ width: `${chip.stamina}%`, background: staminaColor(chip.stamina) }} />

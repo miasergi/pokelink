@@ -16,7 +16,7 @@ import { play } from '@/utils/sfx'
 
 export default function PachangaView() {
   const { pachanga, pachangaShoot, pachangaAutoShoot, finishPachanga, save } = useInazuma()
-  const auto = useSettings((s) => s.inazumaMode) === 'auto'
+  const auto = useSettings((s) => s.inazumaModePachanga) === 'auto'
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
   // La ronda cuyo desenlace está esperando a que el escenario TERMINE: contar

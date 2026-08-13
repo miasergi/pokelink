@@ -15,8 +15,8 @@ import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, Stars, TechniqueBadge } fr
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, effectiveStats, lineupError, overall, ptMax, rivalPreviewStats, rivalStartingXI,
-  scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
+  buildLineup, effectiveStats, lineupError, overall, overallOf, ptMax, rivalPreviewStats,
+  rivalStartingXI, scaleStats, SIGNATURE_LEVELS, slotRole, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -343,6 +343,9 @@ export function PreviewView() {
                 rarity: b.rarity,
                 level: matchNode.level ?? 10,
                 hasSpirit: !!b.spirit,
+                // La MEDIA del rival, con la misma vara que la tuya: sin ella
+                // solo se veían sus estrellas y no había forma de compararos.
+                overall: overallOf(rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10), b.position),
               }))}
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)
@@ -378,6 +381,8 @@ export function PreviewView() {
               rarity: b.rarity,
               overall: overall(p),
               stamina: p.stamina,
+              pt: p.pt,
+              ptMax: ptMax(p),
             }
           })}
           onTap={(c) => {
@@ -705,18 +710,29 @@ function BagPanel({
   return (
     <>
       <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-2">Mochila</div>
-      <div className="flex flex-wrap gap-1.5">
-        {save.bag.map((id, i) => {
+      {/* Con IMAGEN y QUÉ HACE: el nombre solo no le decía nada a nadie.
+          Duplicados agrupados con ×N, como en la vista de mochila. */}
+      <div className="flex flex-col gap-1.5">
+        {[...new Map(save.bag.map((id) => [id, save.bag.filter((x) => x === id).length]))].map(([id, count]) => {
           const item = getItem(id)
           if (!item) return null
           return (
             <button
-              key={`${id}-${i}`}
+              key={id}
               onClick={() => setUse(id)}
-              className="rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1 text-[11px] text-left active:scale-95 transition"
+              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
             >
-              <div className="font-bold">{item.name}</div>
-              <div className="text-[9px] text-slate-500">{item.kind === 'equipo' ? 'equipable' : 'de un solo uso'}</div>
+              <ItemIcon itemId={id} className="w-6 h-6 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-bold">
+                  {item.name}
+                  {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
+                </span>
+                <span className="block text-[10px] text-slate-400 leading-snug">{item.desc}</span>
+              </span>
+              <span className="shrink-0 text-[10px] font-bold text-emerald-300">
+                {item.kind === 'equipo' || item.kind === 'raro' ? 'Equipar ›' : 'Usar ›'}
+              </span>
             </button>
           )
         })}
@@ -1184,7 +1200,14 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
 export function EndView({ won }: { won: boolean }) {
   const { save, exitInazuma, abandonTournament, goTo } = useInazuma()
   if (!save) return null
-  const best = [...save.roster].sort((a, b) => overall(b) - overall(a)).slice(0, 3)
+  // TODA la plantilla, ordenada por lo que aportó en el torneo (goles primero,
+  // luego paradas y duelos): el cierre es el momento de repasar a los tuyos.
+  const statsOf = (uid: string) => save.playerStats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
+  const contribution = (uid: string) => {
+    const s = statsOf(uid)
+    return s.goals * 3 + s.saves + s.duelsWon
+  }
+  const squad = [...save.roster].sort((a, b) => contribution(b.uid) - contribution(a.uid) || overall(b) - overall(a))
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -1206,9 +1229,25 @@ export function EndView({ won }: { won: boolean }) {
           <Stat label="En contra" value={save.goalsAgainst} />
           <Stat label="Plantilla" value={save.roster.length} />
         </div>
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-3">Los mejores</div>
-        <div className="w-full max-w-sm flex flex-col gap-2">
-          {best.map((p) => <PlayerCard key={p.uid} player={p} compact />)}
+        <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-3">
+          La plantilla · {squad.length}
+        </div>
+        <div className="w-full max-w-sm flex flex-col gap-1.5 text-left">
+          {squad.map((p) => {
+            const s = statsOf(p.uid)
+            return (
+              <PlayerRow
+                key={p.uid}
+                player={p}
+                right={
+                  <span className="text-[9px] text-slate-400 leading-tight tabular-nums text-right">
+                    <span className="block">{s.goals} goles · {s.saves} paradas</span>
+                    <span className="block text-slate-500">{s.duelsWon}-{s.duelsLost} duelos · {s.matches} part.</span>
+                  </span>
+                }
+              />
+            )
+          })}
         </div>
       </div>
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">

@@ -186,11 +186,27 @@ describe('render de pantallas (smoke)', () => {
     while (setup.match.phase !== 'finished' && guard++ < 5000) {
       useInazuma.setState({ match: setup.match, feed: setup.match.events.slice(), phase: 'match' })
       const html = mount(InazumaScreen)
-      if (setup.match.chain) {
+      // El campo pinta el último DUELO revelado, no el `chain` vivo del motor
+      // (que va por delante y destripaba el siguiente emparejamiento). Aquí el
+      // feed está entero, así que el último duelo sin gol/saque posterior es
+      // exactamente lo que tiene que verse.
+      let lastDuel: { attackerUid: string; defenderUid: string } | null = null
+      const evs = setup.match.events
+      // La última línea, si abre escenario, está aún EN ANIMACIÓN (la vista la
+      // oculta): el campo enseña el duelo anterior, igual que en pantalla.
+      let end = evs.length
+      const lastEv = evs[end - 1]
+      if (lastEv?.kind === 'duel' && (lastEv.technique || lastEv.counter || lastEv.step === 'definicion')) end -= 1
+      for (let i = end - 1; i >= 0; i--) {
+        const e = evs[i]
+        if (e.kind === 'duel') { lastDuel = e; break }
+        if (e.kind === 'goal' || e.kind === 'kickoff') break
+      }
+      if (lastDuel) {
         // En el campo caben los nombres de pila; el completo va en la narración
         // y en el panel de decisión.
-        const carrier = actorByUid(setup.match, setup.match.chain.carrier)!
-        const marker = actorByUid(setup.match, setup.match.chain.defenderUid)!
+        const carrier = actorByUid(setup.match, lastDuel.attackerUid)!
+        const marker = actorByUid(setup.match, lastDuel.defenderUid)!
         expect(html).toContain(carrier.name.split(' ')[0])
         expect(html).toContain(marker.name.split(' ')[0])
       }

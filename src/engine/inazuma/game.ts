@@ -137,9 +137,11 @@ function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
 }
 
 function actorFromRival(r: RivalPlayer, i: number): Actor {
-  // El depósito rival sale de su aguante igual que el tuyo, así que a los
-  // rivales también se les acaban las supertécnicas a mitad de partido.
-  const max = Math.round(45 + r.stats.aguante * 0.75)
+  // El depósito rival usa LA MISMA fórmula que el tuyo (28 + aguante×0.7).
+  // Antes era 45 + aguante×0.75 (~+20 PT de regalo) y en el playtest daba la
+  // sensación de que el rival tenía PT infinitos: encadenaba supertécnicas
+  // cuando a ti ya no te quedaba gasolina. Ahora se agotan al mismo ritmo.
+  const max = Math.round(28 + r.stats.aguante * 0.7)
   return {
     uid: `rv${i}`,
     baseId: r.baseId,

@@ -11,7 +11,7 @@ import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { overall } from '@/engine/inazuma/roster'
+import { overall, ptMax } from '@/engine/inazuma/roster'
 import { getFormation } from '@/data/inazuma/formations'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -267,7 +267,10 @@ function PitchChip({
           fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{base.name[0]}</span>}
         />
       </div>
-      {/* barra de aguante */}
+      {/* PT (azul) y aguante: los dos depósitos también en el vestuario. */}
+      <div className="h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
+        <div className="h-full bg-sky-400" style={{ width: `${Math.min(100, (player.pt / Math.max(1, ptMax(player))) * 100)}%` }} />
+      </div>
       <div className="h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">
         <div className="h-full" style={{ width: `${player.stamina}%`, background: staminaColor(player.stamina) }} />
       </div>

@@ -120,7 +120,9 @@ export default function MatchView() {
         rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
         frozen={frozen}
       />
-      {!finished && <MatchPitch match={match} frozen={frozen} />}
+      {/* El campo lee el feed YA CONTADO (sin la línea en animación): leer el
+          motor en vivo enseñaba el siguiente emparejamiento antes de tiempo. */}
+      {!finished && <MatchPitch match={match} feed={shownFeed} />}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
           `min-h-full` hace las dos cosas a la vez: al principio del partido las

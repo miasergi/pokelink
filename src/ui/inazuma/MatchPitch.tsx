@@ -1,19 +1,21 @@
-// EL CAMPO: mapa en vivo de la posesión durante el partido.
+// EL CAMPO: mapa de la posesión durante el partido.
 //
 // La narración cuenta lo que pasa, pero no DÓNDE pasa ni quién es quién. Este
 // panel enseña las tres cosas que el texto no puede: la zona en la que está el
 // balón, la cara del que lo lleva y la del que tiene enfrente.
 //
-// No calcula nada: lee `match.chain` (el eslabón vivo de la posesión) y lo
-// dibuja. Si el motor cambia el número de eslabones, aquí solo hay que tocar
-// `STEP_X`.
-import { useRef } from 'react'
+// REGLA DE ORO: se pinta desde el feed REVELADO, nunca desde `match.chain`.
+// El motor resuelve la posesión entera de golpe y su `chain` ya va DOS duelos
+// por delante de lo que se está contando — leerlo aquí enseñaba el siguiente
+// emparejamiento («Steve vs Mark Evans») con el duelo anterior aún en
+// animación: el desenlace, destripado. El último duelo revelado ES la verdad
+// de la pantalla.
+import { actorByUid, playerSide, sideOf } from '@/engine/inazuma/match'
 import { ImgFallback } from '@/ui/components/kit'
 import { Pic } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { actorByUid, playerSide, sideOf } from '@/engine/inazuma/match'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import type { Actor, ChainState, ChainStep, MatchState } from '@/engine/inazuma/types'
+import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
 
 /**
  * Avance del balón, en % del ancho del campo, para el equipo que ataca hacia la
@@ -32,40 +34,42 @@ const STEP_ZONE: Record<ChainStep, string> = {
   definicion: 'Área',
 }
 
-export default function MatchPitch({ match, frozen }: { match: MatchState; frozen?: boolean }) {
-  // Entre posesión y posesión el motor deja `chain` a null. Si el campo se
-  // vaciara en cada hueco, parpadearía sin parar; se mantiene la última.
-  //
-  // Y mientras una ANIMACIÓN cuenta un duelo (`frozen`), el campo NO avanza:
-  // el motor ya va por la siguiente jugada, y mover el balón aquí destripaba
-  // el desenlace por debajo del escenario.
-  const last = useRef<ChainState | null>(null)
-  if (!frozen && match.chain) last.current = match.chain
-  const chain = frozen ? last.current : (match.chain ?? last.current)
-  if (!chain) return null
+const STEPS: ChainStep[] = ['construccion', 'penetracion', 'definicion']
+
+export default function MatchPitch({ match, feed }: { match: MatchState; feed: MatchEvent[] }) {
+  // El último DUELO revelado manda: quién llevaba el balón, contra quién y en
+  // qué zona. Entre duelos (posesiones, goles…) se mantiene el último.
+  let duel: Extract<MatchEvent, { kind: 'duel' }> | null = null
+  for (let i = feed.length - 1; i >= 0; i--) {
+    const e = feed[i]
+    if (e.kind === 'duel') { duel = e; break }
+    // Un gol o un saque CIERRAN la jugada: campo limpio hasta el próximo duelo.
+    if (e.kind === 'goal' || e.kind === 'kickoff') break
+  }
+  if (!duel) return null
 
   const mine = playerSide(match)
-  const attacking = sideOf(match, chain.side)
-  const carrier = actorByUid(match, chain.carrier)
-  const marker = actorByUid(match, chain.defenderUid)
+  const attacking = sideOf(match, duel.side)
+  const carrier = actorByUid(match, duel.attackerUid)
+  const marker = actorByUid(match, duel.defenderUid)
   if (!carrier || !marker) return null
 
   // Tú siempre atacas hacia la derecha, ataque tuyo o no: si el campo se diera
   // la vuelta a cada robo, no habría forma de leerlo de un vistazo.
-  const iAttack = chain.side === mine
-  const x = iAttack ? STEP_X[chain.step] : 100 - STEP_X[chain.step]
-  // Separación amplia a propósito: con 13 puntos los dos retratos se pisaban en
-  // la zona de tres cuartos y no se leía ni un nombre.
+  const iAttack = duel.side === mine
+  const x = iAttack ? STEP_X[duel.step] : 100 - STEP_X[duel.step]
   const defX = iAttack ? Math.min(88, x + 22) : Math.max(12, x - 22)
+
+  // Progreso de la jugada: eslabones superados. El duelo GANADO enciende el
+  // siguiente punto — tres puntos y el rótulo grita que huele a tiro.
+  const reached = STEPS.indexOf(duel.step) + (duel.success ? 1 : 0)
+  const danger = reached >= STEPS.length
 
   return (
     <div className="shrink-0 px-3 pt-2">
       <div
         className="relative rounded-xl border border-emerald-900/70 overflow-hidden"
         style={{
-          // En pantallas cortas (móviles apaisados, iPhone SE) 92 px fijos se
-          // comían la narración. Se encoge con la ventana pero nunca tanto que
-          // los retratos dejen de leerse.
           height: 'clamp(70px, 13svh, 92px)',
           background: 'repeating-linear-gradient(90deg, #14532d 0 26px, #166534 26px 52px)',
         }}
@@ -89,30 +93,23 @@ export default function MatchPitch({ match, frozen }: { match: MatchState; froze
         {/* el que lleva el balón */}
         <Face actor={carrier} x={x} label="balón" ball />
 
-        {/* Zona y quién ataca, en UNA línea: dos rótulos (arriba y abajo) se
-            comían el sitio de los retratos. En el ÁREA el rótulo grita: es la
-            respuesta a «¿cómo sé si están a punto de marcar?» — una posesión
-            son tres eslabones (salida → tres cuartos → área) y cada punto
-            encendido es un duelo ganado hacia el gol. */}
+        {/* Zona y quién ataca, en UNA línea, con el progreso de la jugada. */}
         <div className={`absolute top-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap text-[8px] font-bold uppercase tracking-widest ${
-          chain.step === 'definicion'
+          danger
             ? (iAttack ? 'text-emerald-300 animate-pulse' : 'text-rose-300 animate-pulse')
             : 'text-white/75'
         }`}>
           <span className="flex items-center gap-0.5">
-            {(['construccion', 'penetracion', 'definicion'] as ChainStep[]).map((s, i) => {
-              const reached = ['construccion', 'penetracion', 'definicion'].indexOf(chain.step) >= i
-              return (
-                <span
-                  key={s}
-                  className={`inline-block w-1.5 h-1.5 rounded-full ${
-                    reached ? (iAttack ? 'bg-emerald-400' : 'bg-rose-400') : 'bg-white/25'
-                  }`}
-                />
-              )
-            })}
+            {STEPS.map((s, i) => (
+              <span
+                key={s}
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  reached > i ? (iAttack ? 'bg-emerald-400' : 'bg-rose-400') : 'bg-white/25'
+                }`}
+              />
+            ))}
           </span>
-          {chain.step === 'definicion' ? '¡OCASIÓN DE GOL!' : STEP_ZONE[chain.step]} · ataca {attacking.name.replace('Instituto ', '')}
+          {danger ? '¡OCASIÓN DE GOL!' : STEP_ZONE[duel.step]} · ataca {attacking.name.replace('Instituto ', '')}
         </div>
       </div>
     </div>
