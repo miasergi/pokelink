@@ -15,7 +15,7 @@ import {
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import { Pic, rarityBorder, rarityChipStyle, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Pic, rarityBorder, rarityChipStyle, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import type { PlayerInstance } from '@/engine/inazuma/types'
 
 export default function FirmaView() {
@@ -145,13 +145,17 @@ function FirmaRow({ player, next, upgradeId, onPick }: {
           {next && (
             <>
               <div className="text-[9px] uppercase tracking-widest text-fuchsia-300 font-extrabold">Despierta</div>
-              <div className="text-[11px] font-bold text-fuchsia-100 leading-tight">{next.name}</div>
+              <div className="text-[11px] font-bold text-fuchsia-100 leading-tight">
+                {getTechnique(next.id) && <TechIcons tech={getTechnique(next.id)!} className="w-2.5 h-2.5 mr-0.5" />}
+                {next.name}
+              </div>
             </>
           )}
           {!next && upTech && (
             <>
               <div className="text-[9px] uppercase tracking-widest text-amber-300 font-extrabold">Mejora</div>
               <div className="text-[11px] font-bold text-amber-100 leading-tight">
+                <TechIcons tech={upTech} className="w-2.5 h-2.5 mr-0.5" />
                 {upTech.name} → V{techLevel(player, upgradeId!) + 2}
               </div>
             </>

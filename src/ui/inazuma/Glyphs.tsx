@@ -73,9 +73,13 @@ export function rarityBorder(tier: number): string {
  */
 export function rarityChipStyle(tier: number, innerBg: string): React.CSSProperties {
   if (tier >= 4) {
+    // TRES capas: el tinte pedido, una base OPACA debajo y el degradado solo
+    // en el borde. Sin la base opaca, un `innerBg` translúcido dejaba ver el
+    // degradado por todo el interior y la ficha entera salía teñida
+    // multicolor (el «fondo de color» y el «marco desbordado» reportados).
     return {
       border: '2px solid transparent',
-      background: `linear-gradient(${innerBg}, ${innerBg}) padding-box, ${RARITY_GRADIENT} border-box`,
+      background: `linear-gradient(${innerBg}, ${innerBg}) padding-box, linear-gradient(#0f172a, #0f172a) padding-box, ${RARITY_GRADIENT} border-box`,
     }
   }
   return { border: `2px solid ${rarityBorder(tier)}`, background: innerBg }
@@ -200,6 +204,22 @@ export function KindIcon({ kind, className = 'w-3.5 h-3.5' }: {
   className?: string
 }) {
   return <Icon name={KIND_ICON[kind]} className={className} title={kind} />
+}
+
+/**
+ * Prefijo ESTÁNDAR de una supertécnica, para delante de su nombre en
+ * cualquier lista: su CLASE (parada/bloqueo/regate/disparo) y su ELEMENTO.
+ */
+export function TechIcons({ tech, className = 'w-3 h-3' }: {
+  tech: Technique
+  className?: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-0.5 shrink-0 align-middle">
+      <KindIcon kind={tech.kind} className={`${className} text-slate-400`} />
+      <ElementIcon element={tech.element} className={className} />
+    </span>
+  )
 }
 
 /**

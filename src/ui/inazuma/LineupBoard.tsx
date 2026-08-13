@@ -87,12 +87,12 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
     >
       <div className="relative">
         <div
-          className="w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center"
-          // Rareza 4: SOLO el anillo animado (borde transparente y fondo
-          // opaco). Combinar el marco degradado con fondo translúcido teñía
-          // el cuadro entero y parecía que el marco «se desbordaba».
+          // Rareza 4: SIN borde (el anillo ES el borde). Con `border-2`
+          // transparente, el anillo (que vive en la caja de padding) quedaba
+          // 2px metido hacia dentro y el marco se veía DESCUADRADO.
+          className={`w-11 h-11 rounded-xl overflow-hidden grid place-items-center ${chip.rarity === 4 ? '' : 'border-2'}`}
           style={chip.rarity === 4
-            ? { border: '2px solid transparent', background: '#0f172a' }
+            ? { background: '#0f172a' }
             : chip.rarity != null
               ? rarityChipStyle(chip.rarity, `${info.color}22`)
               : { borderColor: `${info.color}88`, background: `${info.color}22` }}

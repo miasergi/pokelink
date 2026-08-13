@@ -544,6 +544,13 @@ function DecisionPanel({
             {decision.rivalTech ? (
               <>
                 {decision.rivalName} arma{' '}
+                {decision.rivalTechElement && (
+                  <Icon
+                    name={ELEMENT_INFO[decision.rivalTechElement].icon}
+                    className="w-3 h-3 inline-block align-[-2px] mr-0.5"
+                    style={{ color: ELEMENT_INFO[decision.rivalTechElement].color }}
+                  />
+                )}
                 <b style={decision.rivalTechElement ? { color: ELEMENT_INFO[decision.rivalTechElement].color } : undefined}>
                   ¡{decision.rivalTech}!
                 </b>
@@ -599,6 +606,9 @@ function DecisionPanel({
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-[13px] truncate" style={el && !isBurst ? { color: el.color } : undefined}>
+                  {el && !isBurst && (
+                    <Icon name={el.icon} className="w-3 h-3 inline-block align-[-2px] mr-1" style={{ color: el.color }} />
+                  )}
                   {o.label}
                 </div>
                 <div className="text-[10px] text-slate-400">

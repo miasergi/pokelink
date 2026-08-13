@@ -12,7 +12,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ItemIcon, KindIcon, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ItemIcon, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, rarityOf, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
@@ -121,7 +121,7 @@ export default function BagView() {
                     <TechniqueBadge tech={t} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
-                        <KindIcon kind={t.kind} className="w-3.5 h-3.5" />
+                        <TechIcons tech={t} className="w-3.5 h-3.5" />
                         {t.name}
                         {count > 1 && <span className="text-[11px] font-extrabold text-amber-300">×{count}</span>}
                       </div>

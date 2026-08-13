@@ -12,7 +12,7 @@ import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, Stars, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -507,7 +507,7 @@ function InspectCard({ block }: { block: CompareBlock }) {
                 className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
                 style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
               >
-                <KindIcon kind={t.kind} className="w-2.5 h-2.5" />
+                <TechIcons tech={t} className="w-2.5 h-2.5" />
                 {t.name} <span className="opacity-60">{t.cost} PT</span>
               </span>
             )
@@ -873,7 +873,7 @@ function PlayerDetail({
                 <TechniqueBadge tech={t} size={30} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <KindIcon kind={t.kind} className="w-3.5 h-3.5 text-slate-400" />
+                    <TechIcons tech={t} className="w-3.5 h-3.5" />
                     <span className="font-bold text-[12px]" style={{ color: info.color }}>
                       {t.name}
                       {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
@@ -919,6 +919,7 @@ function PlayerDetail({
                       style={rarityChipStyle(needRarity, learnt ? 'rgba(217,70,239,0.08)' : 'rgba(30,41,59,0.45)')}
                     >
                       <TechniqueBadge tech={t} size={22} />
+                      <TechIcons tech={t} className="w-2.5 h-2.5" />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
                         {t.name}
                         {/* Las Mejoras aplicadas: V2, V3… */}
@@ -1233,7 +1234,7 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
                   className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold"
                   style={{ color: info.color, ...rarityChipStyle(i + 1, `${info.color}12`) }}
                 >
-                  <KindIcon kind={t.kind} className="w-2.5 h-2.5" />
+                  <TechIcons tech={t} className="w-2.5 h-2.5" />
                   {t.name}
                   <span className="text-slate-500">nv.{need}</span>
                 </span>

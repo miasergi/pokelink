@@ -12,7 +12,7 @@ import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import { Crest, ELEMENT_ICON, rarityBorder, techniqueImage } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, rarityBorder, TechIcons, techniqueImage } from '@/ui/inazuma/Glyphs'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Technique } from '@/engine/inazuma/types'
 
@@ -301,11 +301,12 @@ function Showcase({ side, tech, crest, fallbackAction, color, stamp }: {
           {side.name}
         </span>
       </div>
-      {/* El NOMBRE de lo que hace, gigante. */}
+      {/* El NOMBRE de lo que hace, gigante, con su clase y elemento delante. */}
       <div
         className="max-w-full px-4 py-1 rounded-2xl bg-slate-950/85 border-2 text-center text-2xl font-black uppercase tracking-wide leading-tight truncate"
         style={{ color: glow, borderColor: `${glow}aa`, textShadow: `0 0 18px ${glow}` }}
       >
+        {tech && <TechIcons tech={tech} className="w-5 h-5 mr-1.5" />}
         {tech ? `¡${tech.name}!` : fallbackAction}
       </div>
       {stamp && (
@@ -381,9 +382,10 @@ function Fighter({ side, tech, label, right, crest, plain }: {
             />
           </div>
           <span
-            className="max-w-[7.5rem] truncate px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-slate-950/85 border"
+            className="max-w-[8.5rem] inline-flex items-center gap-1 truncate px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-slate-950/85 border"
             style={{ color: info!.color, borderColor: `${info!.color}88` }}
           >
+            <TechIcons tech={tech} className="w-2.5 h-2.5" />
             {tech.name}
           </span>
         </div>

@@ -252,15 +252,14 @@ function PitchChip({
       style={{ cursor: 'grab' }}
     >
       <div
-        className={`w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center transition ${
-          highlight ? 'scale-110 ring-2 ring-amber-300' : ''
-        }`}
+        // Rareza 4: SIN borde — el anillo animado ES el borde. Con borde
+        // transparente el anillo quedaba 2px hacia dentro (descuadrado).
+        className={`w-11 h-11 rounded-xl overflow-hidden grid place-items-center transition ${
+          rarityOf(player) === 4 && !highlight ? '' : 'border-2'
+        } ${highlight ? 'scale-110 ring-2 ring-amber-300' : ''}`}
         style={{
-          // El borde cuenta la RAREZA. El multicolor va con el anillo animado
-          // a secas (fondo opaco): el marco degradado sobre fondo translúcido
-          // teñía toda la ficha.
           ...(rarityOf(player) === 4
-            ? { border: '2px solid transparent', background: '#0f172a' }
+            ? { background: '#0f172a' }
             : rarityChipStyle(rarityOf(player), `${info.color}22`)),
           ...(highlight ? { border: '2px solid #fcd34d' } : {}),
           ...(floating ? { boxShadow: '0 8px 20px rgba(0,0,0,.5)' } : {}),

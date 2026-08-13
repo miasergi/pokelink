@@ -13,7 +13,7 @@ import { ImgFallback } from '@/ui/components/kit'
 import { rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
-import { ELEMENT_ICON, ItemIcon } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, ItemIcon, TechIcons } from '@/ui/inazuma/Glyphs'
 import { effectiveStats, ptMax, RARITY_LABEL, rarityOf } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -156,9 +156,10 @@ export function PlayerCard({
               return (
                 <span
                   key={id}
-                  className="rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
                   style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
                 >
+                  <TechIcons tech={t} className="w-2.5 h-2.5" />
                   {t.name} <span className="opacity-60">{t.cost} PT</span>
                 </span>
               )
