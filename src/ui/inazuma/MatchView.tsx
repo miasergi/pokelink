@@ -20,7 +20,7 @@ import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
-import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
+import type { Actor, ChainStep, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
@@ -30,6 +30,8 @@ export default function MatchView() {
   const simMatch = useSettings((s) => s.inazumaSimMatch)
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
+  // Último emparejamiento pintado en el césped (ver más abajo: pegajoso).
+  const stickyPair = useRef<{ attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null>(null)
 
   // El RITMO lo marca el store: el feed llega ya revelado de uno en uno, con
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
@@ -79,10 +81,11 @@ export default function MatchView() {
           1900,
         )
       }
-    } else if (last.kind === 'duel') {
-      // TODO duelo tiene su cinemática: también el regate a pelo y el bloqueo
-      // sin técnica — antes solo se escenificaban técnicas y tiros, y las
-      // acciones simples pasaban como una línea de texto más.
+    } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
+      // Cinemática SOLO para los lances con chicha: técnicas de por medio,
+      // tiros y penaltis. Los duelos a pelo se resuelven sobre el césped y el
+      // ticker — escenificarlo todo hacía el partido ilegible por exceso de
+      // cinemáticas (se probó y se revirtió).
       setStage({
         key: feed.length,
         attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
@@ -160,7 +163,7 @@ export default function MatchView() {
         // decisión, su emparejamiento; si hay cinemática de duelo, ESE duelo
         // (sin desenlace); si no, el último contado.
         const stagedEv = stage && stage.key === feed.length ? feed[feed.length - 1] : null
-        const current = match.phase === 'decision' && match.decision && caughtUp && !frozen
+        let current = match.phase === 'decision' && match.decision && caughtUp && !frozen
           ? {
             attackerUid: match.decision.mode === 'ataque' ? match.decision.actorUid : match.decision.rivalUid,
             defenderUid: match.decision.mode === 'ataque' ? match.decision.rivalUid : match.decision.actorUid,
@@ -170,6 +173,14 @@ export default function MatchView() {
           : stagedEv?.kind === 'duel'
             ? { attackerUid: stagedEv.attackerUid, defenderUid: stagedEv.defenderUid, step: stagedEv.step, side: stagedEv.side }
             : null
+        // PEGAJOSO: entre elegir la opción y revelarse el duelo (o entre dos
+        // cinemáticas) el emparejamiento quedaba a null un instante y el campo
+        // RETROCEDÍA al duelo anterior para volver enseguida — el vaivén
+        // «hacia atrás y hacia adelante». Mientras haya jugada en resolución
+        // (eventos sin revelar o animación en pantalla), se mantiene el último.
+        if (current) stickyPair.current = current
+        else if (!caughtUp || frozen) current = stickyPair.current
+        else stickyPair.current = null
         return <LivePitch match={match} feed={shownFeed} current={current} />
       })()}
 

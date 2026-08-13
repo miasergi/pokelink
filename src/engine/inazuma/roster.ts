@@ -228,9 +228,12 @@ export function effectiveStats(p: PlayerInstance): Stats {
  * de que exista el banquillo.
  */
 export function fatigueMultiplier(stamina: number): number {
-  if (stamina >= 60) return 1
-  if (stamina >= 40) return 0.94
-  if (stamina >= 20) return 0.84
+  // La penalización EMPIEZA antes (70, no 60): con el desgaste nuevo del
+  // partido (10 por duelo, 2 por posesión) el cansancio tiene que notarse ya
+  // en la segunda parte, no solo en el descuento.
+  if (stamina >= 70) return 1
+  if (stamina >= 50) return 0.93
+  if (stamina >= 30) return 0.84
   if (stamina > 0) return 0.72
   return 0.6
 }
