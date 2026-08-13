@@ -12,7 +12,8 @@ import src from './music.ts?raw'
 describe('secuencias de música', () => {
   it('cada pista declara tantos pasos como notas tiene', () => {
     // Extrae cada bloque `nombre: { ... },` de dentro de SEQ.
-    const seqBlock = src.slice(src.indexOf('const SEQ'))
+    // Las pistas viven en BASE_SEQ (SEQ solo compone alias de Inazuma).
+    const seqBlock = src.slice(src.indexOf('const BASE_SEQ'))
     const tracks = [...seqBlock.matchAll(/^  (\w+): \{([\s\S]*?)^  \},$/gm)]
     expect(tracks.length).toBeGreaterThanOrEqual(5) // map, league, story, battle, boss
 

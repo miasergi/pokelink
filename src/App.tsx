@@ -100,7 +100,7 @@ export default function App() {
     else if (screen.name === 'league' || screen.name === 'leagueSetup') startMusic('league')
     else if (screen.name === 'map' || screen.name === 'team' || screen.name === 'shop' || screen.name === 'pokedex' || screen.name === 'records') startMusic(storyMode ? 'story' : 'map')
     else if (screen.name === 'battle') startMusic('battle')
-    else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover' || screen.name === 'cyber' || screen.name === 'inazuma') stopMusic()
+    else if (screen.name === 'home' || screen.name === 'victory' || screen.name === 'gameover' || screen.name === 'cyber') stopMusic()
   }, [screen.name, music, storyMode])
 
   if (!loaded) {

@@ -393,6 +393,20 @@ export function TeamSelectView() {
                 placeholder={`${getTeam(customCrest ?? 'raimon').name} (ponle nombre)`}
                 className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60"
               />
+              {/* Con escudo elegido faltaba un botón para ARRANCAR: tocar un
+                  instituto de abajo también vale (elige tu hueco del cuadro),
+                  pero este empieza ya con el cuadro estándar de la saga. */}
+              <Button
+                variant="primary"
+                full
+                className="mt-2"
+                onClick={() => begin(sagaInfo.playable[0])}
+              >
+                ¡Empezar con este equipo!
+              </Button>
+              <p className="mt-1 text-[9px] text-slate-500">
+                O toca un instituto de abajo para ocupar SU hueco del cuadro (cambia a quién te enfrentas).
+              </p>
               <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>
               <div className="mt-1 grid grid-cols-8 gap-1.5">
                 {TEAMS.map((t) => (

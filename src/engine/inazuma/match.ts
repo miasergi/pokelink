@@ -96,7 +96,10 @@ function allActors(side: MatchSide): Actor[] {
   return [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
 }
 
-function toDuelist(a: Actor, tech: Technique | undefined, burst: boolean, spirit?: { uid: string; power: number }): Duelist {
+function toDuelist(
+  a: Actor, tech: Technique | undefined, burst: boolean,
+  spirit?: { uid: string; power: number }, sprint?: { uid: string },
+): Duelist {
   return {
     name: a.name,
     element: a.element,
@@ -104,7 +107,9 @@ function toDuelist(a: Actor, tech: Technique | undefined, burst: boolean, spirit
     stamina: a.stamina,
     technique: tech,
     burst,
-    boost: spirit && spirit.uid === a.uid ? spirit.power : 1,
+    boost: (spirit && spirit.uid === a.uid ? spirit.power : 1)
+      * streakBoost(a)
+      * (sprint && sprint.uid === a.uid ? 1.2 : 1),
   }
 }
 
@@ -284,6 +289,12 @@ function startPossession(m: MatchState, rng: RNG, out: MatchEvent[]): void {
  * acapararan los duelos y a media plantilla no se la viera en 90 minutos.
  */
 const usageCount = new WeakMap<Actor, number>()
+/** RACHA de duelos ganados: a 2 seguidos el jugador se enciende (+15 %). */
+const winStreak = new WeakMap<Actor, number>()
+const STREAK_BOOST = 1.15
+function streakBoost(a: Actor): number {
+  return (winStreak.get(a) ?? 0) >= 2 ? STREAK_BOOST : 1
+}
 function pickRotating(pool: Actor[], rng: RNG): Actor {
   if (pool.length <= 1) return pool[0]
   const min = Math.min(...pool.map((a) => usageCount.get(a) ?? 0))
@@ -374,11 +385,33 @@ function executeDuel(
 
   const r = resolveDuel(
     step,
-    toDuelist(attacker, atkTech, atkBurst, chain.spirit),
-    toDuelist(defender, defTech, defBurst, chain.spirit),
+    toDuelist(attacker, atkTech, atkBurst, chain.spirit, chain.sprint),
+    toDuelist(defender, defTech, defBurst, chain.spirit, chain.sprint),
     rng,
     chain.momentum,
   )
+  // El sprint es de UN duelo: se paga aquí y se apaga aquí.
+  if (chain.sprint) {
+    const sprinter = [attacker, defender].find((x) => x.uid === chain.sprint!.uid)
+    if (sprinter) sprinter.stamina = Math.max(0, sprinter.stamina - 15)
+    chain.sprint = undefined
+  }
+  // Rachas: el ganador suma, el perdedor se apaga. A 2 seguidos, EN LLAMAS.
+  {
+    const winner = r.success ? attacker : defender
+    const loser = r.success ? defender : attacker
+    const streak = (winStreak.get(winner) ?? 0) + 1
+    winStreak.set(winner, streak)
+    winStreak.set(loser, 0)
+    if (streak === 2) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡${winner.name} está EN LLAMAS! (+15 % hasta que pierda un duelo)`,
+      })
+    }
+  }
 
   out.push({
     kind: 'duel',
@@ -443,6 +476,21 @@ function executeDuel(
       technique: defTech?.name,
       text: `¡${defender.name} lo detiene! ${defSide.name} respira.`,
     })
+    // ¡CÓRNER! A veces el paradón no despeja del todo y hay segunda jugada.
+    if (rng.chance(0.18)) {
+      const header = attackerFor('definicion', atkSide, rng)
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡Córner! El rechace se pasea y ${header.name} llega al remate…`,
+      })
+      chain.carrier = header.uid
+      chain.defenderUid = defSide.keeper.uid
+      chain.spirit = undefined
+      exhaustionCheck(m, out, attacker)
+      return
+    }
   } else {
     // Escueto A PROPÓSITO: la línea del duelo que acaba de salir ya cuenta QUIÉN
     // ha robado el balón («Bruno Cid le roba la cartera a Sam Kincaid»). Antes
@@ -453,6 +501,26 @@ function executeDuel(
       side: otherSide(chain.side),
       text: `Balón para ${defSide.name}.`,
     })
+    // ¡CONTRAATAQUE! El robo pilla al rival vendido: el que roba lanza una
+    // posesión que EMPIEZA en tres cuartos.
+    if (rng.chance(0.16)) {
+      const runner = attackerFor('penetracion', defSide, rng)
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: otherSide(chain.side),
+        text: `¡Contraataque! ${runner.name} se lanza a la carrera.`,
+      })
+      m.chain = {
+        side: otherSide(chain.side),
+        step: 'penetracion',
+        carrier: runner.uid,
+        defenderUid: defenderFor('penetracion', atkSide, rng).uid,
+        momentum: 0.06,
+      }
+      exhaustionCheck(m, out, attacker)
+      return
+    }
   }
   exhaustionCheck(m, out, attacker)
   m.chain = null
@@ -585,7 +653,20 @@ function buildDecision(
     }
   }
 
-  // 5) Supervibración, si la barra está llena.
+  // 5) SPRINT: quemar aguante por potencia EN ESTE duelo. Convierte el
+  //    cansancio en decisión táctica — y no si ya vas con la lengua fuera.
+  if (actor.stamina > 30 && !m.chain?.sprint) {
+    options.push({
+      id: 'sprint',
+      label: '¡SPRINT!',
+      detail: '-15 de aguante · +20 % de potencia en este duelo',
+      odds: 2,
+      chance: 0.5,
+      cost: 0,
+    })
+  }
+
+  // 5b) Supervibración, si la barra está llena.
   if (mySide.burst >= 100 && mySide.burstTurns === 0) {
     options.push({
       id: 'burst',
@@ -682,8 +763,8 @@ function buildOption(
   const spirit = m.chain?.spirit
   const { chance } = duelChance(
     step,
-    toDuelist(attacker, atkTech, atkSide.burstTurns > 0, spirit),
-    toDuelist(defender, defTech, defSide.burstTurns > 0, spirit),
+    toDuelist(attacker, atkTech, atkSide.burstTurns > 0, spirit, m.chain?.sprint),
+    toDuelist(defender, defTech, defSide.burstTurns > 0, spirit, m.chain?.sprint),
     momentum,
   )
   // Defendiendo, tus estrellas son la probabilidad de PARAR = 1 − la del tiro.
@@ -728,6 +809,26 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
       player: actor.name,
       spirit: spirit.name,
       text: `¡${actor.name} invoca a ${spirit.name}!`,
+    }]
+    m.decision = null
+    m.phase = 'playing'
+    m.events.push(...out)
+    resolveStep(m, rng, [])
+    return out
+  }
+
+  if (optionId === 'sprint') {
+    // Se marca el sprint y se VUELVE a preguntar: las opciones ya muestran
+    // las probabilidades con el +20 % puesto.
+    const actor = d.mode === 'ataque'
+      ? findActor(atkSide, chain.carrier)
+      : findActor(defSide, chain.defenderUid)
+    chain.sprint = { uid: actor.uid }
+    const out: MatchEvent[] = [{
+      kind: 'possession',
+      minute: m.minute,
+      side: d.mode === 'ataque' ? chain.side : otherSide(chain.side),
+      text: `¡${actor.name} aprieta los dientes y esprinta!`,
     }]
     m.decision = null
     m.phase = 'playing'

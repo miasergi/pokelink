@@ -15,6 +15,7 @@ import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
 import { loadCyber, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { setInazumaEntry } from '@/state/inazumaStore'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { layerName } from '@/engine/inazuma/tournament'
 
@@ -142,8 +143,8 @@ export default function HomeScreen() {
       </div>
 
       <div className="w-full flex flex-col gap-2.5 max-w-sm mt-3">
-        {/* --- Nivel 1: los JUEGOS --- */}
-        <div className="text-[10px] uppercase tracking-widest text-slate-600 px-0.5">Juegos</div>
+        {/* --- SECCIÓN POKÉMON: todo lo del universo Pokémon, junto. --- */}
+        <div className="text-[10px] uppercase tracking-widest text-red-400/80 px-0.5">Pokémon</div>
         <div className="grid grid-cols-2 gap-2.5">
           <GameCard
             title="PokéRogue"
@@ -161,6 +162,22 @@ export default function HomeScreen() {
             locked={!cloudUser}
             onClick={() => { if (cloudUser) navigate('story'); else setStoryLocked(true) }}
           />
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <MenuButton
+            icon={<Icon name="liga" className="w-5 h-5" />}
+            label="Liga"
+            locked={totalWins === 0}
+            onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }}
+          />
+          <MenuButton icon={<Icon name="dailycal" className="w-5 h-5" />} label="Reto diario" onClick={() => setDailyOpen(true)} />
+          <MenuButton icon={<Icon name="pokedex" className="w-5 h-5" />} label="Pokédex" onClick={() => navigate('pokedex')} />
+          <MenuButton icon={<Icon name="records" className="w-5 h-5" />} label="Récords" onClick={() => navigate('records')} />
+        </div>
+
+        {/* --- SECCIÓN INAZUMA ELEVEN --- */}
+        <div className="text-[10px] uppercase tracking-widest text-amber-400/80 px-0.5 mt-1">Inazuma Eleven</div>
+        <div className="grid grid-cols-2 gap-2.5">
           <GameCard
             title="Inazuma Rogue"
             subtitle="Roguelite de fútbol: gana el Football Frontier"
@@ -169,41 +186,27 @@ export default function HomeScreen() {
             badge={inazumaRound}
             onClick={() => navigate('inazuma')}
           />
-          <GameCard
-            title="Cyber PokéBall"
-            subtitle="El juguete de 2000, con su LCD y su agitado"
-            accent="#38bdf8"
-            icon={<span className="text-2xl leading-none">🕹️</span>}
-            badge={hasCyber ? 'Continuar' : null}
-            onClick={() => navigate('cyber')}
-          />
+          <div className="grid grid-rows-2 gap-2">
+            <MenuButton
+              icon={<Icon name="pokedex" className="w-5 h-5" />}
+              label="Álbum de cromos"
+              onClick={() => { setInazumaEntry('album'); navigate('inazuma') }}
+            />
+            <MenuButton
+              icon={<Icon name="gear" className="w-5 h-5" />}
+              label="Opciones"
+              onClick={() => { setInazumaEntry('title'); navigate('inazuma') }}
+            />
+          </div>
         </div>
 
-        {/* --- Nivel 1b: retos ligados a PokéRogue --- */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Button variant="secondary" onClick={() => setDailyOpen(true)}>
-            <span className="inline-flex items-center justify-center gap-1.5 text-[12px]"><Icon name="dailycal" className="w-4 h-4" /> Reto diario</span>
-          </Button>
-          <Button
-            variant="secondary"
-            className={totalWins > 0 ? '' : 'opacity-70'}
-            onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }}
-          >
-            <span className="inline-flex items-center justify-center gap-1.5 text-[12px]">
-              <Icon name="liga" className="w-4 h-4" /> Liga
-              {totalWins > 0
-                ? (hasSavedLeague ? <span className="text-emerald-300">·</span> : null)
-                : <Icon name="lock" className="w-3 h-3 text-slate-400" />}
-            </span>
-          </Button>
-        </div>
-
-        {/* --- Nivel 2: menús --- */}
-        <div className="grid grid-cols-4 gap-2 mt-0.5">
-          <MenuButton icon={<Icon name="pokedex" className="w-5 h-5" />} label="Pokédex" onClick={() => navigate('pokedex')} />
-          <MenuButton icon={<Icon name="records" className="w-5 h-5" />} label="Récords" onClick={() => navigate('records')} />
+        {/* --- SECCIÓN OTROS --- */}
+        <div className="text-[10px] uppercase tracking-widest text-slate-600 px-0.5 mt-1">Otros</div>
+        <div className="grid grid-cols-4 gap-2">
+          <MenuButton icon={<span className="text-xl leading-none">🕹️</span>} label={hasCyber ? 'Cyber ·' : 'Cyber'} onClick={() => navigate('cyber')} />
           <MenuButton icon={<Icon name="achievement" className="w-5 h-5" />} label="Logros" onClick={() => navigate('achievements')} />
           <MenuButton icon={<Icon name="wrench" className="w-5 h-5" />} label="Ajustes" onClick={() => navigate('settings')} />
+          <MenuButton icon={<Icon name="scroll" className="w-5 h-5" />} label="Novedades" onClick={() => setNewsOpen(true)} />
         </div>
 
         <button

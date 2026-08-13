@@ -28,7 +28,6 @@ import { COMBOS } from '@/data/inazuma/combos'
 import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
-import { techniquePrice, techniqueStock } from '@/data/inazuma/techniques'
 import { bossIndexForLayer } from '@/engine/inazuma/tournament'
 import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode } from '@/engine/inazuma/types'
 
@@ -681,49 +680,7 @@ export function SquadView() {
  * Manuales de supertécnica a la venta. Van a la MOCHILA, no a un jugador: se
  * enseñan luego a quien encaje por demarcación y elemento.
  */
-function TechniqueStock() {
-  const { save, buyTechnique } = useInazuma()
-  if (!save) return null
-  // Un puñado fijo por partida (según la semilla), para que la tienda tenga
-  // identidad y no sea un catálogo infinito.
-  const offer = techniqueStock(save.seed, bossIndexForLayer(save.layer))
-  if (!offer.length) return null
-
-  return (
-    <>
-      <div className="text-[11px] uppercase tracking-widest text-slate-500">Manuales de supertécnica</div>
-      {offer.map((t) => {
-        const info = ELEMENT_INFO[t.element]
-        const price = techniquePrice(t)
-        const afford = save.coins >= price
-        return (
-          <Card
-            key={t.id}
-            className={`p-3 ${afford ? '' : 'opacity-50'}`}
-            onClick={afford ? () => buyTechnique(t.id) : undefined}
-          >
-            <div className="flex items-center gap-2.5">
-              <TechniqueBadge tech={t} size={40} />
-              <div className="min-w-0 flex-1">
-                <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
-                  <KindIcon kind={t.kind} className="w-3.5 h-3.5" />
-                  {t.name}
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  {info.label} · potencia {t.power} · {t.cost} PT
-                </div>
-              </div>
-              <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
-                {price.toLocaleString('es-ES')} ₽
-              </span>
-            </div>
-          </Card>
-        )
-      })}
-      <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-1">Material</div>
-    </>
-  )
-}
+// (La venta de supertécnicas sueltas se retiró: la cadena manda.)
 
 /** Selector de formación. Cambia el once y las líneas que exige el motor. */
 function FormationPicker() {
@@ -1103,7 +1060,8 @@ export function ShopView() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
-        {!isRaiRai && <TechniqueStock />}
+        {/* Las supertécnicas sueltas ya no se venden: cada jugador aprende
+            las de SU cadena. La Mejora y el Manual avanzado siguen en stock. */}
 
 
         {!isRaiRai && progress < 7 && (

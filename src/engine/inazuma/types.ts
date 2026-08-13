@@ -362,6 +362,8 @@ export interface MatchState {
 }
 
 export interface ChainState {
+  /** SPRINT activado para este duelo: uid del que quema aguante (+20 %). */
+  sprint?: { uid: string }
   side: Side
   step: ChainStep
   /** uid del que lleva el balón. */

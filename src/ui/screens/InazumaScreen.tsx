@@ -2,6 +2,8 @@
 // `inazumaStore`. Igual que `CyberScreen`, es la única puerta de entrada del
 // modo y no comparte estado con el roguelike Pokémon.
 import { useEffect, useState } from 'react'
+import { startMusic, stopMusic } from '@/utils/music'
+import { useSettings } from '@/state/settingsStore'
 import { useInazuma } from '@/state/inazumaStore'
 import MatchView from '@/ui/inazuma/MatchView'
 import PachangaView from '@/ui/inazuma/PachangaView'
@@ -23,6 +25,16 @@ export default function InazumaScreen() {
   const [intro, setIntro] = useState(shouldShowOnboarding)
 
   useEffect(() => { void initInazuma() }, [initInazuma])
+
+  // Música de fondo del modo: mapa/gestión con su tema, partido con el suyo.
+  const music = useSettings((s) => s.music)
+  useEffect(() => {
+    if (!music) { stopMusic(); return }
+    if (phase === 'match' || phase === 'pachanga') startMusic('inazuma-match')
+    else if (phase === 'title' || phase === 'victory' || phase === 'gameover') stopMusic()
+    else startMusic('inazuma-map')
+    return () => stopMusic()
+  }, [phase, music])
 
   const view = (() => {
     switch (phase) {

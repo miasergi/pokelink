@@ -161,6 +161,12 @@ function getRng(save: InazumaSave): RNG {
   return rng
 }
 
+/** Fase de ENTRADA pedida desde fuera (el menú principal): p. ej. 'album'. */
+let pendingEntry: InazumaPhase | null = null
+export function setInazumaEntry(phase: InazumaPhase): void {
+  pendingEntry = phase
+}
+
 /** RNG del partido en curso. Muere con el partido: no se persiste nunca. */
 let matchRng: RNG | null = null
 /** Temporizador de la retransmisión. */
@@ -335,8 +341,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     rng = null
     matchRng = null
     if (save) getRng(save)
+    // Entrada directa desde el menú principal (Álbum, etc.): se consume aquí.
+    const entry = pendingEntry
+    pendingEntry = null
     set({
-      save, hasSave: !!save, phase: 'title', match: null, pachanga: null, matchNode: null,
+      save, hasSave: !!save, phase: entry ?? 'title', match: null, pachanga: null, matchNode: null,
       feed: [], playing: false, draft: [], draftPicks: 0, pendingTarget: null, message: null,
     })
   },

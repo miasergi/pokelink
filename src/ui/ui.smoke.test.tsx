@@ -26,7 +26,7 @@ import { RNG } from '@/utils/rng'
 import { rivalStartingXI } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { EVENTS } from '@/data/inazuma/events'
-import { TECHNIQUES, techniqueStock } from '@/data/inazuma/techniques'
+import { TECHNIQUES } from '@/data/inazuma/techniques'
 
 // jsdom no trae ni `scrollIntoView` ni `ResizeObserver`, y el tablero del mapa
 // y la retransmisión los usan para medirse.
@@ -123,8 +123,8 @@ describe('render de pantallas (smoke)', () => {
     // La tienda vende material Y manuales de supertécnica, con su precio.
     useInazuma.setState({ save, matchNode: null, phase: 'shop' })
     const shop = mount(InazumaScreen)
-    expect(shop).toContain('Manuales de supertécnica')
-    for (const t of techniqueStock(save.seed, 0)) expect(shop).toContain(t.name)
+    // Las supertécnicas sueltas ya no se venden: la tienda es material.
+    expect(shop).toContain('Botas Rayo')
 
     // Mochila con contenido: objetos y supertécnicas, cada una con su nombre.
     useInazuma.setState({

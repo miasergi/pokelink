@@ -12,7 +12,7 @@ let timer: number | null = null
 let current: Track | null = null
 let step = 0
 
-export type Track = 'map' | 'battle' | 'boss' | 'story' | 'league'
+export type Track = 'map' | 'battle' | 'boss' | 'story' | 'league' | 'inazuma-map' | 'inazuma-match'
 
 // --- Reproducción de ARCHIVOS (si existen) con respaldo sintetizado ---
 // Coloca pistas lo-fi LIBRES (CC0) en public/music/ con estos nombres y sonarán
@@ -22,6 +22,10 @@ const FILES: Partial<Record<Track, string>> = {
   map: BASE + 'music/runs.mp3',
   league: BASE + 'music/league.mp3',
   story: BASE + 'music/story.mp3',
+  // Inazuma Rogue: si dejas TUS mp3 aquí, suenan ellos; si no, el respaldo
+  // sintetizado propio (no distribuimos audio con copyright).
+  'inazuma-map': BASE + 'music/inazuma-map.mp3',
+  'inazuma-match': BASE + 'music/inazuma-match.mp3',
 }
 let audioEl: HTMLAudioElement | null = null
 const fileFailed = new Set<Track>() // pistas cuyo archivo no existe -> usa sintetizado
@@ -91,7 +95,7 @@ interface TrackDef {
   perc: boolean
 }
 
-const SEQ: Record<Track, TrackDef> = {
+const BASE_SEQ = {
   // Runs: lo-fi cálido, 8 compases (Cmaj7 · Am7 · Fmaj7 · G7 · Dm7 · G7 · Em7 · Am7).
   // 32 pasos y no 16: a 76 bpm el bucle de 16 se repetía cada 6 segundos y
   // cansaba enseguida, que es donde más tiempo pasa el jugador.
@@ -139,6 +143,14 @@ const SEQ: Record<Track, TrackDef> = {
     chords: [null, null, null, null, null, null, null, null],
     lead: ['C5', 'B4', 'G4', 'E4', 'F4', 'A4', 'G4', 'E4'],
   },
+} satisfies Record<string, TrackDef>
+
+// Pistas del modo Inazuma: composiciones PROPIAS sintetizadas (nada
+// transcrito). Si dejas tus mp3 en public/music/ suenan ellos en su lugar.
+const SEQ: Record<Track, TrackDef> = {
+  ...BASE_SEQ,
+  'inazuma-map': { ...BASE_SEQ.map, bpm: 102, cutoff: 3200 },
+  'inazuma-match': { ...BASE_SEQ.battle, bpm: 118 },
 }
 
 function note(freq: number, t0: number, dur: number, wave: OscillatorType, gain: number, detune = 0) {
