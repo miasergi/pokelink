@@ -619,11 +619,9 @@ export function upgradeTechnique(p: PlayerInstance, techId: string): PlayerInsta
 /** Jugadores fichables: los de los institutos ya derrotados + agentes libres. */
 /**
  * A quién puedes fichar: los institutos que ya has eliminado (se te unen, como
- * en la serie) y los suplentes de tu propio instituto.
- *
- * Lo de tu propia plantilla no es un adorno: cada instituto tiene 14 jugadores
- * reales y solo 11 salen de titulares, así que sin esto el ojeador de la
- * primera ronda no tenía a NADIE que ofrecer y pagaba una comisión de consuelo.
+ * en la serie), los agentes libres y los equipos que cada saga pone a «rondar
+ * por ahí». El propio instituto ya no aporta nada: sus 14 salen TODOS de
+ * inicio en la convocatoria (y el filtro de «ya fichados» los quita del pool).
  */
 export function signablePool(beatenTeams: string[], ownTeam?: string, sagaId?: string): PlayerBase[] {
   // El pool depende de la SAGA: además de los equipos ya derrotados, cada

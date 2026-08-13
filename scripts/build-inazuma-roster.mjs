@@ -92,6 +92,9 @@ const OVERRIDES = {
   Desarm: { position: 'POR', element: 'montana' },
   Zel: { element: 'fuego' },
   Gran: { position: 'DEL' },
+  // FFI: la ficha de Fidio resuelve a «Paolo Bianchi (game)», sin elemento y
+  // con el name_dub sucio. Datos del juego: capitán del Orpheus, aire.
+  Fidio: { name: 'Paolo Bianchi', position: 'DEL', element: 'aire' },
 }
 
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')

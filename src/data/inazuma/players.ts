@@ -2313,8 +2313,14 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['judge-through', 'flame-veil', 'boost-glider', 'fuusen-gum'],
   },
   {
-    id: 'raffaele', name: 'Raffaele', team: 'orpheus', position: 'DEL', element: 'montana', rarity: 3,
-    stats: { tiro: 84, control: 57, fisico: 39, defensa: 27, velocidad: 53, aguante: 26 },
+    id: 'paolo-bianchi', name: 'Paolo Bianchi', team: 'orpheus', position: 'DEL', element: 'aire', rarity: 3,
+    stats: { tiro: 88, control: 60, fisico: 37, defensa: 25, velocidad: 51, aguante: 27 },
+    techniques: ['divine-arrow'],
+    signature: ['divine-arrow', 'hawk-shot', 'god-break', 'inazuma-1gou-otoshi'],
+  },
+  {
+    id: 'raffaele', name: 'Raffaele', team: 'orpheus', position: 'DEL', element: 'montana', rarity: 2,
+    stats: { tiro: 71, control: 47, fisico: 33, defensa: 23, velocidad: 45, aguante: 21 },
     techniques: ['tsuchi-daruma'],
     signature: ['tsuchi-daruma', 'snake-shot', 'dokonjou-club', 'gaia-break'],
   },
@@ -2331,8 +2337,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['super-armadillo', 'monkey-turn', 'mogura-feint', 'triple-dash'],
   },
   {
-    id: 'alessandro', name: 'Alessandro', team: 'orpheus', position: 'MED', element: 'bosque', rarity: 2,
-    stats: { tiro: 37, control: 68, fisico: 29, defensa: 43, velocidad: 42, aguante: 31 },
+    id: 'alessandro', name: 'Alessandro', team: 'orpheus', position: 'MED', element: 'bosque', rarity: 1,
+    stats: { tiro: 31, control: 58, fisico: 24, defensa: 37, velocidad: 35, aguante: 26 },
     techniques: ['magic'],
     signature: ['magic', 'warp-drive', 'tatsumaki-dokugiri', 'illusion-ball'],
   },
@@ -2746,9 +2752,21 @@ export function formationFor(teamId: string): string {
 }
 
 /**
- * Once con el que arranca cada instituto, según la formación que pueda
- * alinear: las plantillas son las reales y cada equipo trae su reparto, así
- * que un 4-4-2 fijo dejaba a varios con el once inválido de salida.
+ * Convocatorias que el CANON deja cortas de 14. El Genesis alinea 11 en todos
+ * los juegos, así que su banquillo se completa con compañeros del propio
+ * Instituto Alius, elegidos a dedo (nada de azar): Desarm llegó a jugar de
+ * portero EN el Genesis en el anime, y Burn y Gazel son los capitanes de
+ * Prominence y Diamond Dust.
+ */
+const SQUAD_FILL: Record<string, string[]> = {
+  genesis: ['dave-quagmire', 'claude-beacons', 'bryce-whitingale'],
+}
+
+/**
+ * CONVOCATORIA con la que arranca cada instituto: los 14 de su plantilla
+ * real, ordenados con el once de la formación primero y el resto de
+ * banquillo. Antes se recortaba a 11 y los otros 3 se quedaban fuera hasta
+ * que el ojeador los ofrecía — pero son SUS jugadores, deben salir de casa.
  */
 export function startingSquad(teamId: string, formationId?: string): string[] {
   const own = playersOfTeam(teamId)
@@ -2756,12 +2774,10 @@ export function startingSquad(teamId: string, formationId?: string): string[] {
   const line = (pos: PlayerBase['position'], n: number) =>
     own.filter((p) => p.position === pos).slice(0, n).map((p) => p.id)
   const picked = [...line('POR', 1), ...line('DEF', f.defs), ...line('MED', f.mids), ...line('DEL', f.fwds)]
-  if (picked.length < 11) {
-    const rest = own.filter((p) => !picked.includes(p.id)).map((p) => p.id)
-    picked.push(...rest.slice(0, 11 - picked.length))
-  }
-  return picked.slice(0, 11)
+  const bench = own.filter((p) => !picked.includes(p.id)).map((p) => p.id)
+  const fill = (SQUAD_FILL[teamId] ?? []).slice(0, Math.max(0, 14 - picked.length - bench.length))
+  return [...picked, ...bench, ...fill]
 }
 
-/** Plantilla inicial del Raimon (compatibilidad). */
-export const RAIMON_STARTING_XI: string[] = startingSquad('raimon')
+/** Once inicial del Raimon (compatibilidad). */
+export const RAIMON_STARTING_XI: string[] = startingSquad('raimon').slice(0, 11)

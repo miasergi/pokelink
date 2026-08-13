@@ -16,7 +16,7 @@ import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import { buildScoutOffer, learnableByRoster } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
-  ROSTER_MAX, TECHNIQUE_SLOTS,
+  ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
@@ -78,7 +78,11 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
   const roster = squadIds.map((id, i) => createPlayer(id, START_LEVEL, { captain: i === 0 }))
   const map = generateMap(rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga)
-  const lineup = autoLineup(roster, formation)
+  // El once de salida es el CANÓNICO (los 11 primeros de la convocatoria son
+  // los titulares de la formación); si se dejara elegir a `autoLineup` entre
+  // los 14, el ruido de stats podía mandar al banquillo a titulares de la
+  // serie. En el bombo no hay canon: ahí sí elige entre todos.
+  const lineup = autoLineup(opts.randomSquad ? roster : roster.slice(0, SQUAD_SIZE), formation)
   return {
     seed,
     teamId,

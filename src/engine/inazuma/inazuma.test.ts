@@ -50,7 +50,9 @@ describe('plantilla', () => {
     // Raimon con seis defensas y tres medios no puede jugar un 4-4-2.
     for (const teamId of TEAMS.map((t) => t.id)) {
       const save = createSave(1234, teamId)
-      expect(save.roster, teamId).toHaveLength(11)
+      // La convocatoria sale COMPLETA de casa: todos los de su plantilla real
+      // (11 titulares + banquillo), nunca menos de un once legal.
+      expect(save.roster.length, teamId).toBeGreaterThanOrEqual(11)
       expect(lineupError(save.roster, save.lineup, save.formation), teamId).toBeNull()
     }
   })
@@ -913,8 +915,8 @@ describe('coherencia', () => {
           expect(saga.teams).toContain(b.teamId!)
           expect(b.teamId).not.toBe(teamId)
         }
-        // Plantilla inicial jugable: once válido y 14 convocados.
-        expect(save.roster.length).toBeGreaterThanOrEqual(11)
+        // Plantilla inicial: los 14 REALES del instituto, con once válido.
+        expect(save.roster.length).toBe(14)
         expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
         // El ojeador tiene a quien ofrecer desde la primera casilla.
         expect(buildScoutOffer(save, new RNG(1)).length).toBeGreaterThan(0)
