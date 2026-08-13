@@ -68,8 +68,8 @@ export default function PachangaView() {
     const baseOf = (name: string) => all.find((a) => a.name === name)?.baseId
     setStage({
       key: shown + 1,
-      attacker: { name: next.shooter, baseId: baseOf(next.shooter), techName: next.technique },
-      defender: { name: next.keeper, baseId: baseOf(next.keeper), techName: next.counter },
+      attacker: { name: next.shooter, baseId: baseOf(next.shooter), rarity: all.find((a) => a.name === next.shooter)?.rarity, techName: next.technique },
+      defender: { name: next.keeper, baseId: baseOf(next.keeper), rarity: all.find((a) => a.name === next.keeper)?.rarity, techName: next.counter },
       attackerWins: next.scored,
       attackerMine: next.mine,
       attackerCrest: next.mine ? saveTeamRef.current : undefined,

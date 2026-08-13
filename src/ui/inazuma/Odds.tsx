@@ -8,7 +8,8 @@ import type { DecisionOption } from '@/engine/inazuma/types'
 
 export default function Odds({ option }: { option: DecisionOption }) {
   const showOdds = useSettings((s) => s.showOdds)
-  if (!showOdds) return null
+  // Los PASES llegan siempre: un porcentaje al lado confundía.
+  if (!showOdds || option.id.startsWith('pass:')) return null
   const pct = Math.round(option.chance * 100)
   return (
     <span

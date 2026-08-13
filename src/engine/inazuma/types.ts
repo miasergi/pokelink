@@ -262,6 +262,8 @@ export interface RivalPlayer {
  * desgaste (PT y aguante) al terminar.
  */
 export interface Actor {
+  /** Rareza (1-4) para pintar su marco en césped y duelos. */
+  rarity?: number
   uid: string
   /** Id del `PlayerBase`: la UI lo necesita para pintar el retrato. */
   baseId: string

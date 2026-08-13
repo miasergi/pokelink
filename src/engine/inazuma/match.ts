@@ -655,7 +655,9 @@ function buildDecision(
 
   // 5) SPRINT: quemar aguante por potencia EN ESTE duelo. Convierte el
   //    cansancio en decisión táctica — y no si ya vas con la lengua fuera.
-  if (actor.stamina > 30 && !m.chain?.sprint) {
+  const plainChance = options[0]?.chance ?? 0.5
+  const keeperSaving = mode === 'defensa' && step === 'definicion'
+  if (actor.stamina > 30 && !m.chain?.sprint && !keeperSaving && plainChance < 0.62) {
     options.push({
       id: 'sprint',
       label: '¡SPRINT!',

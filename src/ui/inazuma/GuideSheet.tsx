@@ -40,13 +40,13 @@ const SECTIONS: Section[] = [
   },
   {
     icon: 'star',
-    title: 'Rareza — gris, morado, oro y multicolor',
+    title: 'Rareza — Normal, Avanzado, Ídolo y Legendario',
     body: (
       <>
-        El COLOR de la carta de cada jugador: gris, morado, oro y multicolor. Sube sus <B>atributos</B>,
+        El COLOR de la carta de cada jugador: gris (Normal), morado (Avanzado), oro (Ídolo) y multicolor (Legendario). Sube sus <B>atributos</B>,
         alarga su <B>cadena</B> (1, 2, 3 o 4 supertécnicas — cada paso lleva el borde de la rareza que lo
         abre) y en <B>multicolor</B> despierta su Espíritu Guerrero (con nivel 30). CUALQUIERA puede llegar
-        al máximo: se empieza con todo grises y se sube con <B>Medallas de talento</B> (3 por partido, 1
+        al máximo: se empieza con todo Normales y se sube con <B>Medallas de talento</B> (3 por partido, 1
         por traspaso, también en tiendas) — y tras cada pachanga, UNO de los que la jugaron sube solo, con
         su pantalla. Los rivales van nivelados con la eliminatoria.
       </>

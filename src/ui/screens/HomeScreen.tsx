@@ -105,6 +105,8 @@ export default function HomeScreen() {
   const [inazumaRound, setInazumaRound] = useState<string | null>(null)
   const [hasCyber, setHasCyber] = useState(false)
   const today = dailyChallenge().date
+  // Portada en DOS niveles: eliges universo y dentro está todo lo suyo.
+  const [section, setSection] = useState<null | 'pokemon' | 'inazuma'>(null)
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
     void loadCyber().then((s) => setHasCyber(!!s))
@@ -143,6 +145,41 @@ export default function HomeScreen() {
       </div>
 
       <div className="w-full flex flex-col gap-2.5 max-w-sm mt-3">
+        {section === null && (
+          <>
+            <GameCard
+              wide
+              title="Pokémon"
+              subtitle="PokéRogue, Modo Historia, Liga, Pokédex, Cyber…"
+              accent="#ef4444"
+              icon={<Icon name="pokeball" className="w-7 h-7 text-red-400" />}
+              badge={hasSavedRun ? 'Run en curso' : null}
+              onClick={() => setSection('pokemon')}
+            />
+            <GameCard
+              wide
+              title="Inazuma Eleven"
+              subtitle="Inazuma Rogue, álbum de cromos y opciones"
+              accent="#f59e0b"
+              icon={<span className="text-2xl leading-none">⚽</span>}
+              badge={inazumaRound}
+              onClick={() => setSection('inazuma')}
+            />
+            <div className="grid grid-cols-3 gap-2 mt-0.5">
+              <MenuButton icon={<Icon name="achievement" className="w-5 h-5" />} label="Logros" onClick={() => navigate('achievements')} />
+              <MenuButton icon={<Icon name="wrench" className="w-5 h-5" />} label="Ajustes" onClick={() => navigate('settings')} />
+              <MenuButton icon={<Icon name="scroll" className="w-5 h-5" />} label="Novedades" onClick={() => setNewsOpen(true)} />
+            </div>
+          </>
+        )}
+
+        {section !== null && (
+          <button onClick={() => setSection(null)} className="flex items-center gap-1.5 text-[12px] text-slate-400 active:scale-95">
+            ← Volver
+          </button>
+        )}
+
+        {section === 'pokemon' && <>
         {/* --- SECCIÓN POKÉMON: todo lo del universo Pokémon, junto. --- */}
         <div className="text-[10px] uppercase tracking-widest text-red-400/80 px-0.5">Pokémon</div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -175,6 +212,12 @@ export default function HomeScreen() {
           <MenuButton icon={<Icon name="records" className="w-5 h-5" />} label="Récords" onClick={() => navigate('records')} />
         </div>
 
+        <div className="grid grid-cols-4 gap-2">
+          <MenuButton icon={<span className="text-xl leading-none">🕹️</span>} label={hasCyber ? 'Cyber ·' : 'Cyber'} onClick={() => navigate('cyber')} />
+        </div>
+        </>}
+
+        {section === 'inazuma' && <>
         {/* --- SECCIÓN INAZUMA ELEVEN --- */}
         <div className="text-[10px] uppercase tracking-widest text-amber-400/80 px-0.5 mt-1">Inazuma Eleven</div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -200,14 +243,7 @@ export default function HomeScreen() {
           </div>
         </div>
 
-        {/* --- SECCIÓN OTROS --- */}
-        <div className="text-[10px] uppercase tracking-widest text-slate-600 px-0.5 mt-1">Otros</div>
-        <div className="grid grid-cols-4 gap-2">
-          <MenuButton icon={<span className="text-xl leading-none">🕹️</span>} label={hasCyber ? 'Cyber ·' : 'Cyber'} onClick={() => navigate('cyber')} />
-          <MenuButton icon={<Icon name="achievement" className="w-5 h-5" />} label="Logros" onClick={() => navigate('achievements')} />
-          <MenuButton icon={<Icon name="wrench" className="w-5 h-5" />} label="Ajustes" onClick={() => navigate('settings')} />
-          <MenuButton icon={<Icon name="scroll" className="w-5 h-5" />} label="Novedades" onClick={() => setNewsOpen(true)} />
-        </div>
+        </>}
 
         <button
           onClick={() => setNewsOpen(true)}

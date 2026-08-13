@@ -79,8 +79,8 @@ export default function MatchView() {
       // en el escenario: quién contra quién, con qué, y quién gana.
       setStage({
         key: feed.length,
-        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, techName: last.technique },
-        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, techName: last.counter },
+        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
+        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
         attackerWins: last.success,
         attackerMine: last.side === mine,
         attackerCrest: crestOf(last.side === mine),

@@ -12,7 +12,7 @@ import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import { Crest, ELEMENT_ICON, techniqueImage } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, rarityBorder, techniqueImage } from '@/ui/inazuma/Glyphs'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Technique } from '@/engine/inazuma/types'
 
@@ -25,6 +25,8 @@ const T_RESULT = 1750
 export interface StageSide {
   name: string
   baseId?: string
+  /** Rareza 1-4: colorea el marco del retrato. */
+  rarity?: number
   /** Nombre de la técnica usada; sin él se pinta la acción simple. */
   techName?: string
 }
@@ -166,7 +168,7 @@ function Fighter({ side, tech, label, right, crest }: {
       <div className="relative shrink-0">
         <div
           className="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"
-          style={{ borderColor: info?.color ?? '#64748b' }}
+          style={{ borderColor: side.rarity ? rarityBorder(side.rarity) : (info?.color ?? '#64748b') }}
         >
           <ImgFallback
             src={side.baseId ? portraitUrl(side.baseId) : ''}

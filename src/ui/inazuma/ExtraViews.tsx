@@ -379,7 +379,7 @@ export function TeamSelectView() {
           >
             🎲 Plantilla del bombo {randomSquad ? '· ACTIVADA' : ''}
             <span className="block text-[10px] font-normal text-slate-500">
-              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). Todos grises, como manda el rogue.
+              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). Todos de rareza Normal, como manda el rogue.
             </span>
           </button>
 

@@ -12,7 +12,7 @@
 // de la pantalla.
 import { actorByUid, playerSide, sideOf } from '@/engine/inazuma/match'
 import { ImgFallback } from '@/ui/components/kit'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import { Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
@@ -154,7 +154,10 @@ function Face({ actor, x, label, ball, dim }: {
       <div className="relative">
         <div
           className="w-9 h-9 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
-          style={{ borderColor: info.color, boxShadow: ball ? `0 0 10px ${info.color}` : undefined }}
+          style={{
+            borderColor: actor.rarity ? rarityBorder(actor.rarity) : info.color,
+            boxShadow: ball ? `0 0 10px ${info.color}` : undefined,
+          }}
         >
           <ImgFallback
             src={portraitUrl(actor.baseId)}

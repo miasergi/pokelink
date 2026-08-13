@@ -59,8 +59,18 @@ export default function InazumaScreen() {
     }
   })()
 
+  // Fondo del MODO: estadio nocturno en partidos, mapa oscuro en el resto —
+  // dibujados con CSS propio (nada opaco: lo de encima manda).
+  const bgMatch = phase === 'match' || phase === 'pachanga'
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div
+      className="flex flex-col flex-1 min-h-0"
+      style={{
+        background: bgMatch
+          ? 'radial-gradient(120% 90% at 50% -10%, #14532d33, transparent 60%), repeating-linear-gradient(0deg, #0b1220 0 42px, #0d1526 42px 84px), #0b1220'
+          : 'radial-gradient(90% 60% at 80% -10%, #f59e0b14, transparent 55%), radial-gradient(80% 60% at 10% 110%, #0ea5e91a, transparent 60%), #0b1220',
+      }}
+    >
       {view}
       <ItemFxOverlay />
       <PlayerRevealOverlay />

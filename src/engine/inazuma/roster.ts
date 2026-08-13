@@ -46,7 +46,7 @@ export function nextPlayerUid(): string {
 
 export const MAX_RARITY = 4
 export const RARITY_BUDGET: Record<number, number> = { 1: 210, 2: 255, 3: 300, 4: 345 }
-export const RARITY_LABEL: Record<number, string> = { 1: 'gris', 2: 'morado', 3: 'oro', 4: 'MULTICOLOR' }
+export const RARITY_LABEL: Record<number, string> = { 1: 'Normal', 2: 'Avanzado', 3: 'Ídolo', 4: 'LEGENDARIO' }
 /** Color de cada rareza. La carta ENTERA se tiñe con él. */
 export const RARITY_COLOR: Record<number, string> = {
   1: '#94a3b8', 2: '#a855f7', 3: '#fbbf24', 4: '#e879f9',

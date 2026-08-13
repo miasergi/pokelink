@@ -37,7 +37,7 @@ export const ITEMS: InazumaItem[] = [
   { id: 'concentrado', name: 'Concentrado del entrenador', kind: 'consumible', desc: 'Recupera PT y Aguante a TODO el once.', price: 2200, consumable: true },
   { id: 'plan-entrenamiento', name: 'Plan de entrenamiento', kind: 'consumible', desc: 'Sube 2 niveles a un jugador.', price: 1800, consumable: true },
   { id: 'plan-intensivo', name: 'Plan intensivo', kind: 'consumible', desc: 'Sube 4 niveles a un jugador.', price: 3400, consumable: true },
-  { id: 'medalla-rareza', name: 'Medalla de talento', kind: 'consumible', desc: 'Sube UNA rareza a un jugador (gris → morado → oro → multicolor). Mejora sus atributos, alarga su cadena y al máximo despierta su Espíritu.', price: 2600, consumable: true },
+  { id: 'medalla-rareza', name: 'Medalla de talento', kind: 'consumible', desc: 'Sube UNA rareza a un jugador (Normal → Avanzado → Ídolo → Legendario). Mejora sus atributos, alarga su cadena y al máximo despierta su Espíritu.', price: 2600, consumable: true },
 
   // ------------------------------------------------------------- COMIDA -----
   // Los platos del Rai Rai. Se compran allí y se usan cuando quieras: es la

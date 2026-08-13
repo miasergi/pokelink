@@ -135,6 +135,7 @@ function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
     // poder tirar sus supertécnicas de tiro — son de otra clase de duelo).
     position: role ?? base.position,
     element: base.element,
+    rarity: rarityOf(p),
     stats: effectiveStats(p),
     stamina: p.stamina,
     pt: p.pt,
@@ -162,6 +163,7 @@ function actorFromRival(r: RivalPlayer, i: number): Actor {
     name: r.name,
     position: r.position,
     element: r.element,
+    rarity: r.rarity,
     stats: r.stats,
     stamina: 100,
     pt: max,
