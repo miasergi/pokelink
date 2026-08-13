@@ -2688,6 +2688,13 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['grenade-shot'],
     signature: ['grenade-shot', 'twin-boost', 'assault-shoot', 'the-galaxy'],
   },
+  {
+    id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', rarity: 5, // original
+    stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },
+    techniques: ['lightning-accel', 'atomic-flare'],
+    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],
+    spirit: 'pegaso',
+  },
 ]
 
 /** Institutos del torneo; el resto de equipos son SOLO fichables. */

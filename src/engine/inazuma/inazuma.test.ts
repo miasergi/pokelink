@@ -754,7 +754,7 @@ describe('torneo', () => {
     expect(kinds.has('tecnica')).toBe(false)
   })
 
-  it('la pachanga se decide rápido, cansa y solo da nivel si se gana', () => {
+  it('la pachanga se decide rápido, cansa y da nivel al once que la juega', () => {
     for (let seed = 0; seed < 20; seed++) {
       const save = createSave(seed)
       const node = currentOffer(save.map, 0).find((n) => n.kind === 'pachanga')!
@@ -770,9 +770,13 @@ describe('torneo', () => {
       applyPachangaResult(save, s, node)
       // Cansa siempre: alguien tiene que haber perdido aguante.
       expect(save.roster.some((p, i) => p.stamina < before[i].st)).toBe(true)
-      // Y solo se sube de nivel al ganar.
-      const levelled = save.roster.some((p, i) => p.level > before[i].lv)
-      expect(levelled).toBe(s.result === 'win')
+      // Nivel por jugarla: +2 al once si gana, +1 si pierde; el banquillo, 0.
+      const onPitch = new Set([s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds].map((a2) => a2.uid))
+      const gained = s.result === 'win' ? 2 : 1
+      for (let i = 0; i < save.roster.length; i++) {
+        const p = save.roster[i]
+        expect(p.level - before[i].lv, p.uid).toBe(onPitch.has(p.uid) ? gained : 0)
+      }
     }
   })
 

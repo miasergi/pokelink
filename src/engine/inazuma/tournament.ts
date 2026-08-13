@@ -34,7 +34,9 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // La cola sube desde que hay un Rai Rai GARANTIZADO antes de cada jefe:
 // llegar curado al partido gordo ya no es suerte, así que el jefe puede (y
 // debe) pegar más fuerte para que el tramo final siga siendo una final.
-export const RIVAL_LEVELS = [8, 15, 26, 44, 60, 74, 87, 99]
+// Curva del modo NORMAL: +7 por eliminatoria (8→57). Difícil/Leyenda suman
+// su bono encima. Se aplanó a petición: la cola vieja (44→99) hacía muro.
+export const RIVAL_LEVELS = [8, 15, 22, 29, 36, 43, 50, 57]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

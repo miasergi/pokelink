@@ -268,6 +268,7 @@ function PitchChip({
           alt={base.name}
           fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{base.name[0]}</span>}
         />
+        {rarityOf(player) === 4 && <span className="mc-ring rounded-xl" />}
       </div>
       {/* PT (azul) y aguante: los dos depósitos también en el vestuario. */}
       <div className="h-1 rounded-full bg-slate-800 overflow-hidden mt-0.5">

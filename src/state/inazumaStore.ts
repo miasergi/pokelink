@@ -549,6 +549,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       matchRng = setup.rng
       nextRound(setup.pachanga, setup.rng)
       set({ pachanga: { ...setup.pachanga }, phase: 'pachanga' })
+      // Simulación instantánea (ajustes): directo al resultado.
+      if (useSettings.getState().inazumaSimPachanga) get().simulatePachanga()
       return
     }
 
@@ -566,6 +568,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       playing: true,
       autoPlay: mode === 'auto' ? true : get().autoPlay,
     })
+    if (useSettings.getState().inazumaSimMatch) { get().simulateMatch(); return }
     get().tick()
   },
 

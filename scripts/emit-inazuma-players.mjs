@@ -292,6 +292,15 @@ async function main() {
       idx++
     }
   }
+  // --- JUGADORES CUSTOM (fuera del crawler). El retrato ya está en
+  //     public/inazuma/players/<id>.png, así que el fetch los ignora. ---
+  lines.push('  {')
+  lines.push("    id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', rarity: 5, // original")
+  lines.push('    stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },')
+  lines.push("    techniques: ['lightning-accel', 'atomic-flare'],")
+  lines.push("    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],")
+  lines.push("    spirit: 'pegaso',")
+  lines.push('  },')
   lines.push(']')
   lines.push('')
   lines.push('/** Institutos del torneo; el resto de equipos son SOLO fichables. */')

@@ -63,7 +63,8 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { speed, setSpeed, setAutoPlay, abandonTournament, exitInazuma } = useInazuma()
   const {
     inazumaModeMatch, inazumaModePachanga, setInazumaModeMatch, setInazumaModePachanga,
-    skipNodeInfo, toggleSkipNodeInfo,
+    skipNodeInfo, toggleSkipNodeInfo, inazumaSimMatch, inazumaSimPachanga,
+    toggleInazumaSimMatch, toggleInazumaSimPachanga,
   } = useSettings()
   const [confirm, setConfirm] = useState(false)
 
@@ -166,6 +167,18 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
         </p>
 
         <div className="flex flex-col gap-1.5">
+          <Toggle
+            label="Simular PARTIDOS al instante"
+            hint="Entras al partido y ves directamente el resultado (lo juega el banquillo)."
+            on={inazumaSimMatch}
+            onClick={toggleInazumaSimMatch}
+          />
+          <Toggle
+            label="Simular PACHANGAS al instante"
+            hint="La tanda se resuelve sola y saltas al resultado."
+            on={inazumaSimPachanga}
+            onClick={toggleInazumaSimPachanga}
+          />
           <Toggle
             label="Mostrar porcentajes"
             hint="La probabilidad real de cada opción de duelo. Apagado, decides a ojo."

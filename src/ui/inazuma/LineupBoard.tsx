@@ -96,6 +96,8 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
             alt={chip.name}
             fallback={<span className="text-[11px] font-extrabold" style={{ color: info.color }}>{chip.name[0]}</span>}
           />
+          {/* Rareza 4: el anillo multicolor ANIMADO (girando de tono). */}
+          {chip.rarity === 4 && <span className="mc-ring rounded-xl" />}
         </div>
         {/* La media, fuera: nivel + rareza bastan. */}
         {outOfPosition && (

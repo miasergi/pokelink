@@ -189,3 +189,21 @@ body {
 @keyframes slide-left { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
 .animate-slide-right { animation: slide-right .3s ease-out both; }
 .animate-slide-left { animation: slide-left .3s ease-out both; }
+
+/* Anillo MULTICOLOR animado (rareza 4): solo el borde, con el degradado
+   girando de tono. La máscara deja ver únicamente el aro, así que la
+   animación de hue no toca el retrato de dentro. */
+@keyframes mc-hue { to { filter: hue-rotate(360deg) } }
+.mc-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #f472b6, #fbbf24, #34d399, #38bdf8, #f472b6);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: mc-hue 3s linear infinite;
+  pointer-events: none;
+}

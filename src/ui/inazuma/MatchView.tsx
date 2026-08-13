@@ -24,7 +24,7 @@ import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/
 export default function MatchView() {
   const {
     match, feed, playing, speed, autoPlay, save, matchNode,
-    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
+    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
   } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
@@ -186,6 +186,11 @@ export default function MatchView() {
               {match.result === 'win' ? '¡Victoria!' : match.result === 'draw' ? 'Empate' : 'Derrota'}
             </div>
           </div>
+          {/* Qué se lleva cada uno: niveles por participación. */}
+          <div className="mb-2 text-center text-[11px] text-slate-300">
+            <span className="text-emerald-300 font-bold">+4 niveles</span> a los que jugaron ·{' '}
+            <span className="text-sky-300 font-bold">+2</span> al banquillo
+          </div>
           <MatchSummary match={match} />
           <Button variant="primary" full className="mt-2" onClick={finishMatch}>Ir al vestuario</Button>
         </div>
@@ -215,13 +220,6 @@ export default function MatchView() {
               GUARDAR
             </button>
           )}
-          <button
-            onClick={simulateMatch}
-            className="rounded-xl border border-sky-600/60 bg-sky-500/10 px-3 py-3 text-xs font-bold text-sky-300"
-            title="Simula lo que queda del partido y salta al resultado"
-          >
-            SIMULAR
-          </button>
           <button
             onClick={() => setAutoPlay(!autoPlay)}
             className={`rounded-xl border px-3 py-3 text-xs font-bold ${

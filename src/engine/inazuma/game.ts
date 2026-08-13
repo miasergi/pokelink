@@ -275,6 +275,9 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
  * amistosos: en una eliminatoria oficial te vas a casa.
  */
 export const LEVELS_BY_RESULT: Record<'win' | 'draw' | 'loss', number> = { win: 6, draw: 4, loss: 3 }
+/** Partidos: +4 a quien jugó (titular o cambio), +2 al banquillo. */
+export const MATCH_LEVELS_PLAYED = 4
+export const MATCH_LEVELS_BENCH = 2
 
 /** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
 export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
@@ -307,7 +310,8 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   const byUid = new Map(actors.map((a) => [a.uid, a]))
 
   const result = match.result ?? 'draw'
-  const gained = LEVELS_BY_RESULT[result]
+  // Niveles PLANOS por participación: jugar el partido (de inicio o entrando
+  // en la segunda parte) da +4; el banquillo, +2 — gane quien gane.
   recordMatchStats(save, match.events, new Set(byUid.keys()))
 
   save.roster = save.roster.map((p) => {
@@ -321,7 +325,7 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
       // pitido final (el desgaste que se arrastra es el de las pachangas y la
       // ruta). Antes se salía del partido fundido y sin gasolina.
       a ? { ...p, stamina: 100, pt: ptMax(p) } : { ...p, stamina: 100, pt: ptMax(p) },
-      a ? gained : Math.max(0, gained - BENCH_LEVEL_PENALTY),
+      a ? MATCH_LEVELS_PLAYED : MATCH_LEVELS_BENCH,
     )
     // Descanso entre eliminatorias: algo, pero nunca del todo.
     next = {
@@ -368,7 +372,9 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const actors = [s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds]
   const byUid = new Map(actors.map((a) => [a.uid, a]))
   const won = s.result === 'win'
-  const levels = won ? (node.risky ? 4 : 3) : 0
+  // Once: +2 si gana, +1 si pierde. El banquillo NO sube (0), pero descansa:
+  // recupera algo de PT y aguante mientras los otros corren.
+  const levels = won ? 2 : 1
 
   // El desgaste es de TODO el once, no solo de los que tocaron balón: correr
   // detrás de la pelota cansa igual. Y PERDER pasa factura de verdad — la
@@ -394,8 +400,13 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
     // once se llevan los niveles enteros y el banquillo uno menos. Antes solo
     // contaban «los que tocaron balón» en la tanda (3-5 jugadores) y nadie
     // entendía por qué unos subían más que otros.
-    if (levels) {
-      next = levelUp(next, a ? levels : Math.max(0, levels - BENCH_LEVEL_PENALTY))
+    if (a) next = levelUp(next, levels)
+    else {
+      next = {
+        ...next,
+        stamina: Math.min(100, next.stamina + 12),
+        pt: Math.min(ptMax(next), next.pt + Math.round(ptMax(next) * 0.2)),
+      }
     }
     if (lucky.has(p.uid)) next = upgradeRarity(next)
     return next

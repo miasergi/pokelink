@@ -18,6 +18,9 @@ interface SettingsState {
    */
   inazumaModeMatch: 'auto' | 'dinamico' | 'completo'
   inazumaModePachanga: 'auto' | 'dinamico' | 'completo'
+  /** Simulación INSTANTÁNEA: entrar y ver directamente el resultado. */
+  inazumaSimMatch: boolean
+  inazumaSimPachanga: boolean
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
@@ -27,6 +30,8 @@ interface SettingsState {
   toggleShowOdds: () => void
   setInazumaModeMatch: (m: 'auto' | 'dinamico' | 'completo') => void
   setInazumaModePachanga: (m: 'auto' | 'dinamico' | 'completo') => void
+  toggleInazumaSimMatch: () => void
+  toggleInazumaSimPachanga: () => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -47,7 +52,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaModeMatch: s.inazumaModeMatch, inazumaModePachanga: s.inazumaModePachanga, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaModeMatch: s.inazumaModeMatch, inazumaModePachanga: s.inazumaModePachanga, inazumaSimMatch: s.inazumaSimMatch, inazumaSimPachanga: s.inazumaSimPachanga, theme: s.theme }),
   )
 }
 
@@ -63,6 +68,8 @@ export const useSettings = create<SettingsState>((set, get) => ({
   // El ajuste viejo `inazumaMode` (único) migra como valor por defecto de ambos.
   inazumaModeMatch: (saved.inazumaModeMatch ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
   inazumaModePachanga: (saved.inazumaModePachanga ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
+  inazumaSimMatch: saved.inazumaSimMatch ?? false,
+  inazumaSimPachanga: saved.inazumaSimPachanga ?? false,
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
     set({ battleSpeed })
@@ -94,6 +101,14 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
   setInazumaModePachanga: (inazumaModePachanga) => {
     set({ inazumaModePachanga })
+    persist(get())
+  },
+  toggleInazumaSimMatch: () => {
+    set({ inazumaSimMatch: !get().inazumaSimMatch })
+    persist(get())
+  },
+  toggleInazumaSimPachanga: () => {
+    set({ inazumaSimPachanga: !get().inazumaSimPachanga })
     persist(get())
   },
   setTheme: (theme) => {
