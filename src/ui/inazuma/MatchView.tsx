@@ -11,7 +11,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
-import MatchPitch from '@/ui/inazuma/MatchPitch'
+import LivePitch from '@/ui/inazuma/LivePitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
@@ -152,13 +152,13 @@ export default function MatchView() {
         rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
         frozen={frozen}
       />
-      {/* El campo lee el feed YA CONTADO (sin la línea en animación): leer el
-          motor en vivo enseñaba el siguiente emparejamiento antes de tiempo. */}
+      {/* EL PARTIDO EN VIVO: el césped completo con los 22 y el balón es el
+          cuerpo de la pantalla. Lee el feed YA CONTADO (sin la línea en
+          animación): leer el motor en vivo destriparía la siguiente jugada. */}
       {!finished && (() => {
         // El césped pinta SIEMPRE lo mismo que el primer plano: si hay
         // decisión, su emparejamiento; si hay cinemática de duelo, ESE duelo
-        // (sin desenlace); si no, el último contado. Antes, durante la
-        // animación arriba salían los del duelo anterior — la «desincronía».
+        // (sin desenlace); si no, el último contado.
         const stagedEv = stage && stage.key === feed.length ? feed[feed.length - 1] : null
         const current = match.phase === 'decision' && match.decision && caughtUp && !frozen
           ? {
@@ -170,21 +170,19 @@ export default function MatchView() {
           : stagedEv?.kind === 'duel'
             ? { attackerUid: stagedEv.attackerUid, defenderUid: stagedEv.defenderUid, step: stagedEv.step, side: stagedEv.side }
             : null
-        return <MatchPitch match={match} feed={shownFeed} current={current} />
+        return <LivePitch match={match} feed={shownFeed} current={current} />
       })()}
 
-      {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
-          `min-h-full` hace las dos cosas a la vez: al principio del partido las
-          líneas aparecen pegadas abajo (como una retransmisión) y, cuando hay
-          más de una pantalla, se puede hacer scroll hacia arriba para releer lo
-          que pasó — con `justify-end` en el propio contenedor de scroll, el
-          navegador capaba el desplazamiento y el historial era inalcanzable. */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-        <div className="min-h-full flex flex-col justify-end gap-1.5">
-          {shownFeed.map((e, i) => <EventLine key={i} event={e} isMine={eventIsMine(match, e)} />)}
+      {/* TICKER: las dos últimas jugadas contadas, sin robarle sitio al campo.
+          La retransmisión entera ya se VE arriba; esto es el apunte de texto. */}
+      {!finished && (
+        <div className="shrink-0 px-3 pb-1 flex flex-col gap-1">
+          {shownFeed.slice(-2).map((e, i) => (
+            <EventLine key={`${shownFeed.length}-${i}`} event={e} isMine={eventIsMine(match, e)} />
+          ))}
           <div ref={bottom} />
         </div>
-      </div>
+      )}
 
       {/* ¡GOL! La celebración para el partido un instante: sin ella, el gol
           pasaba tan deprisa como un regate cualquiera. */}

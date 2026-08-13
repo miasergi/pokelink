@@ -192,18 +192,20 @@ describe('render de pantallas (smoke)', () => {
       // exactamente lo que tiene que verse.
       let lastDuel: { attackerUid: string; defenderUid: string } | null = null
       const evs = setup.match.events
-      // La última línea, si abre escenario, está aún EN ANIMACIÓN (la vista la
-      // oculta): el campo enseña el duelo anterior, igual que en pantalla.
-      let end = evs.length
-      const lastEv = evs[end - 1]
-      if (lastEv?.kind === 'duel' && (lastEv.technique || lastEv.counter || lastEv.step === 'definicion')) end -= 1
-      for (let i = end - 1; i >= 0; i--) {
+      // El campo espeja SIEMPRE el último duelo: si la última línea es un
+      // duelo, su cinemática está en pantalla y el césped acompaña ESE
+      // emparejamiento; si es otra cosa (pase, posesión), manda el duelo
+      // anterior. En ambos casos: el último duelo del feed.
+      for (let i = evs.length - 1; i >= 0; i--) {
         const e = evs[i]
         if (e.kind === 'duel') { lastDuel = e; break }
         if (e.kind === 'goal' || e.kind === 'kickoff') break
       }
-      if (lastDuel) {
-        // En el campo caben los nombres de pila; el completo va en la narración
+      // Con DECISIÓN a la vista el campo pinta el emparejamiento de la
+      // decisión (no el último duelo): esa pareja se comprueba más abajo en el
+      // montaje asentado. Aquí solo el caso «jugada en curso».
+      if (lastDuel && setup.match.phase !== 'decision') {
+        // En el campo caben los nombres de pila; el completo va en el ticker
         // y en el panel de decisión.
         const carrier = actorByUid(setup.match, lastDuel.attackerUid)!
         const marker = actorByUid(setup.match, lastDuel.defenderUid)!

@@ -1,0 +1,212 @@
+// EL PARTIDO EN VIVO: el césped COMPLETO con los 22 jugadores y el balón
+// moviéndose con coherencia. Sustituye al mini-campo + narración como cuerpo
+// del partido: la retransmisión se VE en el campo (el que lleva el balón
+// avanza por eslabones, su marcador le sale al paso, el equipo que ataca se
+// vuelca y el que defiende repliega) y las cinemáticas de duelo saltan encima
+// en los momentos de verdad.
+//
+// REGLA DE ORO heredada del mini-campo: todo se deriva del feed REVELADO (o
+// del emparejamiento de la decisión/cinemática en curso), nunca del estado
+// vivo del motor — leerlo destriparía jugadas aún no contadas.
+import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
+import { ImgFallback } from '@/ui/components/kit'
+import { Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_INFO } from '@/engine/inazuma/elements'
+import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
+
+/** Avance del balón (en % de ancho) por eslabón, atacando hacia la DERECHA. */
+const STEP_X: Record<ChainStep, number> = { construccion: 38, penetracion: 60, definicion: 82 }
+
+const STEP_ZONE: Record<ChainStep, string> = {
+  construccion: 'Salida de balón',
+  penetracion: 'Tres cuartos',
+  definicion: 'Área',
+}
+
+interface Spot { x: number; y: number }
+
+/** Anclas de formación de un equipo: portero + 3 líneas, repartidas en su mitad. */
+function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], attackRight: boolean): Map<string, Spot> {
+  const out = new Map<string, Spot>()
+  const X = attackRight ? { por: 7, def: 22, med: 38, del: 51 } : { por: 93, def: 78, med: 62, del: 49 }
+  const place = (row: Actor[], x: number) => {
+    // Escalonado alterno: sin él, las líneas de 4-5 jugadores quedaban en una
+    // columna perfecta y las fichas vecinas se solapaban.
+    row.forEach((a, i) => out.set(a.uid, {
+      x: x + (i % 2 ? 3 : -3) * (attackRight ? 1 : -1),
+      y: ((i + 1) / (row.length + 1)) * 88 + 6,
+    }))
+  }
+  out.set(keeper.uid, { x: X.por, y: 50 })
+  place(defs, X.def)
+  place(mids, X.med)
+  place(fwds, X.del)
+  return out
+}
+
+export default function LivePitch({ match, feed, current }: {
+  match: MatchState
+  feed: MatchEvent[]
+  /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
+  current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null
+}) {
+  const mine = playerSide(match)
+  const home = sideOf(match, mine)
+  const away = sideOf(match, otherSide(mine))
+  const myActors = [home.keeper, ...home.defs, ...home.mids, ...home.fwds]
+  const theirActors = [away.keeper, ...away.defs, ...away.mids, ...away.fwds]
+
+  // El último DUELO revelado manda sobre dónde está el balón (el pase ya lo
+  // cuenta su cinemática y el receptor coge el balón en su siguiente duelo).
+  // Un gol o un saque cierran la jugada: todos a sus anclas.
+  let duel: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; success?: boolean } | null = null
+  for (let i = feed.length - 1; i >= 0; i--) {
+    const e = feed[i]
+    if (e.kind === 'duel') { duel = e; break }
+    if (e.kind === 'goal' || e.kind === 'kickoff') break
+  }
+  const shown = current ?? duel
+
+  const carrierUid = shown?.attackerUid ?? null
+  const markerUid = shown?.defenderUid ?? null
+  const step: ChainStep | null = shown?.step ?? null
+  const atkSide = shown?.side ?? null
+  const iAttack = atkSide === mine
+
+  const myAnchor = anchors(home.keeper, home.defs, home.mids, home.fwds, true)
+  const theirAnchor = anchors(away.keeper, away.defs, away.mids, away.fwds, false)
+
+  // VUELCO de campo: el equipo que ataca da un paso adelante y el que
+  // defiende repliega — el campo «respira» con la posesión.
+  const shift = (isMine: boolean) => (atkSide == null ? 0 : (atkSide === mine) === isMine ? 6 : -5)
+
+  const ballX = step != null ? (iAttack ? STEP_X[step] : 100 - STEP_X[step]) : 50
+  const ballCarrier = carrierUid ? actorByUid(match, carrierUid) : null
+
+  /** Posición FINAL de un jugador este instante. */
+  const spotOf = (a: Actor, isMine: boolean): Spot => {
+    const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
+    const dir = isMine ? 1 : -1
+    if (a.uid === carrierUid) {
+      // El del balón, en el punto del eslabón (los porteros no abandonan el área).
+      if (a.position === 'POR') return base
+      return { x: ballX, y: base.y * 0.6 + 20 }
+    }
+    if (a.uid === markerUid) {
+      // Su marcador le sale al paso: entre el balón y SU portería.
+      if (a.position === 'POR') return base
+      return { x: Math.max(4, Math.min(96, ballX + (isMine ? -7 : 7))), y: base.y * 0.6 + 20 }
+    }
+    return { x: Math.max(4, Math.min(96, base.x + shift(isMine) * dir)), y: base.y }
+  }
+
+  // Punto del balón: en los pies del que lo lleva (o el centro sin jugada).
+  const carrierSpot = ballCarrier
+    ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
+    : null
+  const ball = carrierSpot ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 6 } : { x: 50, y: 50 }
+
+  const danger = step === 'definicion'
+
+  return (
+    <div className="relative flex-1 min-h-0 mx-2 my-1.5">
+      <div
+        className="absolute inset-0 rounded-2xl border border-emerald-900/70 overflow-hidden"
+        style={{ background: 'repeating-linear-gradient(90deg, #14532d 0 9%, #166534 9% 18%)' }}
+      >
+        {/* líneas del campo */}
+        <div className="absolute inset-2 border-2 border-white/20 rounded-sm" />
+        <div className="absolute left-1/2 top-2 bottom-2 w-px bg-white/20" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/20 w-[18%] aspect-square" />
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 border-2 border-l-0 border-white/20 w-[13%] h-[44%]" />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 border-2 border-r-0 border-white/20 w-[13%] h-[44%]" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: home.color }} />
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: away.color }} />
+
+        {/* rótulo de zona */}
+        <div className={`absolute top-1 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-950/60 ${
+          danger ? (iAttack ? 'text-emerald-300 animate-pulse' : 'text-rose-300 animate-pulse') : 'text-white/75'
+        }`}>
+          {step == null
+            ? 'Medio campo'
+            : danger
+              ? '¡OCASIÓN DE GOL!'
+              : `${STEP_ZONE[step]} · ataca ${sideOf(match, atkSide!).name.replace('Instituto ', '')}`}
+        </div>
+
+        {/* LOS 22: cada uno hacia su sitio con transición — el movimiento. */}
+        {myActors.map((a) => (
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} mine
+            carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+        ))}
+        {theirActors.map((a) => (
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)}
+            carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+        ))}
+
+        {/* EL BALÓN, con su propia transición: los pases se ven volar. */}
+        <div
+          className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
+          style={{ left: `${ball.x}%`, top: `${ball.y}%` }}
+        >
+          <Pic name="ball" className="w-4 h-4 drop-shadow" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Un jugador sobre el césped: retrato con borde de rareza, banda del equipo y
+ * el nombre solo cuando está EN la jugada (con 22 etiquetas no se leía nada).
+ */
+function LiveDot({ actor, spot, mine, carrier, marker }: {
+  actor: Actor
+  spot: Spot
+  mine?: boolean
+  carrier?: boolean
+  marker?: boolean
+}) {
+  const info = ELEMENT_INFO[actor.element]
+  const active = carrier || marker
+  const ring = actor.rarity === 4 ? 'transparent' : actor.rarity ? rarityBorder(actor.rarity) : info.color
+  return (
+    <div
+      className="absolute z-10 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-700 ease-out"
+      style={{ left: `${spot.x}%`, top: `${spot.y}%`, zIndex: active ? 20 : 10 }}
+    >
+      <div className="relative">
+        <div
+          className={`relative rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900 transition-all ${
+            active ? 'w-9 h-9' : 'w-7 h-7 opacity-90'
+          }`}
+          style={{
+            borderColor: ring,
+            boxShadow: carrier ? `0 0 10px ${info.color}` : undefined,
+          }}
+        >
+          <ImgFallback
+            src={portraitUrl(actor.baseId)}
+            className="w-full h-full object-cover object-top"
+            alt={actor.name}
+            fallback={<span className="text-[9px] font-extrabold" style={{ color: info.color }}>
+              {actor.name.slice(0, 2).toUpperCase()}
+            </span>}
+          />
+          {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
+        </div>
+        {/* banda del equipo, para leer bandos con 22 en pantalla */}
+        <span
+          className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1 rounded-full ${active ? 'w-6' : 'w-4'}`}
+          style={{ background: mine ? '#22c55e' : '#f43f5e' }}
+        />
+      </div>
+      {active && (
+        <span className="mt-0.5 max-w-[64px] truncate rounded px-1 text-[8px] font-bold bg-black/70 text-white leading-tight">
+          {actor.name.split(' ')[0]}
+        </span>
+      )}
+    </div>
+  )
+}
