@@ -148,7 +148,7 @@ function Face({ actor, x, label, ball, dim }: {
   const info = ELEMENT_INFO[actor.element]
   return (
     <div
-      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300"
+      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
       style={{ left: `${x}%`, opacity: dim ? 0.8 : 1 }}
     >
       <div className="relative">

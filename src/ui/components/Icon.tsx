@@ -56,6 +56,7 @@ const SVGS: Record<string, SvgIcon> = {
   // rayos sueltos) se leía como un sol, y en ajustes despistaba.
   gear: S(<><circle cx="12" cy="12" r="3" /><path d="M10.7 3h2.6l.5 2.1a7 7 0 0 1 1.8 1l2-.8 1.3 2.2-1.5 1.6a7 7 0 0 1 0 2l1.5 1.6-1.3 2.2-2-.7a7 7 0 0 1-1.8 1l-.5 2.1h-2.6l-.5-2.1a7 7 0 0 1-1.8-1l-2 .7-1.3-2.2 1.5-1.6a7 7 0 0 1 0-2L4.4 7.5l1.3-2.2 2 .8a7 7 0 0 1 1.8-1L10.7 3Z" /></>),
   wrench: S(<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" />),
+  album: S(<><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 3v18" /><rect x="11" y="7" width="6" height="7" rx="1" /><path d="M11 17.5h6" /></>),
   clipboard: S(<><rect x="6" y="4" width="12" height="17" rx="2" /><rect x="9" y="2.5" width="6" height="3.5" rx="1" /><path d="M9 11h6M9 15h6" /></>),
   dna: S(<path d="M7 3c0 5 10 6 10 11s-10 5-10 10M17 3c0 5-10 6-10 11s10 5 10 10M8 6h8M8 18h8M9.5 9.5h5M9.5 14.5h5" />),
   target: S(<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></>),

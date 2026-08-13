@@ -12,7 +12,7 @@ import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, rarityBorder, rarityCardStyle, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -666,10 +666,7 @@ export function SquadView() {
           onClose={() => setDetail(null)}
           onEquip={(item) => equip(detail, item)}
           blocked={save.roster.length <= SQUAD_SIZE}
-          starter={save.lineup.includes(detail)}
-          onToggleStarter={() => toggleStarter(detail)}
           onRelease={() => { release(detail); setDetail(null) }}
-          onMove={() => { setMoveFor(detail); setDetail(null); setTab('campo') }}
         />
       )}
     </div>
@@ -784,20 +781,15 @@ function BagPanel({
 }
 
 function PlayerDetail({
-  player, bag, blocked, starter, onClose, onEquip, onRelease, onToggleStarter, onMove,
+  player, bag, blocked, onClose, onEquip, onRelease,
 }: {
   player: PlayerInstance
   bag: string[]
   /** true si la plantilla está en el mínimo y no se puede traspasar a nadie. */
   blocked?: boolean
-  /** true si ahora mismo es titular. */
-  starter: boolean
   onClose: () => void
   onEquip: (itemId: string | undefined) => void
   onRelease: () => void
-  onToggleStarter: () => void
-  /** Modo MOVER: cierra la ficha y deja que el siguiente toque sea el destino. */
-  onMove?: () => void
 }) {
   const base = getPlayerBase(player.baseId)
   // Los RAROS también se equipan: son la versión cara del equipamiento, y
@@ -878,12 +870,12 @@ function PlayerDetail({
                 return (
                   <span key={id} className="inline-flex items-center gap-1">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
-                        learnt ? 'bg-fuchsia-500/10' : 'bg-slate-800/40 opacity-55'
+                      className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 ${
+                        learnt ? '' : 'opacity-55'
                       }`}
-                      // El BORDE es la rareza que desbloquea el paso: gris el
-                      // 1.º, morado el 2.º, oro el 3.º, multicolor el 4.º.
-                      style={{ borderColor: rarityBorder(needRarity) }}
+                      // El MARCO es la rareza que desbloquea el paso — y el 4.º
+                      // lleva el degradado de verdad, no un rosa plano.
+                      style={rarityChipStyle(needRarity, learnt ? 'rgba(217,70,239,0.08)' : 'rgba(30,41,59,0.45)')}
                     >
                       <TechniqueBadge tech={t} size={22} />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
@@ -945,24 +937,9 @@ function PlayerDetail({
 
         {/* Rotar desde AQUÍ: la ficha se abre igual desde la lista y desde el
             campo, así que las dos vistas hacen exactamente lo mismo. */}
+        {/* Mover y rotar se hacen con drag&drop en el campo: aquí solo
+            queda lo que NO se puede arrastrar (comparar y vender). */}
         <div className="mt-3 flex gap-2">
-          {onMove && (
-            <Button variant="secondary" full onClick={onMove}>
-              <span className="inline-flex items-center justify-center gap-1.5">
-                <Icon name="arrowRight" className="w-4 h-4" /> Mover
-              </span>
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            full
-            onClick={() => { onToggleStarter(); onClose() }}
-          >
-            <span className="inline-flex items-center justify-center gap-1.5">
-              <Icon name={starter ? 'bench' : 'ball'} className="w-4 h-4" />
-              {starter ? 'Al banquillo' : 'Al once'}
-            </span>
-          </Button>
           <Button variant="secondary" full onClick={() => setCompareWith({
             name: base.name,
             baseId: base.id,
@@ -980,23 +957,29 @@ function PlayerDetail({
         {compareWith && <CompareSheet a={compareWith} onClose={() => setCompareWith(null)} />}
 
         <div className="mt-2 flex gap-2">
-          {/* Traspasar pide CONFIRMACIÓN: es irreversible. El cierre es la X
-              de arriba, como en todos los modales. */}
+          {/* Vender pide CONFIRMACIÓN: es irreversible. Se ve QUÉ te llevas:
+              el importe y la Medalla de talento. */}
           {!player.captain && !blocked && !confirmSale && (
             <Button variant="danger" full onClick={() => setConfirmSale(true)}>
-              Traspasar · {fee.toLocaleString('es-ES')} ₽
+              <span className="inline-flex items-center justify-center gap-1.5">
+                Vender · {fee.toLocaleString('es-ES')} ₽ +
+                <ItemIcon itemId="medalla-rareza" className="w-4 h-4" />
+              </span>
             </Button>
           )}
         </div>
         {confirmSale && (
           <div className="mt-2 rounded-xl border border-rose-600/60 bg-rose-500/10 p-3">
             <p className="text-[12px] text-rose-200 mb-2">
-              ¿Seguro? {base.name} se va del equipo para siempre por{' '}
-              <b>{fee.toLocaleString('es-ES')} ₽</b>.
+              ¿Seguro? {base.name} se va para siempre. Te llevas{' '}
+              <b>{fee.toLocaleString('es-ES')} ₽</b> y una{' '}
+              <b className="inline-flex items-center gap-1">
+                <ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" /> Medalla de talento
+              </b>.
             </p>
             <div className="flex gap-2">
               <Button variant="ghost" full onClick={() => setConfirmSale(false)}>Se queda</Button>
-              <Button variant="danger" full onClick={onRelease}>Traspasar</Button>
+              <Button variant="danger" full onClick={onRelease}>Vender</Button>
             </div>
           </div>
         )}
@@ -1204,8 +1187,8 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
             return (
               <span key={id} className="inline-flex items-center gap-1">
                 <span
-                  className="inline-flex items-center gap-1 rounded-md border px-1 py-0.5 text-[9px] font-bold"
-                  style={{ color: info.color, borderColor: `${info.color}55`, background: `${info.color}12` }}
+                  className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold"
+                  style={{ color: info.color, ...rarityChipStyle(i + 1, `${info.color}12`) }}
                 >
                   <KindIcon kind={t.kind} className="w-2.5 h-2.5" />
                   {t.name}

@@ -147,24 +147,23 @@ export default function HomeScreen() {
       <div className="w-full flex flex-col gap-2.5 max-w-sm mt-3">
         {section === null && (
           <>
-            <GameCard
-              wide
-              title="Pokémon"
-              subtitle="PokéRogue, Modo Historia, Liga, Pokédex, Cyber…"
-              accent="#ef4444"
-              icon={<Icon name="pokeball" className="w-7 h-7 text-red-400" />}
-              badge={hasSavedRun ? 'Run en curso' : null}
+            {/* Los LOGOS de cada universo como puerta de entrada. */}
+            <button
               onClick={() => setSection('pokemon')}
-            />
-            <GameCard
-              wide
-              title="Inazuma Eleven"
-              subtitle="Inazuma Rogue, álbum de cromos y opciones"
-              accent="#f59e0b"
-              icon={<span className="text-2xl leading-none">⚽</span>}
-              badge={inazumaRound}
+              className="relative col-span-2 rounded-2xl border border-red-500/40 py-5 grid place-items-center active:scale-[0.98] transition"
+              style={{ background: 'linear-gradient(140deg, #ef44442e, rgba(15,23,42,0.85) 62%)' }}
+            >
+              <img src={`${import.meta.env.BASE_URL}pokerogue.png`} alt="Pokémon" className="h-16 object-contain drop-shadow-xl" draggable={false} />
+              {hasSavedRun && <span className="absolute bottom-1.5 right-2 text-[9px] font-bold text-emerald-300">Run en curso</span>}
+            </button>
+            <button
               onClick={() => setSection('inazuma')}
-            />
+              className="relative col-span-2 rounded-2xl border border-amber-500/40 py-5 grid place-items-center active:scale-[0.98] transition"
+              style={{ background: 'linear-gradient(140deg, #f59e0b2e, rgba(15,23,42,0.85) 62%)' }}
+            >
+              <img src={`${import.meta.env.BASE_URL}inazuma/logo.png`} alt="Inazuma Eleven" className="h-16 object-contain drop-shadow-xl" draggable={false} />
+              {inazumaRound && <span className="absolute bottom-1.5 right-2 text-[9px] font-bold text-emerald-300">{inazumaRound}</span>}
+            </button>
             <div className="grid grid-cols-3 gap-2 mt-0.5">
               <MenuButton icon={<Icon name="achievement" className="w-5 h-5" />} label="Logros" onClick={() => navigate('achievements')} />
               <MenuButton icon={<Icon name="wrench" className="w-5 h-5" />} label="Ajustes" onClick={() => navigate('settings')} />
@@ -231,7 +230,7 @@ export default function HomeScreen() {
           />
           <div className="grid grid-rows-2 gap-2">
             <MenuButton
-              icon={<Icon name="pokedex" className="w-5 h-5" />}
+              icon={<Icon name="album" className="w-5 h-5 text-amber-300" />}
               label="Álbum de cromos"
               onClick={() => { setInazumaEntry('album'); navigate('inazuma') }}
             />

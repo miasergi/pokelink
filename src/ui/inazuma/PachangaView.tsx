@@ -18,6 +18,8 @@ import { play } from '@/utils/sfx'
 export default function PachangaView() {
   const { pachanga, pachangaShoot, pachangaAutoShoot, finishPachanga, save } = useInazuma()
   const auto = useSettings((s) => s.inazumaModePachanga) === 'auto'
+  const simPachanga = useSettings((s) => s.inazumaSimPachanga)
+  const { simulatePachanga } = useInazuma()
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
   // La ronda cuyo desenlace está esperando a que el escenario TERMINE: contar
@@ -83,6 +85,20 @@ export default function PachangaView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pachanga?.rounds.length, shown])
 
+  // SIMULACIÓN: la tanda resuelta salta DIRECTA al resultado — nada de ir
+  // revelando duelo a duelo (que era justo lo que el ajuste promete evitar).
+  useEffect(() => {
+    if (!pachanga || pachanga.phase !== 'finished') return
+    if (!useSettings.getState().inazumaSimPachanga) return
+    if (shown >= pachanga.rounds.length && !stage && !gol) return
+    pendingReveal.current = null
+    staged.current = pachanga.rounds.length
+    setShown(pachanga.rounds.length)
+    setStage(null)
+    setGol(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pachanga?.phase, pachanga?.rounds.length])
+
   // Modo AUTO: cuando la pantalla está al día y hay decisión, el banquillo
   // tira/para solo tras una pausa para que se pueda seguir la tanda.
   const decisionUp = !!pachanga && pachanga.phase === 'decision'
@@ -110,7 +126,22 @@ export default function PachangaView() {
       )}
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
+        <div className="flex items-center justify-center gap-2">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
+          <button
+            onClick={() => {
+              const on = !useSettings.getState().inazumaSimPachanga
+              useSettings.getState().toggleInazumaSimPachanga()
+              if (on) simulatePachanga()
+            }}
+            className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${
+              simPachanga ? 'border-sky-500/60 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-800 text-slate-400'
+            }`}
+            title="Simular las pachangas al instante"
+          >
+            SIM
+          </button>
+        </div>
         <div className="flex items-center justify-center gap-3 mt-0.5">
           <span className="inline-flex items-center gap-1 min-w-0">
             <Crest teamId={teamDisplay(save ?? {}).crestId} className="w-4 h-4" />

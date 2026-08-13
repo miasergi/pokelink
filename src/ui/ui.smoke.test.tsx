@@ -230,7 +230,7 @@ describe('render de pantallas (smoke)', () => {
     const firmaNode = { ...node, kind: 'firma' as const }
     useInazuma.setState({ save, match: null, matchNode: firmaNode, phase: 'firma' })
     const firma = mount(InazumaScreen)
-    expect(firma).toContain('Entrenamiento especial')
+    expect(firma).toContain('Supertécnica Especial')
     // La próxima técnica de la cadena de Mark aparece por nombre (la cadena es
     // la real de la wiki, así que se resuelve dinámicamente).
     const mark = save.roster.find((p) => p.baseId === 'mark-evans')!

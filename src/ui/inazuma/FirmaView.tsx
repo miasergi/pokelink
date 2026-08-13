@@ -1,95 +1,58 @@
-// CASILLA DE FIRMA: un jugador despierta la siguiente supertécnica de SU
-// cadena característica (Mark Evans: Mano Celestial → Infinita → Demoníaca).
-//
-// Es la fuente principal de supertécnicas del modo desde que el equipo empieza
-// sin ninguna: aquí se decide a quién le toca crecer, que es una decisión de
-// verdad porque la casilla se gasta.
-//
-// Y cuando una cadena ya está COMPLETA, el entrenamiento no se desperdicia:
-// ese jugador puede en su lugar MEJORAR una técnica ya despertada (+25 % de
-// potencia por nivel, como la Mejora de la tienda).
+// CASILLA DE SUPERTÉCNICA ESPECIAL, rediseñada para leerse de un vistazo:
+// UNA lista con toda la plantilla, la CADENA de cada jugador dibujada en su
+// fila (lo aprendido en color, lo siguiente latiendo, lo lejano apagado) y la
+// acción a la derecha. Un toque en la fila ejecuta:
+//   · despertar el SIGUIENTE paso de su cadena, o
+//   · si la tiene completa, MEJORAR una técnica (V2, V3…).
+// Antes había dos listas separadas y ni se veía qué cadena tenía cada uno.
 import { useInazuma } from '@/state/inazumaStore'
-import { Button } from '@/ui/components/kit'
+import { Button, ImgFallback } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { signatureNext } from '@/engine/inazuma/game'
-import { canUpgradeTechnique, techLevel } from '@/engine/inazuma/roster'
+import {
+  canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, reachableChain, techLevel,
+} from '@/engine/inazuma/roster'
 import { getTechnique } from '@/data/inazuma/techniques'
-import { PlayerRow } from '@/ui/inazuma/PlayerCard'
-import { Pic, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { getPlayerBase } from '@/data/inazuma/players'
+import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import { Pic, rarityBorder, rarityChipStyle, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import type { PlayerInstance } from '@/engine/inazuma/types'
 
 export default function FirmaView() {
   const { save, resolveFirma, resolveFirmaUpgrade, skipNode, goTo } = useInazuma()
   if (!save) return null
 
-  const candidates = save.roster
-    .map((p) => ({ p, next: signatureNext(p) }))
-    .filter((x) => x.next)
-  // Cadena completa PERO con una técnica mejorable: la otra forma de crecer.
-  const upgraders = save.roster
-    .filter((p) => !signatureNext(p))
-    .map((p) => ({ p, up: p.techniques.find((t) => canUpgradeTechnique(p, t)) }))
-    .filter((x) => x.up)
-  const nothing = !candidates.length && !upgraders.length
+  // Qué le toca a cada uno: despertar, mejorar o nada.
+  const rows = save.roster.map((p) => {
+    const next = signatureNext(p)
+    const up = next ? undefined : p.techniques.find((t) => canUpgradeTechnique(p, t))
+    return { p, next, up }
+  })
+  const actionable = rows.filter((r) => r.next || r.up)
+  const nothing = actionable.length === 0
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
         <Pic name="node-firma" className="w-5 h-5" />
-        <div className="font-extrabold text-sm">Entrenamiento especial</div>
+        <div className="min-w-0">
+          <div className="font-extrabold text-sm">Supertécnica Especial</div>
+          <div className="text-[10px] text-slate-500">
+            Un toque y ese jugador entrena: despierta su siguiente técnica (o la mejora).
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-2">
-        {candidates.length > 0 && (
-          <>
-            <p className="text-[12px] text-slate-400">
-              Elige quién despierta <b className="text-slate-200">su</b> supertécnica. Cada jugador tiene su
-              propia cadena y solo puede seguirla en orden.
-            </p>
-            {candidates.map(({ p, next }) => (
-              <div key={p.uid} className="flex items-stretch gap-1.5">
-                <PlayerRow player={p} className="flex-1 min-w-0" onClick={() => resolveFirma(p.uid)} />
-                {/* Lo que despertaría, con su imagen: elegir a ciegas no es elegir. */}
-                <button
-                  onClick={() => resolveFirma(p.uid)}
-                  className="shrink-0 flex items-center gap-1.5 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-2 active:scale-95 transition"
-                  title={next!.name}
-                >
-                  <TechniqueBadge tech={next!} size={30} />
-                  <span className="max-w-[72px] truncate text-[10px] font-bold text-fuchsia-200">{next!.name}</span>
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-
-        {upgraders.length > 0 && (
-          <>
-            <p className="text-[12px] text-slate-400 mt-2">
-              {candidates.length
-                ? 'O mejora una técnica de quien ya completó su cadena (+25 % de potencia):'
-                : 'Toda la plantilla despertó su cadena: el entrenamiento sirve para MEJORAR una técnica (+25 % de potencia).'}
-            </p>
-            {upgraders.map(({ p, up }) => {
-              const t = getTechnique(up!)
-              if (!t) return null
-              return (
-                <div key={p.uid} className="flex items-stretch gap-1.5">
-                  <PlayerRow player={p} className="flex-1 min-w-0" onClick={() => resolveFirmaUpgrade(p.uid)} />
-                  <button
-                    onClick={() => resolveFirmaUpgrade(p.uid)}
-                    className="shrink-0 flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-2 active:scale-95 transition"
-                    title={t.name}
-                  >
-                    <TechniqueBadge tech={t} size={30} />
-                    <span className="max-w-[86px] text-[10px] font-bold text-amber-200 leading-tight">
-                      <span className="block truncate">{t.name}</span>
-                      <span className="text-slate-400">nv.{techLevel(p, up!)} → {techLevel(p, up!) + 1}</span>
-                    </span>
-                  </button>
-                </div>
-              )
-            })}
-          </>
-        )}
+        {rows.map(({ p, next, up }) => (
+          <FirmaRow
+            key={p.uid}
+            player={p}
+            next={next ?? undefined}
+            upgradeId={up}
+            onPick={() => (next ? resolveFirma(p.uid) : up ? resolveFirmaUpgrade(p.uid) : undefined)}
+          />
+        ))}
 
         {nothing && (
           <div className="text-center text-slate-500 text-sm py-8">
@@ -100,12 +63,104 @@ export default function FirmaView() {
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">
-        {/* Si no hay NADA que hacer, el botón consume la casilla: antes se
-            quedaba en un callejón sin salida que no dejaba seguir la ruta. */}
         {nothing
           ? <Button variant="primary" full onClick={skipNode}>Pasar de largo</Button>
           : <Button variant="ghost" full onClick={() => goTo('map')}>Dejarlo para otro día</Button>}
       </div>
     </div>
+  )
+}
+
+/**
+ * Fila de un jugador: retrato con su marco de rareza, su CADENA en badges (lo
+ * aprendido encendido, lo siguiente latiendo, lo capado por rareza apagado con
+ * el color del tramo que lo abre) y la acción grande a la derecha.
+ */
+function FirmaRow({ player, next, upgradeId, onPick }: {
+  player: PlayerInstance
+  next?: { id: string; name: string }
+  upgradeId?: string
+  onPick: () => void
+}) {
+  const base = getPlayerBase(player.baseId)
+  const chain = base.signature ?? []
+  const reachable = new Set(reachableChain(player))
+  const tier = rarityOf(player)
+  const upTech = upgradeId ? getTechnique(upgradeId) : undefined
+  const actionable = !!next || !!upTech
+
+  return (
+    <button
+      onClick={actionable ? onPick : undefined}
+      disabled={!actionable}
+      className={`w-full rounded-2xl p-2 text-left transition ${
+        actionable ? 'active:scale-[0.99]' : 'opacity-50'
+      }`}
+      style={rarityChipStyle(tier, 'rgba(15,23,42,0.8)')}
+    >
+      <div className="flex items-center gap-2">
+        <span className="w-10 h-10 shrink-0 rounded-lg overflow-hidden border border-slate-600 grid place-items-center bg-slate-800">
+          <ImgFallback
+            src={portraitUrl(player.baseId)}
+            className="w-full h-full object-cover object-top"
+            alt={base.name}
+            fallback={<span className="text-[11px] font-extrabold">{base.name.slice(0, 2).toUpperCase()}</span>}
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-[13px] truncate">{base.name}</span>
+            <span className="text-[9px] font-extrabold uppercase tracking-widest shrink-0" style={{ color: rarityBorder(tier) }}>
+              {RARITY_LABEL[tier]}
+            </span>
+          </div>
+          {/* La cadena, paso a paso: qué tiene, qué toca, qué está lejos. */}
+          <div className="mt-1 flex items-center gap-1 flex-wrap">
+            {chain.map((id, i) => {
+              const t = getTechnique(id)
+              if (!t) return null
+              const learnt = player.techniques.includes(id)
+              const isNext = next?.id === id
+              const locked = !reachable.has(id) && !learnt
+              return (
+                <span
+                  key={id}
+                  title={`${t.name}${locked ? ` · pide rareza ${RARITY_LABEL[Math.min(MAX_RARITY, i + 1)]}` : ''}`}
+                  className={`relative inline-flex rounded-md ${isNext ? 'animate-pulse' : ''} ${
+                    learnt ? '' : isNext ? '' : 'opacity-40'
+                  }`}
+                  style={rarityChipStyle(Math.min(MAX_RARITY, i + 1), learnt || isNext ? '#0f172a' : 'rgba(15,23,42,0.6)')}
+                >
+                  <TechniqueBadge tech={t} size={26} />
+                  {learnt && (
+                    <Icon name="check" className="absolute -top-1 -right-1 w-3 h-3 text-emerald-300 bg-slate-900 rounded-full p-px" />
+                  )}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+        {/* LA ACCIÓN, clara: qué pasa si tocas. */}
+        <div className="shrink-0 text-right max-w-[104px]">
+          {next && (
+            <>
+              <div className="text-[9px] uppercase tracking-widest text-fuchsia-300 font-extrabold">Despierta</div>
+              <div className="text-[11px] font-bold text-fuchsia-100 leading-tight">{next.name}</div>
+            </>
+          )}
+          {!next && upTech && (
+            <>
+              <div className="text-[9px] uppercase tracking-widest text-amber-300 font-extrabold">Mejora</div>
+              <div className="text-[11px] font-bold text-amber-100 leading-tight">
+                {upTech.name} → V{techLevel(player, upgradeId!) + 2}
+              </div>
+            </>
+          )}
+          {!actionable && (
+            <div className="text-[10px] text-slate-500">Al máximo</div>
+          )}
+        </div>
+      </div>
+    </button>
   )
 }

@@ -123,7 +123,7 @@ export function AlbumView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
-        <Icon name="pokedex" className="w-5 h-5" />
+        <Icon name="album" className="w-5 h-5 text-amber-300" />
         <div className="font-extrabold text-sm">Álbum de fichajes</div>
         <span className="ml-auto text-[11px] font-bold text-amber-300 tabular-nums">
           {owned.size}/{PLAYERS.length}

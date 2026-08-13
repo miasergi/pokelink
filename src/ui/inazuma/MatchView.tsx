@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
+import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import MatchPitch from '@/ui/inazuma/MatchPitch'
@@ -24,8 +25,9 @@ import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/
 export default function MatchView() {
   const {
     match, feed, playing, speed, autoPlay, save, matchNode,
-    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
+    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
   } = useInazuma()
+  const simMatch = useSettings((s) => s.inazumaSimMatch)
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
 
@@ -220,6 +222,19 @@ export default function MatchView() {
               GUARDAR
             </button>
           )}
+          <button
+            onClick={() => {
+              const on = !useSettings.getState().inazumaSimMatch
+              useSettings.getState().toggleInazumaSimMatch()
+              if (on) simulateMatch()
+            }}
+            className={`rounded-xl border px-3 py-3 text-xs font-bold ${
+              simMatch ? 'border-sky-500/60 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-800 text-slate-400'
+            }`}
+            title="Simula el resto del partido (y los siguientes) al instante"
+          >
+            SIM
+          </button>
           <button
             onClick={() => setAutoPlay(!autoPlay)}
             className={`rounded-xl border px-3 py-3 text-xs font-bold ${
