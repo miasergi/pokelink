@@ -67,6 +67,21 @@ export function rarityBorder(tier: number): string {
 }
 
 /**
+ * Estilo de FICHA pequeña por rareza: bordes lisos en gris/morado/oro y el
+ * MULTICOLOR con su degradado de verdad (truco padding-box/border-box, que el
+ * rosita plano no era multicolor ni era nada).
+ */
+export function rarityChipStyle(tier: number, innerBg: string): React.CSSProperties {
+  if (tier >= 4) {
+    return {
+      border: '2px solid transparent',
+      background: `linear-gradient(${innerBg}, ${innerBg}) padding-box, ${RARITY_GRADIENT} border-box`,
+    }
+  }
+  return { border: `2px solid ${rarityBorder(tier)}`, background: innerBg }
+}
+
+/**
  * La estrella de RAREZA: una sola, coloreada por tramo. Se mantiene para los
  * sitios sin carta (ofertas del ojeador, listas compactas).
  */

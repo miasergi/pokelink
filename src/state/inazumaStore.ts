@@ -56,6 +56,8 @@ export interface ItemFx {
   bars: ItemFxBar[]
   stats?: { label: string; from: number; to: number }[]
   level?: { from: number; to: number }
+  /** Subida de rareza: el marco del retrato anima del color viejo al nuevo. */
+  rarity?: { from: number; to: number }
 }
 
 const STAT_TAG: Record<string, string> = {
@@ -264,6 +266,11 @@ interface InazumaState {
   tick: () => void
   decide: (optionId: string) => void
   finishMatch: () => void
+
+  /** SIMULA lo que queda del partido y salta al resultado. */
+  simulateMatch: () => void
+  /** SIMULA lo que queda de la pachanga y salta al resultado. */
+  simulatePachanga: () => void
 
   // pachanga
   pachangaShoot: (optionId: string) => void
@@ -562,6 +569,38 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     get().tick()
   },
 
+  simulateMatch: () => {
+    const { match } = get()
+    if (!match || !matchRng || match.phase === 'finished') return
+    stopTicker()
+    // El banquillo juega lo que queda con su criterio de siempre.
+    let guard = 0
+    while ((match.phase as MatchPhase) !== 'finished' && guard++ < 5000) {
+      if (match.phase === 'decision' && match.decision) {
+        const best = match.decision.options
+          .filter((o) => !o.disabled)
+          .sort((a, b) => b.chance - a.chance || a.cost - b.cost)[0]
+        if (!best) break
+        chooseOption(match, matchRng, best.id)
+      } else {
+        advance(match, matchRng)
+      }
+    }
+    revealQueue = []
+    set({ match: { ...match }, feed: match.events.slice(), playing: false })
+  },
+
+  simulatePachanga: () => {
+    const { pachanga } = get()
+    if (!pachanga || !matchRng || pachanga.phase === 'finished') return
+    let guard = 0
+    while ((pachanga.phase as PachangaState['phase']) !== 'finished' && guard++ < 100) {
+      if (pachanga.phase === 'decision') get().pachangaAutoShoot()
+      else nextRound(pachanga, matchRng)
+    }
+    set({ pachanga: { ...pachanga } })
+  },
+
   // ---------------------------------------------------------- pachanga ----
   pachangaShoot: (optionId) => {
     const { pachanga } = get()
@@ -606,6 +645,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       stats: (Object.keys(u.statsBefore) as (keyof typeof u.statsBefore)[])
         .filter((k) => u.statsAfter[k] !== u.statsBefore[k])
         .map((k) => ({ label: STAT_TAG[String(k)] ?? String(k), from: u.statsBefore[k], to: u.statsAfter[k] })),
+      rarity: { from: u.rarity - 1, to: u.rarity },
     }))
     const firstFx = upFx.shift() ?? null
     itemFxQueue = upFx
@@ -1253,6 +1293,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
           targetBaseId: target.baseId,
           bars: [],
           stats,
+          rarity: { from: rarityBefore, to: rarityOf(target) },
         },
       })
       void persist(next, get().phase)

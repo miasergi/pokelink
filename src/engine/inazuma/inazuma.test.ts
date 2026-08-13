@@ -23,7 +23,7 @@ import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, lineupError, overall, ptMax, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
+  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
   techLevel, transferValue, upgradeTechnique,
 } from './roster'
 import {
@@ -579,6 +579,12 @@ function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
       const weakest = starters().slice().sort((a, b) => a.level - b.level)[0]
       applyConsumable(save, plan, weakest.uid)
       continue
+    }
+    // Las MEDALLAS son la vía principal de rareza (3 por partido): un jugador
+    // de verdad las gasta según caen. El bot sube al titular menos raro.
+    if (save.bag.includes('medalla-rareza')) {
+      const dull = starters().slice().sort((a, b) => rarityOf(a) - rarityOf(b))[0]
+      if (dull && rarityOf(dull) < 4) { applyConsumable(save, 'medalla-rareza', dull.uid); continue }
     }
     return
   }

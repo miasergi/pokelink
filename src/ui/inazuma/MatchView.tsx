@@ -24,7 +24,7 @@ import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/
 export default function MatchView() {
   const {
     match, feed, playing, speed, autoPlay, save, matchNode,
-    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime,
+    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
   } = useInazuma()
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
@@ -215,6 +215,13 @@ export default function MatchView() {
               GUARDAR
             </button>
           )}
+          <button
+            onClick={simulateMatch}
+            className="rounded-xl border border-sky-600/60 bg-sky-500/10 px-3 py-3 text-xs font-bold text-sky-300"
+            title="Simula lo que queda del partido y salta al resultado"
+          >
+            SIMULAR
+          </button>
           <button
             onClick={() => setAutoPlay(!autoPlay)}
             className={`rounded-xl border px-3 py-3 text-xs font-bold ${

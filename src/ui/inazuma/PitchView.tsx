@@ -9,7 +9,7 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, rarityBorder } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
@@ -256,12 +256,10 @@ function PitchChip({
           highlight ? 'scale-110 ring-2 ring-amber-300' : ''
         }`}
         style={{
-          // El borde cuenta la RAREZA; el fondo mantiene el tinte del elemento.
-          borderColor: highlight ? '#fcd34d' : rarityBorder(rarityOf(player)),
-          background: `${info.color}22`,
-          boxShadow: floating
-            ? '0 8px 20px rgba(0,0,0,.5)'
-            : rarityOf(player) === 4 ? `0 0 6px ${rarityBorder(4)}` : undefined,
+          // El borde cuenta la RAREZA (multicolor = degradado de verdad).
+          ...rarityChipStyle(rarityOf(player), `${info.color}22`),
+          ...(highlight ? { border: '2px solid #fcd34d' } : {}),
+          ...(floating ? { boxShadow: '0 8px 20px rgba(0,0,0,.5)' } : {}),
         }}
       >
         <ImgFallback

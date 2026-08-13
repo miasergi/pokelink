@@ -16,7 +16,7 @@ import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import { play } from '@/utils/sfx'
 
 export default function PachangaView() {
-  const { pachanga, pachangaShoot, pachangaAutoShoot, finishPachanga, save } = useInazuma()
+  const { pachanga, pachangaShoot, pachangaAutoShoot, simulatePachanga, finishPachanga, save } = useInazuma()
   const auto = useSettings((s) => s.inazumaModePachanga) === 'auto'
   const [stage, setStage] = useState<StageData | null>(null)
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
@@ -110,7 +110,25 @@ export default function PachangaView() {
       )}
       {/* Marcador */}
       <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-center">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
+        <div className="flex items-center justify-center gap-2">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500">Pachanga · primero a {PACHANGA_TARGET}</div>
+          {pachanga.phase !== 'finished' && (
+            <button
+              onClick={() => {
+                simulatePachanga()
+                // Saltar los revelados: al resultado, sin animaciones pendientes.
+                pendingReveal.current = null
+                setStage(null)
+                setGol(null)
+                staged.current = useInazuma.getState().pachanga?.rounds.length ?? 0
+                setShown(staged.current)
+              }}
+              className="rounded-lg border border-sky-600/60 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold text-sky-300"
+            >
+              SIMULAR
+            </button>
+          )}
+        </div>
         <div className="flex items-center justify-center gap-3 mt-0.5">
           <span className="inline-flex items-center gap-1 min-w-0">
             <Crest teamId={teamDisplay(save ?? {}).crestId} className="w-4 h-4" />

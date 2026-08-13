@@ -9,7 +9,8 @@ import { createPortal } from 'react-dom'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
-import { ItemIcon, Pic } from '@/ui/inazuma/Glyphs'
+import { ItemIcon, Pic, rarityBorder, rarityChipStyle } from '@/ui/inazuma/Glyphs'
+import { RARITY_LABEL } from '@/engine/inazuma/roster'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 
 const SHOW_MS = 2300
@@ -55,6 +56,33 @@ export default function ItemFxOverlay() {
             </div>
           </div>
         </div>
+
+        {/* SUBIDA DE RAREZA: el retrato en grande con el marco cambiando del
+            color viejo al nuevo (y su degradado si llega a multicolor). */}
+        {itemFx.rarity && itemFx.targetBaseId && (
+          <div className="mt-3 flex flex-col items-center gap-1.5">
+            <div
+              className="w-24 h-24 rounded-2xl overflow-hidden grid place-items-center transition-all duration-700"
+              style={rarityChipStyle(filled ? itemFx.rarity.to : itemFx.rarity.from, '#0f172a')}
+            >
+              <ImgFallback
+                src={portraitUrl(itemFx.targetBaseId)}
+                className="w-full h-full object-cover object-top"
+                fallback={<span className="text-2xl font-extrabold text-slate-500">?</span>}
+              />
+            </div>
+            <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest">
+              <span style={{ color: rarityBorder(itemFx.rarity.from) }}>{RARITY_LABEL[itemFx.rarity.from]}</span>
+              <span className="text-slate-500">→</span>
+              <span
+                className={filled ? 'animate-pop-in' : 'opacity-40'}
+                style={{ color: rarityBorder(itemFx.rarity.to) }}
+              >
+                {RARITY_LABEL[itemFx.rarity.to]}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Barras que se CURAN en directo. */}
         {itemFx.bars.length > 0 && (

@@ -348,7 +348,7 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   save.coins += result === 'win' ? prizeMoney(bossIndexForLayer(save.layer)) : 200
   // Tras CADA partido, 4 medallas de talento: el material de las rarezas
   // llega jugando, no rezando al ojeador.
-  save.bag = [...save.bag, 'medalla-rareza', 'medalla-rareza', 'medalla-rareza', 'medalla-rareza']
+  save.bag = [...save.bag, 'medalla-rareza', 'medalla-rareza', 'medalla-rareza']
 }
 
 /**
@@ -379,8 +379,10 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   // El barrio te curte: tras CADA pachanga, tres del vestuario (al azar, de
   // los que aún no son multicolor) suben una rareza — ganes o pierdas.
   const rarityRng = new RNG(((save.rngState ^ Math.imul(save.layer + 1, 2654435761)) >>> 0) || 1)
-  const candidates = save.roster.filter((p) => rarityOf(p) < MAX_RARITY)
-  const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 3))
+  // UNA subida por pachanga, y solo entre los que la JUGARON (el banquillo no
+  // sube gratis desde la grada).
+  const candidates = save.roster.filter((p) => byUid.has(p.uid) && rarityOf(p) < MAX_RARITY)
+  const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 1))
   const beforeUp = new Map(save.roster.filter((p) => lucky.has(p.uid)).map((p) => [p.uid, effectiveStats(p)]))
 
   save.roster = save.roster.map((p) => {

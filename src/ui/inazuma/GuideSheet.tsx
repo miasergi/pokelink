@@ -46,9 +46,9 @@ const SECTIONS: Section[] = [
         El COLOR de la carta de cada jugador: gris, morado, oro y multicolor. Sube sus <B>atributos</B>,
         alarga su <B>cadena</B> (1, 2, 3 o 4 supertécnicas — cada paso lleva el borde de la rareza que lo
         abre) y en <B>multicolor</B> despierta su Espíritu Guerrero (con nivel 30). CUALQUIERA puede llegar
-        al máximo: se empieza con todo grises y se sube con <B>Medallas de talento</B> (4 por partido, 1
-        por traspaso, también en tiendas) — y tras cada pachanga, tres del vestuario suben solos, cada uno
-        con su pantalla. Los rivales van nivelados con la eliminatoria.
+        al máximo: se empieza con todo grises y se sube con <B>Medallas de talento</B> (3 por partido, 1
+        por traspaso, también en tiendas) — y tras cada pachanga, UNO de los que la jugaron sube solo, con
+        su pantalla. Los rivales van nivelados con la eliminatoria.
       </>
     ),
   },
