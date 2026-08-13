@@ -21,7 +21,7 @@ import {
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
   Actor, DecisionMode, Difficulty, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerBase,
-  PlayerInstance, PlayerStats, Position, Technique,
+  PlayerInstance, PlayerStats, Position, Stats, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
 
@@ -36,7 +36,6 @@ import type {
  * Con estos números un titular pierde ~22 netos por partido, entra en
  * penalización a la tercera eliminatoria y el banquillo pasa a tener sentido.
  */
-const NINETY_MINUTES_COST = 26
 /** Niveles que pierde el banquillo respecto a quien juega. */
 export const BENCH_LEVEL_PENALTY = 1
 const REST_STAMINA = 18
@@ -318,7 +317,10 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
     // trampa; si subiera igual, jugar no tendría premio. Un nivel de diferencia
     // hace que rotar cueste algo real sin castigar por hacerlo.
     let next: PlayerInstance = levelUp(
-      a ? { ...p, stamina: Math.max(0, a.stamina - NINETY_MINUTES_COST), pt: a.pt } : { ...p },
+      // El partido oficial cierra ronda: el equipo REPONE PT y aguante al
+      // pitido final (el desgaste que se arrastra es el de las pachangas y la
+      // ruta). Antes se salía del partido fundido y sin gasolina.
+      a ? { ...p, stamina: 100, pt: ptMax(p) } : { ...p, stamina: 100, pt: ptMax(p) },
       a ? gained : Math.max(0, gained - BENCH_LEVEL_PENALTY),
     )
     // Descanso entre eliminatorias: algo, pero nunca del todo.
@@ -353,7 +355,16 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
  * Cierra una pachanga: devuelve el desgaste SIEMPRE (por eso cansa) y reparte
  * niveles solo si ganaste (por eso compensa jugarla).
  */
-export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): { rarityUps: string[] } {
+export interface RarityUp {
+  uid: string
+  baseId: string
+  name: string
+  rarity: number
+  statsBefore: Stats
+  statsAfter: Stats
+}
+
+export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: TournamentNode): { rarityUps: RarityUp[] } {
   const actors = [s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds]
   const byUid = new Map(actors.map((a) => [a.uid, a]))
   const won = s.result === 'win'
@@ -370,6 +381,7 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const rarityRng = new RNG(((save.rngState ^ Math.imul(save.layer + 1, 2654435761)) >>> 0) || 1)
   const candidates = save.roster.filter((p) => rarityOf(p) < MAX_RARITY)
   const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 3))
+  const beforeUp = new Map(save.roster.filter((p) => lucky.has(p.uid)).map((p) => [p.uid, effectiveStats(p)]))
 
   save.roster = save.roster.map((p) => {
     const a = byUid.get(p.uid)
@@ -406,7 +418,14 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   return {
     rarityUps: save.roster
       .filter((p) => lucky.has(p.uid))
-      .map((p) => `${getPlayerBase(p.baseId).name} (${RARITY_LABEL[rarityOf(p)]})`),
+      .map((p) => ({
+        uid: p.uid,
+        baseId: p.baseId,
+        name: getPlayerBase(p.baseId).name,
+        rarity: rarityOf(p),
+        statsBefore: beforeUp.get(p.uid)!,
+        statsAfter: effectiveStats(p),
+      })),
   }
 }
 

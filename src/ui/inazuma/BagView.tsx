@@ -164,7 +164,13 @@ export default function BagView() {
       {/* A quién se lo doy */}
       {pending && (
         <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setPending(null)}>
-          <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[85%] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[82svh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPending(null)}
+              className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+            >
+              <Icon name="x" className="w-4 h-4" />
+            </button>
             <div className="font-extrabold text-center">
               {pending.kind === 'tech' ? getTechnique(pending.id)?.name : getItem(pending.id)?.name}
             </div>
@@ -195,7 +201,7 @@ export default function BagView() {
                 )
               })}
             </div>
-            <Button variant="ghost" full className="mt-2" onClick={() => setPending(null)}>Cancelar</Button>
+
           </div>
         </div>
       )}

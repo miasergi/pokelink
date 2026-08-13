@@ -9,7 +9,7 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, Stars } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, rarityBorder } from '@/ui/inazuma/Glyphs'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
@@ -256,9 +256,12 @@ function PitchChip({
           highlight ? 'scale-110 ring-2 ring-amber-300' : ''
         }`}
         style={{
-          borderColor: highlight ? '#fcd34d' : `${info.color}88`,
+          // El borde cuenta la RAREZA; el fondo mantiene el tinte del elemento.
+          borderColor: highlight ? '#fcd34d' : rarityBorder(rarityOf(player)),
           background: `${info.color}22`,
-          boxShadow: floating ? '0 8px 20px rgba(0,0,0,.5)' : undefined,
+          boxShadow: floating
+            ? '0 8px 20px rgba(0,0,0,.5)'
+            : rarityOf(player) === 4 ? `0 0 6px ${rarityBorder(4)}` : undefined,
         }}
       >
         <ImgFallback
@@ -283,7 +286,6 @@ function PitchChip({
         <span className="font-extrabold text-slate-300">{base.position}</span>
         <Icon name={ELEMENT_ICON[base.element]} className="w-2 h-2" style={{ color: info.color }} />
         Nv.{player.level}
-        <Stars n={rarityOf(player)} className="w-2 h-2" />
       </div>
       {/* Fuera de su sitio: su demarcación natural en rojo. Sus atributos y
           sus técnicas son de OTRO puesto, y conviene verlo de un vistazo. */}

@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { RARITY_COLOR, RARITY_LABEL } from '@/engine/inazuma/roster'
+import { RARITY_COLOR, RARITY_GRADIENT, RARITY_LABEL } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import type { Element, InazumaItem, NodeKind, Technique } from '@/engine/inazuma/types'
 
@@ -43,9 +43,32 @@ export function ElementTag({ element, className = '' }: { element: Element; clas
 
 /** Estrellas de rareza, en SVG y no con el carácter ★. */
 /**
- * La estrella de RAREZA: una sola, coloreada por tramo — bronce, plata, oro y
- * MULTICOLOR (que brilla). Sustituye a la fila de estrellitas: la rareza ahora
- * es dinámica (1-4) y el color se lee más rápido que contar estrellas.
+ * MARCO de carta por rareza: gris, morado, oro y el multicolor con borde
+ * degradado (truco border-box). La CARTA ENTERA cuenta la rareza; el elemento
+ * queda como icono junto al nombre.
+ */
+export function rarityCardStyle(tier: number): React.CSSProperties {
+  if (tier >= 4) {
+    return {
+      border: '2px solid transparent',
+      background: `linear-gradient(rgba(15,23,42,0.92), rgba(15,23,42,0.92)) padding-box, ${RARITY_GRADIENT} border-box`,
+    }
+  }
+  const c = RARITY_COLOR[Math.max(1, Math.min(3, tier))]
+  return {
+    border: `2px solid ${c}66`,
+    background: `linear-gradient(160deg, ${c}1f, rgba(15,23,42,0.92) 60%)`,
+  }
+}
+
+/** Borde suelto por rareza (para fichas pequeñas donde no cabe el marco). */
+export function rarityBorder(tier: number): string {
+  return tier >= 4 ? RARITY_COLOR[4] : RARITY_COLOR[Math.max(1, Math.min(3, tier))]
+}
+
+/**
+ * La estrella de RAREZA: una sola, coloreada por tramo. Se mantiene para los
+ * sitios sin carta (ofertas del ojeador, listas compactas).
  */
 export function Stars({ n, className = 'w-3 h-3' }: { n: number; className?: string }) {
   const tier = Math.max(1, Math.min(4, Math.round(n)))

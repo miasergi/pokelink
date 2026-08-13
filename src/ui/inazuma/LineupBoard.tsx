@@ -4,7 +4,7 @@
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, Stars } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -86,7 +86,11 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
       <div className="relative">
         <div
           className="w-11 h-11 rounded-xl overflow-hidden border-2 grid place-items-center"
-          style={{ borderColor: `${info.color}88`, background: `${info.color}22` }}
+          style={{
+            borderColor: chip.rarity != null ? rarityBorder(chip.rarity) : `${info.color}88`,
+            background: `${info.color}22`,
+            boxShadow: chip.rarity === 4 ? `0 0 6px ${rarityBorder(4)}` : undefined,
+          }}
         >
           <ImgFallback
             src={portraitUrl(chip.baseId)}
@@ -125,7 +129,6 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
         {chip.position && <span className="font-extrabold text-slate-300">{chip.position}</span>}
         <Icon name={ELEMENT_ICON[chip.element]} className="w-2 h-2" style={{ color: info.color }} />
         {chip.level != null && <>Nv.{chip.level}</>}
-        {chip.rarity != null && <Stars n={chip.rarity} className="w-2 h-2" />}
       </div>
     </button>
   )

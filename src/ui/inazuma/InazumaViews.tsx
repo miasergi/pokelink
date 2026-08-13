@@ -5,20 +5,20 @@ import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { useSettings } from '@/state/settingsStore'
-import { PlayerCard, PlayerRow, ElementChip, portraitUrl, StatGrid } from '@/ui/inazuma/PlayerCard'
+import { PlayerCard, PlayerRow, ElementChip, Meter, portraitUrl, staminaColor, StatGrid } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
 import PitchView from '@/ui/inazuma/PitchView'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, KindIcon, Pic, rarityBorder, rarityCardStyle, Stars, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
-  rivalPreviewStats, rivalRarity, rivalRarityMap, rivalStartingXI, scaleStats, SIGNATURE_LEVELS,
-  slotRole, techLevel, transferValue,
+  rivalKnownTechniques, rivalPreviewStats, rivalRarity, rivalRarityMap, rivalStartingXI, scaleStats,
+  SIGNATURE_LEVELS, slotRole, techLevel, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -356,14 +356,22 @@ export function PreviewView() {
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)
                 const r = rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1
+                const lvl = matchNode.level ?? 10
+                const stats = rivalPreviewStats(b, matchNode.teamId!, lvl, r)
                 setInspect({
                   name: b.name,
                   baseId: b.id,
                   position: b.position,
                   element: b.element,
-                  level: matchNode.level ?? 10,
+                  level: lvl,
                   rarity: r,
-                  stats: rivalPreviewStats(b, matchNode.teamId!, matchNode.level ?? 10, r),
+                  stats,
+                  // Con qué sale al campo: depósito lleno y SUS técnicas
+                  // conocidas (cadena por nivel y rareza, extra si es crack).
+                  pt: Math.round(28 + stats.aguante * 0.7),
+                  ptMax: Math.round(28 + stats.aguante * 0.7),
+                  stamina: 100,
+                  techniques: rivalKnownTechniques(b, lvl, r, true),
                 })
               }}
             />
@@ -403,6 +411,10 @@ export function PreviewView() {
               level: p.level,
               rarity: rarityOf(p),
               stats: effectiveStats(p),
+              pt: p.pt,
+              ptMax: ptMax(p),
+              stamina: p.stamina,
+              techniques: p.techniques,
             })
           }}
         />
@@ -447,9 +459,9 @@ export function PreviewView() {
 function InspectCard({ block }: { block: CompareBlock }) {
   const info = ELEMENT_INFO[block.element]
   return (
-    <div>
+    <div className="rounded-2xl p-2" style={rarityCardStyle(block.rarity)}>
       <div className="flex items-center gap-2.5">
-        <span className="w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 bg-slate-800" style={{ borderColor: info.color }}>
+        <span className="w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 bg-slate-800" style={{ borderColor: rarityBorder(block.rarity) }}>
           <ImgFallback
             src={portraitUrl(block.baseId)}
             className="w-full h-full object-cover object-top"
@@ -464,13 +476,44 @@ function InspectCard({ block }: { block: CompareBlock }) {
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             {block.position} · Nv.{block.level}
             <ElementIcon element={block.element} className="w-3 h-3" />
+            <span className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: rarityBorder(block.rarity) }}>
+              {RARITY_LABEL[block.rarity]}
+            </span>
           </div>
-          <Stars n={block.rarity} className="w-2.5 h-2.5" />
         </div>
       </div>
+      {/* Sus depósitos, si se conocen: con qué llega al duelo. */}
+      {block.pt != null && block.ptMax != null && (
+        <div className="mt-2 flex flex-col gap-0.5">
+          <Meter value={block.pt} max={block.ptMax} color="#38bdf8" label="PT" />
+          {block.stamina != null && (
+            <Meter value={block.stamina} max={100} color={staminaColor(block.stamina)} label="AGU" />
+          )}
+        </div>
+      )}
       <div className="mt-2.5">
         <StatGrid stats={block.stats} />
       </div>
+      {/* Las técnicas que puede USAR, con su clase y coste. */}
+      {(block.techniques?.length ?? 0) > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {block.techniques!.map((id) => {
+            const t = getTechnique(id)
+            if (!t) return null
+            const ti = ELEMENT_INFO[t.element]
+            return (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
+                style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
+              >
+                <KindIcon kind={t.kind} className="w-2.5 h-2.5" />
+                {t.name} <span className="opacity-60">{t.cost} PT</span>
+              </span>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -751,7 +794,13 @@ function BagPanel({
       </div>
       {use && (
         <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setUse(null)}>
-          <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[80%] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[82svh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setUse(null)}
+              className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+            >
+              <Icon name="x" className="w-4 h-4" />
+            </button>
             <div className="font-extrabold text-center">{getItem(use)?.name}</div>
             <p className="text-[11px] text-slate-400 text-center mb-2">{getItem(use)?.desc}</p>
             <div className="text-[11px] text-slate-500 mb-1">¿A quién?</div>
@@ -769,7 +818,7 @@ function BagPanel({
                 />
               ))}
             </div>
-            <Button variant="ghost" full className="mt-2" onClick={() => setUse(null)}>Cancelar</Button>
+
           </div>
         </div>
       )}
@@ -802,7 +851,13 @@ function PlayerDetail({
   const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[88%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[86svh] overflow-y-auto overscroll-contain" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+        >
+          <Icon name="x" className="w-4 h-4" />
+        </button>
         <PlayerCard player={player} />
 
         {/* Las dos barras de la carta no se explican solas. En el playtest los
@@ -865,9 +920,14 @@ function PlayerDetail({
                 const lvl = techLevel(player, id)
                 return (
                   <span key={id} className="inline-flex items-center gap-1">
-                    <span className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
-                      learnt ? 'border-fuchsia-500/50 bg-fuchsia-500/10' : 'border-slate-700 bg-slate-800/40 opacity-55'
-                    }`}>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
+                        learnt ? 'bg-fuchsia-500/10' : 'bg-slate-800/40 opacity-55'
+                      }`}
+                      // El BORDE es la rareza que desbloquea el paso: gris el
+                      // 1.º, morado el 2.º, oro el 3.º, multicolor el 4.º.
+                      style={{ borderColor: rarityBorder(needRarity) }}
+                    >
                       <TechniqueBadge tech={t} size={22} />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
                         {t.name}

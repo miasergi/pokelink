@@ -22,6 +22,11 @@ export interface CompareBlock {
   level: number
   rarity: number
   stats: Stats
+  /** Depósitos y técnicas CONOCIDAS, para la ficha de la previa. */
+  pt?: number
+  ptMax?: number
+  stamina?: number
+  techniques?: string[]
 }
 
 const ROWS: { key: keyof Stats; label: string }[] = [

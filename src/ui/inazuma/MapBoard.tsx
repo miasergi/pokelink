@@ -85,7 +85,7 @@ export default function MapBoard({
     .reduce((a, p, _i, arr) => a + p.level / arr.length, 0)
 
   return (
-    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto pt-4 pb-8">
       <div ref={wrapRef} className="relative w-full" style={{ height: totalHeight }}>
         {/* caminos */}
         <svg className="absolute inset-0 pointer-events-none" width={width} height={totalHeight}>
@@ -215,10 +215,16 @@ export function NodePreview({
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-3" onClick={onClose}>
       <div
-        className="w-full max-w-sm max-h-[88svh] overflow-y-auto rounded-3xl border bg-slate-900 p-4 animate-pop-in"
+        className="relative w-full max-w-sm max-h-[88svh] overflow-y-auto overscroll-contain rounded-3xl border bg-slate-900 p-4 animate-pop-in"
         style={{ borderColor: `${meta.color}66` }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+        >
+          <Icon name="x" className="w-4 h-4" />
+        </button>
         <div className="flex items-start gap-3">
           <span
             className="grid place-items-center rounded-2xl shrink-0"

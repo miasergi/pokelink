@@ -46,11 +46,13 @@ export function nextPlayerUid(): string {
 
 export const MAX_RARITY = 4
 export const RARITY_BUDGET: Record<number, number> = { 1: 210, 2: 255, 3: 300, 4: 345 }
-export const RARITY_LABEL: Record<number, string> = { 1: 'bronce', 2: 'plata', 3: 'oro', 4: 'MULTICOLOR' }
-/** Color de la estrella de cada rareza (el multicolor anima aparte). */
+export const RARITY_LABEL: Record<number, string> = { 1: 'gris', 2: 'morado', 3: 'oro', 4: 'MULTICOLOR' }
+/** Color de cada rareza. La carta ENTERA se tiñe con él. */
 export const RARITY_COLOR: Record<number, string> = {
-  1: '#cd7f32', 2: '#c9d1d9', 3: '#fbbf24', 4: '#e879f9',
+  1: '#94a3b8', 2: '#a855f7', 3: '#fbbf24', 4: '#e879f9',
 }
+/** Degradado del MULTICOLOR, para bordes y fondos de carta. */
+export const RARITY_GRADIENT = 'linear-gradient(135deg, #f472b6, #fbbf24, #34d399, #38bdf8)'
 
 /** Reparto del presupuesto por demarcación (fracción de cada atributo). */
 const RARITY_SHAPE: Record<Position, Record<keyof Stats, number>> = {
@@ -93,9 +95,16 @@ export function rarityOf(p: PlayerInstance): number {
   return p.rarity ?? Math.min(MAX_RARITY, getPlayerBase(p.baseId).rarity)
 }
 
-/** Sube UNA rareza (tope multicolor). Devuelve el jugador nuevo (puro). */
+/**
+ * Sube UNA rareza (tope multicolor). El depósito de PT crece con el aguante
+ * nuevo y la DIFERENCIA se rellena: subir de rareza con 65/65 dejaba 65/70 y
+ * parecía que la medalla te robaba gasolina.
+ */
 export function upgradeRarity(p: PlayerInstance): PlayerInstance {
-  return { ...p, rarity: Math.min(MAX_RARITY, rarityOf(p) + 1) }
+  const before = ptMax(p)
+  const next: PlayerInstance = { ...p, rarity: Math.min(MAX_RARITY, rarityOf(p) + 1) }
+  next.pt = Math.min(ptMax(next), p.pt + Math.max(0, ptMax(next) - before))
+  return next
 }
 
 /**
@@ -518,19 +527,24 @@ function applyPower(s: Stats, power: number): Stats {
   }
 }
 
+/**
+ * Técnicas que un rival CONOCE con un nivel y una rareza dados: su cadena,
+ * capada por rareza y desbloqueada por nivel (los ★5 de catálogo, con un paso
+ * extra en partidos). Lo usan el partido y la FICHA de la previa.
+ */
+export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: number, elite = false): string[] {
+  const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
+  let known = chain.filter((_, i) => level >= SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])
+  if (elite && b.rarity >= 5 && known.length < chain.length) known = chain.slice(0, known.length + 1)
+  return known
+}
+
 function toRival(b: PlayerBase, level: number, power: number, rarity: number, elite = false): RivalPlayer {
   // Misma vara que tus jugadores: atributos por RAREZA (la de la ronda), nivel
   // y el `power` del equipo como último empujón.
   const stats = applyPower(scaleStats(rarityStats(b.id, b.position, rarity), level), power)
-  // Y sus TÉCNICAS también con tu misma regla: solo su cadena, capada por la
-  // rareza y desbloqueada por nivel. Antes salían con el repertorio entero del
-  // catálogo desde la primera ronda. En los PARTIDOS (`elite`), los cracks del
-  // equipo (★5 de catálogo) traen UN paso extra ya despierto: la estrella
-  // rival pega antes de tiempo, que para eso es la estrella.
-  const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
-  let known = chain.filter((_, i) => level >= SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])
-  if (elite && b.rarity >= 5 && known.length < chain.length) known = chain.slice(0, known.length + 1)
-  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: known, rarity }
+  // Y sus TÉCNICAS también con tu misma regla (ver `rivalKnownTechniques`).
+  return { baseId: b.id, name: b.name, position: b.position, element: b.element, level, stats, techniques: rivalKnownTechniques(b, level, rarity, elite), rarity }
 }
 
 function fillerRival(name: string, position: Position, element: Element, level: number, power: number, rng: RNG): RivalPlayer {

@@ -10,11 +10,11 @@
 // convertirlos, y un PNG con extensión .webp NO se decodifica (GitHub Pages
 // sirve el Content-Type por extensión).
 import { ImgFallback } from '@/ui/components/kit'
-import { Stars } from '@/ui/inazuma/Glyphs'
+import { rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon } from '@/ui/inazuma/Glyphs'
-import { effectiveStats, ptMax, rarityOf } from '@/engine/inazuma/roster'
+import { effectiveStats, ptMax, RARITY_LABEL, rarityOf } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem } from '@/data/inazuma/items'
@@ -86,24 +86,29 @@ export function PlayerCard({
   const info = ELEMENT_INFO[base.element]
   const stats = effectiveStats(player)
   const max = ptMax(player)
+  const tier = rarityOf(player)
 
   return (
     <div
       onClick={onClick}
-      className={`relative shrink-0 rounded-2xl border overflow-hidden transition ${onClick ? 'active:scale-[0.98] cursor-pointer' : ''} ${
-        selected ? 'border-white/70 ring-2 ring-white/30' : 'border-slate-700/70'
+      className={`relative shrink-0 rounded-2xl overflow-hidden transition ${onClick ? 'active:scale-[0.98] cursor-pointer' : ''} ${
+        selected ? 'ring-2 ring-white/40' : ''
       }`}
-      style={{ background: `linear-gradient(160deg, ${info.color}22, rgba(15,23,42,0.9) 55%)` }}
+      // La CARTA ENTERA se tiñe con la RAREZA (gris → morado → oro →
+      // multicolor degradado). El elemento pasa a icono junto al nombre.
+      style={rarityCardStyle(tier)}
     >
-      {/* Franja superior: demarcación, elemento y valoración */}
+      {/* Franja superior: rareza en texto y demarcación. */}
       <div className="flex items-center gap-1.5 px-2 pt-2">
         <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold ${POSITION_COLOR[base.position]}`}>
           {base.position}
         </span>
-        <ElementChip element={base.element} />
-        {/* Talento innato, siempre a la vista pero sin gritar. */}
-        <Stars n={rarityOf(player)} className="w-3 h-3" />
-        {/* Fuera la media: con nivel + rareza ya hay vara de medir de sobra. */}
+        <span
+          className="text-[9px] font-extrabold uppercase tracking-widest"
+          style={{ color: rarityBorder(tier) }}
+        >
+          {RARITY_LABEL[tier]}
+        </span>
       </div>
 
       <div className="flex items-center gap-2.5 px-2 py-2">
@@ -121,7 +126,12 @@ export function PlayerCard({
           />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-extrabold text-sm leading-tight truncate">{base.name}</div>
+          <div className="font-extrabold text-sm leading-tight truncate flex items-center gap-1">
+            <span className="truncate">{base.name}</span>
+            {/* Elemento y demarcación SIEMPRE junto al nombre. */}
+            <Icon name={ELEMENT_ICON[base.element]} className="w-3.5 h-3.5 shrink-0" style={{ color: info.color }} />
+            <span className="text-[9px] text-slate-400 font-bold shrink-0">{base.position}</span>
+          </div>
           <div className="text-[10px] text-slate-400 mb-1">
             Nv. {player.level}
             {player.captain && <span className="ml-1 text-amber-300">· capitán</span>}
@@ -201,13 +211,15 @@ export function PlayerRow({
 }) {
   const base = getPlayerBase(player.baseId)
   const info = ELEMENT_INFO[base.element]
+  const tier = rarityOf(player)
   return (
     <button
       onClick={onClick}
       disabled={!onClick}
-      className={`w-full flex items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/50 px-2 py-1.5 text-left transition ${
+      className={`w-full flex items-center gap-2 rounded-xl px-2 py-1.5 text-left transition ${
         onClick ? 'active:scale-[0.98]' : ''
       } ${dimmed ? 'opacity-45' : ''} ${className}`}
+      style={rarityCardStyle(tier)}
     >
       <div
         className="w-9 h-9 shrink-0 rounded-lg overflow-hidden grid place-items-center border"
@@ -224,11 +236,10 @@ export function PlayerRow({
         <div className="flex items-center gap-1.5">
           <span className={`rounded px-1 text-[9px] font-extrabold border ${POSITION_COLOR[base.position]}`}>{base.position}</span>
           <span className="font-bold text-[13px] truncate">{base.name}</span>
+          <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
-          <Stars n={rarityOf(player)} className="w-2.5 h-2.5" />
         </div>
         <div className="mt-0.5 flex items-center gap-2">
-          <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           {/* PT y aguante, SIEMPRE los que le quedan y CON etiqueta: la fila
               es la ficha de todas las listas y sin rótulos los números se
               confundían con otra cosa. */}

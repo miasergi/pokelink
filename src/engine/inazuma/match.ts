@@ -33,7 +33,12 @@ const BURST_ON_CONCEDE = 18
 /** Acciones que dura la Supervibración una vez activada. */
 export const BURST_DURATION = 3
 /** Aguante que cuesta disputar un duelo (solo se persiste el de tu plantilla). */
-const STAMINA_PER_DUEL = 4
+// Subido de 4: con el desgaste post-partido eliminado (el equipo repone al
+// pitido final), la fatiga tiene que NOTARSE dentro del partido — antes las
+// barras apenas se movían y rotar en el descanso no tenía motivo.
+const STAMINA_PER_DUEL = 7
+/** Desgaste por posesión para TODOS los que están sobre el campo. */
+const STAMINA_PER_PLAY = 1
 
 export interface MatchConfig {
   seed: number
@@ -239,7 +244,14 @@ function finish(m: MatchState, out: MatchEvent[]): void {
 }
 
 /** Elige de quién es la posesión (pesado por el centro del campo) y la abre. */
+function drainAll(m: MatchState): void {
+  for (const side of [m.home, m.away]) {
+    for (const a of allActors(side)) a.stamina = Math.max(0, a.stamina - STAMINA_PER_PLAY)
+  }
+}
+
 function startPossession(m: MatchState, rng: RNG, out: MatchEvent[]): void {
+  drainAll(m)
   const midStrength = (s: MatchSide) =>
     s.mids.reduce((acc, a) => acc + (a.stats.control + a.stats.velocidad) * fatigueMultiplier(a.stamina), 0) || 1
   const h = midStrength(m.home)
@@ -248,7 +260,7 @@ function startPossession(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   const side: Side = rng.next() < pHome ? 'home' : 'away'
   const s = sideOf(m, side)
 
-  const carrier = rng.pick(s.mids.length ? s.mids : allActors(s))
+  const carrier = pickRotating(s.mids.length ? s.mids : allActors(s), rng)
   const rivalSide = sideOf(m, otherSide(side))
   m.chain = {
     side,
@@ -266,20 +278,35 @@ function startPossession(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   })
 }
 
+/**
+ * ROTACIÓN: dentro de un pool, prioriza a quien MENOS ha participado en el
+ * partido. Con el sorteo puro, la varianza hacía que dos o tres jugadores
+ * acapararan los duelos y a media plantilla no se la viera en 90 minutos.
+ */
+const usageCount = new WeakMap<Actor, number>()
+function pickRotating(pool: Actor[], rng: RNG): Actor {
+  if (pool.length <= 1) return pool[0]
+  const min = Math.min(...pool.map((a) => usageCount.get(a) ?? 0))
+  const fresh = pool.filter((a) => (usageCount.get(a) ?? 0) <= min)
+  const pick = rng.pick(fresh)
+  usageCount.set(pick, (usageCount.get(pick) ?? 0) + 1)
+  return pick
+}
+
 /** Escoge al defensor que corresponde al eslabón actual. */
 function defenderFor(step: ChainStep, def: MatchSide, rng: RNG): Actor {
   if (step === 'definicion') return def.keeper
   const pool = step === 'construccion'
     ? (def.mids.length ? def.mids : def.defs)
     : (def.defs.length ? def.defs : def.mids)
-  return pool.length ? rng.pick(pool) : def.keeper
+  return pool.length ? pickRotating(pool, rng) : def.keeper
 }
 
 /** Escoge al que recibe el balón para atacar el área. */
 function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
-  if (step === 'construccion') return rng.pick(atk.mids.length ? atk.mids : allActors(atk))
+  if (step === 'construccion') return pickRotating(atk.mids.length ? atk.mids : allActors(atk), rng)
   const pool = atk.fwds.length ? atk.fwds : atk.mids
-  return pool.length ? rng.pick(pool) : atk.keeper
+  return pool.length ? pickRotating(pool, rng) : atk.keeper
 }
 
 function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {

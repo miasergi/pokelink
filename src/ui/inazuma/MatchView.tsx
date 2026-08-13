@@ -127,20 +127,24 @@ export default function MatchView() {
       />
       {/* El campo lee el feed YA CONTADO (sin la línea en animación): leer el
           motor en vivo enseñaba el siguiente emparejamiento antes de tiempo. */}
-      {!finished && (
-        <MatchPitch
-          match={match}
-          feed={shownFeed}
-          current={match.phase === 'decision' && match.decision && caughtUp && !frozen
-            ? {
-              attackerUid: match.decision.mode === 'ataque' ? match.decision.actorUid : match.decision.rivalUid,
-              defenderUid: match.decision.mode === 'ataque' ? match.decision.rivalUid : match.decision.actorUid,
-              step: match.decision.step,
-              side: match.decision.mode === 'ataque' ? playerSide(match) : otherSide(playerSide(match)),
-            }
-            : null}
-        />
-      )}
+      {!finished && (() => {
+        // El césped pinta SIEMPRE lo mismo que el primer plano: si hay
+        // decisión, su emparejamiento; si hay cinemática de duelo, ESE duelo
+        // (sin desenlace); si no, el último contado. Antes, durante la
+        // animación arriba salían los del duelo anterior — la «desincronía».
+        const stagedEv = stage && stage.key === feed.length ? feed[feed.length - 1] : null
+        const current = match.phase === 'decision' && match.decision && caughtUp && !frozen
+          ? {
+            attackerUid: match.decision.mode === 'ataque' ? match.decision.actorUid : match.decision.rivalUid,
+            defenderUid: match.decision.mode === 'ataque' ? match.decision.rivalUid : match.decision.actorUid,
+            step: match.decision.step,
+            side: match.decision.mode === 'ataque' ? playerSide(match) : otherSide(playerSide(match)),
+          }
+          : stagedEv?.kind === 'duel'
+            ? { attackerUid: stagedEv.attackerUid, defenderUid: stagedEv.defenderUid, step: stagedEv.step, side: stagedEv.side }
+            : null
+        return <MatchPitch match={match} feed={shownFeed} current={current} />
+      })()}
 
       {/* Narración. El truco del `justify-end` DENTRO de un envoltorio con
           `min-h-full` hace las dos cosas a la vez: al principio del partido las

@@ -62,6 +62,12 @@ const STAT_TAG: Record<string, string> = {
   tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU',
 }
 
+/**
+ * COLA de pantallas de subida de rareza: la pachanga puede subir a tres a la
+ * vez y cada uno merece su pantalla — al cerrar una entra la siguiente.
+ */
+let itemFxQueue: ItemFx[] = []
+
 /** Objetos que actúan sobre TODA la plantilla (para el rótulo y las medias). */
 const TEAM_ITEMS = new Set(['gyoza', 'banquete', 'concentrado'])
 
@@ -580,6 +586,21 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!pachanga || !matchNode || !save || pachanga.phase !== 'finished') return
     const next: InazumaSave = { ...save, roster: save.roster.slice(), cleared: save.cleared.slice() }
     const { rarityUps } = applyPachangaResult(next, pachanga, matchNode)
+    // Cada subida de rareza, SU pantalla (encoladas): que se vea quién y qué gana.
+    const upFx: ItemFx[] = rarityUps.map((u) => ({
+      key: Date.now() + Math.random(),
+      title: `¡Rareza ${RARITY_LABEL[u.rarity]}!`,
+      itemId: 'medalla-rareza',
+      targetName: u.name,
+      targetBaseId: u.baseId,
+      bars: [],
+      stats: (Object.keys(u.statsBefore) as (keyof typeof u.statsBefore)[])
+        .filter((k) => u.statsAfter[k] !== u.statsBefore[k])
+        .map((k) => ({ label: STAT_TAG[String(k)] ?? String(k), from: u.statsBefore[k], to: u.statsAfter[k] })),
+    }))
+    const firstFx = upFx.shift() ?? null
+    itemFxQueue = upFx
+    if (firstFx) play('levelup')
     advanceLayer(next, matchNode)
     play(pachanga.result === 'win' ? 'victory' : 'defeat')
     set({
@@ -587,10 +608,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       pachanga: null,
       matchNode: null,
       phase: 'map',
-      message: (pachanga.result === 'win'
+      itemFx: firstFx,
+      message: pachanga.result === 'win'
         ? `Pachanga ganada ${pachanga.goals[0]}-${pachanga.goals[1]}. Los que jugaron suben de nivel.`
-        : `Pachanga perdida ${pachanga.goals[0]}-${pachanga.goals[1]}. Solo os llevasteis el cansancio.`)
-        + (rarityUps.length ? ` ★ Suben de rareza: ${rarityUps.join(', ')}.` : ''),
+        : `Pachanga perdida ${pachanga.goals[0]}-${pachanga.goals[1]}. Solo os llevasteis el cansancio.`,
     })
     void persist(next, 'map')
   },
@@ -800,7 +821,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   /** Vuelve a la carta sin gastarla: la recompensa sigue esperando. */
   cancelTarget: () => set({ pendingTarget: null, phase: get().draft.length ? 'draft' : 'map' }),
 
-  clearItemFx: () => set({ itemFx: null }),
+  clearItemFx: () => {
+    const next = itemFxQueue.shift() ?? null
+    if (next) play('levelup')
+    set({ itemFx: next })
+  },
 
   clearRevealPlayer: () => set({ revealPlayer: null }),
 
@@ -951,7 +976,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!pool.length) { set({ message: 'No queda nadie con quien cambiar.' }); return }
     const incoming = r.pick(pool)
     const level = out.level + 3
-    const nuevo = createPlayer(incoming.id, level, { rarity: rivalRarity(bossIndexForLayer(save.layer)) })
+    // Mismo NIVEL DE RAREZA que el que se marcha: el cambio es lateral.
+    const nuevo = createPlayer(incoming.id, level, { rarity: rarityOf(out) })
 
     const next: InazumaSave = {
       ...save,
