@@ -307,10 +307,10 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['super-scan-df', 'quick-draw', 'rock-wall-dam', 'kumo-no-ito'],
   },
   {
-    id: 'hellion', name: 'Hellion', team: 'wild', position: 'DEL', element: 'montana', rarity: 3,
-    stats: { tiro: 86, control: 63, fisico: 38, defensa: 19, velocidad: 46, aguante: 26 },
-    techniques: ['tarzan-kick'],
-    signature: ['tarzan-kick', 'eagle-buster', 'dokonjou-club', 'butterfly-dream'],
+    id: 'leonard-o-shea', name: 'Leonard O\'Shea', team: 'wild', position: 'DEF', element: 'montana', rarity: 3,
+    stats: { tiro: 30, control: 38, fisico: 64, defensa: 75, velocidad: 36, aguante: 38 },
+    techniques: ['shikofumi'],
+    signature: ['shikofumi', 'block-circus', 'roadroller-tackle', 'body-shield'],
   },
   {
     id: 'cham-lion', name: 'Cham Lion', team: 'wild', position: 'MED', element: 'aire', rarity: 3,
@@ -483,10 +483,10 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['super-scan-df', 'quick-draw', 'rock-wall-dam', 'kumo-no-ito'],
   },
   {
-    id: 'hellion-2', name: 'Hellion', team: 'farm', position: 'DEL', element: 'montana', rarity: 3,
-    stats: { tiro: 86, control: 57, fisico: 39, defensa: 22, velocidad: 45, aguante: 26 },
-    techniques: ['tarzan-kick'],
-    signature: ['tarzan-kick', 'eagle-buster', 'dokonjou-club', 'butterfly-dream'],
+    id: 'leonard-o-shea-2', name: 'Leonard O\'Shea', team: 'farm', position: 'DEF', element: 'montana', rarity: 3,
+    stats: { tiro: 22, control: 45, fisico: 65, defensa: 74, velocidad: 32, aguante: 38 },
+    techniques: ['shikofumi'],
+    signature: ['shikofumi', 'block-circus', 'roadroller-tackle', 'body-shield'],
   },
   {
     id: 'cham-lion-2', name: 'Cham Lion', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
@@ -891,10 +891,10 @@ export const PLAYERS: PlayerBase[] = [
     spirit: 'pegaso',
   },
   {
-    id: 'scuba', name: 'Scuba', team: 'oumihara', position: 'DEF', element: 'aire', rarity: 4,
-    stats: { tiro: 27, control: 44, fisico: 77, defensa: 86, velocidad: 40, aguante: 43 },
+    id: 'chad-taylor', name: 'Chad Taylor', team: 'oumihara', position: 'DEF', element: 'aire', rarity: 4,
+    stats: { tiro: 31, control: 43, fisico: 81, defensa: 93, velocidad: 38, aguante: 42 },
     techniques: ['blade-attack', 'profile-zone'],
-    signature: ['blade-attack', 'profile-zone', 'perfect-tower', 'senpuujin'],
+    signature: ['blade-attack', 'profile-zone', 'hurricane-arrow', 'senpuujin'],
     spirit: 'kraken',
   },
   {
@@ -2729,8 +2729,19 @@ export const TEAM_NAMES: Record<string, string> = {
 
 export const PLAYER_BY_ID = new Map(PLAYERS.map((p) => [p.id, p]))
 
+/**
+ * Ids que existieron en catálogos anteriores y cambiaron al corregir la
+ * identidad del personaje (la wiki resolvía al «Lion»/«Diver» de Orion en
+ * vez de a los clásicos). Las partidas guardadas viejas los siguen citando.
+ */
+const LEGACY_IDS: Record<string, string> = {
+  hellion: 'leonard-o-shea',
+  'hellion-2': 'leonard-o-shea-2',
+  scuba: 'chad-taylor',
+}
+
 export function getPlayerBase(id: string): PlayerBase {
-  const p = PLAYER_BY_ID.get(id)
+  const p = PLAYER_BY_ID.get(id) ?? PLAYER_BY_ID.get(LEGACY_IDS[id] ?? '')
   if (!p) throw new Error(`Jugador desconocido: ${id}`)
   return p
 }

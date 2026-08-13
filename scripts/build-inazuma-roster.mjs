@@ -97,6 +97,17 @@ const OVERRIDES = {
   Fidio: { name: 'Paolo Bianchi', position: 'DEL', element: 'aire' },
 }
 
+/**
+ * Nombres cortos que la resolución directa manda a la página EQUIVOCADA: la
+ * wiki tiene un «Lion» y un «Diver» de la saga Orion (posterior) con ficha
+ * completa, y se tragaban el sitio de los clásicos de IE1/IE2 (Shishiou Kou
+ * y Taira Moguru). Se resuelven a mano ANTES de preguntar a la wiki.
+ */
+const PAGE_ALIAS = {
+  Lion: 'Shishiou Kou',
+  Diver: 'Taira Moguru',
+}
+
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -156,6 +167,10 @@ async function teamRoster(pages) {
 
 /** Resuelve un nombre corto («Kazemaru») a su página completa. */
 async function resolvePage(short) {
+  if (PAGE_ALIAS[short]) {
+    const wt = await wikitext(PAGE_ALIAS[short])
+    if (wt && /\|name_dub\s*=/.test(wt)) return { title: PAGE_ALIAS[short], wt }
+  }
   const direct = await wikitext(short)
   // OJO: hay que comprobar que la página directa sea una FICHA. `Endou`,
   // `Kazemaru` o `Tamagorou` existen como páginas de desambiguación por
