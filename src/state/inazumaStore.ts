@@ -28,7 +28,7 @@ import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarity, transferValue, upgradeTechnique,
+  MAX_RARITY, RARITY_LABEL, rarityOf, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -854,7 +854,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         set({ message: `Tu plantilla está llena (${ROSTER_MAX}). Traspasa a alguien antes de fichar.` })
         return
       }
-      next.roster.push(createPlayer(opt.playerId, opt.level, { rarity: rivalRarity(bossIndexForLayer(next.layer)) }))
+      // TODO fichaje llega en rareza NORMAL: la rareza la construyes tú con
+      // medallas (a cambio, el ojeador puede traer a cualquiera del catálogo).
+      next.roster.push(createPlayer(opt.playerId, opt.level, { rarity: 1 }))
       void persistInazumaMeta({ signed: [opt.playerId] })
       message = `${getPlayerBase(opt.playerId).name} firma por el Raimon.`
     } else if (opt.kind === 'objeto') {

@@ -13,12 +13,12 @@ import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { MedalHint } from '@/ui/inazuma/BagView'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, Stars, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
-  rivalKnownTechniques, rivalPreviewStats, rivalRarity, rivalRarityMap, rivalStartingXI, scaleStats,
+  rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
   SIGNATURE_LEVELS, slotRole, techLevel, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
@@ -1184,10 +1184,13 @@ export function DraftView() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-extrabold text-sm">{o.title}</div>
-                {/* En los fichajes: estrellas, elemento y datos ANTES de decidir. */}
+                {/* En los fichajes: llega en NORMAL (la rareza la subes tú) y
+                    su elemento, antes de decidir. */}
                 {o.kind === 'fichaje' && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Stars n={rivalRarity(bossIndexForLayer(save.layer))} className="w-3 h-3" />
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: rarityBorder(1) }}>
+                      {RARITY_LABEL[1]}
+                    </span>
                     <ElementChip element={getPlayerBase(o.playerId).element} />
                   </div>
                 )}

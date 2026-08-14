@@ -3,11 +3,10 @@
 // que el usuario señale a quién entrenar o a quién equipar).
 import type { RNG } from '@/utils/rng'
 import { ITEMS } from '@/data/inazuma/items'
-import { getPlayerBase } from '@/data/inazuma/players'
+import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import { signablePool } from './roster'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
-import { beatenTeams, bossIndexForLayer } from './tournament'
+import { bossIndexForLayer } from './tournament'
 
 
 /** Nivel al que llega un fichaje: el del resto de tu plantilla, para que sirva. */
@@ -57,11 +56,15 @@ export function learnableByRoster(save: InazumaSave) {
   return out.length ? out : TECHNIQUES
 }
 
-/** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
+/**
+ * Jugadores fichables ahora mismo: el CATÁLOGO ENTERO (cualquier jugador
+ * puede aparecer — todos llegan en rareza Normal y los subes tú), sin repetir
+ * los que ya tienes. El peso por rareza de catálogo sigue mandando en QUIÉN
+ * sale más a menudo según lo avanzado que vayas.
+ */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
-  const pool = signablePool(beatenTeams(save.layer, save.teamId, save.saga), save.teamId, save.saga)
-    .filter((p) => !owned.has(p.id))
+  const pool = PLAYERS.filter((p) => !owned.has(p.id))
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])
