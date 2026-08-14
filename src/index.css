@@ -234,6 +234,40 @@ body {
 }
 .animate-ball-pierce { animation: ball-pierce .9s cubic-bezier(.2,.7,.3,1) forwards; }
 
+/* VIDA en el césped: cada jugador deriva unos píxeles sin parar (variantes
+   para que no respiren todos a la vez). Va en un wrapper INTERIOR: el
+   posicionamiento (left/top) del exterior sigue con su transición limpia. */
+@keyframes live-drift-a {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(3px, -2px); }
+  50% { transform: translate(-2px, 2px); }
+  75% { transform: translate(2px, 3px); }
+  100% { transform: translate(-3px, -1px); }
+}
+@keyframes live-drift-b {
+  0% { transform: translate(0, 0); }
+  30% { transform: translate(-3px, 2px); }
+  55% { transform: translate(2px, -3px); }
+  80% { transform: translate(-1px, -2px); }
+  100% { transform: translate(3px, 1px); }
+}
+@keyframes live-drift-c {
+  0% { transform: translate(0, 0); }
+  35% { transform: translate(2px, 2px); }
+  60% { transform: translate(-3px, -2px); }
+  100% { transform: translate(1px, -3px); }
+}
+.live-drift-a { animation: live-drift-a 3.6s ease-in-out infinite alternate; }
+.live-drift-b { animation: live-drift-b 4.4s ease-in-out infinite alternate; }
+.live-drift-c { animation: live-drift-c 5.1s ease-in-out infinite alternate; }
+
+/* El balón late en los pies del que lo lleva. */
+@keyframes ball-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(18deg); }
+}
+.animate-ball-bob { animation: ball-bob 1s ease-in-out infinite; }
+
 .mc-ring {
   position: absolute;
   inset: 0;

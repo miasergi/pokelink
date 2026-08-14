@@ -3,6 +3,7 @@
 // estrellas. La usan la previa del partido (tu once Y el del rival) para que
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
+import { useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import { ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -39,9 +40,15 @@ const ROWS: { pos: Position; label: string }[] = [
   { pos: 'POR', label: 'Portería' },
 ]
 
-export default function LineupBoard({ chips, onTap }: {
+export default function LineupBoard({ chips, onTap, onSwap }: {
   chips: BoardChip[]
   onTap?: (chip: BoardChip) => void
+  /**
+   * Si está, las fichas se pueden ARRASTRAR una sobre otra para
+   * intercambiarlas (lo usa el descanso). Un toque sin arrastre sigue
+   * disparando `onTap`.
+   */
+  onSwap?: (aKey: string, bKey: string) => void
 }) {
   return (
     <div
@@ -67,7 +74,7 @@ export default function LineupBoard({ chips, onTap }: {
             <div key={pos}>
               <div className="text-[8px] uppercase tracking-widest text-emerald-200/40 text-center mb-1">{label}</div>
               <div className="flex justify-center gap-2 flex-wrap">
-                {line.map((c) => <Chip key={c.key} chip={c} onTap={onTap} />)}
+                {line.map((c) => <Chip key={c.key} chip={c} onTap={onTap} onSwap={onSwap} />)}
               </div>
             </div>
           )
@@ -77,13 +84,36 @@ export default function LineupBoard({ chips, onTap }: {
   )
 }
 
-function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void }) {
+function Chip({ chip, onTap, onSwap }: {
+  chip: BoardChip
+  onTap?: (c: BoardChip) => void
+  onSwap?: (aKey: string, bKey: string) => void
+}) {
   const info = ELEMENT_INFO[chip.element]
   const outOfPosition = chip.position != null && chip.position !== chip.role
+  const [dragging, setDragging] = useState(false)
   return (
     <button
-      onClick={onTap ? () => onTap(chip) : undefined}
-      className={`relative w-[52px] shrink-0 flex flex-col items-center ${onTap ? 'active:scale-95 transition' : 'cursor-default'}`}
+      data-uid={chip.key}
+      onClick={onTap && !onSwap ? () => onTap(chip) : undefined}
+      // ARRASTRE (solo con onSwap): soltar sobre otra ficha intercambia; un
+      // toque en el sitio abre las acciones (`onTap`). `touch-none` para que
+      // el gesto no pelee con el scroll de la hoja.
+      onPointerDown={onSwap ? (e) => {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+        setDragging(true)
+      } : undefined}
+      onPointerUp={onSwap ? (e) => {
+        setDragging(false)
+        const el = document.elementFromPoint(e.clientX, e.clientY)
+        const key = el?.closest?.('[data-uid]')?.getAttribute('data-uid')
+        if (key && key !== chip.key) onSwap(chip.key, key)
+        else onTap?.(chip)
+      } : undefined}
+      onPointerCancel={onSwap ? () => setDragging(false) : undefined}
+      className={`relative w-[52px] shrink-0 flex flex-col items-center ${
+        onSwap ? 'touch-none' : ''
+      } ${dragging ? 'scale-110 z-30 opacity-90' : ''} ${onTap || onSwap ? 'active:scale-95 transition' : 'cursor-default'}`}
     >
       <div className="relative">
         <div

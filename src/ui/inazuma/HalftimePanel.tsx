@@ -12,13 +12,14 @@ import { Meter, PlayerRow, staminaColor } from '@/ui/inazuma/PlayerCard'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import { ItemIcon } from '@/ui/inazuma/Glyphs'
 import { FORMATIONS } from '@/data/inazuma/formations'
+import { ptMax } from '@/engine/inazuma/roster'
 import type { Actor } from '@/engine/inazuma/types'
 
 /** Consumibles con sentido en un descanso: curas de PT y aguante. */
 const HALFTIME_ITEMS = new Set(['bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial'])
 
 export default function HalftimePanel() {
-  const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute, halftimeFormation } = useInazuma()
+  const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute, halftimeFormation, halftimeSwap } = useInazuma()
   const [target, setTarget] = useState<Actor | null>(null)
   const [action, setAction] = useState<'item' | 'sub' | null>(null)
   if (!halftimeBreak || !match || !save) return null
@@ -50,7 +51,7 @@ export default function HalftimePanel() {
           </span>
         </div>
         <p className="text-[11px] text-slate-500 mb-2">
-          Toca a un jugador sobre el campo para darle un consumible o hacer un cambio.
+          Toca a un jugador para darle un consumible o cambiarlo; arrastra una ficha sobre otra para recolocarlos.
         </p>
 
         {/* CAMBIO DE FORMACIÓN: recoloca a los MISMOS once (nada de meter
@@ -92,6 +93,7 @@ export default function HalftimePanel() {
             const a = onPitch.find((x) => x.uid === c.key)
             if (a) { setTarget(a); setAction(null) }
           }}
+          onSwap={(a, b) => halftimeSwap(a, b)}
         />
 
         {/* Acciones sobre el elegido */}
@@ -135,10 +137,13 @@ export default function HalftimePanel() {
             )}
             {action === 'sub' && (
               <div className="flex flex-col gap-1.5">
+                {/* El suplente ENTRA a tope de PT y aguante (ha descansado
+                    toda la primera parte): se enseña tal y como entraría —
+                    antes salían los depósitos de la ruta y no cuadraba. */}
                 {bench.map((p) => (
                   <PlayerRow
                     key={p.uid}
-                    player={p}
+                    player={{ ...p, pt: ptMax(p), stamina: 100 }}
                     onClick={() => { halftimeSubstitute(target.uid, p.uid); setTarget(null); setAction(null) }}
                   />
                 ))}

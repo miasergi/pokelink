@@ -155,7 +155,7 @@ export default function LivePitch({ match, feed, current }: {
           className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
           style={{ left: `${ball.x}%`, top: `${ball.y}%` }}
         >
-          <Pic name="ball" className="w-4 h-4 drop-shadow" />
+          <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
         </div>
       </div>
     </div>
@@ -185,11 +185,24 @@ function LiveDot({ actor, spot, teamColor, carrier, marker }: {
   const ptDeg = Math.max(0, Math.min(1, actor.pt / Math.max(1, actor.ptMax))) * 180
   const aguDeg = Math.max(0, Math.min(1, actor.stamina / 100)) * 180
   const gauge = `conic-gradient(#38bdf8 0deg ${ptDeg}deg, rgba(2,6,23,.55) ${ptDeg}deg 180deg, rgba(2,6,23,.55) 180deg ${360 - aguDeg}deg, #22c55e ${360 - aguDeg}deg 360deg)`
+  // VIDA: variante y desfase de deriva POR JUGADOR (hash del uid), y la
+  // transición de posición con un pelín de retardo distinto en cada uno para
+  // que los movimientos de equipo ondulen en vez de ir en bloque. Los de la
+  // jugada van sin retardo: su movimiento es la noticia.
+  let h = 0
+  for (const ch of actor.uid) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  const drift = ['live-drift-a', 'live-drift-b', 'live-drift-c'][h % 3]
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-700 ease-out"
-      style={{ left: `${spot.x}%`, top: `${spot.y}%`, zIndex: active ? 20 : 10 }}
+      className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-out"
+      style={{
+        left: `${spot.x}%`,
+        top: `${spot.y}%`,
+        zIndex: active ? 20 : 10,
+        transitionDelay: active ? '0ms' : `${(h % 5) * 70}ms`,
+      }}
     >
+      <div className={`flex flex-col items-center ${drift}`} style={{ animationDelay: `-${(h % 37) / 10}s` }}>
       {/* anillo exterior de PT/AGU */}
       <div
         className={`rounded-full p-[3px] transition-all ${active ? 'scale-110' : ''}`}
@@ -218,6 +231,7 @@ function LiveDot({ actor, spot, teamColor, carrier, marker }: {
         <Icon name={ELEMENT_ICON[actor.element]} className={active ? 'w-2.5 h-2.5 shrink-0' : 'w-2 h-2 shrink-0'} style={{ color: info.color }} />
         <span className="truncate">{actor.name.split(' ')[0]}</span>
       </span>
+      </div>
     </div>
   )
 }

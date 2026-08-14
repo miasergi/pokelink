@@ -1088,6 +1088,37 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
 }
 
 /**
+ * Intercambia DOS de tus jugadores sobre el campo (recolocación del descanso,
+ * con drag&drop). Cada uno hereda el PAPEL del hueco del otro.
+ */
+export function swapOnPitch(m: MatchState, aUid: string, bUid: string): string | null {
+  if (aUid === bUid) return null
+  const side = sideOf(m, playerSide(m))
+  const lines: Actor[][] = [[side.keeper], side.defs, side.mids, side.fwds]
+  let pa: { line: Actor[]; i: number } | null = null
+  let pb: { line: Actor[]; i: number } | null = null
+  for (const line of lines) {
+    const ia = line.findIndex((x) => x.uid === aUid)
+    if (ia >= 0) pa = { line, i: ia }
+    const ib = line.findIndex((x) => x.uid === bUid)
+    if (ib >= 0) pb = { line, i: ib }
+  }
+  if (!pa || !pb) return 'Ese jugador no está en el campo.'
+  const A = pa.line[pa.i]
+  const B = pb.line[pb.i]
+  const roleA = A.position
+  A.position = B.position
+  B.position = roleA
+  // OJO con el portero: `lines[0]` es un array puente — hay que escribir en
+  // `side.keeper`, no en la copia.
+  if (pa.line === lines[0]) side.keeper = B
+  else pa.line[pa.i] = B
+  if (pb.line === lines[0]) side.keeper = A
+  else pb.line[pb.i] = A
+  return null
+}
+
+/**
  * CAMBIO DE FORMACIÓN en el descanso: recoloca a los MISMOS once en las filas
  * de la formación nueva (nada de suplentes de repente) — primero cada uno a su
  * demarcación natural y el resto a rellenar los huecos que queden.

@@ -23,7 +23,7 @@ import {
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, playerScore, reformation, substitute } from '@/engine/inazuma/match'
+import { advance, chooseOption, playerScore, reformation, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
@@ -304,6 +304,8 @@ interface InazumaState {
   halftimeSubstitute: (outUid: string, benchUid: string) => void
   /** Cambia la FORMACIÓN en el descanso: recoloca a los mismos once. */
   halftimeFormation: (formationId: string) => void
+  /** Intercambia dos jugadores del campo en el descanso (drag&drop). */
+  halftimeSwap: (aUid: string, bUid: string) => void
   /** Carta de un jugador para ENSEÑAR (p. ej. el que llega en un intercambio). */
   revealPlayer: { uid: string; title: string } | null
   clearRevealPlayer: () => void
@@ -957,6 +959,15 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       match: { ...match },
       message: `${incoming.name} entra por ${out.name}. Quedan ${match.subsLeft} cambios.`,
     })
+  },
+
+  halftimeSwap: (aUid, bUid) => {
+    const { match } = get()
+    if (!match || !get().halftimeBreak) return
+    const err = swapOnPitch(match, aUid, bUid)
+    if (err) { set({ message: err }); return }
+    play('select')
+    set({ match: { ...match } })
   },
 
   halftimeFormation: (formationId) => {
