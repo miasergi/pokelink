@@ -52,7 +52,7 @@ export const ITEMS: InazumaItem[] = [
   // Dos formas distintas de mejorar una supertécnica, igual que en el modo
   // Pokémon conviven la Mejora (sube el tier de potencia del ataque) y las
   // evoluciones (cambian el movimiento por otro).
-  { id: 'mejora', name: 'Mejora', kind: 'manual', desc: '+25 % de potencia a una supertécnica. Se puede aplicar dos veces a la misma.', price: 1600, consumable: true },
+  { id: 'mejora', name: 'Mejora', kind: 'manual', desc: '+25 % de potencia y −15 % de coste de PT a una supertécnica (dos veces máx.): la convierte en tu opción eficiente.', price: 1600, consumable: true },
   // Con el catálogo real ya no hay «versión nº2» de cada técnica: lo que hay es
   // la CADENA característica de cada jugador. El manual la avanza un paso, como
   // una casilla de firma de bolsillo.

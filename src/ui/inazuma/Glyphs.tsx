@@ -5,6 +5,7 @@
 // el mismo icono se ve distinto en cada móvil, no se puede teñir del color del
 // elemento y en Windows varios salen en blanco y negro.
 import { useState } from 'react'
+import { create } from 'zustand'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -246,20 +247,48 @@ export function techniqueImage(id: string): string {
 }
 
 /**
+ * VISOR global de supertécnica: cualquier estampa clicada abre esta hoja con
+ * la imagen en grande, su clase, elemento, potencia y coste (efectivos si la
+ * abre su dueño, con las Mejoras aplicadas). El host vive en InazumaScreen.
+ */
+export interface TechHolder { techLevels?: Record<string, number> }
+interface TechSheetState {
+  tech: Technique | null
+  holder: TechHolder | null
+  open: (tech: Technique, holder?: TechHolder | null) => void
+  close: () => void
+}
+export const useTechSheet = create<TechSheetState>((set) => ({
+  tech: null,
+  holder: null,
+  open: (tech, holder) => set({ tech, holder: holder ?? null }),
+  close: () => set({ tech: null, holder: null }),
+}))
+
+/**
  * Estampa de supertécnica: su imagen real y, si falla, el icono del elemento.
  * Se usa en la mochila, la tienda, la ficha del jugador y la animación.
+ * CLICABLE por defecto: abre el visor con todos los datos (pasa `holder` para
+ * que enseñe potencia y coste efectivos de ese dueño; `silent` la apaga).
  */
 export function TechniqueBadge({
-  tech, size = 44, className = '',
+  tech, size = 44, className = '', holder, silent,
 }: {
   tech: Technique
   size?: number
   className?: string
+  holder?: TechHolder | null
+  silent?: boolean
 }) {
   const info = ELEMENT_INFO[tech.element]
   return (
     <span
-      className={`shrink-0 grid place-items-center overflow-hidden rounded-lg border ${className}`}
+      onClick={silent ? undefined : (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        useTechSheet.getState().open(tech, holder)
+      }}
+      className={`shrink-0 grid place-items-center overflow-hidden rounded-lg border ${silent ? '' : 'cursor-pointer active:scale-95 transition'} ${className}`}
       style={{ width: size, height: size, borderColor: `${info.color}66`, background: `${info.color}1a` }}
     >
       <ImgFallback

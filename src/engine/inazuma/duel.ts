@@ -9,7 +9,7 @@ import type { RNG } from '@/utils/rng'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { elementMultiplier } from './elements'
 import type { Actor, ChainStep, Element, Stats, Technique } from './types'
-import { fatigueMultiplier, TECH_LEVEL_BONUS } from './roster'
+import { fatigueMultiplier, TECH_LEVEL_BONUS, techniqueCostFor } from './roster'
 
 /**
  * Resuelve una técnica EN MANOS DE UN ACTOR CONCRETO, con sus mejoras del
@@ -25,7 +25,14 @@ export function actorTechnique(actor: Actor, id: string): Technique | undefined 
   if (!t) return undefined
   const lv = actor.techLevels?.[id] ?? 0
   if (!lv) return t
-  return { ...t, power: Math.round(t.power * (1 + lv * TECH_LEVEL_BONUS)) }
+  // Más potencia Y más barata (ver `TECH_LEVEL_COST_CUT`): la resolución del
+  // duelo, el `affordable` y el gasto de PT beben todos de aquí, así que la
+  // Mejora se nota de verdad en el campo.
+  return {
+    ...t,
+    power: Math.round(t.power * (1 + lv * TECH_LEVEL_BONUS)),
+    cost: techniqueCostFor(actor, t),
+  }
 }
 
 /** Un lado del duelo, ya resuelto a números (sirve para ti y para el rival). */

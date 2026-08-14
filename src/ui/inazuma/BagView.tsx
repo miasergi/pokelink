@@ -246,7 +246,7 @@ export default function BagView() {
                           onClick={() => { useConsumable('mejora', p.uid, id); setPending(null) }}
                           className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98] transition"
                         >
-                          <TechniqueBadge tech={t} size={36} />
+                          <TechniqueBadge tech={t} size={36} holder={p} />
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13px] font-bold" style={{ color: info.color }}>{t.name}</span>
                             <span className="block text-[10px] text-slate-400">

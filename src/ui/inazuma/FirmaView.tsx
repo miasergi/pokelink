@@ -131,7 +131,7 @@ function FirmaRow({ player, next, upgradeId, onPick }: {
                   }`}
                   style={rarityChipStyle(Math.min(MAX_RARITY, i + 1), learnt || isNext ? '#0f172a' : 'rgba(15,23,42,0.6)')}
                 >
-                  <TechniqueBadge tech={t} size={26} />
+                  <TechniqueBadge tech={t} size={26} holder={player} />
                   {learnt && (
                     <Icon name="check" className="absolute -top-1 -right-1 w-3 h-3 text-emerald-300 bg-slate-900 rounded-full p-px" />
                   )}

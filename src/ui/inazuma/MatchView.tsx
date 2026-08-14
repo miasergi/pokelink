@@ -177,9 +177,10 @@ export default function MatchView() {
       })()}
 
       {/* TICKER: las dos últimas jugadas contadas, sin robarle sitio al campo.
-          La retransmisión entera ya se VE arriba; esto es el apunte de texto. */}
+          ALTURA FIJA: con altura libre, pasar de 1 a 2 líneas (o a un banner
+          de gol) estiraba y encogía el césped a cada acción. */}
       {!finished && (
-        <div className="shrink-0 px-3 pb-1 flex flex-col gap-1">
+        <div className="shrink-0 h-[4.4rem] overflow-hidden px-3 pb-1 flex flex-col justify-end gap-1">
           {shownFeed.slice(-2).map((e, i) => (
             <EventLine key={`${shownFeed.length}-${i}`} event={e} isMine={eventIsMine(match, e)} />
           ))}

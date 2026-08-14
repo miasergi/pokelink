@@ -598,6 +598,24 @@ export function knownTechniques(techIds: string[], kind?: string) {
 export const MAX_TECH_LEVEL = 2
 /** Potencia extra por mejora. */
 export const TECH_LEVEL_BONUS = 0.25
+/**
+ * La Mejora también ABARATA la técnica: −15 % de PT por nivel (suelo: mitad
+ * del coste base). Sin esto, mejorar un paso temprano de la cadena «se
+ * quedaba frío»: en tres niveles llegaba el paso siguiente con más potencia
+ * bruta y la mejora parecía tirada. Con el descuento, la técnica mejorada se
+ * convierte en tu opción EFICIENTE: pega casi como la nueva y cuesta mucho
+ * menos PT — dos herramientas distintas, no una obsoleta.
+ */
+export const TECH_LEVEL_COST_CUT = 0.15
+
+/** Coste REAL de una técnica en manos de su dueño (Mejoras aplicadas). */
+export function techniqueCostFor(
+  holder: { techLevels?: Record<string, number> } | undefined, tech: { id: string; cost: number },
+): number {
+  const lv = holder?.techLevels?.[tech.id] ?? 0
+  if (!lv) return tech.cost
+  return Math.max(Math.round(tech.cost * 0.5), Math.round(tech.cost * (1 - lv * TECH_LEVEL_COST_CUT)))
+}
 
 /** Mejoras aplicadas a una técnica concreta de un jugador. */
 export function techLevel(p: PlayerInstance, techId: string): number {

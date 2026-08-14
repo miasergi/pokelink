@@ -13,13 +13,13 @@ import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { MedalHint } from '@/ui/inazuma/BagView'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
   rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
-  SIGNATURE_LEVELS, slotRole, techLevel, transferValue,
+  SIGNATURE_LEVELS, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 
@@ -505,11 +505,12 @@ function InspectCard({ block }: { block: CompareBlock }) {
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border"
+                onClick={() => useTechSheet.getState().open(t)}
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border cursor-pointer active:scale-95 transition"
                 style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
               >
                 <TechIcons tech={t} className="w-2.5 h-2.5" />
-                {t.name} <span className="opacity-60">{t.cost} PT</span>
+                {t.name} <span className="opacity-60">{t.power} pot. · {t.cost} PT</span>
               </span>
             )
           })}
@@ -873,7 +874,7 @@ function PlayerDetail({
             const info = ELEMENT_INFO[t.element]
             return (
               <div key={id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
-                <TechniqueBadge tech={t} size={30} />
+                <TechniqueBadge tech={t} size={30} holder={player} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <TechIcons tech={t} className="w-3.5 h-3.5" />
@@ -881,7 +882,10 @@ function PlayerDetail({
                       {t.name}
                       {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
                     </span>
-                    <span className="text-[10px] text-slate-500">{t.power} pot. · {t.cost} PT</span>
+                    {/* Potencia y coste EFECTIVOS (Mejoras aplicadas). */}
+                    <span className="text-[10px] text-slate-500">
+                      {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
+                    </span>
                   </div>
                   {t.desc && <div className="text-[10px] text-slate-500 italic truncate">{t.desc}</div>}
                 </div>
@@ -921,7 +925,7 @@ function PlayerDetail({
                       // lleva el degradado de verdad, no un rosa plano.
                       style={rarityChipStyle(needRarity, learnt ? 'rgba(217,70,239,0.08)' : 'rgba(30,41,59,0.45)')}
                     >
-                      <TechniqueBadge tech={t} size={22} />
+                      <TechniqueBadge tech={t} size={22} holder={player} />
                       <TechIcons tech={t} className="w-2.5 h-2.5" />
                       <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
                         {t.name}
@@ -1237,12 +1241,13 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
             return (
               <span key={id} className="inline-flex items-center gap-1">
                 <span
-                  className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold"
+                  onClick={() => useTechSheet.getState().open(t)}
+                  className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold cursor-pointer active:scale-95 transition"
                   style={{ color: info.color, ...rarityChipStyle(i + 1, `${info.color}12`) }}
                 >
                   <TechIcons tech={t} className="w-2.5 h-2.5" />
                   {t.name}
-                  <span className="text-slate-500">nv.{need}</span>
+                  <span className="text-slate-500">{t.power} pot. · nv.{need}</span>
                 </span>
                 {i < arr.length - 1 && <Icon name="arrowRight" className="w-2.5 h-2.5 text-slate-600" />}
               </span>
