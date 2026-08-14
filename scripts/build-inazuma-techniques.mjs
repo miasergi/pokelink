@@ -618,6 +618,12 @@ async function emit(found) {
   lines.push("import type { Technique } from '@/engine/inazuma/types'")
   lines.push('')
   lines.push('export const TECHNIQUES: Technique[] = [')
+  // TÉCNICAS EXTRA fuera del filtro de debut (canon de la saga cubierta que
+  // la wiki fecha en juegos posteriores): la Mano Ultradimensional y la
+  // Parada Celestial de Endou. La imagen se baja aparte (una vez).
+  lines.push('  // -------------------- EXTRA (canon fuera del filtro de debut)')
+  lines.push(`  { id: 'ijigen-the-hand', name: "Mano Ultradimensional", kind: 'parada', element: 'aire', power: 101, cost: 42, desc: "Abre una grieta dimensional que se traga el disparo." },`)
+  lines.push(`  { id: 'god-catch', name: "Parada Celestial", kind: 'parada', element: 'montana', power: 150, cost: 63, desc: "Dos manos divinas cierran la portería entera." },`)
   let lastType = ''
   for (const t of balanced) {
     if (t.type !== lastType) {

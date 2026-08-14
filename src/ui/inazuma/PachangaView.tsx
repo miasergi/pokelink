@@ -233,7 +233,7 @@ export default function PachangaView() {
           </div>
           <p className="text-[11px] text-slate-400 text-center mb-2">
             {pachanga.result === 'win'
-              ? 'El once sube +2 niveles y te llevas 2 Medallas de talento; el banquillo descansa (+PT y aguante).'
+              ? 'El once sube +2 niveles y te llevas 1 Medalla de talento; el banquillo descansa (+PT y aguante).'
               : 'El once sube +1 nivel y te llevas 1 Medalla de talento; el banquillo descansa (+PT y aguante).'}
           </p>
           <Button variant="primary" full onClick={finishPachanga}>Volver al mapa</Button>

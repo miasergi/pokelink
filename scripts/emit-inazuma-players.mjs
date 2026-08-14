@@ -138,15 +138,26 @@ function statsFor(position, rarity, seedStr) {
  * (`techniques.ts`); si alguno faltara, se descarta con aviso.
  */
 const SIGNATURES = {
-  // El ORDEN es el canónico de la serie y MANDA sobre la potencia: Someoka
-  // aprende el Golpe de Dragón antes que el de Guiverno aunque la wiki les dé
-  // potencias raras. Las técnicas de combo van dentro de la cadena de su
-  // dueño: despertarlas es lo que desbloquea el combo.
-  'Mark Evans': ['nekketsu-punch', 'god-hand', 'majin-the-hand', 'mugen-the-hand'],
+  // Cadenas CANÓNICAS revisadas a mano (las de la serie, con las técnicas
+  // chulas). Las técnicas de combo van dentro de la cadena de su dueño:
+  // despertarlas es lo que desbloquea el combo. El orden de potencia dentro
+  // del mismo tipo lo garantiza después `sortSameKindAscending`.
+  //
+  // Mark: NUNCA usó la Mano Infinita (esa es de Tachimukai/Darren) — su
+  // línea es Celestial → Ultradimensional → Demoníaca → Parada Celestial.
+  'Mark Evans': ['god-hand', 'ijigen-the-hand', 'majin-the-hand', 'god-catch'],
+  'Darren LaChance': ['mugen-the-hand'],
   'Axel Blaze': ['fire-tornado', 'honoo-no-kazamidori', 'inazuma-break', 'bakunetsu-storm'],
   'Kevin Dragonfly': ['dragon-crash', 'dragon-tornado', 'wyvern-crash'],
-  'Jude Sharp': ['illusion-ball', 'death-zone'],
+  'Jude Sharp': ['illusion-ball', 'death-zone', 'koutei-penguin-2gou'],
   'Byron Love': ['god-knows', 'heaven-s-time'],
+  'Nathan Swift': ['shippuu-dash'],
+  'Jack Wallside': ['the-wall'],
+  'Shawn Froste': ['eternal-blizzard', 'wolf-legend'],
+  'Xavier Foster': ['ryuusei-blade'],
+  'Austin Hobbes': ['the-phoenix'],
+  'Hurley Kane': ['tsunami-boost'],
+  'Caleb Stonewall': ['koutei-penguin-1gou'],
 }
 
 const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -196,7 +207,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   }
   for (const id of [...realPrimary, ...realOther]) { if (merged.length < 4 && !merged.includes(id)) merged.push(id) }
 
-  if (merged.length >= 4) return merged.slice(0, 4)
+  if (merged.length >= 4) return sortSameKindAscending(merged.slice(0, 4), byId)
 
   // Relleno DETERMINISTA POR JUGADOR, cubriendo las clases que falten: la
   // cadena de un no-portero acaba con AL MENOS un tiro, un regate y un
@@ -224,7 +235,23 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
     const idx = Math.min(pool.length - 1, bandStart + ((h >>> (i * 5)) % (bandEnd - bandStart)))
     if (pool[idx]) picks.push(pool[idx].id)
   })
-  return [...merged, ...picks].slice(0, 4)
+  return sortSameKindAscending([...merged, ...picks].slice(0, 4), byId)
+}
+
+/**
+ * Dentro del MISMO tipo (tiro/regate/bloqueo/parada), cada paso posterior de
+ * la cadena tiene que ser MEJOR que el anterior: se reordenan los pasos de
+ * igual tipo por potencia ascendente SIN mover sus huecos (el reparto de
+ * tipos por hueco — y la rareza que lo desbloquea — no cambia).
+ */
+function sortSameKindAscending(ids, byId) {
+  const out = ids.slice()
+  for (const k of ['tiro', 'regate', 'bloqueo', 'parada']) {
+    const slots = out.map((id, i) => ({ id, i })).filter((x) => byId.get(x.id)?.kind === k)
+    const sorted = slots.map((x) => x.id).sort((a, b) => byId.get(a).power - byId.get(b).power)
+    slots.forEach((x, j) => { out[x.i] = sorted[j] })
+  }
+  return out
 }
 
 /**

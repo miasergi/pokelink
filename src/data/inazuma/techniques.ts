@@ -11,6 +11,9 @@
 import type { Technique } from '@/engine/inazuma/types'
 
 export const TECHNIQUES: Technique[] = [
+  // -------------------- EXTRA (canon fuera del filtro de debut)
+  { id: 'ijigen-the-hand', name: "Mano Ultradimensional", kind: 'parada', element: 'aire', power: 101, cost: 42, desc: "Abre una grieta dimensional que se traga el disparo." },
+  { id: 'god-catch', name: "Parada Celestial", kind: 'parada', element: 'montana', power: 150, cost: 63, desc: "Dos manos divinas cierran la portería entera." },
   // -------------------- BLOQUEO
   { id: 'super-scan-df', name: "Escáner Defensivo", kind: 'bloqueo', element: 'bosque', power: 32, cost: 13, desc: "El terreno atrapa las piernas del rival." },
   { id: 'fake-ball', name: "Balón Falso", kind: 'bloqueo', element: 'bosque', power: 32, cost: 13, desc: "El terreno atrapa las piernas del rival." },

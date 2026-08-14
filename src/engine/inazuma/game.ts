@@ -102,9 +102,10 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     record: [0, 0, 0],
     goalsFor: 0,
     goalsAgainst: 0,
-    // Se empieza con tres CURATIVOS: sin ellos, el primer bajón de PT/aguante
-    // pillaba sin herramientas y sin haber visto aún ninguna tienda.
-    bag: ['bebida-isotonica', 'masaje', 'ramen-rai-rai'],
+    // Se empieza con tres CURATIVOS (sin ellos, el primer bajón de PT/aguante
+    // pillaba sin herramientas) y DOS MEDALLAS: con la pachanga pagando solo
+    // una, el arranque necesitaba algo de material de rareza para moldear.
+    bag: ['bebida-isotonica', 'masaje', 'ramen-rai-rai', 'medalla-rareza', 'medalla-rareza'],
     techniqueBag: [],
     formation,
     playerStats: {},
@@ -411,10 +412,9 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const baseFatigue = Math.round(s.rounds.length * 1.5)
   const lossFatigue = won ? 0 : 18
 
-  // El barrio te curte: tras cada pachanga, Medallas de talento a la mochila
-  // (2 si ganas, 1 si pierdes) — TÚ eliges a quién subir. La subida aleatoria
-  // de antes caía donde caía y no daba juego.
-  save.bag = [...save.bag, 'medalla-rareza', ...(won ? ['medalla-rareza'] : [])]
+  // El barrio te curte: tras cada pachanga, UNA Medalla de talento a la
+  // mochila — TÚ eliges a quién subir.
+  save.bag = [...save.bag, 'medalla-rareza']
 
   // Media del once tras su subida, para el catch-up del banquillo.
   const xiLevels = save.roster.filter((p) => byUid.has(p.uid)).map((p) => p.level + levels)

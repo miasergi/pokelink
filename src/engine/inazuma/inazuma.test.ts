@@ -582,11 +582,11 @@ function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
       applyConsumable(save, plan, weakest.uid)
       continue
     }
-    // Las MEDALLAS son la vía principal de rareza (3 por partido): un jugador
-    // de verdad las gasta según caen. El bot sube al titular menos raro (que
-    // además es el más barato con el coste escalado). OJO: si no alcanzan
-    // (subir cuesta tantas medallas como la rareza actual), el `continue` a
-    // ciegas era un bucle infinito — solo se repite si el gasto entró.
+    // Las MEDALLAS son la vía principal de rareza: el bot sube al titular
+    // menos raro (que además es el más barato con el coste escalado; se probó
+    // concentrarlas en pocos portadores y medía PEOR: el resto del once se
+    // quedaba blando). OJO: si no alcanzan medallas, el `continue` a ciegas
+    // era un bucle infinito — solo se repite si el gasto entró.
     if (save.bag.includes('medalla-rareza')) {
       const dull = starters().slice().sort((a, b) => rarityOf(a) - rarityOf(b))[0]
       if (dull && rarityOf(dull) < 4 && applyConsumable(save, 'medalla-rareza', dull.uid).ok) continue
