@@ -552,6 +552,12 @@ export interface InazumaSave {
   bag: string[]
   /** Supertécnicas encontradas y aún sin enseñar a nadie. */
   techniqueBag: string[]
+  /**
+   * Últimos jugadores OFRECIDOS por el ojeador o llegados en intercambios:
+   * no se repiten mientras sigan en esta lista (rota, se queda con ~20).
+   * Sin ella, «siempre salen los mismos».
+   */
+  scoutSeen?: string[]
   /** Formación del once (id de `FORMATIONS`). */
   formation: string
   /** Acumulado de la partida por jugador: goles, paradas, duelos… */

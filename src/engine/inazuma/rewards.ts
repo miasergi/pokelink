@@ -26,7 +26,10 @@ function rarityWeight(rarity: number, bossIndex: number): number {
   const progress = Math.min(1, bossIndex / 7)
   const target = 1.6 + progress * 2.6 // 1.6 → 4.2
   const d = Math.abs(rarity - target)
-  return Math.max(0.05, 1 - d * 0.42)
+  // Suelo subido (0.05 → 0.14) y pendiente más suave: el peso viejo confinaba
+  // las ofertas tempranas al mismo mar de suplentes de catálogo bajo — otra
+  // pata del «siempre salen los mismos».
+  return Math.max(0.14, 1 - d * 0.36)
 }
 
 function weightedPick<T>(items: T[], weight: (t: T) => number, rng: RNG): T | undefined {
@@ -57,8 +60,13 @@ export function learnableByRoster(save: InazumaSave) {
 /** Jugadores fichables ahora mismo, sin repetir los que ya tienes. */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   const owned = new Set(save.roster.map((p) => p.baseId))
-  return signablePool(beatenTeams(save.layer, save.teamId, save.saga), save.teamId, save.saga)
+  const pool = signablePool(beatenTeams(save.layer, save.teamId, save.saga), save.teamId, save.saga)
     .filter((p) => !owned.has(p.id))
+  // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
+  // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
+  const seen = new Set(save.scoutSeen ?? [])
+  const fresh = pool.filter((p) => !seen.has(p.id))
+  return fresh.length >= 6 ? fresh : pool
 }
 
 function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {

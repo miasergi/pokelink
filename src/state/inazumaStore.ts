@@ -538,6 +538,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
       case 'ojeador': {
         const offer = buildScoutOffer(next, getRng(next))
+        // Memoria del ojeador: lo OFRECIDO no vuelve a salir en un buen rato
+        // (lo cojas o no) — sin esto «siempre salen los mismos».
+        const offered = offer.filter((o) => o.kind === 'fichaje').map((o) => (o as { playerId: string }).playerId)
+        next.scoutSeen = [...(next.scoutSeen ?? []), ...offered].slice(-20)
         advanceLayer(next, node)
         set({ save: next, draft: offer, draftPicks: 1, draftFromMatch: false, phase: 'draft' })
         void persist(next, 'draft')
@@ -1083,6 +1087,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // El nuevo hereda el HUECO del que se va: el once no se descoloca.
       lineup: save.lineup.map((u) => (u === uid ? nuevo.uid : u)),
       cleared: save.cleared.slice(),
+      // El llegado en un intercambio tampoco se repite en un buen rato.
+      scoutSeen: [...(save.scoutSeen ?? []), incoming.id].slice(-20),
     }
     advanceLayer(next, matchNode)
     void persistInazumaMeta({ signed: [incoming.id] })
