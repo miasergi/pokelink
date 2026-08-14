@@ -186,8 +186,12 @@ function connect(curr: TournamentNode[], next: TournamentNode[], rng: RNG): void
     const sorted = [...next].sort(
       (a, b) => Math.abs(posOf(a, next.length) - cp) - Math.abs(posOf(b, next.length) - cp),
     )
+    // MÁS TRENZADO que antes (0.45 y nunca terceras): con una media de ~1.4
+    // salidas por casilla el cuadro se sentía un pasillo — «se hace todo
+    // demasiado lineal». Ahora casi siempre hay bifurcación y a veces triple.
     const edges = [sorted[0].id]
-    if (sorted[1] && rng.chance(0.45)) edges.push(sorted[1].id)
+    if (sorted[1] && rng.chance(0.7)) edges.push(sorted[1].id)
+    if (sorted[2] && rng.chance(0.25)) edges.push(sorted[2].id)
     c.next = [...new Set(edges)]
   }
   for (const n of next) {

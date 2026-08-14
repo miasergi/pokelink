@@ -11,13 +11,14 @@ import { getPlayerBase } from '@/data/inazuma/players'
 import { Meter, PlayerRow, staminaColor } from '@/ui/inazuma/PlayerCard'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import { ItemIcon } from '@/ui/inazuma/Glyphs'
+import { FORMATIONS } from '@/data/inazuma/formations'
 import type { Actor } from '@/engine/inazuma/types'
 
 /** Consumibles con sentido en un descanso: curas de PT y aguante. */
 const HALFTIME_ITEMS = new Set(['bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial'])
 
 export default function HalftimePanel() {
-  const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute } = useInazuma()
+  const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute, halftimeFormation } = useInazuma()
   const [target, setTarget] = useState<Actor | null>(null)
   const [action, setAction] = useState<'item' | 'sub' | null>(null)
   if (!halftimeBreak || !match || !save) return null
@@ -25,7 +26,9 @@ export default function HalftimePanel() {
   const side = match.home.isPlayer ? match.home : match.away
   const onPitch = [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
   const onPitchUids = new Set(onPitch.map((a) => a.uid))
-  const bench = save.roster.filter((p) => !onPitchUids.has(p.uid))
+  // El SUSTITUIDO no vuelve: fuera de la lista de cambios (regla de fútbol).
+  const subbedOut = new Set(match.subbedOut ?? [])
+  const bench = save.roster.filter((p) => !onPitchUids.has(p.uid) && !subbedOut.has(p.uid))
   // Agrupados con contador, igual que en la mochila: cada uso gasta UNO.
   const items: { id: string; count: number }[] = []
   for (const id of save.bag) {
@@ -46,9 +49,27 @@ export default function HalftimePanel() {
             Cambios: <b className="text-amber-300">{match.subsLeft}</b>
           </span>
         </div>
-        <p className="text-[11px] text-slate-500 mb-3">
+        <p className="text-[11px] text-slate-500 mb-2">
           Toca a un jugador sobre el campo para darle un consumible o hacer un cambio.
         </p>
+
+        {/* CAMBIO DE FORMACIÓN: recoloca a los MISMOS once (nada de meter
+            suplentes de rebote), como una charla táctica de verdad. */}
+        <div className="mb-2 flex gap-1 overflow-x-auto pb-0.5">
+          {FORMATIONS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => halftimeFormation(f.id)}
+              className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-bold transition active:scale-95 ${
+                save.formation === f.id
+                  ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-400'
+              }`}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
 
         {/* El once SOBRE EL CAMPO, como en la previa y el vestuario: en lista
             no se veía quién ocupaba qué hueco a la hora de decidir cambios. */}

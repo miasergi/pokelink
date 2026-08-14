@@ -330,16 +330,19 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   const byUid = new Map(actors.map((a) => [a.uid, a]))
 
   const result = match.result ?? 'draw'
-  // Niveles PLANOS por participación: jugar el partido (de inicio o entrando
-  // en la segunda parte) da +4; el banquillo, +2 — gane quien gane.
-  recordMatchStats(save, match.events, new Set(byUid.keys()))
+  // PARTICIPÓ = pisó el campo (once inicial O entró de cambio): cobra los
+  // niveles completos aunque lo sustituyeran al descanso — antes el cambiado
+  // al medio tiempo perdía sus +4. Estados viejos sin la lista caen al once
+  // final.
+  const played = new Set(match.participants ?? [...byUid.keys()])
+  recordMatchStats(save, match.events, played)
 
-  // Media del once TRAS su subida: la referencia del catch-up del banquillo.
-  const xiLevels = save.roster.filter((p) => byUid.has(p.uid)).map((p) => p.level + MATCH_LEVELS_PLAYED)
+  // Media de los que jugaron TRAS su subida: referencia del catch-up.
+  const xiLevels = save.roster.filter((p) => played.has(p.uid)).map((p) => p.level + MATCH_LEVELS_PLAYED)
   const xiAvg = xiLevels.length ? xiLevels.reduce((x, y) => x + y, 0) / xiLevels.length : 0
 
   save.roster = save.roster.map((p) => {
-    const a = byUid.get(p.uid)
+    const a = played.has(p.uid)
     // El banquillo también progresa, pero MENOS que quien juega: si no
     // subiera nada, rotar te diluiría la plantilla y el banquillo sería una
     // trampa; si subiera igual, jugar no tendría premio.
@@ -347,7 +350,7 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
       // El partido oficial cierra ronda: el equipo REPONE PT y aguante al
       // pitido final (el desgaste que se arrastra es el de las pachangas y la
       // ruta). Antes se salía del partido fundido y sin gasolina.
-      a ? { ...p, stamina: 100, pt: ptMax(p) } : { ...p, stamina: 100, pt: ptMax(p) },
+      { ...p, stamina: 100, pt: ptMax(p) },
       a ? MATCH_LEVELS_PLAYED : MATCH_LEVELS_BENCH,
     )
     // Y NUNCA descolgado: el suplente rezagado entrena hasta quedar a tiro de
@@ -408,14 +411,10 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   const baseFatigue = Math.round(s.rounds.length * 1.5)
   const lossFatigue = won ? 0 : 18
 
-  // El barrio te curte: tras CADA pachanga, tres del vestuario (al azar, de
-  // los que aún no son multicolor) suben una rareza — ganes o pierdas.
-  const rarityRng = new RNG(((save.rngState ^ Math.imul(save.layer + 1, 2654435761)) >>> 0) || 1)
-  // UNA subida por pachanga, y solo entre los que la JUGARON (el banquillo no
-  // sube gratis desde la grada).
-  const candidates = save.roster.filter((p) => byUid.has(p.uid) && rarityOf(p) < MAX_RARITY)
-  const lucky = new Set(rarityRng.shuffle(candidates.map((p) => p.uid)).slice(0, 1))
-  const beforeUp = new Map(save.roster.filter((p) => lucky.has(p.uid)).map((p) => [p.uid, effectiveStats(p)]))
+  // El barrio te curte: tras cada pachanga, Medallas de talento a la mochila
+  // (2 si ganas, 1 si pierdes) — TÚ eliges a quién subir. La subida aleatoria
+  // de antes caía donde caía y no daba juego.
+  save.bag = [...save.bag, 'medalla-rareza', ...(won ? ['medalla-rareza'] : [])]
 
   // Media del once tras su subida, para el catch-up del banquillo.
   const xiLevels = save.roster.filter((p) => byUid.has(p.uid)).map((p) => p.level + levels)
@@ -440,7 +439,6 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
       // El suplente descolgado entrena aparte: nunca a más de 3 de la media.
       next = catchUp(next, xiAvg)
     }
-    if (lucky.has(p.uid)) next = upgradeRarity(next)
     return next
   })
 
@@ -460,18 +458,8 @@ export function applyPachangaResult(save: InazumaSave, s: PachangaState, node: T
   save.goalsAgainst += s.goals[1]
   if (won) save.coins += node.risky ? 300 : 120
 
-  return {
-    rarityUps: save.roster
-      .filter((p) => lucky.has(p.uid))
-      .map((p) => ({
-        uid: p.uid,
-        baseId: p.baseId,
-        name: getPlayerBase(p.baseId).name,
-        rarity: rarityOf(p),
-        statsBefore: beforeUp.get(p.uid)!,
-        statsAfter: effectiveStats(p),
-      })),
-  }
+  // La subida es ahora ELEGIDA (medalla): aquí ya no hay sorteo que animar.
+  return { rarityUps: [] }
 }
 
 /** ¿Se acabó la partida? Solo perder contra un instituto te elimina. */
@@ -698,7 +686,13 @@ export function applyConsumable(
 /** Actor listo para entrar de SUPLENTE en el hueco indicado. */
 export function subActor(save: InazumaSave, uid: string, role: Position): Actor | null {
   const p = save.roster.find((x) => x.uid === uid)
-  return p ? actorFromPlayer(p, role) : null
+  if (!p) return null
+  const a = actorFromPlayer(p, role)
+  // El suplente ha DESCANSADO toda la primera parte: entra a tope de PT y
+  // aguante. Es la gracia de guardarse a alguien en el banquillo.
+  a.pt = a.ptMax
+  a.stamina = 100
+  return a
 }
 
 /**

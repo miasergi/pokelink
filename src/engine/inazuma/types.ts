@@ -359,6 +359,13 @@ export interface MatchState {
   decisionMode: DecisionMode
   /** Cambios que quedan (el descanso permite hasta 3). */
   subsLeft: number
+  /** Sustituidos: YA no pueden volver a entrar (regla de fútbol de verdad). */
+  subbedOut?: string[]
+  /**
+   * Todos los que han pisado el campo (once inicial + cambios): son los que
+   * cobran los niveles COMPLETOS del partido, salgan o no en el once final.
+   */
+  participants?: string[]
   /** Tanda de penaltis, solo cuando `stage` es 'penaltis'. */
   shootout: ShootoutState | null
   /** Retransmisión completa, en orden. */

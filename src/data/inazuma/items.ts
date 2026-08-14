@@ -38,6 +38,7 @@ export const ITEMS: InazumaItem[] = [
   { id: 'plan-entrenamiento', name: 'Plan de entrenamiento', kind: 'consumible', desc: 'Sube 2 niveles a un jugador.', price: 1800, consumable: true },
   { id: 'plan-intensivo', name: 'Plan intensivo', kind: 'consumible', desc: 'Sube 4 niveles a un jugador.', price: 3400, consumable: true },
   { id: 'medalla-rareza', name: 'Medalla de talento', kind: 'consumible', desc: 'Sube UNA rareza a un jugador (Normal → Avanzado → Ídolo → Legendario). Cuesta tantas medallas como su rareza actual (1, 2 o 3). Mejora sus atributos, alarga su cadena y al máximo despierta su Espíritu.', price: 2600, consumable: true },
+  { id: 'fichaje-estrella', name: 'Fichaje estrella', kind: 'consumible', desc: 'El ojeador te trae al jugador EXACTO que busques del catálogo entero (llega en rareza Normal, al nivel de tu plantilla).', price: 6500, consumable: true },
 
   // ------------------------------------------------------------- COMIDA -----
   // Los platos del Rai Rai. Se compran allí y se usan cuando quieras: es la
@@ -86,8 +87,10 @@ export function stockFor(kind: 'tienda' | 'rairai', progress = 7): InazumaItem[]
 
 /** Objetos que pueden salir en una casilla de objeto, según lo avanzado que vayas. */
 export function lootPool(progress: number): InazumaItem[] {
-  const rare = ITEMS.filter((i) => i.kind === 'raro')
-  const normal = ITEMS.filter((i) => i.kind === 'equipo' || i.kind === 'consumible' || i.kind === 'manual')
+  // El Fichaje estrella cuenta como RARO a efectos de botín: encontrárselo en
+  // la primera ronda regalaría el mejor jugador del catálogo de salida.
+  const rare = ITEMS.filter((i) => i.kind === 'raro' || i.id === 'fichaje-estrella')
+  const normal = ITEMS.filter((i) => (i.kind === 'equipo' || i.kind === 'consumible' || i.kind === 'manual') && i.id !== 'fichaje-estrella')
   // Los raros solo aparecen de la mitad del cuadro en adelante.
   return progress >= 3 ? [...normal, ...rare] : normal
 }

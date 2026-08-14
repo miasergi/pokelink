@@ -10,7 +10,8 @@
 // vivo del motor — leerlo destriparía jugadas aún no contadas.
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { ImgFallback } from '@/ui/components/kit'
-import { Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
+import Icon from '@/ui/components/Icon'
+import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
@@ -35,7 +36,7 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
     // columna perfecta y las fichas vecinas se solapaban.
     row.forEach((a, i) => out.set(a.uid, {
       x: x + (i % 2 ? 3 : -3) * (attackRight ? 1 : -1),
-      y: ((i + 1) / (row.length + 1)) * 88 + 6,
+      y: ((i + 1) / (row.length + 1)) * 84 + 8,
     }))
   }
   out.set(keeper.uid, { x: X.por, y: 50 })
@@ -57,18 +58,22 @@ export default function LivePitch({ match, feed, current }: {
   const myActors = [home.keeper, ...home.defs, ...home.mids, ...home.fwds]
   const theirActors = [away.keeper, ...away.defs, ...away.mids, ...away.fwds]
 
-  // El último DUELO revelado manda sobre dónde está el balón (el pase ya lo
-  // cuenta su cinemática y el receptor coge el balón en su siguiente duelo).
-  // Un gol o un saque cierran la jugada: todos a sus anclas.
+  // El último DUELO revelado manda sobre dónde está el balón; si DESPUÉS hay
+  // un PASE revelado, el balón vuela a los pies del receptor (sin cinemática:
+  // el vuelo se ve aquí). Un gol o un saque cierran la jugada.
   let duel: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; success?: boolean } | null = null
+  let passTo: string | null = null
   for (let i = feed.length - 1; i >= 0; i--) {
     const e = feed[i]
     if (e.kind === 'duel') { duel = e; break }
+    if (e.kind === 'possession' && e.passToUid && !passTo) { passTo = e.passToUid; continue }
     if (e.kind === 'goal' || e.kind === 'kickoff') break
   }
   const shown = current ?? duel
 
-  const carrierUid = shown?.attackerUid ?? null
+  // Con pase posterior al duelo (y sin decisión/cinemática encima), el balón
+  // lo tiene el RECEPTOR en el mismo eslabón.
+  const carrierUid = !current && passTo ? passTo : shown?.attackerUid ?? null
   const markerUid = shown?.defenderUid ?? null
   const step: ChainStep | null = shown?.step ?? null
   const atkSide = shown?.side ?? null
@@ -82,7 +87,6 @@ export default function LivePitch({ match, feed, current }: {
   const shift = (isMine: boolean) => (atkSide == null ? 0 : (atkSide === mine) === isMine ? 6 : -5)
 
   const ballX = step != null ? (iAttack ? STEP_X[step] : 100 - STEP_X[step]) : 50
-  const ballCarrier = carrierUid ? actorByUid(match, carrierUid) : null
 
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
@@ -102,10 +106,11 @@ export default function LivePitch({ match, feed, current }: {
   }
 
   // Punto del balón: en los pies del que lo lleva (o el centro sin jugada).
+  const ballCarrier = carrierUid ? actorByUid(match, carrierUid) : null
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
     : null
-  const ball = carrierSpot ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 6 } : { x: 50, y: 50 }
+  const ball = carrierSpot ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 } : { x: 50, y: 50 }
 
   const danger = step === 'definicion'
 
@@ -137,11 +142,11 @@ export default function LivePitch({ match, feed, current }: {
 
         {/* LOS 22: cada uno hacia su sitio con transición — el movimiento. */}
         {myActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} mine
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={home.color}
             carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
         ))}
         {theirActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)}
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={away.color}
             carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
         ))}
 
@@ -158,55 +163,61 @@ export default function LivePitch({ match, feed, current }: {
 }
 
 /**
- * Un jugador sobre el césped: retrato con borde de rareza, banda del equipo y
- * el nombre solo cuando está EN la jugada (con 22 etiquetas no se leía nada).
+ * Un jugador sobre el césped, con TODO lo suyo encima:
+ *  - fondo del retrato = color de su EQUIPO;
+ *  - borde interior = RAREZA (anillo animado si es Legendario);
+ *  - anillo exterior partido: mitad derecha AZUL = PT que le queda, mitad
+ *    izquierda VERDE = aguante (se vacían de arriba abajo);
+ *  - debajo, su elemento y su nombre.
  */
-function LiveDot({ actor, spot, mine, carrier, marker }: {
+function LiveDot({ actor, spot, teamColor, carrier, marker }: {
   actor: Actor
   spot: Spot
-  mine?: boolean
+  teamColor: string
   carrier?: boolean
   marker?: boolean
 }) {
   const info = ELEMENT_INFO[actor.element]
   const active = carrier || marker
-  const ring = actor.rarity === 4 ? 'transparent' : actor.rarity ? rarityBorder(actor.rarity) : info.color
+  const ring = actor.rarity === 4 ? 'transparent' : actor.rarity ? rarityBorder(actor.rarity) : '#334155'
+  // Anillo de recursos: PT a la derecha (0→180°), aguante a la izquierda
+  // (180→360°). `conic-gradient` desde arriba, en el sentido del reloj.
+  const ptDeg = Math.max(0, Math.min(1, actor.pt / Math.max(1, actor.ptMax))) * 180
+  const aguDeg = Math.max(0, Math.min(1, actor.stamina / 100)) * 180
+  const gauge = `conic-gradient(#38bdf8 0deg ${ptDeg}deg, rgba(2,6,23,.55) ${ptDeg}deg 180deg, rgba(2,6,23,.55) 180deg ${360 - aguDeg}deg, #22c55e ${360 - aguDeg}deg 360deg)`
   return (
     <div
-      className="absolute z-10 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-700 ease-out"
+      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-700 ease-out"
       style={{ left: `${spot.x}%`, top: `${spot.y}%`, zIndex: active ? 20 : 10 }}
     >
-      <div className="relative">
+      {/* anillo exterior de PT/AGU */}
+      <div
+        className={`rounded-full p-[3px] transition-all ${active ? 'scale-110' : ''}`}
+        style={{ background: gauge, boxShadow: carrier ? `0 0 10px ${info.color}` : undefined }}
+      >
+        {/* borde de rareza + retrato sobre el color del equipo */}
         <div
-          className={`relative rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900 transition-all ${
-            active ? 'w-9 h-9' : 'w-7 h-7 opacity-90'
-          }`}
-          style={{
-            borderColor: ring,
-            boxShadow: carrier ? `0 0 10px ${info.color}` : undefined,
-          }}
+          className={`relative rounded-full overflow-hidden border-2 grid place-items-center ${active ? 'w-8 h-8' : 'w-7 h-7'}`}
+          style={{ borderColor: ring, background: teamColor }}
         >
           <ImgFallback
             src={portraitUrl(actor.baseId)}
             className="w-full h-full object-cover object-top"
             alt={actor.name}
-            fallback={<span className="text-[9px] font-extrabold" style={{ color: info.color }}>
+            fallback={<span className="text-[9px] font-extrabold text-white">
               {actor.name.slice(0, 2).toUpperCase()}
             </span>}
           />
           {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
-        {/* banda del equipo, para leer bandos con 22 en pantalla */}
-        <span
-          className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1 rounded-full ${active ? 'w-6' : 'w-4'}`}
-          style={{ background: mine ? '#22c55e' : '#f43f5e' }}
-        />
       </div>
-      {active && (
-        <span className="mt-0.5 max-w-[64px] truncate rounded px-1 text-[8px] font-bold bg-black/70 text-white leading-tight">
-          {actor.name.split(' ')[0]}
-        </span>
-      )}
+      {/* elemento + nombre, SIEMPRE */}
+      <span className={`mt-0.5 inline-flex items-center gap-0.5 max-w-[62px] rounded px-1 leading-tight ${
+        active ? 'bg-black/75 text-white text-[8px] font-bold' : 'bg-black/50 text-white/85 text-[7px] font-bold'
+      }`}>
+        <Icon name={ELEMENT_ICON[actor.element]} className={active ? 'w-2.5 h-2.5 shrink-0' : 'w-2 h-2 shrink-0'} style={{ color: info.color }} />
+        <span className="truncate">{actor.name.split(' ')[0]}</span>
+      </span>
     </div>
   )
 }

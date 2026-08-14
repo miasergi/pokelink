@@ -304,7 +304,10 @@ export function createPlayer(
  * ADELANTARSE a estos umbrales; esto garantiza que, aunque no toque ninguna,
  * el jugador acaba despertando lo suyo.
  */
-export const SIGNATURE_LEVELS = [10, 22, 35, 50]
+// Bajados de [10, 22, 35, 50]: con la cadena tan tardía, medio torneo se
+// jugaba a tiro pelado mientras el rival (que despierta con la misma tabla
+// pero llega con niveles de jefe) iba sobrado de técnicas.
+export const SIGNATURE_LEVELS = [8, 18, 30, 44]
 
 /**
  * La cadena ALCANZABLE de un jugador: los primeros N pasos, con N = su rareza
@@ -538,7 +541,10 @@ function applyPower(s: Stats, power: number): Stats {
 export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: number, elite = false): string[] {
   const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
   let known = chain.filter((_, i) => level >= SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])
-  if (elite && b.rarity >= 5 && known.length < chain.length) known = chain.slice(0, known.length + 1)
+  // El paso EXTRA de los cracks ★5 solo a partir del tramo alto (nivel 30+):
+  // desde el primer partido hacía que «el rival no para de usar supertécnicas»
+  // mientras tu equipo aún despertaba las suyas.
+  if (elite && b.rarity >= 5 && level >= 30 && known.length < chain.length) known = chain.slice(0, known.length + 1)
   return known
 }
 

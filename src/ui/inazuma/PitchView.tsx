@@ -252,9 +252,11 @@ function PitchChip({
       style={{ cursor: 'grab' }}
     >
       <div
-        // Rareza 4: SIN borde — el anillo animado ES el borde. Con borde
-        // transparente el anillo quedaba 2px hacia dentro (descuadrado).
-        className={`w-11 h-11 rounded-xl overflow-hidden grid place-items-center transition ${
+        // Rareza 4: SIN borde — el anillo animado ES el borde. OJO al
+        // `relative`: sin él, el anillo (absolute) se anclaba al contenedor
+        // de TODA la columna (ficha+barras+nombre) y salía alargado — el
+        // «recuadro multicolor que no cuadra».
+        className={`relative w-11 h-11 rounded-xl overflow-hidden grid place-items-center transition ${
           rarityOf(player) === 4 && !highlight ? '' : 'border-2'
         } ${highlight ? 'scale-110 ring-2 ring-amber-300' : ''}`}
         style={{

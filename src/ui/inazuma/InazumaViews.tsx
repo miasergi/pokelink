@@ -1007,7 +1007,7 @@ function PlayerDetail({
           {!player.captain && !blocked && !confirmSale && (
             <Button variant="danger" full onClick={() => setConfirmSale(true)}>
               <span className="inline-flex items-center justify-center gap-1.5">
-                Vender · {fee.toLocaleString('es-ES')} ₽ +
+                Vender · {fee.toLocaleString('es-ES')} ₽ + {rarityOf(player)}×
                 <ItemIcon itemId="medalla-rareza" className="w-4 h-4" />
               </span>
             </Button>
@@ -1017,10 +1017,10 @@ function PlayerDetail({
           <div className="mt-2 rounded-xl border border-rose-600/60 bg-rose-500/10 p-3">
             <p className="text-[12px] text-rose-200 mb-2">
               ¿Seguro? {base.name} se va para siempre. Te llevas{' '}
-              <b>{fee.toLocaleString('es-ES')} ₽</b> y una{' '}
+              <b>{fee.toLocaleString('es-ES')} ₽</b> y{' '}
               <b className="inline-flex items-center gap-1">
-                <ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" /> Medalla de talento
-              </b>.
+                {rarityOf(player)}× <ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" /> Medalla de talento
+              </b>{' '}(una por rareza).
             </p>
             <div className="flex gap-2">
               <Button variant="ghost" full onClick={() => setConfirmSale(false)}>Se queda</Button>

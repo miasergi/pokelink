@@ -12,24 +12,33 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ItemIcon, rarityBorder, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, ItemIcon, rarityBorder, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
-import { getPlayerBase } from '@/data/inazuma/players'
+import { getPlayerBase, PLAYERS, TEAM_NAMES } from '@/data/inazuma/players'
+import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import type { PlayerInstance } from '@/engine/inazuma/types'
+
+/** Nombre visible del equipo de origen (institutos, extras o agente libre). */
+const TEAM_LABEL = (teamId: string): string =>
+  TEAM_BY_ID.get(teamId)?.name ?? TEAM_NAMES[teamId] ?? (teamId === 'libre' ? 'Agente libre' : teamId)
 
 type Pending =
   | { kind: 'item'; id: string }
   | { kind: 'tech'; id: string }
   /** Mejora con varias técnicas mejorables: segundo paso, elegir CUÁL. */
   | { kind: 'mejora-tech'; uid: string }
+  /** Fichaje estrella: buscador sobre el catálogo entero. */
+  | { kind: 'estrella' }
   | null
 
 export default function BagView() {
-  const { save, goTo, equip, useConsumable, teachTechnique } = useInazuma()
+  const { save, goTo, equip, useConsumable, teachTechnique, useFichajeEstrella } = useInazuma()
   const [pending, setPending] = useState<Pending>(null)
+  // Buscador del Fichaje estrella.
+  const [query, setQuery] = useState('')
   if (!save) return null
 
   const empty = !save.bag.length && !save.techniqueBag.length
@@ -49,7 +58,7 @@ export default function BagView() {
 
   /** ¿A quién tiene sentido dárselo? Filtra para no dejar elegir en balde. */
   const eligible = (p: PlayerInstance): string | null => {
-    if (!pending || pending.kind === 'mejora-tech') return null
+    if (!pending || pending.kind === 'mejora-tech' || pending.kind === 'estrella') return null
     if (pending.kind === 'tech') {
       // El motivo REAL (demarcación o elemento), no un mensaje genérico: si a
       // un delantero de fuego no le cabe una técnica de bosque, hay que decirlo.
@@ -71,7 +80,7 @@ export default function BagView() {
   }
 
   const apply = (uid: string) => {
-    if (!pending || pending.kind === 'mejora-tech') return
+    if (!pending || pending.kind === 'mejora-tech' || pending.kind === 'estrella') return
     const kind = getItem(pending.id)?.kind
     if (pending.kind === 'tech') { teachTechnique(pending.id, uid); setPending(null); return }
     if (kind === 'equipo' || kind === 'raro') { equip(uid, pending.id); setPending(null); return }
@@ -147,7 +156,11 @@ export default function BagView() {
               const item = getItem(id)
               if (!item) return null
               return (
-                <Card key={id} className="p-3" onClick={() => setPending({ kind: 'item', id })}>
+                <Card
+                  key={id}
+                  className="p-3"
+                  onClick={() => setPending(id === 'fichaje-estrella' ? { kind: 'estrella' } : { kind: 'item', id })}
+                >
                   <div className="flex items-center gap-2.5">
                     <ItemIcon itemId={id} className="w-6 h-6 shrink-0 text-slate-300" />
                     <div className="min-w-0 flex-1">
@@ -183,7 +196,62 @@ export default function BagView() {
             >
               <Icon name="x" className="w-4 h-4" />
             </button>
-            {pending.kind === 'mejora-tech' ? (() => {
+            {pending.kind === 'estrella' ? (() => {
+              // FICHAJE ESTRELLA: buscador sobre el catálogo entero (los que
+              // ya tienes no salen).
+              const owned = new Set(save.roster.map((p) => p.baseId))
+              const q = query.trim().toLowerCase()
+              const pool = PLAYERS.filter((b) => !owned.has(b.id))
+              const hits = (q ? pool.filter((b) => b.name.toLowerCase().includes(q)) : pool).slice(0, 30)
+              return (
+                <>
+                  <div className="font-extrabold text-center">Fichaje estrella</div>
+                  <p className="text-[11px] text-slate-400 text-center mb-2">
+                    Busca al jugador EXACTO que quieres: llega en Normal, al nivel de tu plantilla.
+                  </p>
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Nombre del jugador…"
+                    className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-[13px] outline-none focus:border-amber-500/60"
+                  />
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
+                    {hits.map((b) => {
+                      const info = ELEMENT_INFO[b.element]
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => { useFichajeEstrella(b.id); setPending(null); setQuery('') }}
+                          className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98] transition"
+                        >
+                          <span className="w-9 h-9 shrink-0 rounded-lg overflow-hidden border border-slate-600 grid place-items-center bg-slate-900">
+                            <img
+                              src={`${import.meta.env.BASE_URL}inazuma/players/${b.id}.png`}
+                              className="w-full h-full object-cover object-top"
+                              alt={b.name}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+                            />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13px] font-bold truncate">{b.name}</span>
+                            <span className="text-[10px] text-slate-400 inline-flex items-center gap-1">
+                              {b.position}
+                              <Icon name={ELEMENT_ICON[b.element]} className="w-3 h-3" style={{ color: info.color }} />
+                              {TEAM_LABEL(b.team)}
+                            </span>
+                          </span>
+                          <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
+                        </button>
+                      )
+                    })}
+                    {!hits.length && (
+                      <div className="text-center text-[11px] text-slate-500 py-6">Nadie se llama así (o ya es tuyo).</div>
+                    )}
+                  </div>
+                </>
+              )
+            })() : pending.kind === 'mejora-tech' ? (() => {
               // PASO 2 de la Mejora: elegir QUÉ técnica sube de nivel.
               const p = save.roster.find((x) => x.uid === pending.uid)
               if (!p) return null

@@ -20,7 +20,7 @@ import { fatigueMultiplier } from './roster'
 import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
 import type {
   Actor, ChainStep, Decision, DecisionMode, DecisionOption, Element, MatchEvent, MatchSide,
-  MatchState, ShootoutState, Side, Technique,
+  MatchState, Position, ShootoutState, Side, Technique,
 } from './types'
 
 /** Posesiones por partido. Con la conversión actual salen resultados 0-4. */
@@ -70,6 +70,13 @@ export function createMatch(cfg: MatchConfig, rng: RNG): MatchState {
     halftimeDone: false,
     decisionMode: cfg.decisionMode ?? 'dinamico',
     subsLeft: 3,
+    subbedOut: [],
+    // El once inicial del USUARIO ya «participa»: cobra niveles completos
+    // aunque luego lo cambien (ver `applyMatchResult`).
+    participants: (() => {
+      const s = cfg.home.isPlayer ? cfg.home : cfg.away
+      return [s.keeper, ...s.defs, ...s.mids, ...s.fwds].map((a) => a.uid)
+    })(),
     stage: 'reglamentario',
     shootout: null,
     events: [{ kind: 'kickoff', minute: 0 }],
@@ -338,6 +345,23 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   //    una decisión que tomar.
   const mine = playerSide(m)
   const iAttack = chain.side === mine
+
+  // La SUPERVIBRACIÓN del rival la enciende su banquillo: con la barra a tope
+  // la activa en el acto (tú la tuya, desde el panel). Sin esto el rival
+  // acumulaba Ruptura y no la usaba jamás.
+  const rivalTeam = sideOf(m, otherSide(mine))
+  if (rivalTeam.burst >= 100 && rivalTeam.burstTurns === 0) {
+    rivalTeam.burstTurns = BURST_DURATION
+    rivalTeam.burst = 0
+    // Solo a `out`: `commit` ya vuelca los eventos del latido en `m.events`.
+    out.push({
+      kind: 'burst',
+      minute: m.minute,
+      side: otherSide(mine),
+      text: `¡${rivalTeam.name} entra en SUPERVIBRACIÓN! Sus próximas ${BURST_DURATION} acciones son gratis.`,
+    })
+  }
+
   // En modo COMPLETO todas las acciones pasan por ti; en dinámico (y en auto,
   // que es dinámico jugado por el banquillo) solo las jugadas con chicha.
   const isDecision = m.decisionMode === 'completo'
@@ -1043,6 +1067,9 @@ function resolvePenalty(
  */
 export function substitute(m: MatchState, outUid: string, incoming: Actor): string | null {
   if (m.subsLeft <= 0) return 'No te quedan cambios.'
+  // Regla de fútbol: el SUSTITUIDO no puede volver, y un cambiado que ya
+  // salió tampoco re-entra por otra vía.
+  if (m.subbedOut?.includes(incoming.uid)) return 'Ya fue sustituido: no puede volver a entrar.'
   const side = sideOf(m, playerSide(m))
   const lines: Actor[][] = [[side.keeper], side.defs, side.mids, side.fwds]
   for (const line of lines) {
@@ -1052,9 +1079,42 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
     if (line === lines[0]) side.keeper = incoming
     else line[i] = incoming
     m.subsLeft -= 1
+    m.subbedOut = [...(m.subbedOut ?? []), outUid]
+    // El que entra también participa: niveles completos al final.
+    if (!m.participants?.includes(incoming.uid)) m.participants = [...(m.participants ?? []), incoming.uid]
     return null
   }
   return 'Ese jugador no está en el campo.'
+}
+
+/**
+ * CAMBIO DE FORMACIÓN en el descanso: recoloca a los MISMOS once en las filas
+ * de la formación nueva (nada de suplentes de repente) — primero cada uno a su
+ * demarcación natural y el resto a rellenar los huecos que queden.
+ */
+export function reformation(m: MatchState, defs: number, mids: number, fwds: number): string | null {
+  const side = sideOf(m, playerSide(m))
+  const field = [...side.defs, ...side.mids, ...side.fwds]
+  if (defs + mids + fwds !== field.length) return 'Esa formación no cuadra con tu once.'
+  const rows: { pos: Position; size: number; out: Actor[] }[] = [
+    { pos: 'DEF', size: defs, out: [] },
+    { pos: 'MED', size: mids, out: [] },
+    { pos: 'DEL', size: fwds, out: [] },
+  ]
+  const left: Actor[] = []
+  for (const a of field) {
+    const row = rows.find((r) => r.pos === a.position && r.out.length < r.size)
+    if (row) row.out.push(a)
+    else left.push(a)
+  }
+  for (const a of left) {
+    const row = rows.find((r) => r.out.length < r.size)!
+    row.out.push(a)
+  }
+  side.defs = rows[0].out.map((a) => ({ ...a, position: 'DEF' as Position }))
+  side.mids = rows[1].out.map((a) => ({ ...a, position: 'MED' as Position }))
+  side.fwds = rows[2].out.map((a) => ({ ...a, position: 'DEL' as Position }))
+  return null
 }
 
 /** Marcador desde el punto de vista del usuario, para cabeceras y resúmenes. */

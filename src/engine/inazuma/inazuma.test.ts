@@ -1074,7 +1074,9 @@ describe('coherencia', () => {
         const after = effectiveStats({ ...p, item: item.id })
         const sube = (Object.keys(after) as (keyof typeof after)[]).some((k) => after[k] > before[k])
         expect(sube, `${item.id} no sube nada`).toBe(true)
-      } else if (item.id !== 'mejora' && item.id !== 'manual-avanzado') {
+      } else if (item.id !== 'mejora' && item.id !== 'manual-avanzado' && item.id !== 'fichaje-estrella') {
+        // (El Fichaje estrella no entra aquí: se resuelve con su propio
+        // buscador en el store — `useFichajeEstrella` —, no con un uid.)
         // Consumibles y comida: aplicados a un jugador gastado, no fallan y
         // gastan el objeto de la mochila.
         const s2 = {

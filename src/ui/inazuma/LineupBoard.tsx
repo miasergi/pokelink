@@ -87,10 +87,10 @@ function Chip({ chip, onTap }: { chip: BoardChip; onTap?: (c: BoardChip) => void
     >
       <div className="relative">
         <div
-          // Rareza 4: SIN borde (el anillo ES el borde). Con `border-2`
-          // transparente, el anillo (que vive en la caja de padding) quedaba
-          // 2px metido hacia dentro y el marco se veía DESCUADRADO.
-          className={`w-11 h-11 rounded-xl overflow-hidden grid place-items-center ${chip.rarity === 4 ? '' : 'border-2'}`}
+          // Rareza 4: SIN borde (el anillo ES el borde) y RELATIVE, para que
+          // el anillo (absolute) se ancle a ESTA caja y no a un ancestro más
+          // alto — sin ello salía alargado y descuadrado.
+          className={`relative w-11 h-11 rounded-xl overflow-hidden grid place-items-center ${chip.rarity === 4 ? '' : 'border-2'}`}
           style={chip.rarity === 4
             ? { background: '#0f172a' }
             : chip.rarity != null

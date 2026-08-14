@@ -13,7 +13,7 @@ import { useGame } from '@/state/gameStore'
 import { clearInazuma, loadInazuma, loadMeta, saveInazuma, saveMeta } from '@/persistence/db'
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
-import { getItem } from '@/data/inazuma/items'
+import { getItem, lootPool } from '@/data/inazuma/items'
 import { getEvent } from '@/data/inazuma/events'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
@@ -23,12 +23,12 @@ import {
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, playerScore, substitute } from '@/engine/inazuma/match'
+import { advance, chooseOption, playerScore, reformation, substitute } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
-import { availableSignings, buildScoutOffer, buildSingleReward } from '@/engine/inazuma/rewards'
+import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  RARITY_LABEL, rarityOf, rivalRarity, transferValue, upgradeTechnique,
+  MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarity, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -302,6 +302,8 @@ interface InazumaState {
   halftimeUseItem: (itemId: string, actorUid: string) => void
   /** Cambio en el descanso: sale `outUid` del campo, entra `benchUid`. */
   halftimeSubstitute: (outUid: string, benchUid: string) => void
+  /** Cambia la FORMACIÓN en el descanso: recoloca a los mismos once. */
+  halftimeFormation: (formationId: string) => void
   /** Carta de un jugador para ENSEÑAR (p. ej. el que llega en un intercambio). */
   revealPlayer: { uid: string; title: string } | null
   clearRevealPlayer: () => void
@@ -322,6 +324,8 @@ interface InazumaState {
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
+  /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
+  useFichajeEstrella: (baseId: string) => void
   teachTechnique: (techId: string, uid: string) => void
   setFormation: (id: string) => void
   pauseAtHalftime: () => void
@@ -472,14 +476,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     switch (node.kind) {
 
       case 'objeto': {
-        // Se elige UN objeto de los que trae la casilla. SOLO objetos: las
-        // supertécnicas tienen su propia casilla (y colarlas aquí confundía —
-        // «en la casilla objeto me siguen saliendo supertécnicas»).
+        // Se elige UN objeto de TRES. SOLO objetos: las supertécnicas tienen
+        // su propia casilla. El mapa trae dos; el tercero sale del botín de la
+        // ronda (los mapas viejos solo guardaban dos ids).
         const options: DraftOption[] = []
         for (const id of [node.itemId, node.itemId2]) {
           const item = id ? getItem(id) : undefined
           if (item) options.push({ kind: 'objeto', id: `node-item-${item.id}`, title: item.name, desc: item.desc, itemId: item.id })
         }
+        const extraPool = lootPool(bossIndexForLayer(next.layer))
+          .filter((i) => i.id !== node.itemId && i.id !== node.itemId2)
+        const extra = extraPool[getRng(next).int(0, extraPool.length - 1)]
+        if (extra) options.push({ kind: 'objeto', id: `node-item-${extra.id}`, title: extra.name, desc: extra.desc, itemId: extra.id })
         if (options.length) {
           advanceLayer(next, node)
           set({ save: next, matchNode: null, draft: options, draftPicks: 1, draftFromMatch: false, phase: 'draft' })
@@ -794,22 +802,23 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
     void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
-    // Se CUENTA la subida de nivel: en los playtests nadie sabía de dónde
-    // salían los niveles al volver al vestuario.
+    // RECOMPENSA FIJA, sin carta al azar: dinero + niveles (ya aplicados en
+    // `applyMatchResult`) + 3 medallas + UN objeto random directo a la
+    // mochila. La carta de antes a veces obligaba a decidir destinatarios en
+    // el acto y rompía el ritmo.
     const gained = LEVELS_BY_RESULT[result]
+    const pool = lootPool(bossIndexForLayer(next.layer))
+    const prize = pool[getRng(next).int(0, pool.length - 1)]
+    if (prize) next.bag = [...next.bag, prize.id]
     set({
       save: next,
-      // Una sola carta, al azar: se probó con tres a elegir y cortaba el ritmo
-      // justo después del partido.
-      draft: [buildSingleReward(next, getRng(next))],
-      draftPicks: 1,
-      draftFromMatch: true,
-      phase: 'draft',
+      phase: 'map',
       match: null,
       matchNode: null,
-      message: `Los que jugaron suben +${gained} niveles; el banquillo, +${Math.max(0, gained - 1)}.`,
+      message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · 3 Medallas de talento`
+        + (prize ? ` · ${prize.name} a la mochila` : ''),
     })
-    void persist(next, 'draft')
+    void persist(next, 'map')
   },
 
   // -------------------------------------------------------- recompensas ----
@@ -827,11 +836,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
 
-    // Estas dos necesitan que señales a quién. El selector vive en el vestuario,
-    // así que hay que LLEVAR ahí: antes solo se guardaba el objetivo y la
-    // pantalla de recompensa se quedaba clavada sin decir nada.
-    if (opt.kind === 'entrenamiento' || opt.kind === 'tecnica') {
-      set({ pendingTarget: opt, phase: 'squad' })
+    // NADA de elegir destinatario en el acto («me pone que debo dar ya»): las
+    // técnicas van a la mochila SIEMPRE, y el entrenamiento se convierte en su
+    // plan equivalente (también a la mochila) para gastarlo cuando quieras.
+    if (opt.kind === 'tecnica') {
+      const next = { ...save, techniqueBag: [...save.techniqueBag, opt.techniqueId] }
+      closeDraft(set, next, draft, draftPicks, optionId,
+        `${getTechnique(opt.techniqueId)?.name ?? 'Supertécnica'} a la mochila.`)
+      return
+    }
+    if (opt.kind === 'entrenamiento') {
+      const itemId = opt.levels >= 4 ? 'plan-intensivo' : 'plan-entrenamiento'
+      const next = { ...save, bag: [...save.bag, itemId] }
+      closeDraft(set, next, draft, draftPicks, optionId, `${getItem(itemId)?.name} a la mochila.`)
       return
     }
 
@@ -951,6 +968,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       match: { ...match },
       message: `${incoming.name} entra por ${out.name}. Quedan ${match.subsLeft} cambios.`,
     })
+  },
+
+  halftimeFormation: (formationId) => {
+    const { match, save } = get()
+    if (!match || !save || !get().halftimeBreak) return
+    const f = getFormation(formationId)
+    const err = reformation(match, f.defs, f.mids, f.fwds)
+    if (err) { set({ message: err }); return }
+    play('select')
+    // También queda como formación de la partida: es la que verás al volver
+    // al vestuario.
+    const nextSave = { ...save, formation: formationId }
+    set({ match: { ...match }, save: nextSave, message: `Formación: ${f.name}.` })
+    void persist(nextSave, get().phase)
   },
 
   /**
@@ -1260,6 +1291,32 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, get().phase)
   },
 
+  useFichajeEstrella: (baseId) => {
+    const { save } = get()
+    if (!save) return
+    const i = save.bag.indexOf('fichaje-estrella')
+    if (i < 0) { set({ message: 'No llevas ningún Fichaje estrella.' }); return }
+    if (save.roster.length >= ROSTER_MAX) {
+      set({ message: `Tu plantilla está llena (${ROSTER_MAX}). Traspasa a alguien antes.` })
+      return
+    }
+    if (save.roster.some((p) => p.baseId === baseId)) { set({ message: 'Ya está en tu plantilla.' }); return }
+    const nuevo = createPlayer(baseId, signingLevel(save), { rarity: 1 })
+    const next: InazumaSave = {
+      ...save,
+      bag: save.bag.filter((_, k) => k !== i),
+      roster: [...save.roster, nuevo],
+    }
+    play('levelup')
+    void persistInazumaMeta({ signed: [baseId] })
+    set({
+      save: next,
+      revealPlayer: { uid: nuevo.uid, title: `¡El ojeador lo ha conseguido! Llega…` },
+      message: `${getPlayerBase(baseId).name} firma por tu equipo.`,
+    })
+    void persist(next, get().phase)
+  },
+
   useConsumable: (itemId, uid, choiceId) => {
     const { save } = get()
     if (!save) return
@@ -1362,18 +1419,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // Traspasar PAGA: antes solo borraba al jugador, que es todo coste y ningún
     // motivo para hacerlo.
     const fee = transferValue(getPlayerBase(p.baseId), p.level)
+    // Y deja MEDALLAS según la rareza del vendido (Normal 1 … Legendario 4):
+    // la inversión hecha en el jugador se recupera en material de rareza.
+    const medals = Math.max(1, Math.min(MAX_RARITY, rarityOf(p)))
     const next = {
       ...save,
       roster,
       coins: save.coins + fee,
-      // El traspaso además deja una MEDALLA DE TALENTO: vender alimenta el
-      // sistema de rarezas, no solo la caja.
-      bag: [...save.bag, 'medalla-rareza'],
+      bag: [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')],
       lineup: lineup.length ? lineup : autoLineup(roster, save.formation),
     }
     set({
       save: next,
-      message: `${getPlayerBase(p.baseId).name} traspasado por ${fee.toLocaleString('es-ES')} ₽.`,
+      message: `${getPlayerBase(p.baseId).name} traspasado por ${fee.toLocaleString('es-ES')} ₽ y ${medals} medalla${medals > 1 ? 's' : ''}.`,
     })
     void persist(next, get().phase)
   },

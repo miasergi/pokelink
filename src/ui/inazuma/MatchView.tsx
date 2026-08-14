@@ -81,11 +81,15 @@ export default function MatchView() {
           1900,
         )
       }
-    } else if (last.kind === 'duel' && (last.technique || last.counter || last.step === 'definicion')) {
-      // Cinemática SOLO para los lances con chicha: técnicas de por medio,
-      // tiros y penaltis. Los duelos a pelo se resuelven sobre el césped y el
-      // ticker — escenificarlo todo hacía el partido ilegible por exceso de
-      // cinemáticas (se probó y se revirtió).
+    } else if (
+      last.kind === 'duel'
+      && (last.step === 'definicion' || ((last.technique || last.counter) && last.step !== 'construccion'))
+    ) {
+      // Cinemática SOLO para lo gordo: tiros/penaltis siempre, y duelos con
+      // técnica en TRES CUARTOS. La salida de balón (aunque lleve técnica) y
+      // los duelos a pelo se cuentan en el CÉSPED — el partido en vivo es el
+      // protagonista, no una cadena de cortes. El pase tampoco corta: su
+      // vuelo se ve en el campo.
       setStage({
         key: feed.length,
         attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
@@ -95,18 +99,6 @@ export default function MatchView() {
         attackerCrest: crestOf(last.side === mine),
         defenderCrest: crestOf(last.side !== mine),
         kind: last.step === 'definicion' ? 'tiro' : 'regate',
-      })
-    } else if (last.kind === 'possession' && last.passFromUid && last.passToUid) {
-      // El PASE también se cuenta en grande: quién la da y quién la recibe.
-      setStage({
-        key: feed.length,
-        attacker: { name: actorByUid(match, last.passFromUid)?.name ?? '', baseId: actorByUid(match, last.passFromUid)?.baseId, rarity: actorByUid(match, last.passFromUid)?.rarity },
-        defender: { name: actorByUid(match, last.passToUid)?.name ?? '', baseId: actorByUid(match, last.passToUid)?.baseId, rarity: actorByUid(match, last.passToUid)?.rarity },
-        attackerWins: true,
-        attackerMine: last.side === mine,
-        attackerCrest: crestOf(last.side === mine),
-        defenderCrest: crestOf(last.side === mine),
-        kind: 'pase',
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,9 +201,13 @@ export default function MatchView() {
 
       {/* Panel de decisión o controles. La decisión espera a estar AL DÍA y
           sin animación en pantalla: el motor pregunta con eventos aún por
-          contar, y el panel (con su jugada y su rival) los destripaba. */}
+          contar, y el panel (con su jugada y su rival) los destripaba.
+          El panel va POR ENCIMA del césped (overlay): antes entraba en el
+          flujo y el campo se agrandaba/achicaba con cada decisión. */}
       {match.phase === 'decision' && match.decision && caughtUp && !frozen ? (
-        <DecisionPanel decision={match.decision} match={match} onPick={decide} />
+        <div className="absolute inset-x-0 bottom-0 z-40 max-h-[62svh] overflow-y-auto rounded-t-2xl shadow-[0_-12px_30px_rgba(0,0,0,.5)]">
+          <DecisionPanel decision={match.decision} match={match} onPick={decide} />
+        </div>
       ) : finished ? (
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 max-h-[62svh] overflow-y-auto">
           <div className="text-center mb-2">
