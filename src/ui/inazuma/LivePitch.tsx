@@ -8,6 +8,7 @@
 // REGLA DE ORO heredada del mini-campo: todo se deriva del feed REVELADO (o
 // del emparejamiento de la decisión/cinemática en curso), nunca del estado
 // vivo del motor — leerlo destriparía jugadas aún no contadas.
+import { useEffect, useState } from 'react'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
@@ -15,6 +16,17 @@ import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
+
+/**
+ * Ruido determinista en [-1, 1] por (jugador, latido, canal): el «jogging»
+ * táctico de cada uno. Determinista para que un re-render no teletransporte.
+ */
+function noise(uid: string, beat: number, k: number): number {
+  let h = (2166136261 ^ (beat * 101 + k * 17)) >>> 0
+  for (const ch of uid) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
+  h = h >>> 0
+  return ((h % 1000) / 1000) * 2 - 1
+}
 
 /** Avance del balón (en % de ancho) por eslabón, atacando hacia la DERECHA. */
 const STEP_X: Record<ChainStep, number> = { construccion: 38, penetracion: 60, definicion: 82 }
@@ -57,6 +69,15 @@ export default function LivePitch({ match, feed, current }: {
   const away = sideOf(match, otherSide(mine))
   const myActors = [home.keeper, ...home.defs, ...home.mids, ...home.fwds]
   const theirActors = [away.keeper, ...away.defs, ...away.mids, ...away.fwds]
+
+  // EL LATIDO TÁCTICO: cada ~1.2 s todos reciben un objetivo nuevo (empuje
+  // hacia el balón, desmarque, repliegue) y DESLIZAN hacia él — el campo no
+  // se queda nunca quieto «ondulando»: siempre hay carreras en marcha.
+  const [beat, setBeat] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setBeat((b) => b + 1), 1200)
+    return () => clearInterval(t)
+  }, [])
 
   // El último DUELO revelado manda sobre dónde está el balón; si DESPUÉS hay
   // un PASE revelado, el balón vuela a los pies del receptor (sin cinemática:
@@ -102,7 +123,19 @@ export default function LivePitch({ match, feed, current }: {
       if (a.position === 'POR') return base
       return { x: Math.max(4, Math.min(96, ballX + (isMine ? -7 : 7))), y: base.y * 0.6 + 20 }
     }
-    return { x: Math.max(4, Math.min(96, base.x + shift(isMine) * dir)), y: base.y }
+    // El resto JUEGA al fútbol: su ancla + el vuelco de la posesión + una
+    // carrera nueva en cada latido — desmarques laterales, apoyos hacia el
+    // balón, repliegues. El portero solo se pasea por su área.
+    if (a.position === 'POR') {
+      return { x: base.x, y: Math.max(30, Math.min(70, base.y + noise(a.uid, beat, 2) * 6)) }
+    }
+    const pull = (ballX - base.x) * (0.10 + 0.08 * Math.abs(noise(a.uid, beat, 3)))
+    const dx = noise(a.uid, beat, 1) * 3.5 + pull
+    const dy = noise(a.uid, beat, 2) * 5
+    return {
+      x: Math.max(4, Math.min(96, base.x + shift(isMine) * dir + dx)),
+      y: Math.max(7, Math.min(93, base.y + dy)),
+    }
   }
 
   // Punto del balón: en los pies del que lo lleva (o el centro sin jugada).
@@ -110,7 +143,9 @@ export default function LivePitch({ match, feed, current }: {
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
     : null
-  const ball = carrierSpot ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 } : { x: 50, y: 50 }
+  const ball = carrierSpot
+    ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
+    : { x: 50 + noise('ball', beat, 1) * 5, y: 50 + noise('ball', beat, 2) * 7 }
 
   const danger = step === 'definicion'
 
@@ -194,11 +229,14 @@ function LiveDot({ actor, spot, teamColor, carrier, marker }: {
   const drift = ['live-drift-a', 'live-drift-b', 'live-drift-c'][h % 3]
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-out"
+      className="absolute -translate-x-1/2 -translate-y-1/2 transition-all ease-in-out"
       style={{
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
+        // Los de la jugada, rápidos y sin retardo; el resto desliza LARGO
+        // (cubre casi todo el latido táctico: carrera continua, no saltitos).
+        transitionDuration: active ? '600ms' : '1100ms',
         transitionDelay: active ? '0ms' : `${(h % 5) * 70}ms`,
       }}
     >

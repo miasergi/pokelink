@@ -743,11 +743,15 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (phase === 'finished') { set({ playing: false }); return }
     if (phase === 'decision') {
       if (!autoPlay) { set({ playing: false, match: { ...match } }); return }
-      // Auto: la opción con más estrellas y, a igualdad, la más barata en PT.
+      // Auto: por la probabilidad REAL de cada opción, no por estrellas — las
+      // estrellas son un redondeo a tres tramos y empataban casi siempre, con
+      // lo que el desempate «más barata» hacía jugar A PELO al banquillo
+      // mientras el rival sí armaba técnicas. Mismo criterio que el bot con
+      // el que se mide el balance.
       const best = (match.decision?.options ?? [])
         .filter((o) => !o.disabled)
         .slice()
-        .sort((a, b) => b.odds - a.odds || a.cost - b.cost)[0]
+        .sort((a, b) => b.chance - a.chance || a.cost - b.cost)[0]
       if (best) get().decide(best.id)
       return
     }
