@@ -16,7 +16,7 @@ import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
 import { getItem, lootPool } from '@/data/inazuma/items'
 import { getEvent } from '@/data/inazuma/events'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { getTechnique, techniquePrice } from '@/data/inazuma/techniques'
+import { getTechnique } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult,
   applyPachangaResult, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnSignature,
@@ -326,13 +326,13 @@ interface InazumaState {
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
   /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
   useFichajeEstrella: (baseId: string) => void
-  teachTechnique: (techId: string, uid: string) => void
+  /** Convierte técnicas sueltas de partidas viejas en Manuales avanzados. */
+  convertLegacyTechniques: () => void
   setFormation: (id: string) => void
   pauseAtHalftime: () => void
   resumePausedMatch: () => void
   release: (uid: string) => void
   buy: (itemId: string) => void
-  buyTechnique: (techId: string) => void
 }
 
 export const useInazuma = create<InazumaState>((set, get) => ({
@@ -497,13 +497,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         break
       }
       case 'tecnica':
-        // Va a la MOCHILA. Antes obligaba a elegir destinatario en el acto, y
-        // eso es una decisión que casi siempre quieres tomar después de ver la
-        // plantilla — ahora se guarda y se enseña cuando te venga bien.
-        if (node.techniqueId) {
-          next.techniqueBag = [...next.techniqueBag, node.techniqueId]
-          message = `${getTechnique(node.techniqueId)?.name} guardada en la mochila.`
-        }
+        // LEGADO (mapas viejos): las técnicas sueltas ya no existen — solo se
+        // aprende por CADENA. La casilla vieja paga con un Manual avanzado,
+        // que es cadena embotellada.
+        next.bag = [...next.bag, 'manual-avanzado']
+        message = 'Manual avanzado a la mochila (avanza la cadena de un jugador).'
         break
       case 'evento':
         // La situación se resuelve en su propia pantalla: hay que elegir.
@@ -828,21 +826,12 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const opt = draft.find((o) => o.id === optionId)
     if (!opt) return
 
-    // La técnica «a la mochila» no necesita destinatario: se guarda y listo.
-    if (opt.kind === 'tecnica' && opt.toBag) {
-      const next = { ...save, techniqueBag: [...save.techniqueBag, opt.techniqueId] }
-      closeDraft(set, next, draft, draftPicks, optionId,
-        `${getTechnique(opt.techniqueId)?.name ?? 'Supertécnica'} a la mochila.`)
-      return
-    }
-
-    // NADA de elegir destinatario en el acto («me pone que debo dar ya»): las
-    // técnicas van a la mochila SIEMPRE, y el entrenamiento se convierte en su
-    // plan equivalente (también a la mochila) para gastarlo cuando quieras.
+    // Las técnicas SUELTAS ya no existen (solo cadenas): cualquier carta vieja
+    // de técnica paga con un Manual avanzado, y el entrenamiento se convierte
+    // en su plan equivalente — todo a la mochila, nada de destinatarios ya.
     if (opt.kind === 'tecnica') {
-      const next = { ...save, techniqueBag: [...save.techniqueBag, opt.techniqueId] }
-      closeDraft(set, next, draft, draftPicks, optionId,
-        `${getTechnique(opt.techniqueId)?.name ?? 'Supertécnica'} a la mochila.`)
+      const next = { ...save, bag: [...save.bag, 'manual-avanzado'] }
+      closeDraft(set, next, draft, draftPicks, optionId, 'Manual avanzado a la mochila.')
       return
     }
     if (opt.kind === 'entrenamiento') {
@@ -1149,33 +1138,21 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     get().tick()
   },
 
-  /** Enseña a un jugador una supertécnica guardada en la mochila. */
-  teachTechnique: (techId, uid) => {
+  /**
+   * Vacía la mochila de técnicas de una partida VIEJA: cada técnica suelta se
+   * convierte en un Manual avanzado (las técnicas solo se aprenden por
+   * CADENA desde que se suprimieron los objetos de supertécnica).
+   */
+  convertLegacyTechniques: () => {
     const { save } = get()
-    if (!save) return
-    const i = save.techniqueBag.indexOf(techId)
-    if (i < 0) return
-    const target = save.roster.find((p) => p.uid === uid)
-    if (!target) return
-    if (!canLearn(target, techId)) {
-      set({ message: 'Esa técnica no es de su demarcación.' })
-      return
-    }
-    const bag = save.techniqueBag.slice()
-    bag.splice(i, 1)
-    const techs = target.techniques.slice()
-    // Con los 4 huecos llenos se descarta la más antigua.
-    if (techs.length >= TECHNIQUE_SLOTS) techs.shift()
-    techs.push(techId)
+    if (!save || !save.techniqueBag.length) return
+    const n = save.techniqueBag.length
     const next = {
       ...save,
-      techniqueBag: bag,
-      roster: save.roster.map((p) => (p.uid === uid ? { ...p, techniques: techs } : p)),
+      techniqueBag: [],
+      bag: [...save.bag, ...Array.from({ length: n }, () => 'manual-avanzado')],
     }
-    set({
-      save: next,
-      message: `${getPlayerBase(target.baseId).name} aprende ${getTechnique(techId)?.name}.`,
-    })
+    set({ save: next, message: `${n} técnica${n > 1 ? 's' : ''} suelta${n > 1 ? 's' : ''} convertida${n > 1 ? 's' : ''} en Manual avanzado.` })
     void persist(next, get().phase)
   },
 
@@ -1437,18 +1414,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   },
 
   /** Compra un manual: la técnica va a la MOCHILA, no a un jugador. */
-  buyTechnique: (techId) => {
-    const { save } = get()
-    if (!save) return
-    const t = getTechnique(techId)
-    if (!t) return
-    const price = techniquePrice(t)
-    if (save.coins < price) { set({ message: 'No te llega el presupuesto.' }); return }
-    const next = { ...save, coins: save.coins - price, techniqueBag: [...save.techniqueBag, techId] }
-    set({ save: next, message: `${t.name} a la mochila.` })
-    void persist(next, get().phase)
-  },
-
   buy: (itemId) => {
     const { save } = get()
     if (!save) return

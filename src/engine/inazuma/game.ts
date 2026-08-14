@@ -13,7 +13,7 @@ import {
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
-import { buildScoutOffer, learnableByRoster } from './rewards'
+import { buildScoutOffer } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
@@ -551,11 +551,9 @@ export function applyEventEffect(save: InazumaSave, effect: EventEffect, r: RNG)
       break
     }
     case 'technique': {
-      // Del conjunto que alguien de la plantilla pueda aprender: si no, el
-      // premio se queda en la mochila para siempre.
-      const usable = learnableByRoster(save)
-      const pool = effect.element ? usable.filter((t) => t.element === effect.element) : usable
-      save.techniqueBag.push(r.pick(pool.length ? pool : usable).id)
+      // Las técnicas sueltas ya NO existen (solo se aprende por cadena): el
+      // premio es un Manual avanzado, que avanza la cadena de quien elijas.
+      save.bag.push('manual-avanzado')
       break
     }
     case 'levels':

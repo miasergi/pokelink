@@ -12,8 +12,8 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ELEMENT_ICON, ItemIcon, rarityBorder, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
-import { learnBlocker, signatureNext } from '@/engine/inazuma/game'
+import { ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, techLevel } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
@@ -27,7 +27,6 @@ const TEAM_LABEL = (teamId: string): string =>
 
 type Pending =
   | { kind: 'item'; id: string }
-  | { kind: 'tech'; id: string }
   /** Mejora con varias técnicas mejorables: segundo paso, elegir CUÁL. */
   | { kind: 'mejora-tech'; uid: string }
   /** Fichaje estrella: buscador sobre el catálogo entero. */
@@ -35,7 +34,7 @@ type Pending =
   | null
 
 export default function BagView() {
-  const { save, goTo, equip, useConsumable, teachTechnique, useFichajeEstrella } = useInazuma()
+  const { save, goTo, equip, useConsumable, convertLegacyTechniques, useFichajeEstrella } = useInazuma()
   const [pending, setPending] = useState<Pending>(null)
   // Buscador del Fichaje estrella.
   const [query, setQuery] = useState('')
@@ -58,12 +57,7 @@ export default function BagView() {
 
   /** ¿A quién tiene sentido dárselo? Filtra para no dejar elegir en balde. */
   const eligible = (p: PlayerInstance): string | null => {
-    if (!pending || pending.kind === 'mejora-tech' || pending.kind === 'estrella') return null
-    if (pending.kind === 'tech') {
-      // El motivo REAL (demarcación o elemento), no un mensaje genérico: si a
-      // un delantero de fuego no le cabe una técnica de bosque, hay que decirlo.
-      return learnBlocker(p, pending.id)
-    }
+    if (!pending || pending.kind !== 'item') return null
     if (pending.id === 'mejora') {
       return p.techniques.some((t) => canUpgradeTechnique(p, t)) ? null : 'Sin técnicas que mejorar'
     }
@@ -80,9 +74,8 @@ export default function BagView() {
   }
 
   const apply = (uid: string) => {
-    if (!pending || pending.kind === 'mejora-tech' || pending.kind === 'estrella') return
+    if (!pending || pending.kind !== 'item') return
     const kind = getItem(pending.id)?.kind
-    if (pending.kind === 'tech') { teachTechnique(pending.id, uid); setPending(null); return }
     if (kind === 'equipo' || kind === 'raro') { equip(uid, pending.id); setPending(null); return }
     if (pending.id === 'mejora') {
       // Con más de una técnica mejorable, la elección es del jugador: antes
@@ -110,41 +103,23 @@ export default function BagView() {
           <div className="text-center text-slate-500 text-sm py-10">
             La mochila está vacía.<br />
             <span className="text-[11px] text-slate-600">
-              Las casillas de objeto y de supertécnica del mapa la van llenando.
+              Las casillas de objeto del mapa la van llenando.
             </span>
           </div>
         )}
 
+        {/* Las técnicas sueltas están SUPRIMIDAS (solo se aprende por cadena):
+            si una partida vieja aún guarda alguna, se cambian por Manuales. */}
         {save.techniqueBag.length > 0 && (
-          <>
-            <div className="text-[11px] uppercase tracking-widest text-slate-500">
-              Supertécnicas · {save.techniqueBag.length}
-            </div>
-            {grouped(save.techniqueBag).map(({ id, count }) => {
-              const t = getTechnique(id)
-              if (!t) return null
-              const info = ELEMENT_INFO[t.element]
-              return (
-                <Card key={id} className="p-3" onClick={() => setPending({ kind: 'tech', id })}>
-                  <div className="flex items-center gap-2.5">
-                    <TechniqueBadge tech={t} size={40} />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: info.color }}>
-                        <TechIcons tech={t} className="w-3.5 h-3.5" />
-                        {t.name}
-                        {count > 1 && <span className="text-[11px] font-extrabold text-amber-300">×{count}</span>}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {KIND_LABEL[t.kind]} · potencia {t.power} · {t.cost} PT
-                      </div>
-                      {t.desc && <div className="text-[10px] text-slate-500 italic mt-0.5">{t.desc}</div>}
-                    </div>
-                    <span className="text-[10px] text-emerald-300 shrink-0">Enseñar ›</span>
-                  </div>
-                </Card>
-              )
-            })}
-          </>
+          <button
+            onClick={convertLegacyTechniques}
+            className="rounded-xl border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-left text-[12px] text-amber-200 active:scale-[0.99] transition"
+          >
+            <b>{save.techniqueBag.length} supertécnica{save.techniqueBag.length > 1 ? 's' : ''} suelta{save.techniqueBag.length > 1 ? 's' : ''} de una versión anterior.</b>
+            <span className="block text-[11px] text-slate-300">
+              Las técnicas ya solo se aprenden por CADENA: toca para cambiarlas por Manuales avanzados.
+            </span>
+          </button>
         )}
 
         {save.bag.length > 0 && (
@@ -287,14 +262,8 @@ export default function BagView() {
               )
             })() : (
               <>
-                <div className="font-extrabold text-center">
-                  {pending.kind === 'tech' ? getTechnique(pending.id)?.name : getItem(pending.id)?.name}
-                </div>
-                <p className="text-[11px] text-slate-400 text-center mb-2">
-                  {pending.kind === 'tech'
-                    ? 'Solo puede aprenderla quien comparta demarcación y elemento con la técnica'
-                    : 'Elige a quién se lo das'}
-                </p>
+                <div className="font-extrabold text-center">{getItem(pending.id)?.name}</div>
+                <p className="text-[11px] text-slate-400 text-center mb-2">Elige a quién se lo das</p>
                 {/* La REGLA de la medalla, delante: sin esto, «pide 3
                     medallas» parecía un capricho («no entiendo esto»). */}
                 {pending.kind === 'item' && pending.id === 'medalla-rareza' && (

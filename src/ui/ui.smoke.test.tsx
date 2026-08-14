@@ -138,7 +138,9 @@ describe('render de pantallas (smoke)', () => {
     })
     const bag = mount(InazumaScreen)
     expect(bag).toContain('Botas Rayo')
-    expect(bag).toContain(TECHNIQUES[0].name)
+    // Las técnicas sueltas están suprimidas: si una partida vieja aún guarda
+    // alguna, la mochila ofrece convertirla en Manual avanzado.
+    expect(bag).toContain('suelta')
 
     useInazuma.setState({ phase: 'stats' })
     expect(mount(InazumaScreen)).toContain(getPlayerBase(save.roster[0].baseId).name)
