@@ -123,7 +123,9 @@ export function duelChance(step: ChainStep, atk: Duelist, def: Duelist, momentum
   // Techo y suelo: ni el mejor delantero del torneo marca siempre, ni el peor
   // suplente pierde todos los duelos. Sin esto, la final contra Zeus sería
   // matemáticamente imposible en cuanto te sacaran 15 niveles.
-  const chance = Math.max(0.08, Math.min(0.92, raw))
+  // 0.06/0.94 (antes 0.08/0.92): un portero CHETADO de verdad tiene que
+  // notarse más — el suelo alto le comía la ventaja en los extremos.
+  const chance = Math.max(0.06, Math.min(0.94, raw))
   return { chance, effectiveness, attackerPower, defenderPower }
 }
 

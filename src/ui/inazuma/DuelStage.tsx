@@ -37,6 +37,8 @@ export interface StageData {
   /** Escudos de cada bando, para saber QUIÉN ataca y quién defiende. */
   attackerCrest?: string
   defenderCrest?: string
+  /** Probabilidad real del atacante (0-1): la barra de suspense la enseña. */
+  chance?: number
   kind: 'regate' | 'tiro' | 'penalti' | 'pase'
 }
 
@@ -228,7 +230,15 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
           />
           {phase === 3 && (
             <div className="absolute inset-x-8 bottom-[10%] z-10 flex flex-col items-center gap-1.5">
-              <div className="text-lg font-black uppercase tracking-widest text-white animate-pulse drop-shadow">¿ENTRA?</div>
+              <div className="text-lg font-black uppercase tracking-widest text-white animate-pulse drop-shadow">
+                ¿ENTRA?
+                {/* La probabilidad REAL del disparo (stats + técnica + elemento
+                    + fatiga + racha): que el desenlace nunca parezca un dado
+                    sin reglas. */}
+                {shown.chance != null && (
+                  <span className="ml-2 text-amber-300">{Math.round(shown.chance * 100)} %</span>
+                )}
+              </div>
               <div className="w-full max-w-xs h-3 rounded-full bg-slate-950/85 border border-white/25 overflow-hidden">
                 <div className="h-full rounded-full animate-suspense" style={{ background: 'linear-gradient(90deg,#38bdf8,#fbbf24,#f43f5e)' }} />
               </div>

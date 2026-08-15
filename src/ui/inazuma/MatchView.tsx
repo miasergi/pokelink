@@ -98,6 +98,7 @@ export default function MatchView() {
         attackerMine: last.side === mine,
         attackerCrest: crestOf(last.side === mine),
         defenderCrest: crestOf(last.side !== mine),
+        chance: last.chance,
         kind: last.step === 'definicion' ? 'tiro' : 'regate',
       })
     }
@@ -173,7 +174,15 @@ export default function MatchView() {
         if (current) stickyPair.current = current
         else if (!caughtUp || frozen) current = stickyPair.current
         else stickyPair.current = null
-        return <LivePitch match={match} feed={shownFeed} current={current} />
+        return (
+          <LivePitch
+            match={match}
+            feed={shownFeed}
+            current={current}
+            myCrest={teamDisplay(save ?? {}).crestId}
+            theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+          />
+        )
       })()}
 
       {/* TICKER: las dos últimas jugadas contadas, sin robarle sitio al campo.

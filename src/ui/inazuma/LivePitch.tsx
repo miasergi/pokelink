@@ -58,11 +58,14 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
   return out
 }
 
-export default function LivePitch({ match, feed, current }: {
+export default function LivePitch({ match, feed, current, myCrest, theirCrest }: {
   match: MatchState
   feed: MatchEvent[]
   /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
   current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null
+  /** Escudos: van de FONDO en la ficha de cada jugador (en vez del color). */
+  myCrest?: string
+  theirCrest?: string
 }) {
   const mine = playerSide(match)
   const home = sideOf(match, mine)
@@ -180,8 +183,14 @@ export default function LivePitch({ match, feed, current }: {
     }
   }
 
-  // Punto del balón: en los pies del que lo lleva (o el centro sin jugada).
-  const ballCarrier = carrierUid ? actorByUid(match, carrierUid) : null
+  // Punto del balón: en los pies del que lo lleva… y CIRCULANDO: sin decisión
+  // ni cinemática encima, cada tercer latido el balón visita a un apoyo y
+  // vuelve (un dame-y-ven cosmético — el partido nunca se queda en seco).
+  const circulateTo = !current && beat % 3 === 2 && supportUids.size
+    ? [...supportUids][0]
+    : null
+  const ballHolderUid = circulateTo ?? carrierUid
+  const ballCarrier = ballHolderUid ? actorByUid(match, ballHolderUid) : null
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
     : null
@@ -219,11 +228,11 @@ export default function LivePitch({ match, feed, current }: {
 
         {/* LOS 22: cada uno hacia su sitio con transición — el movimiento. */}
         {myActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={home.color}
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={home.color} crest={myCrest}
             carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
         ))}
         {theirActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={away.color}
+          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={away.color} crest={theirCrest}
             carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
         ))}
 
@@ -247,10 +256,12 @@ export default function LivePitch({ match, feed, current }: {
  *    izquierda VERDE = aguante (se vacían de arriba abajo);
  *  - debajo, su elemento y su nombre.
  */
-function LiveDot({ actor, spot, teamColor, carrier, marker }: {
+function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
   actor: Actor
   spot: Spot
   teamColor: string
+  /** Escudo del equipo: el FONDO del retrato (si no hay, el color). */
+  crest?: string
   carrier?: boolean
   marker?: boolean
 }) {
@@ -277,8 +288,9 @@ function LiveDot({ actor, spot, teamColor, carrier, marker }: {
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
         // Los de la jugada, rápidos y sin retardo; el resto desliza LARGO
-        // (cubre casi todo el latido táctico: carrera continua, no saltitos).
-        transitionDuration: active ? '600ms' : '1100ms',
+        // (cubre el latido táctico casi entero: carrera CONTINUA, sin el
+        // «se para todo en seco» entre latidos).
+        transitionDuration: active ? '600ms' : '1500ms',
         transitionDelay: active ? '0ms' : `${(h % 5) * 70}ms`,
       }}
     >
@@ -288,16 +300,25 @@ function LiveDot({ actor, spot, teamColor, carrier, marker }: {
         className={`rounded-full p-[3px] transition-all ${active ? 'scale-110' : ''}`}
         style={{ background: gauge, boxShadow: carrier ? `0 0 10px ${info.color}` : undefined }}
       >
-        {/* borde de rareza + retrato sobre el color del equipo */}
+        {/* borde de rareza + retrato sobre el ESCUDO del equipo (o su color) */}
         <div
           className={`relative rounded-full overflow-hidden border-2 grid place-items-center ${active ? 'w-8 h-8' : 'w-7 h-7'}`}
           style={{ borderColor: ring, background: teamColor }}
         >
+          {crest && (
+            <img
+              src={`${import.meta.env.BASE_URL}inazuma/teams/${crest}.png`}
+              alt=""
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-cover opacity-90"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
           <ImgFallback
             src={portraitUrl(actor.baseId)}
-            className="w-full h-full object-cover object-top"
+            className="relative w-full h-full object-cover object-top"
             alt={actor.name}
-            fallback={<span className="text-[9px] font-extrabold text-white">
+            fallback={<span className="relative text-[9px] font-extrabold text-white">
               {actor.name.slice(0, 2).toUpperCase()}
             </span>}
           />

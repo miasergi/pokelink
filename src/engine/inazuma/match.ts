@@ -453,6 +453,9 @@ function executeDuel(
     element: atkTech?.element ?? attacker.element,
     effectiveness: r.effectiveness,
     success: r.success,
+    // La probabilidad REAL con la que se tiró: la cinemática la enseña para
+    // que el desenlace nunca parezca arbitrario.
+    chance: r.chance,
     text: duelText(step, attacker, defender, atkTech, defTech, r.success, r.effectiveness),
   })
 
