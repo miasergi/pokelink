@@ -70,12 +70,13 @@ export default function LivePitch({ match, feed, current }: {
   const myActors = [home.keeper, ...home.defs, ...home.mids, ...home.fwds]
   const theirActors = [away.keeper, ...away.defs, ...away.mids, ...away.fwds]
 
-  // EL LATIDO TÁCTICO: cada ~1.2 s todos reciben un objetivo nuevo (empuje
-  // hacia el balón, desmarque, repliegue) y DESLIZAN hacia él — el campo no
-  // se queda nunca quieto «ondulando»: siempre hay carreras en marcha.
+  // EL LATIDO TÁCTICO: cada ~1.6 s el equipo recibe su instrucción y DESLIZA
+  // hacia ella. El movimiento es POR LÍNEAS con dirección clara (atacar =
+  // empujar, defender = replegar), no un onduleo individual — «los jugadores
+  // ondean en vez de tener una decisión clara» fue el reporte.
   const [beat, setBeat] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setBeat((b) => b + 1), 1200)
+    const t = setInterval(() => setBeat((b) => b + 1), 1600)
     return () => clearInterval(t)
   }, [])
 
@@ -103,16 +104,25 @@ export default function LivePitch({ match, feed, current }: {
   const myAnchor = anchors(home.keeper, home.defs, home.mids, home.fwds, true)
   const theirAnchor = anchors(away.keeper, away.defs, away.mids, away.fwds, false)
 
-  // VUELCO de campo: el equipo que ataca da un paso adelante y el que
-  // defiende repliega — el campo «respira» con la posesión.
-  const shift = (isMine: boolean) => (atkSide == null ? 0 : (atkSide === mine) === isMine ? 6 : -5)
-
   const ballX = step != null ? (iAttack ? STEP_X[step] : 100 - STEP_X[step]) : 50
+
+  // VUELCO POR LÍNEAS: el equipo que ataca EMPUJA (más cuanto más arriba
+  // juega) y el que defiende REPLIEGA hacia su portería, cada línea en
+  // bloque. Con el balón en el área, el empuje se acentúa (todos volcados).
+  const rowPush = (a: Actor, isMine: boolean): number => {
+    if (atkSide == null || a.position === 'POR') return 0
+    const dir = isMine ? 1 : -1
+    const attacking = (atkSide === mine) === isMine
+    const deep = step === 'definicion' ? 1.35 : 1
+    const push = attacking
+      ? ({ DEF: 4, MED: 7, DEL: 10 } as Record<string, number>)[a.position] ?? 0
+      : ({ DEF: -4, MED: -7, DEL: -9 } as Record<string, number>)[a.position] ?? 0
+    return push * dir * deep
+  }
 
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
-    const dir = isMine ? 1 : -1
     if (a.uid === carrierUid) {
       // El del balón, en el punto del eslabón (los porteros no abandonan el área).
       if (a.position === 'POR') return base
@@ -123,18 +133,16 @@ export default function LivePitch({ match, feed, current }: {
       if (a.position === 'POR') return base
       return { x: Math.max(4, Math.min(96, ballX + (isMine ? -7 : 7))), y: base.y * 0.6 + 20 }
     }
-    // El resto JUEGA al fútbol: su ancla + el vuelco de la posesión + una
-    // carrera nueva en cada latido — desmarques laterales, apoyos hacia el
-    // balón, repliegues. El portero solo se pasea por su área.
+    // El resto se mueve CON EL EQUIPO: su ancla + el empuje/repliegue de su
+    // línea. El ruido personal es mínimo (un ajuste de zancada, no un
+    // onduleo): la dirección del movimiento se lee de un vistazo. El portero
+    // apenas se pasea por su área.
     if (a.position === 'POR') {
-      return { x: base.x, y: Math.max(30, Math.min(70, base.y + noise(a.uid, beat, 2) * 6)) }
+      return { x: base.x, y: Math.max(34, Math.min(66, base.y + noise(a.uid, beat, 2) * 3)) }
     }
-    const pull = (ballX - base.x) * (0.10 + 0.08 * Math.abs(noise(a.uid, beat, 3)))
-    const dx = noise(a.uid, beat, 1) * 3.5 + pull
-    const dy = noise(a.uid, beat, 2) * 5
     return {
-      x: Math.max(4, Math.min(96, base.x + shift(isMine) * dir + dx)),
-      y: Math.max(7, Math.min(93, base.y + dy)),
+      x: Math.max(4, Math.min(96, base.x + rowPush(a, isMine) + noise(a.uid, beat, 1) * 1.2)),
+      y: Math.max(7, Math.min(93, base.y + noise(a.uid, beat, 2) * 2.2)),
     }
   }
 
@@ -145,7 +153,7 @@ export default function LivePitch({ match, feed, current }: {
     : null
   const ball = carrierSpot
     ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
-    : { x: 50 + noise('ball', beat, 1) * 5, y: 50 + noise('ball', beat, 2) * 7 }
+    : { x: 50 + noise('ball', beat, 1) * 2, y: 50 + noise('ball', beat, 2) * 3 }
 
   const danger = step === 'definicion'
 

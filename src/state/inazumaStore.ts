@@ -18,7 +18,7 @@ import { getEvent } from '@/data/inazuma/events'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
-  advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult,
+  advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult, matchMedals,
   applyPachangaResult, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnSignature,
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
@@ -811,9 +811,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
     // RECOMPENSA FIJA, sin carta al azar: dinero + niveles (ya aplicados en
-    // `applyMatchResult`) + 3 medallas + UN objeto random directo a la
-    // mochila. La carta de antes a veces obligaba a decidir destinatarios en
-    // el acto y rompía el ritmo.
+    // `applyMatchResult`) + medallas crecientes + UN objeto random directo a
+    // la mochila.
     const gained = LEVELS_BY_RESULT[result]
     const pool = lootPool(bossIndexForLayer(next.layer))
     const prize = pool[getRng(next).int(0, pool.length - 1)]
@@ -823,7 +822,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       phase: 'map',
       match: null,
       matchNode: null,
-      message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · 3 Medallas de talento`
+      // OJO: las medallas se pagaron ANTES de avanzar de capa — se cuenta con
+      // la capa del partido, no con la nueva.
+      message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
         + (prize ? ` · ${prize.name} a la mochila` : ''),
     })
     void persist(next, 'map')
