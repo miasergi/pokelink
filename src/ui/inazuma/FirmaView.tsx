@@ -56,11 +56,10 @@ export default function FirmaView() {
             onPick={() => {
               if (next) { resolveFirma(p.uid); return }
               if (!up) return
-              // Con más de una mejorable, se ELIGE cuál (antes caía a la
-              // primera aprendida sin preguntar).
+              // Se ELIGE cuál SIEMPRE (aunque solo haya una candidata): que
+              // se vea qué vas a mejorar antes de gastar la casilla.
               const ups = p.techniques.filter((t) => canUpgradeTechnique(p, t))
-              if (ups.length > 1) setChoose({ uid: p.uid, name: getPlayerBase(p.baseId).name, ups })
-              else resolveFirmaUpgrade(p.uid)
+              if (ups.length >= 1) setChoose({ uid: p.uid, name: getPlayerBase(p.baseId).name, ups })
             }}
           />
         ))}

@@ -806,7 +806,7 @@ function BagPanel({
                       onClick={() => {
                         const k = getItem(use)?.kind
                         if (k === 'equipo' || k === 'raro') { onEquip(p.uid, use); setUse(null); return }
-                        if (use === 'mejora' && p.techniques.filter((t) => canUpgradeTechnique(p, t)).length > 1) {
+                        if (use === 'mejora' && p.techniques.filter((t) => canUpgradeTechnique(p, t)).length >= 1) {
                           setMejoraFor(p.uid)
                           return
                         }

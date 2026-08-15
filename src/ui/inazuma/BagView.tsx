@@ -78,11 +78,11 @@ export default function BagView() {
     const kind = getItem(pending.id)?.kind
     if (kind === 'equipo' || kind === 'raro') { equip(uid, pending.id); setPending(null); return }
     if (pending.id === 'mejora') {
-      // Con más de una técnica mejorable, la elección es del jugador: antes
-      // caía en silencio a la primera aprendida.
+      // La elección es SIEMPRE del jugador (aunque solo haya una candidata):
+      // ver qué se mejora antes de gastar el objeto.
       const p = save.roster.find((x) => x.uid === uid)
       const ups = p ? p.techniques.filter((t) => canUpgradeTechnique(p, t)) : []
-      if (ups.length > 1) { setPending({ kind: 'mejora-tech', uid }); return }
+      if (ups.length >= 1) { setPending({ kind: 'mejora-tech', uid }); return }
     }
     useConsumable(pending.id, uid)
     setPending(null)

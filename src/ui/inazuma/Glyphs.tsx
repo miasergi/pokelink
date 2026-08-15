@@ -153,6 +153,7 @@ export const NODE_ICON: Record<NodeKind, string> = {
  */
 export function itemIconName(item: InazumaItem | undefined): string {
   if (!item) return 'bag'
+  if (item.id === 'fichaje-estrella') return 'magnifier'
   if (item.kind === 'comida') return item.id.includes('ramen') ? 'ramen' : 'drink'
   if (item.kind === 'manual') return 'book'
   if (item.kind === 'consumible') return item.id.startsWith('plan') ? 'dumbbell' : 'drink'

@@ -82,7 +82,15 @@ export function stockFor(kind: 'tienda' | 'rairai', progress = 7): InazumaItem[]
   // Techo de precio: arranca en 900 ₽ y sube ~800 por eliminatoria superada.
   // Los raros nunca se venden: esos solo salen en las casillas de objeto.
   const ceiling = 900 + progress * 850
-  return pool.filter((i) => i.kind !== 'raro' && i.price <= ceiling)
+  const stock = pool.filter((i) => i.kind !== 'raro' && i.price <= ceiling)
+  // El FICHAJE ESTRELLA se expone desde mitad de torneo aunque su precio
+  // supere el techo (para eso se ahorra): con el techo a secas solo aparecía
+  // en la última tienda y nadie llegó a verlo en una run entera.
+  if (kind === 'tienda' && progress >= 3 && !stock.some((i) => i.id === 'fichaje-estrella')) {
+    const star = ITEM_BY_ID.get('fichaje-estrella')
+    if (star) stock.push(star)
+  }
+  return stock
 }
 
 /** Objetos que pueden salir en una casilla de objeto, según lo avanzado que vayas. */

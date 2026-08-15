@@ -101,6 +101,18 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
     const o = signingOption(save, rng, seen)
     if (o) out.push(o)
   }
+  // De vez en cuando el ojeador ofrece SU AGENDA (el Fichaje estrella): la
+  // vía garantizada de encontrarse el objeto en una run sin depender del
+  // botín ni de la última tienda.
+  if (out.length && rng.chance(0.28)) {
+    out.push({
+      kind: 'objeto',
+      id: 'scout-estrella',
+      title: 'La agenda del ojeador',
+      desc: 'Fichaje estrella a la mochila: busca y ficha al jugador EXACTO que quieras del catálogo.',
+      itemId: 'fichaje-estrella',
+    })
+  }
   // Si ya has fichado a todo el mundo, el ojeador paga en metálico.
   if (!out.length) {
     out.push({ kind: 'dinero', id: 'scout-cash', title: 'Comisión del ojeador', desc: 'No queda nadie por fichar: te paga la visita', amount: 1500 })
