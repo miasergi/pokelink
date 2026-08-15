@@ -5,6 +5,7 @@
 //   · despertar el SIGUIENTE paso de su cadena, o
 //   · si la tiene completa, MEJORAR una técnica (V2, V3…).
 // Antes había dos listas separadas y ni se veía qué cadena tenía cada uno.
+import { useState } from 'react'
 import { useInazuma } from '@/state/inazumaStore'
 import { Button, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
@@ -20,6 +21,8 @@ import type { PlayerInstance } from '@/engine/inazuma/types'
 
 export default function FirmaView() {
   const { save, resolveFirma, resolveFirmaUpgrade, skipNode, goTo } = useInazuma()
+  // MEJORA con varias técnicas mejorables: segundo paso, elegir CUÁL.
+  const [choose, setChoose] = useState<{ uid: string; name: string; ups: string[] } | null>(null)
   if (!save) return null
 
   // Qué le toca a cada uno: despertar, mejorar o nada.
@@ -50,7 +53,15 @@ export default function FirmaView() {
             player={p}
             next={next ?? undefined}
             upgradeId={up}
-            onPick={() => (next ? resolveFirma(p.uid) : up ? resolveFirmaUpgrade(p.uid) : undefined)}
+            onPick={() => {
+              if (next) { resolveFirma(p.uid); return }
+              if (!up) return
+              // Con más de una mejorable, se ELIGE cuál (antes caía a la
+              // primera aprendida sin preguntar).
+              const ups = p.techniques.filter((t) => canUpgradeTechnique(p, t))
+              if (ups.length > 1) setChoose({ uid: p.uid, name: getPlayerBase(p.baseId).name, ups })
+              else resolveFirmaUpgrade(p.uid)
+            }}
           />
         ))}
 
@@ -67,6 +78,46 @@ export default function FirmaView() {
           ? <Button variant="primary" full onClick={skipNode}>Pasar de largo</Button>
           : <Button variant="ghost" full onClick={() => goTo('map')}>Dejarlo para otro día</Button>}
       </div>
+
+      {/* ¿QUÉ técnica mejora? (solo si tiene más de una mejorable) */}
+      {choose && (
+        <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setChoose(null)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[80svh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setChoose(null)}
+              className="absolute top-2 right-2 z-10 grid place-items-center w-7 h-7 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-400 active:scale-95"
+            >
+              <Icon name="x" className="w-4 h-4" />
+            </button>
+            <div className="font-extrabold text-center">¿Qué técnica mejora {choose.name}?</div>
+            <p className="text-[11px] text-slate-400 text-center mb-2">+25 % de potencia y −15 % de coste a la elegida</p>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
+              {choose.ups.map((id) => {
+                const t = getTechnique(id)
+                const p = save.roster.find((x) => x.uid === choose.uid)
+                if (!t || !p) return null
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { resolveFirmaUpgrade(choose.uid, id); setChoose(null) }}
+                    className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98] transition"
+                  >
+                    <TechniqueBadge tech={t} size={36} holder={p} silent />
+                    <span className="min-w-0 flex-1">
+                      <span className="text-[13px] font-bold flex items-center gap-1">
+                        <TechIcons tech={t} className="w-3 h-3" />
+                        {t.name}
+                      </span>
+                      <span className="block text-[10px] text-slate-400">V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}</span>
+                    </span>
+                    <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -14,6 +14,7 @@ import TradeView from '@/ui/inazuma/TradeView'
 import ItemFxOverlay from '@/ui/inazuma/ItemFxOverlay'
 import PlayerRevealOverlay from '@/ui/inazuma/PlayerRevealOverlay'
 import TechniqueSheet from '@/ui/inazuma/TechniqueSheet'
+import SigningOverflowSheet from '@/ui/inazuma/SigningOverflowSheet'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
 } from '@/ui/inazuma/ExtraViews'
@@ -77,6 +78,8 @@ export default function InazumaScreen() {
       <PlayerRevealOverlay />
       {/* Visor global de supertécnica: se abre al tocar cualquier estampa. */}
       <TechniqueSheet />
+      {/* Plantilla llena + fichaje entrante: decidir a quién vender. */}
+      <SigningOverflowSheet />
       <Toast />
       {intro && <InazumaOnboarding onClose={() => { markOnboarded(); setIntro(false) }} />}
     </div>

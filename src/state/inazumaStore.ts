@@ -15,7 +15,7 @@ import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
 import { getItem, lootPool } from '@/data/inazuma/items'
 import { getEvent } from '@/data/inazuma/events'
-import { getPlayerBase } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult, matchMedals,
@@ -28,7 +28,7 @@ import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  MAX_RARITY, RARITY_LABEL, rarityOf, transferValue, upgradeTechnique,
+  MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarityMap, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -248,6 +248,16 @@ interface InazumaState {
   /** Carta que necesita que señales a un jugador. */
   pendingTarget: DraftOption | null
   /**
+   * Fichaje ENTRANTE con la plantilla llena (16): hay que decidir — vender a
+   * uno del equipo para hacerle hueco, o vender directamente al que llega
+   * (dinero + medallas según su rareza en ambos casos).
+   */
+  pendingSigning: { baseId: string; level: number; rarity: number; title: string } | null
+  /** Vende al RECIÉN LLEGADO sin ficharlo (resuelve `pendingSigning`). */
+  resolveSigningSell: () => void
+  /** Vende a `uid` de la plantilla y ficha al que llegaba. */
+  resolveSigningSwap: (uid: string) => void
+  /**
    * true mientras hay una cinemática (duelo, gol) en pantalla: la cola de
    * revelado NO avanza — revelar por debajo cambiaba el césped a mitad de
    * animación y encadenaba cinemáticas.
@@ -312,7 +322,7 @@ interface InazumaState {
   /** Casilla de firma: el jugador elegido despierta su siguiente técnica. */
   resolveFirma: (uid: string) => void
   /** Firma con la cadena COMPLETA: mejora una técnica ya despertada (+25 %). */
-  resolveFirmaUpgrade: (uid: string) => void
+  resolveFirmaUpgrade: (uid: string, techId?: string) => void
   /** Consume la casilla actual sin hacer nada (pasar de largo). */
   skipNode: () => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
@@ -352,6 +362,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   draftPicks: 0,
   draftFromMatch: false,
   pendingTarget: null,
+  pendingSigning: null,
   uiBusy: false,
   message: null,
   itemFx: null,
@@ -811,23 +822,100 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     void persistInazumaMeta({ round: bossIndexForLayer(next.layer) })
     // RECOMPENSA FIJA, sin carta al azar: dinero + niveles (ya aplicados en
-    // `applyMatchResult`) + medallas crecientes + UN objeto random directo a
-    // la mochila.
+    // `applyMatchResult`) + 3 medallas + UN objeto random + un FICHAJE del
+    // equipo VENCIDO (al azar, con la rareza que llevaba en el partido, y
+    // nunca alguien que ya tengas — por NOMBRE, que el catálogo trae clones).
     const gained = LEVELS_BY_RESULT[result]
     const pool = lootPool(bossIndexForLayer(next.layer))
     const prize = pool[getRng(next).int(0, pool.length - 1)]
     if (prize) next.bag = [...next.bag, prize.id]
+
+    let recruitMsg = ''
+    let reveal: InazumaState['revealPlayer'] = null
+    let pendingSigning: InazumaState['pendingSigning'] = null
+    if (result === 'win' && matchNode.teamId && (matchNode.kind === 'jefe' || matchNode.kind === 'final')) {
+      const ownedNames = new Set(next.roster.map((p) => getPlayerBase(p.baseId).name))
+      const beatenPool = playersOfTeam(matchNode.teamId).filter((b) => !ownedNames.has(b.name))
+      const pick = beatenPool.length ? beatenPool[getRng(next).int(0, beatenPool.length - 1)] : null
+      if (pick) {
+        const rarity = rivalRarityMap(matchNode.teamId, bossIndexForLayer(matchNode.layer)).get(pick.id) ?? 1
+        const level = matchNode.level ?? signingLevel(next)
+        if (next.roster.length < ROSTER_MAX) {
+          const nuevo = createPlayer(pick.id, level, { rarity })
+          next.roster = [...next.roster, nuevo]
+          void persistInazumaMeta({ signed: [pick.id] })
+          reveal = { uid: nuevo.uid, title: `¡${getPlayerBase(pick.id).name} se une tras la derrota de su equipo!` }
+        } else {
+          // Plantilla LLENA (16): a decidir — vender a uno o vender al que llega.
+          pendingSigning = {
+            baseId: pick.id,
+            level,
+            rarity,
+            title: `¡${pick.name} quiere unirse tras caer su equipo!`,
+          }
+        }
+        recruitMsg = ` · ${pick.name} (${RARITY_LABEL[Math.max(1, Math.min(4, rarity))]}) quiere unirse`
+      }
+    }
+
     set({
       save: next,
       phase: 'map',
       match: null,
       matchNode: null,
-      // OJO: las medallas se pagaron ANTES de avanzar de capa — se cuenta con
-      // la capa del partido, no con la nueva.
+      revealPlayer: reveal,
+      pendingSigning,
       message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
-        + (prize ? ` · ${prize.name} a la mochila` : ''),
+        + (prize ? ` · ${prize.name}` : '') + recruitMsg,
     })
     void persist(next, 'map')
+  },
+
+  resolveSigningSell: () => {
+    const { save, pendingSigning } = get()
+    if (!save || !pendingSigning) return
+    const base = getPlayerBase(pendingSigning.baseId)
+    const fee = transferValue(base, pendingSigning.level)
+    const medals = Math.max(1, Math.min(MAX_RARITY, pendingSigning.rarity))
+    const next: InazumaSave = {
+      ...save,
+      coins: save.coins + fee,
+      bag: [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')],
+    }
+    set({
+      save: next,
+      pendingSigning: null,
+      message: `${base.name} traspasado sin llegar a debutar: +${fee.toLocaleString('es-ES')} ₽ y ${medals} medalla${medals > 1 ? 's' : ''}.`,
+    })
+    void persist(next, get().phase)
+  },
+
+  resolveSigningSwap: (uid) => {
+    const { save, pendingSigning } = get()
+    if (!save || !pendingSigning) return
+    const out = save.roster.find((p) => p.uid === uid)
+    if (!out) return
+    if (out.captain) { set({ message: 'El capitán no se traspasa.' }); return }
+    const outBase = getPlayerBase(out.baseId)
+    const fee = transferValue(outBase, out.level)
+    const medals = Math.max(1, Math.min(MAX_RARITY, rarityOf(out)))
+    const nuevo = createPlayer(pendingSigning.baseId, pendingSigning.level, { rarity: pendingSigning.rarity })
+    const next: InazumaSave = {
+      ...save,
+      roster: [...save.roster.filter((p) => p.uid !== uid), nuevo],
+      // El nuevo hereda el HUECO del vendido si era titular.
+      lineup: save.lineup.map((u) => (u === uid ? nuevo.uid : u)),
+      coins: save.coins + fee,
+      bag: [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')],
+    }
+    void persistInazumaMeta({ signed: [pendingSigning.baseId] })
+    play('levelup')
+    set({
+      save: next,
+      pendingSigning: null,
+      revealPlayer: { uid: nuevo.uid, title: `${outBase.name} se marcha (+${fee.toLocaleString('es-ES')} ₽, ${medals} medalla${medals > 1 ? 's' : ''}). ¡Y llega…!` },
+    })
+    void persist(next, get().phase)
   },
 
   // -------------------------------------------------------- recompensas ----
@@ -856,7 +944,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     let message: string | null = null
     if (opt.kind === 'fichaje') {
       if (next.roster.length >= ROSTER_MAX) {
-        set({ message: `Tu plantilla está llena (${ROSTER_MAX}). Traspasa a alguien antes de fichar.` })
+        // Plantilla LLENA: la carta se consume y se abre la decisión de
+        // vender (a uno tuyo o al que llega) — antes bloqueaba sin salida.
+        closeDraft(set, next, draft, draftPicks, optionId, null)
+        set({
+          pendingSigning: {
+            baseId: opt.playerId,
+            level: opt.level,
+            rarity: 1,
+            title: `${getPlayerBase(opt.playerId).name} quiere firmar, pero el vestuario está lleno.`,
+          },
+        })
         return
       }
       // TODO fichaje llega en rareza NORMAL: la rareza la construyes tú con
@@ -1043,11 +1141,15 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, 'map')
   },
 
-  resolveFirmaUpgrade: (uid) => {
+  resolveFirmaUpgrade: (uid, techId) => {
     const { save, matchNode } = get()
     if (!save || matchNode?.kind !== 'firma') return
     const target = save.roster.find((p) => p.uid === uid)
-    const up = target?.techniques.find((t) => canUpgradeTechnique(target, t))
+    // La técnica la ELIGE el jugador (`techId`); sin ella, la primera
+    // mejorable (compatibilidad con el flujo de un toque).
+    const up = target && techId && canUpgradeTechnique(target, techId)
+      ? techId
+      : target?.techniques.find((t) => canUpgradeTechnique(target, t))
     if (!target || !up) { set({ message: 'Ese jugador no tiene técnicas que mejorar.' }); return }
     const next: InazumaSave = {
       ...save,
@@ -1297,11 +1399,22 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save) return
     const i = save.bag.indexOf('fichaje-estrella')
     if (i < 0) { set({ message: 'No llevas ningún Fichaje estrella.' }); return }
+    if (save.roster.some((p) => p.baseId === baseId)) { set({ message: 'Ya está en tu plantilla.' }); return }
     if (save.roster.length >= ROSTER_MAX) {
-      set({ message: `Tu plantilla está llena (${ROSTER_MAX}). Traspasa a alguien antes.` })
+      // Plantilla LLENA: se consume el objeto y se abre la decisión de vender.
+      const next = { ...save, bag: save.bag.filter((_, k) => k !== i) }
+      set({
+        save: next,
+        pendingSigning: {
+          baseId,
+          level: signingLevel(next),
+          rarity: 1,
+          title: `${getPlayerBase(baseId).name} está listo para firmar, pero el vestuario está lleno.`,
+        },
+      })
+      void persist(next, get().phase)
       return
     }
-    if (save.roster.some((p) => p.baseId === baseId)) { set({ message: 'Ya está en tu plantilla.' }); return }
     const nuevo = createPlayer(baseId, signingLevel(save), { rarity: 1 })
     const next: InazumaSave = {
       ...save,

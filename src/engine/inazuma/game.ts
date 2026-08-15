@@ -380,20 +380,16 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   }
 
   save.coins += result === 'win' ? prizeMoney(bossIndexForLayer(save.layer)) : 200
-  // Tras CADA partido, medallas de talento CRECIENTES con el torneo: con las
-  // 3 planas de antes ibas sobrado al principio (subir cuesta 1) y seco al
-  // final (cuesta 3) — «solo he podido subir a 3 jugadores a Legendario».
+  // Tras CADA partido, 3 medallas de talento (planas, a petición): el resto
+  // del material de rareza llega con el FICHAJE del equipo vencido, las
+  // pachangas y las ventas.
   const medals = matchMedals(bossIndexForLayer(save.layer))
   save.bag = [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')]
 }
 
-/**
- * Medallas que paga un partido según la eliminatoria: 3 → 6. Acompaña al
- * coste escalado de subir rareza (1/2/3): la RAZÓN medallas/subida se mantiene
- * en vez de derrumbarse en el tramo final.
- */
-export function matchMedals(bossIndex: number): number {
-  return 3 + Math.floor(Math.max(0, bossIndex) / 2)
+/** Medallas que paga un partido. Planas: 3 (el fichaje del vencido compensa). */
+export function matchMedals(_bossIndex: number): number {
+  return 3
 }
 
 /**

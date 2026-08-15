@@ -120,29 +120,63 @@ export default function LivePitch({ match, feed, current }: {
     return push * dir * deep
   }
 
+  // APOYOS CON PROPÓSITO: los dos compañeros del portador más cercanos al
+  // balón ACUDEN a dar línea de pase — se ve a quién podría jugársela.
+  const supportUids = new Set<string>()
+  if (atkSide != null && carrierUid) {
+    const atkTeamMine = atkSide === mine
+    const anchorOf = (a: Actor) => (atkTeamMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
+    ;(atkTeamMine ? myActors : theirActors)
+      .filter((a) => a.uid !== carrierUid && a.uid !== markerUid && a.position !== 'POR')
+      .map((a) => ({ a, d: Math.abs(anchorOf(a).x - ballX) + Math.abs(anchorOf(a).y - 50) * 0.6 }))
+      .sort((x, y) => x.d - y.d)
+      .slice(0, 2)
+      .forEach((x) => supportUids.add(x.a.uid))
+  }
+
+  const clampX = (x: number) => Math.max(4, Math.min(96, x))
+  const clampY = (y: number) => Math.max(7, Math.min(93, y))
+
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
     if (a.uid === carrierUid) {
-      // El del balón, en el punto del eslabón (los porteros no abandonan el área).
+      // El del balón, en el punto del eslabón, con un AMAGO por latido (el
+      // regateador no se queda clavado). Los porteros no abandonan el área.
       if (a.position === 'POR') return base
-      return { x: ballX, y: base.y * 0.6 + 20 }
+      return { x: clampX(ballX + noise(a.uid, beat, 4) * 1.5), y: base.y * 0.6 + 20 }
     }
     if (a.uid === markerUid) {
       // Su marcador le sale al paso: entre el balón y SU portería.
       if (a.position === 'POR') return base
-      return { x: Math.max(4, Math.min(96, ballX + (isMine ? -7 : 7))), y: base.y * 0.6 + 20 }
+      return { x: clampX(ballX + (isMine ? -7 : 7)), y: base.y * 0.6 + 20 }
     }
-    // El resto se mueve CON EL EQUIPO: su ancla + el empuje/repliegue de su
-    // línea. El ruido personal es mínimo (un ajuste de zancada, no un
-    // onduleo): la dirección del movimiento se lee de un vistazo. El portero
-    // apenas se pasea por su área.
+    // El portero apenas se pasea por su área.
     if (a.position === 'POR') {
       return { x: base.x, y: Math.max(34, Math.min(66, base.y + noise(a.uid, beat, 2) * 3)) }
     }
+    // APOYO: acude hacia el balón, un paso por detrás, a dar línea de pase.
+    if (supportUids.has(a.uid)) {
+      return {
+        x: clampX(ballX + (isMine ? -9 : 9) + noise(a.uid, beat, 1) * 1.5),
+        y: clampY(50 + (base.y - 50) * 0.45),
+      }
+    }
+    const isAtkTeam = atkSide != null && (atkSide === mine) === isMine
+    // OLA DE DESMARQUES: en cada latido, UNA línea del equipo atacante
+    // aprieta un paso extra (DEF → MED → DEL, por turnos).
+    const lineIdx = ({ DEF: 0, MED: 1, DEL: 2 } as Record<string, number>)[a.position] ?? 0
+    const wave = isAtkTeam && beat % 3 === lineIdx ? (isMine ? 3.5 : -3.5) : 0
+    // BANDAS Y BLOQUE: atacando, los de banda se ABREN hacia su banda;
+    // defendiendo, el bloque se CIERRA hacia el centro.
+    const wing = atkSide == null
+      ? 0
+      : isAtkTeam
+        ? (base.y < 30 ? -4 : base.y > 70 ? 4 : 0)
+        : (base.y < 50 ? 3 : -3)
     return {
-      x: Math.max(4, Math.min(96, base.x + rowPush(a, isMine) + noise(a.uid, beat, 1) * 1.2)),
-      y: Math.max(7, Math.min(93, base.y + noise(a.uid, beat, 2) * 2.2)),
+      x: clampX(base.x + rowPush(a, isMine) + wave + noise(a.uid, beat, 1) * 1.2),
+      y: clampY(base.y + wing + noise(a.uid, beat, 2) * 2.2),
     }
   }
 
