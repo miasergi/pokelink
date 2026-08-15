@@ -929,6 +929,24 @@ describe('coherencia', () => {
     }
   })
 
+  it('CUALQUIER equipo es jugable: con uno de fuera de la saga, el cuadro sigue entero', () => {
+    for (const saga of SAGAS) {
+      const outsider = TEAMS.map((t) => t.id).find((id) => !saga.teams.includes(id))!
+      const save = createSave(7, outsider, { saga: saga.id })
+      const bosses = Object.values(save.map.nodes).filter((n) => n.kind === 'jefe' || n.kind === 'final')
+      expect(bosses).toHaveLength(8)
+      for (const b of bosses) {
+        expect(saga.teams).toContain(b.teamId!)
+        expect(b.teamId).not.toBe(outsider)
+      }
+      // Y el JEFE FINAL de la saga sigue en el cuadro (se cae el más flojo,
+      // no el más fuerte).
+      const strongest = TEAMS.filter((t) => saga.teams.includes(t.id)).sort((a, b) => b.power - a.power)[0]
+      expect(bosses.some((b) => b.teamId === strongest.id)).toBe(true)
+      expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
+    }
+  })
+
   it('el once rival que se enseña en la previa es el que salta al campo', () => {
     for (const team of TEAMS) {
       const shown = rivalStartingXI(team.id).map((p) => p.name)

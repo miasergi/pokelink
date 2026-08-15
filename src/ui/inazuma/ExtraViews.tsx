@@ -429,7 +429,18 @@ export function TeamSelectView() {
             </div>
           )}
         </div>
-        {sagaInfo.playable.map((id) => {
+        {/* TODOS los equipos con entidad son jugables (no solo los tres de la
+            saga): primero los protagonistas de la saga, luego el resto de su
+            cuadro, y después todos los demás. Con la Plantilla del bombo
+            activada, el elegido pone escudo/hueco y el once sale del azar. */}
+        <div className="text-[11px] uppercase tracking-widest text-slate-500 -mb-1">
+          Elige tu equipo · {randomSquad ? 'plantilla del BOMBO' : 'plantilla OFICIAL'}
+        </div>
+        {[
+          ...sagaInfo.playable,
+          ...sagaInfo.teams.filter((id) => !sagaInfo.playable.includes(id)),
+          ...TEAMS.map((t) => t.id).filter((id) => !sagaInfo.teams.includes(id) && !sagaInfo.playable.includes(id)),
+        ].map((id) => {
           const team = getTeam(id)
           const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
           const stars = squad.filter((p) => p.rarity >= 4)
@@ -463,7 +474,7 @@ export function TeamSelectView() {
                 </div>
               </div>
 
-              <p className="text-[11px] italic text-slate-400 mt-2">«{team.taunt}»</p>
+              {team.taunt && <p className="text-[11px] italic text-slate-400 mt-2">«{team.taunt}»</p>}
 
               {stars.length > 0 && (
                 <div className="mt-2 flex gap-1.5 flex-wrap">

@@ -271,7 +271,9 @@ export function buildBracket(playerTeamId: string, sagaId?: string): { teamId: s
   const rivals = TEAMS
     .filter((t) => saga.teams.includes(t.id) && t.id !== playerTeamId)
     .sort((a, b) => a.power - b.power)
-    .slice(0, ROUND_NAMES.length)
+    // Desde el FINAL: si juegas con un equipo de FUERA de la saga, sobra un
+    // candidato — y debe caerse el más flojo, no el jefe final.
+    .slice(-ROUND_NAMES.length)
   return rivals.map((t, i) => ({ teamId: t.id, name: ROUND_NAMES[i] }))
 }
 
