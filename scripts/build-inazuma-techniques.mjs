@@ -458,7 +458,7 @@ function dubName(wikitext, fallback) {
 }
 
 async function fetchTechnique(title) {
-  const parsed = await api({ action: 'parse', prop: 'wikitext', page: title })
+  const parsed = await api({ action: 'parse', prop: 'wikitext', page: title, redirects: '1' })
   const wt = parsed?.parse?.wikitext?.['*']
   if (!wt) return null
 
@@ -522,7 +522,15 @@ async function main() {
   // el reparto o los nombres no hace falta volver a pedirle nada.
   let cached = null
   try { cached = JSON.parse(await readFile(CACHE, 'utf8')) } catch { /* primera vez */ }
-  if (cached) return emit(cached)
+  if (cached) {
+    // `--rescue`: repasa el catálogo cacheado buscando las técnicas que los
+    // jugadores nombran y aún faltan, sin volver a barrer la wiki entera.
+    if (process.argv.includes('--rescue')) {
+      await rescueNamed(cached)
+      await writeFile(CACHE, JSON.stringify(cached, null, 1), 'utf8')
+    }
+    return emit(cached)
+  }
 
   const titles = []
   for (const cat of CATEGORIES) {
@@ -543,7 +551,9 @@ async function main() {
     try {
       const t = await fetchTechnique(title)
       if (!t) continue
-      if (!t.thumb) continue // sin imagen no entra: el catálogo tiene que ser uniforme
+      // Sin imagen SÍ entra: la UI cae al icono de su elemento. Descartarlas
+      // dejaba a jugadores sin sus técnicas canónicas (el Excalibur de Edgar
+      // y compañía), que es mucho peor que un hueco de ilustración.
       found.push(t)
       console.log(`  ✓ ${t.name} · ${t.type} · ${t.element} · pot.${t.power ?? '?'}`)
     } catch (err) {
@@ -552,12 +562,52 @@ async function main() {
     await new Promise((r) => setTimeout(r, 120))
   }
 
+  // REPESCA: las categorías de la wiki no lo listan todo, así que se recorre
+  // lo que USAN los jugadores del roster (`Module:Moveset/Users`, ya volcado
+  // en la caché del crawler) y se busca una a una la que falte. Es lo que
+  // garantiza que si un jugador tiene Excalibur, Excalibur existe.
+  await rescueNamed(found)
+
   await mkdir(dirname(CACHE), { recursive: true })
   await writeFile(CACHE, JSON.stringify(found, null, 1), 'utf8')
   return emit(found)
 }
 
 /** Elige el catálogo definitivo y escribe el fichero y las imágenes. */
+/**
+ * Repesca las técnicas que los jugadores del roster NOMBRAN y no están en el
+ * catálogo. Las categorías de la wiki se dejan cosas (y las plantillas de
+ * moveset no aparecen en ninguna), así que esta pasada es la que cierra el
+ * círculo: si alguien la usa, existe.
+ */
+async function rescueNamed(found) {
+  let roster = null
+  try {
+    roster = JSON.parse(await readFile(join(ROOT, 'scripts', '.cache', 'inazuma-roster.json'), 'utf8'))
+  } catch { return }
+  const have = new Set(found.map((t) => slug(t.name)))
+  const wanted = new Map()
+  for (const list of Object.values(roster)) {
+    for (const p of list) {
+      for (const h of p.hissatsu ?? []) {
+        const key = slug(h)
+        if (!have.has(key) && !wanted.has(key)) wanted.set(key, h)
+      }
+    }
+  }
+  if (!wanted.size) return
+  console.log(`repesca: ${wanted.size} técnicas nombradas por jugadores que no están en el catálogo`)
+  let ok = 0
+  for (const name of wanted.values()) {
+    try {
+      const t = await fetchTechnique(name)
+      if (t) { found.push(t); ok++; console.log(`  + ${t.name} · ${t.type} · ${t.element}`) }
+    } catch { /* la siguiente */ }
+    await new Promise((r) => setTimeout(r, 90))
+  }
+  console.log(`repesca: ${ok} recuperadas`)
+}
+
 async function emit(found) {
   // Reparto por clase Y elemento (ver `PER_KIND_ELEMENT`).
   const must = new Set(MUST_HAVE)

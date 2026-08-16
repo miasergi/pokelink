@@ -155,6 +155,49 @@ function extractHissatsu(wt) {
   return out
 }
 
+/**
+ * LAS SUPERTÉCNICAS DE VERDAD DE CADA JUGADOR.
+ *
+ * En la mayoría de fichas el apartado de técnicas es solo la plantilla
+ * `{{MainlineMovesets|<jugador>}}`, así que rascando el wikitexto de la página
+ * no salía NADA (a Edgar Partinus le sacábamos su Keshin y ni rastro de
+ * Excalibur). Los movesets viven de verdad en `Module:Moveset/Users`, una
+ * tabla Lua `Jugador={"Tecnica1","Tecnica2",…}` con TODA la saga dentro.
+ * Se baja UNA vez y se consulta por el nombre corto de la página.
+ */
+let movesetTable = null
+async function movesets() {
+  if (movesetTable) return movesetTable
+  movesetTable = new Map()
+  const j = await api({ action: 'query', titles: 'Module:Moveset/Users', prop: 'revisions', rvprop: 'content', rvslots: 'main' })
+  const page = Object.values(j?.query?.pages ?? {})[0]
+  const lua = page?.revisions?.[0]?.slots?.main?.['*']
+  if (!lua) { console.log('  ! no se pudo leer Module:Moveset/Users') ; return movesetTable }
+  // `Nombre={"A","B",…}` — el nombre puede ir entre corchetes y comillas.
+  const re = /(?:\[")?([A-Za-z0-9_'. -]+?)(?:"\])?\s*=\s*\{([^}]*)\}/g
+  let m
+  while ((m = re.exec(lua))) {
+    const who = m[1].trim()
+    const list = [...m[2].matchAll(/"([^"]+)"/g)].map((x) => x[1])
+    if (list.length) movesetTable.set(who, list)
+  }
+  console.log(`  movesets de la wiki: ${movesetTable.size} jugadores`)
+  return movesetTable
+}
+
+/**
+ * Los ids del módulo van en CamelCase sin espacios ni signos («FireTornado»),
+ * y el catálogo los quiere legibles («Fire Tornado») para poder casarlos por
+ * nombre. Se separan las mayúsculas respetando las siglas y los números.
+ */
+function prettyMove(id) {
+  return id
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([A-Za-z])([0-9])/g, '$1 $2')
+    .trim()
+}
+
 const cache = new Map()
 async function api(params) {
   const url = `${API}?${new URLSearchParams({ format: 'json', ...params })}`
@@ -293,7 +336,12 @@ async function main() {
         // Sus técnicas CANÓNICAS, en orden de aparición en la ficha: la wiki
         // las lista con plantillas {{H|SH|Fire Tornado}} (los movesets de los
         // juegos). De aquí salen las cadenas características verdaderas.
-        hissatsu: extractHissatsu(page.wt),
+        // El moveset REAL del módulo manda; lo rascado de la ficha queda de
+        // apoyo (algunas páginas sí listan técnicas a mano).
+        hissatsu: [
+          ...((await movesets()).get(page.title.split('/')[0]) ?? []).map(prettyMove),
+          ...extractHissatsu(page.wt),
+        ].filter((v, i, a) => a.indexOf(v) === i),
       })
     }
     const full = out[teamId].filter((p) => p.element).length

@@ -70,6 +70,29 @@ describe('plantilla', () => {
     }
   })
 
+  it('cada jugador lleva SUS supertécnicas, no un relleno', () => {
+    // Edgar Partinus tiene que llevar Excalibur. Salía sin ella porque la wiki
+    // guarda los movesets en `Module:Moveset/Users` y de la ficha del
+    // personaje no se rascaba nada — y porque el reparto ordenaba por potencia
+    // y se cargaba el orden del juego, que es el que dice cuáles son SUYAS.
+    const edgar = PLAYERS.find((p) => p.name === 'Edgar Partinus')
+    expect(edgar, 'no está Edgar Partinus').toBeDefined()
+    expect(edgar!.signature ?? []).toContain('excalibur')
+    expect(getTechnique('excalibur')).toBeDefined()
+
+    // Y los cracks de cada saga, con la suya de siempre.
+    const canon: [string, string][] = [
+      ['Mark Evans', 'god-hand'],
+      ['Axel Blaze', 'fire-tornado'],
+      ['Jude Sharp', 'illusion-ball'],
+    ]
+    for (const [name, tech] of canon) {
+      const p = PLAYERS.find((x) => x.name === name)
+      if (!p) continue
+      expect(p.signature ?? [], `${name} sin ${tech}`).toContain(tech)
+    }
+  })
+
   it('el jugador que llega tras ganar viene AL NIVEL DE TU EQUIPO', () => {
     // El nivel de la casilla es el del RIVAL de esa ronda: con la plantilla ya
     // subida, el fichaje de premio entraba en desuso el mismo día. Nunca puede

@@ -109,6 +109,7 @@ const LOW_PRIORITY_TEAMS = new Set([
 const STARS = {
   // --- Capitanes y cracks de los equipos añadidos (IE1/IE2/IE3) ---
   'Mac Robingo': 5, // capitán de Brasil
+  'Edgar Partinus': 5, // capitán de Knights of Queen
   'Carlos Lagarto': 4,
   'Gato Carvalho': 4,
   'Teles Torrue': 5, // capitán de The Empire
@@ -235,10 +236,15 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   // defensas sin nada que hacer al atacar (y viceversa).
   const kinds = position === 'POR' ? ['parada'] : ['tiro', 'regate', 'bloqueo']
 
+  // EN EL ORDEN DE LA WIKI, que es el del juego: las primeras de su moveset
+  // son LAS SUYAS (el Excalibur de Edgar va segundo). Ordenar por potencia
+  // aquí, como se hacía antes, se cargaba esa señal y le dejaba fuera su
+  // técnica de siempre. La cadena se ordena por potencia igualmente al final
+  // (`sortSameKindAscending`), que es donde importa.
   const real = hissatsu
     .map(slugTech)
+    .filter((id, i, arr) => arr.indexOf(id) === i)
     .filter((id) => kinds.includes(byId.get(id)?.kind) && !curated.includes(id))
-    .sort((a, b) => byId.get(a).power - byId.get(b).power)
   const realPrimary = real.filter((id) => byId.get(id).kind === kind)
   const realOther = real.filter((id) => byId.get(id).kind !== kind)
 
