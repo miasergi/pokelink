@@ -170,6 +170,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
   const clampX = (x: number) => Math.max(4, Math.min(96, x))
   const clampY = (y: number) => Math.max(7, Math.min(93, y))
 
+  // CAMBIO DE CAMPO tras el descanso, como en los partidos de verdad: toda la
+  // geometría se calcula igual y se ESPEJA solo al pintar (jugadores, balón y
+  // porterías) cuando el descanso ya se contó.
+  const secondHalf = feed.some((e) => e.kind === 'halftime')
+  const mx = (x: number) => (secondHalf ? 100 - x : x)
+
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
@@ -251,8 +257,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/20 w-[18%] aspect-square" />
         <div className="absolute left-2 top-1/2 -translate-y-1/2 border-2 border-l-0 border-white/20 w-[13%] h-[44%]" />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 border-2 border-r-0 border-white/20 w-[13%] h-[44%]" />
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: home.color }} />
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: away.color }} />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: secondHalf ? away.color : home.color }} />
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: secondHalf ? home.color : away.color }} />
 
         {/* rótulo de zona */}
         <div className={`absolute top-1 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-950/60 ${
@@ -294,14 +300,20 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
           const theirBg = jersey(theirCrest, away.color)
           return (
             <>
-              {myActors.map((a) => (
-                <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={mineBg} crest={myCrest}
-                  carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
-              ))}
-              {theirActors.map((a) => (
-                <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={theirBg} crest={theirCrest}
-                  carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
-              ))}
+              {myActors.map((a) => {
+                const s = spotOf(a, true)
+                return (
+                  <LiveDot key={a.uid} actor={a} spot={{ ...s, x: mx(s.x) }} teamColor={mineBg} crest={myCrest}
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+                )
+              })}
+              {theirActors.map((a) => {
+                const s = spotOf(a, false)
+                return (
+                  <LiveDot key={a.uid} actor={a} spot={{ ...s, x: mx(s.x) }} teamColor={theirBg} crest={theirCrest}
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+                )
+              })}
             </>
           )
         })()}
@@ -309,7 +321,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
         {/* EL BALÓN, con su propia transición: los pases se ven volar. */}
         <div
           className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
-          style={{ left: `${ball.x}%`, top: `${ball.y}%` }}
+          style={{ left: `${mx(ball.x)}%`, top: `${ball.y}%` }}
         >
           <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
         </div>

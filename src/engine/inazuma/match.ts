@@ -521,6 +521,49 @@ function executeDuel(
       return
     }
   } else {
+    // FÚTBOL COMPLETO: no todo robo acaba en pérdida — a veces el balón se
+    // marcha por la BANDA, el corte es FALTA, o la entrada dentro del área es
+    // ¡PENALTI! (que concede un disparo limpio contra el portero con la
+    // maquinaria normal de definición: cinemática, parada y córner incluidos).
+    if (step === 'construccion' && rng.chance(0.15)) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡El balón se marcha por la banda! Saque para ${atkSide.name}: la vuelve a jugar ${attacker.name}.`,
+      })
+      chain.defenderUid = defenderFor(step, defSide, rng).uid
+      chain.spirit = undefined
+      exhaustionCheck(m, out, attacker)
+      return
+    }
+    if (rng.chance(0.1)) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡Falta de ${defender.name}! Libre a favor: ${attacker.name} la pone en juego.`,
+      })
+      chain.defenderUid = defenderFor(step, defSide, rng).uid
+      chain.spirit = undefined
+      exhaustionCheck(m, out, attacker)
+      return
+    }
+    if (step === 'penetracion' && rng.chance(0.06)) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡¡PENALTI!! ${defender.name} derriba a ${attacker.name} dentro del área. Lo lanza ${attacker.name}…`,
+      })
+      chain.step = 'definicion'
+      chain.carrier = attacker.uid
+      chain.defenderUid = defSide.keeper.uid
+      chain.momentum += 0.15
+      chain.spirit = undefined
+      exhaustionCheck(m, out, attacker)
+      return
+    }
     // Escueto A PROPÓSITO: la línea del duelo que acaba de salir ya cuenta QUIÉN
     // ha robado el balón («Bruno Cid le roba la cartera a Sam Kincaid»). Antes
     // esta repetía el nombre del defensor y la jugada se narraba dos veces.

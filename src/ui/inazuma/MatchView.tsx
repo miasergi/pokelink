@@ -37,6 +37,13 @@ export default function MatchView() {
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
   // solo se reacciona al último evento: escenario de duelo o celebración.
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
+  // FLASH de duelo de campo (regate/corte): informa SIN parar el juego.
+  const [flash, setFlash] = useState<{ key: number; text: string; color: string } | null>(null)
+  useEffect(() => {
+    if (!flash) return
+    const t = setTimeout(() => setFlash(null), 950)
+    return () => clearTimeout(t)
+  }, [flash])
   const clearGol = useCallback(() => setGol(null), [])
   const clearStage = useCallback(() => setStage(null), [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
@@ -82,15 +89,10 @@ export default function MatchView() {
           1900,
         )
       }
-    } else if (
-      last.kind === 'duel'
-      && (last.step === 'definicion'
-        || ((last.success ? last.technique : last.counter) && last.step !== 'construccion'))
-    ) {
-      // Cinemática SOLO para lo gordo: tiros/penaltis siempre, y duelos de
-      // tres cuartos donde LA TÉCNICA GANA (si el duelo lo decide un regate o
-      // un corte a pelo, el juego sigue y lo cuenta el césped/ticker — parar
-      // el partido para enseñar la técnica del PERDEDOR no contaba nada).
+    } else if (last.kind === 'duel' && last.step === 'definicion') {
+      // Cinemática SOLO en los DISPAROS (y penaltis): los duelos de regate
+      // vs bloqueo NO paran el partido — se resuelven con un FLASH sobre el
+      // césped (la técnica ganadora, o «¡REGATE!»/«¡CORTE!» a pelo).
       setStage({
         key: feed.length,
         attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
@@ -100,7 +102,16 @@ export default function MatchView() {
         attackerCrest: crestOf(last.side === mine),
         defenderCrest: crestOf(last.side !== mine),
         chance: last.chance,
-        kind: last.step === 'definicion' ? 'tiro' : 'regate',
+        kind: 'tiro',
+      })
+    } else if (last.kind === 'duel') {
+      // FLASH no bloqueante del duelo de campo: el juego sigue por debajo.
+      const winnerTech = last.success ? last.technique : last.counter
+      const winnerMine = (last.side === mine) === last.success
+      setFlash({
+        key: feed.length,
+        text: winnerTech ? `¡${winnerTech.toUpperCase()}!` : last.success ? '¡REGATE!' : '¡CORTE!',
+        color: winnerMine ? '#34d399' : '#f87171',
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,13 +187,26 @@ export default function MatchView() {
         else if (!caughtUp || frozen) current = stickyPair.current
         else stickyPair.current = null
         return (
-          <LivePitch
-            match={match}
-            feed={shownFeed}
-            current={current}
-            myCrest={teamDisplay(save ?? {}).crestId}
-            theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
-          />
+          <div className="relative flex-1 min-h-0 flex flex-col">
+            <LivePitch
+              match={match}
+              feed={shownFeed}
+              current={current}
+              myCrest={teamDisplay(save ?? {}).crestId}
+              theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+            />
+            {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
+            {flash && (
+              <div key={flash.key} className="absolute inset-x-0 top-[38%] z-30 flex justify-center pointer-events-none">
+                <span
+                  className="px-4 py-1 rounded-2xl border-2 bg-slate-950/85 text-xl font-black uppercase tracking-wider animate-goal"
+                  style={{ color: flash.color, borderColor: flash.color, transform: 'rotate(-4deg)' }}
+                >
+                  {flash.text}
+                </span>
+              </div>
+            )}
+          </div>
         )
       })()}
 
@@ -220,7 +244,7 @@ export default function MatchView() {
           <DecisionPanel decision={match.decision} match={match} onPick={decide} />
         </div>
       ) : finished ? (
-        <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 max-h-[62svh] overflow-y-auto">
+        <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 max-h-[76svh] overflow-y-auto">
           <div className="text-center mb-2">
             <div className="text-3xl font-extrabold tabular-nums">{mine.goals} – {theirs.goals}</div>
             <div className={`text-sm font-bold ${
@@ -770,20 +794,7 @@ function MatchSummary({ match }: { match: MatchState }) {
         })}
       </div>
 
-      {/* GOLEADORES con su tarjeta (foto, nombre, posición, rareza, elemento
-          y minuto), cada bando en su lado. */}
-      {goals.length > 0 && (
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
-          <div className="flex flex-col gap-1">
-            {myGoals.map((g, i) => <ScorerCard key={`m${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} mine />)}
-          </div>
-          <div className="flex flex-col gap-1">
-            {theirGoals.map((g, i) => <ScorerCard key={`t${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} />)}
-          </div>
-        </div>
-      )}
-
-      {/* MVP con su tarjeta completa. */}
+      {/* MVP PRIMERO (con 8 goles quedaba bajo el pliegue y «no salía»). */}
       {mvpUid && (
         <div className="mt-2">
           <div className="text-[9px] uppercase tracking-widest text-amber-300 font-extrabold text-center mb-1">
@@ -791,6 +802,22 @@ function MatchSummary({ match }: { match: MatchState }) {
           </div>
           <ScorerCard match={match} uid={mvpUid} mvp mine={!!actorByUid(match, mvpUid) && [sideOf(match, mineSide)].some((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds].some((a) => a.uid === mvpUid))} />
         </div>
+      )}
+
+      {/* GOLEADORES con su tarjeta (foto, minuto y asistencia si la hubo),
+          cada bando en su lado. */}
+      {goals.length > 0 && (
+        <>
+          <div className="mt-2 text-[9px] uppercase tracking-widest text-slate-500 text-center">Goles</div>
+          <div className="mt-1 grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col gap-1">
+              {myGoals.map((g, i) => <ScorerCard key={`m${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} mine />)}
+            </div>
+            <div className="flex flex-col gap-1">
+              {theirGoals.map((g, i) => <ScorerCard key={`t${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} />)}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
