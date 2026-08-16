@@ -182,6 +182,43 @@ describe('render de pantallas (smoke)', () => {
     // Los BANQUILLOS también se ven en la previa (el rival y el tuyo).
     expect(preview).toContain('Banquillo')
 
+    // CASILLA DE SUPERTÉCNICA ESPECIAL: con cadena por despertar Y técnicas
+    // mejorables, ofrece LAS DOS (antes imponía despertar hasta completar la
+    // cadena y no había forma de reforzar la técnica que de verdad usas).
+    {
+      const firmaNode = Object.values(save.map.nodes).find((n) => n.kind === 'firma')
+        ?? { ...Object.values(save.map.nodes)[0], kind: 'firma' as const }
+      // Un jugador con un paso despertado (mejorable) y cadena por delante.
+      const conAmbas = save.roster.map((p) => {
+        const chain = getPlayerBase(p.baseId).signature ?? []
+        return chain.length >= 2 ? { ...p, rarity: 4, level: 40, techniques: [chain[0]] } : p
+      })
+      useInazuma.setState({
+        save: { ...save, roster: conAmbas },
+        matchNode: firmaNode,
+        phase: 'firma',
+      })
+      // Y al TOCAR la fila sale el menú de las dos vías, no se ejecuta a
+      // ciegas la que al juego le parezca.
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      const root = createRoot(host)
+      act(() => { root.render(createElement(InazumaScreen)) })
+      const firma = host.textContent ?? ''
+      expect(firma).toContain('Despierta')
+      expect(firma).toContain('mejora')
+      const fila = [...host.querySelectorAll('button')].find((b) => (b.textContent ?? '').includes('Despierta'))
+      expect(fila, 'no hay ninguna fila accionable').toBeDefined()
+      act(() => { fila!.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+      const menu = host.textContent ?? ''
+      expect(menu, 'tocar la fila no ofrece elegir').toContain('¿Qué entrena')
+      expect(menu).toContain('Despertar')
+      expect(menu).toContain('Mejorar')
+      act(() => { root.unmount() })
+      host.remove()
+      useInazuma.setState({ save, matchNode: null, phase: 'map' })
+    }
+
     // EL PARTIDO NO VA POR TURNOS: sin que llegue ni un evento nuevo, el
     // césped se mueve solo (la jugada avanza y luego el balón circula). Si
     // esto se rompe, el campo vuelve a quedarse congelado entre eventos —
