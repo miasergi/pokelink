@@ -65,6 +65,7 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
     inazumaModeMatch, inazumaModePachanga, setInazumaModeMatch, setInazumaModePachanga,
     skipNodeInfo, toggleSkipNodeInfo, inazumaSimMatch, inazumaSimPachanga,
     toggleInazumaSimMatch, toggleInazumaSimPachanga,
+    inazumaPitchNames, toggleInazumaPitchNames,
   } = useSettings()
   const [confirm, setConfirm] = useState(false)
 
@@ -202,6 +203,12 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
             hint="Sin ventana informativa: tocar una casilla alcanzable entra del tirón."
             on={skipNodeInfo}
             onClick={toggleSkipNodeInfo}
+          />
+          <Toggle
+            label="Nombres en el césped"
+            hint="El nombre bajo cada jugador durante el partido. Apagado se ve mejor la jugada: el retrato, el escudo y el borde de rareza ya dicen quién es quién."
+            on={inazumaPitchNames}
+            onClick={toggleInazumaPitchNames}
           />
           <Toggle label="Sonido" on={sound} onClick={toggleSound} />
           <Toggle label="Música" on={music} onClick={toggleMusic} />

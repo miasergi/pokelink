@@ -20,7 +20,7 @@ import {
 import { EVENTS, getEvent } from '@/data/inazuma/events'
 import { availableCombos } from '@/data/inazuma/combos'
 import { nextRound, shoot } from './pachanga'
-import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward } from './rewards'
+import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward, signingLevel } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
   levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
@@ -68,6 +68,18 @@ describe('plantilla', () => {
       expect(squad.filter((id) => getPlayerBase(id).position === 'POR').length, teamId)
         .toBeGreaterThanOrEqual(1)
     }
+  })
+
+  it('el jugador que llega tras ganar viene AL NIVEL DE TU EQUIPO', () => {
+    // El nivel de la casilla es el del RIVAL de esa ronda: con la plantilla ya
+    // subida, el fichaje de premio entraba en desuso el mismo día. Nunca puede
+    // llegar por debajo de la media de los tuyos.
+    const save = createSave(21)
+    save.roster = save.roster.map((p) => ({ ...p, level: 40 }))
+    expect(signingLevel(save)).toBeGreaterThanOrEqual(40)
+    // La casilla de primera ronda va por nivel 8: el premio NO puede salir a 8.
+    const nodeLevel = 8
+    expect(Math.max(nodeLevel, signingLevel(save))).toBe(signingLevel(save))
   })
 
   it('el ojeador NUNCA ofrece a alguien que ya tienes (ni con otro id)', () => {

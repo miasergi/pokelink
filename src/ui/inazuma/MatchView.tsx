@@ -31,7 +31,7 @@ export default function MatchView() {
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
   // Último emparejamiento pintado en el césped (ver más abajo: pegajoso).
-  const stickyPair = useRef<{ attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null>(null)
+  const stickyPair = useRef<{ attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null>(null)
 
   // El RITMO lo marca el store: el feed llega ya revelado de uno en uno, con
   // el motor parado hasta que cada momento tuvo su tiempo en pantalla. Aquí
@@ -45,15 +45,19 @@ export default function MatchView() {
     return () => clearTimeout(t)
   }, [flash])
   const clearGol = useCallback(() => setGol(null), [])
-  const clearStage = useCallback(() => setStage(null), [])
+  const clearStage = useCallback(() => { setStage(null); setShotFlight(null) }, [])
   // DISPARO EN VUELO: la cinemática avisa y el CÉSPED pinta el balón ardiendo
   // camino de la portería (antes viajaba dentro de la propia cinemática).
-  const [shotFlight, setShotFlight] = useState<{ key: number; element?: Element; mine: boolean } | null>(null)
+  const [shotFlight, setShotFlight] = useState<{ key: number; element?: Element; mine: boolean; landed?: boolean } | null>(null)
   const stageRef = useRef<StageData | null>(null)
   stageRef.current = stage
   const onFlight = useCallback((active: boolean) => {
     const st = stageRef.current
-    setShotFlight(active && st ? { key: st.key, element: st.element, mine: st.attackerMine } : null)
+    // Al terminar el vuelo el balón NO desaparece: se queda EN LA PORTERÍA
+    // mientras se resuelve la parada. Antes volvía de golpe a los pies del que
+    // había disparado, que era justo lo que se veía raro.
+    if (active) setShotFlight(st ? { key: st.key, element: st.element, mine: st.attackerMine } : null)
+    else setShotFlight((f) => (f ? { ...f, landed: true } : null))
   }, [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
   const crestOf = (mine: boolean) => (mine ? teamDisplay(save ?? {}).crestId : matchNode?.teamId)
@@ -195,15 +199,19 @@ export default function MatchView() {
         // decisión, su emparejamiento; si hay cinemática de duelo, ESE duelo
         // (sin desenlace); si no, el último contado.
         const stagedEv = stage && stage.key === feed.length ? feed[feed.length - 1] : null
-        let current = match.phase === 'decision' && match.decision && caughtUp && !frozen
+        let current: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null
+          = match.phase === 'decision' && match.decision && caughtUp && !frozen
           ? {
             attackerUid: match.decision.mode === 'ataque' ? match.decision.actorUid : match.decision.rivalUid,
             defenderUid: match.decision.mode === 'ataque' ? match.decision.rivalUid : match.decision.actorUid,
             step: match.decision.step,
             side: match.decision.mode === 'ataque' ? playerSide(match) : otherSide(playerSide(match)),
+            // Si la jugada viene de un tiro lejano, el que dispara sigue en
+            // tres cuartos: el campo tiene que pintarlo ahí desde ya.
+            longShot: match.chain?.longShot === true,
           }
           : stagedEv?.kind === 'duel'
-            ? { attackerUid: stagedEv.attackerUid, defenderUid: stagedEv.defenderUid, step: stagedEv.step, side: stagedEv.side }
+            ? { attackerUid: stagedEv.attackerUid, defenderUid: stagedEv.defenderUid, step: stagedEv.step, side: stagedEv.side, longShot: stagedEv.longShot }
             : null
         // PEGAJOSO: entre elegir la opción y revelarse el duelo (o entre dos
         // cinemáticas) el emparejamiento quedaba a null un instante y el campo

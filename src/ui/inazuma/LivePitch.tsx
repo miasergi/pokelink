@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
+import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
@@ -71,13 +72,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
    * portería contraria envuelto en llamas del color de su elemento. Lo activa
    * la cinemática del tiro entre la supertécnica y la parada.
    */
-  flight?: { key: number; element?: Element; mine: boolean } | null
+  flight?: { key: number; element?: Element; mine: boolean; landed?: boolean } | null
   /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
-  current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null
+  current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null
   /** Escudos: van de FONDO en la ficha de cada jugador (en vez del color). */
   myCrest?: string
   theirCrest?: string
 }) {
+  const showNames = useSettings((st) => st.inazumaPitchNames)
   const mine = playerSide(match)
   const home = sideOf(match, mine)
   const away = sideOf(match, otherSide(mine))
@@ -98,7 +100,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // El último DUELO revelado manda sobre dónde está el balón; si DESPUÉS hay
   // un PASE revelado, el balón vuela a los pies del receptor (sin cinemática:
   // el vuelo se ve aquí). Un gol o un saque cierran la jugada.
-  let duel: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; success?: boolean } | null = null
+  let duel: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; success?: boolean; longShot?: boolean } | null = null
   let passTo: string | null = null
   for (let i = feed.length - 1; i >= 0; i--) {
     const e = feed[i]
@@ -122,9 +124,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // PROGRESO DE LA JUGADA: 0 al revelarse el evento, 1 unos segundos después.
   // Es el motor del movimiento continuo — sin él, entre evento y evento el
   // campo se queda congelado y parece un juego por turnos.
-  const startedAt = useRef({ len: -1, t: 0 })
-  if (startedAt.current.len !== feed.length) {
-    startedAt.current = { len: feed.length, t: Date.now() }
+  // La referencia es la JUGADA (quién ataca, en qué eslabón y con quién), no
+  // el número de eventos: si se reinicia con cada línea de narración, el
+  // bloque pega un tirón hacia atrás cada dos por tres — eso era buena parte
+  // de los «movimientos antinaturales».
+  const playKey = `${atkSide ?? '-'}|${step ?? '-'}|${carrierUid ?? '-'}|${markerUid ?? '-'}`
+  const startedAt = useRef({ key: '', t: 0 })
+  if (startedAt.current.key !== playKey) {
+    startedAt.current = { key: playKey, t: Date.now() }
   }
   const elapsed = Date.now() - startedAt.current.t
   // `now` solo está para forzar el re-render del reloj; el valor real es el
@@ -141,7 +148,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
 
   // El balón AVANZA dentro de su zona mientras dura la jugada (y retrocede un
   // pelín al empezar, que es como se gana un metro antes de atacar).
-  const zone = step != null ? STEP_X[step] : 50
+  // Tiro LEJANO: el disparo sale desde tres cuartos de campo, no desde el
+  // borde del área — si no, el delantero «aparecía delante» de repente.
+  const longShot = shown?.longShot === true
+  const zone = step == null ? 50 : longShot && step === 'definicion' ? STEP_X.penetracion : STEP_X[step]
   const zoneFrom = step != null ? zone - ZONE_RUN : 50
   const zoneTo = step != null ? zone + ZONE_RUN : 50
   const rawBallX = zoneFrom + (zoneTo - zoneFrom) * progress
@@ -374,14 +384,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                 const s = spotOf(a, true)
                 return (
                   <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={mineBg} crest={myCrest}
-                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
               })}
               {theirActors.map((a) => {
                 const s = spotOf(a, false)
                 return (
                   <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={theirBg} crest={theirCrest}
-                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
               })}
             </>
@@ -397,6 +407,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             to={{ x: mx(flight.mine ? 95 : 5), y: 50 }}
             color={flameOf(flight.element)}
             mine={secondHalf ? !flight.mine : flight.mine}
+            // Ya llegó: se queda EN LA PORTERÍA mientras se resuelve la
+            // parada. Antes volvía a los pies del que había disparado.
+            landed={flight.landed}
           />
         ) : (
           <div
@@ -420,17 +433,19 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
  * tamaño del propio balón (16 px), así que el «viaje» eran cuatro píxeles y
  * parecía que la pelota se quedaba quieta con su color encima.
  */
-function ShotBall({ from, to, color, mine }: {
+function ShotBall({ from, to, color, mine, landed }: {
   from: Spot
   to: Spot
   color: string
   /** Dirección del disparo: coloca la estela por detrás del balón. */
   mine: boolean
+  /** El balón YA llegó: se queda en la portería y las llamas se apagan. */
+  landed?: boolean
 }) {
   // Primer fotograma en el ORIGEN y, al siguiente, al destino: así la
   // transición de CSS tiene de dónde salir (si se monta ya en el destino no
   // hay animación que valga).
-  const [at, setAt] = useState(from)
+  const [at, setAt] = useState(landed ? to : from)
   useEffect(() => {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setAt(to)))
     return () => cancelAnimationFrame(id)
@@ -447,12 +462,12 @@ function ShotBall({ from, to, color, mine }: {
       }}
     >
       <span
-        className="absolute -inset-3 rounded-full blur-[6px] animate-flame-flicker"
+        className={`absolute -inset-3 rounded-full blur-[6px] transition-opacity duration-500 ${landed ? 'opacity-0' : 'animate-flame-flicker'}`}
         style={{ background: `radial-gradient(circle, ${color}dd, ${color}55 55%, transparent 75%)` }}
       />
       {/* La estela va SIEMPRE por detrás, según hacia dónde se dispara. */}
       <span
-        className="absolute top-1/2 -translate-y-1/2 h-3 w-14 blur-[4px]"
+        className={`absolute top-1/2 -translate-y-1/2 h-3 w-14 blur-[4px] transition-opacity duration-500 ${landed ? 'opacity-0' : ''}`}
         style={{
           [mine ? 'right' : 'left']: '55%',
           background: `linear-gradient(${mine ? 'to left' : 'to right'}, ${color}dd, transparent)`,
@@ -471,7 +486,7 @@ function ShotBall({ from, to, color, mine }: {
  *    izquierda VERDE = aguante (se vacían de arriba abajo);
  *  - debajo, su elemento y su nombre.
  */
-function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
+function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: {
   actor: Actor
   spot: Spot
   teamColor: string
@@ -479,6 +494,8 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
   crest?: string
   carrier?: boolean
   marker?: boolean
+  /** Ajuste: nombre bajo cada jugador (apagado por defecto). */
+  showNames?: boolean
 }) {
   const info = ELEMENT_INFO[actor.element]
   const active = carrier || marker
@@ -493,6 +510,17 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
   // desplazamiento responde a la jugada, no a una animación de adorno.
   let h = 0
   for (const ch of actor.uid) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+
+  // UNA CARRERA LARGA TARDA MÁS QUE UN AJUSTE DE DOS METROS. Con una duración
+  // fija, cambiar de papel (pasar de dar apoyo a llevar el balón) cruzaba el
+  // campo en el mismo medio segundo que un reajuste mínimo, y eso es lo que se
+  // veía como teletransporte. Aquí la duración sale de la DISTANCIA real.
+  const prev = useRef(spot)
+  const dist = Math.hypot(spot.x - prev.current.x, spot.y - prev.current.y)
+  prev.current = spot
+  // ~28 ms por punto porcentual recorrido, con suelo y techo.
+  const travel = Math.max(240, Math.min(1400, dist * 28))
+
   return (
     <div
       className="absolute -translate-x-1/2 -translate-y-1/2 transition-all ease-in-out"
@@ -500,11 +528,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        // El destino ahora se MUEVE solo (la jugada avanza sin parar), así que
-        // la transición ya no tiene que cubrir un latido entero: es un
-        // suavizado corto. Con los 1500 ms de antes, cada ficha iba un segundo
-        // y medio por detrás de su sitio y el campo se veía a destiempo.
-        transitionDuration: active ? '260ms' : '520ms',
+        transitionDuration: `${active ? Math.max(200, travel * 0.75) : travel}ms`,
         transitionDelay: active ? '0ms' : `${(h % 4) * 25}ms`,
       }}
     >
@@ -539,12 +563,14 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
           {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
       </div>
-      {/* elemento + nombre, SIEMPRE */}
+      {/* Elemento siempre; el NOMBRE solo si lo pides en Ajustes (por defecto
+          no: con 22 fichas los nombres tapan la jugada). Los protagonistas del
+          lance lo llevan igualmente — ahí sí importa quién es. */}
       <span className={`mt-0.5 inline-flex items-center gap-0.5 max-w-[62px] rounded px-1 leading-tight ${
         active ? 'bg-black/75 text-white text-[8px] font-bold' : 'bg-black/50 text-white/85 text-[7px] font-bold'
       }`}>
         <Icon name={ELEMENT_ICON[actor.element]} className={active ? 'w-2.5 h-2.5 shrink-0' : 'w-2 h-2 shrink-0'} style={{ color: info.color }} />
-        <span className="truncate">{actor.name.split(' ')[0]}</span>
+        {(showNames || active) && <span className="truncate">{actor.name.split(' ')[0]}</span>}
       </span>
       </div>
     </div>

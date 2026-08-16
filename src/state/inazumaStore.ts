@@ -840,7 +840,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       const pick = beatenPool.length ? beatenPool[getRng(next).int(0, beatenPool.length - 1)] : null
       if (pick) {
         const rarity = rivalRarityMap(matchNode.teamId, bossIndexForLayer(matchNode.layer)).get(pick.id) ?? 1
-        const level = matchNode.level ?? signingLevel(next)
+        // AL NIVEL DE TU EQUIPO: el nivel de la casilla es el del RIVAL de esa
+        // ronda y se queda corto enseguida — el fichaje entraba en desuso el
+        // mismo día que llegaba. Se queda con el mayor de los dos.
+        const level = Math.max(matchNode.level ?? 0, signingLevel(next))
         if (next.roster.length < ROSTER_MAX) {
           const nuevo = createPlayer(pick.id, level, { rarity })
           next.roster = [...next.roster, nuevo]

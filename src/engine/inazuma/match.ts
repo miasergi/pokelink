@@ -466,6 +466,9 @@ function executeDuel(
     // La probabilidad REAL con la que se tiró: la cinemática la enseña para
     // que el desenlace nunca parezca arbitrario.
     chance: r.chance,
+    // Tiro lejano: el que dispara NO está en el borde del área, y el campo
+    // tiene que pintarlo donde de verdad estaba.
+    longShot: chain.longShot && step === 'definicion' ? true : undefined,
     text: duelText(step, attacker, defender, atkTech, defTech, r.success, r.effectiveness),
   })
 

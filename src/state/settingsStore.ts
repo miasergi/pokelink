@@ -21,6 +21,12 @@ interface SettingsState {
   /** Simulación INSTANTÁNEA: entrar y ver directamente el resultado. */
   inazumaSimMatch: boolean
   inazumaSimPachanga: boolean
+  /**
+   * Nombres bajo cada jugador en el césped. APAGADO por defecto: con 22
+   * fichas, los nombres tapan el juego más de lo que informan (el retrato, el
+   * escudo y el borde de rareza ya dicen quién es quién).
+   */
+  inazumaPitchNames: boolean
   theme: ThemeName
   setBattleSpeed: (s: BattleSpeed) => void
   toggleAutoAdvance: () => void
@@ -32,6 +38,7 @@ interface SettingsState {
   setInazumaModePachanga: (m: 'auto' | 'dinamico' | 'completo') => void
   toggleInazumaSimMatch: () => void
   toggleInazumaSimPachanga: () => void
+  toggleInazumaPitchNames: () => void
   setTheme: (t: ThemeName) => void
 }
 
@@ -52,7 +59,7 @@ function persist(s: SettingsState) {
   if (!hasStorage) return
   localStorage.setItem(
     KEY,
-    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaModeMatch: s.inazumaModeMatch, inazumaModePachanga: s.inazumaModePachanga, inazumaSimMatch: s.inazumaSimMatch, inazumaSimPachanga: s.inazumaSimPachanga, theme: s.theme }),
+    JSON.stringify({ battleSpeed: s.battleSpeed, autoAdvance: s.autoAdvance, sound: s.sound, music: s.music, skipNodeInfo: s.skipNodeInfo, showOdds: s.showOdds, inazumaModeMatch: s.inazumaModeMatch, inazumaModePachanga: s.inazumaModePachanga, inazumaSimMatch: s.inazumaSimMatch, inazumaSimPachanga: s.inazumaSimPachanga, inazumaPitchNames: s.inazumaPitchNames, theme: s.theme }),
   )
 }
 
@@ -69,6 +76,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   inazumaModeMatch: (saved.inazumaModeMatch ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
   inazumaModePachanga: (saved.inazumaModePachanga ?? (saved as Record<string, unknown>).inazumaMode ?? 'dinamico') as 'auto' | 'dinamico' | 'completo',
   inazumaSimMatch: saved.inazumaSimMatch ?? false,
+  inazumaPitchNames: saved.inazumaPitchNames ?? false,
   inazumaSimPachanga: saved.inazumaSimPachanga ?? false,
   theme: (saved.theme as ThemeName) ?? 'dark',
   setBattleSpeed: (battleSpeed) => {
@@ -109,6 +117,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
   toggleInazumaSimPachanga: () => {
     set({ inazumaSimPachanga: !get().inazumaSimPachanga })
+    persist(get())
+  },
+  toggleInazumaPitchNames: () => {
+    set({ inazumaPitchNames: !get().inazumaPitchNames })
     persist(get())
   },
   setTheme: (theme) => {
