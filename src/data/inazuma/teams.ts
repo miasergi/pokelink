@@ -169,8 +169,96 @@ export const TEAMS: TeamBase[] = [
     taunt: 'Pequeños de nombre. Gigantes en el campo.',
     lineup: [],
   },
+  // -------------------------------------------------------------------------
+  // IE1 · más institutos del Football Frontier
+  // -------------------------------------------------------------------------
+  {
+    id: 'kasamino', name: 'Instituto Kasamino', color: '#f97316', kit: ['#fb923c', '#7c2d12'], element: 'fuego', power: 0.70,
+    taunt: 'No hace falta técnica para ganar. Hace falta hambre.',
+    lineup: [],
+  },
+  {
+    id: 'senbayama', name: 'Instituto Senbayama', color: '#65a30d', kit: ['#84cc16', '#365314'], element: 'montana', power: 0.80,
+    taunt: 'Aquí se entrena en la montaña. Vosotros solo corréis.',
+    lineup: [],
+  },
+  {
+    id: 'shuuyou-meito', name: 'Instituto Shuuyou Meito', color: '#0891b2', kit: ['#22d3ee', '#164e63'], element: 'aire', power: 0.82,
+    taunt: 'Disciplina, orden y once jugadores. Con eso basta.',
+    lineup: [],
+  },
+  {
+    id: 'the-fires', name: 'The Fires', color: '#dc2626', kit: ['#ef4444', '#450a0a'], element: 'fuego', power: 0.86,
+    taunt: 'Lo que tocamos, arde.',
+    lineup: [],
+  },
+  {
+    id: 'the-mountains', name: 'The Mountains', color: '#a16207', kit: ['#ca8a04', '#422006'], element: 'montana', power: 0.86,
+    taunt: 'Intentad mover una montaña. Os esperamos.',
+    lineup: [],
+  },
+  {
+    id: 'the-woods', name: 'The Woods', color: '#15803d', kit: ['#22c55e', '#14532d'], element: 'bosque', power: 0.86,
+    taunt: 'En nuestro bosque nadie encuentra la portería.',
+    lineup: [],
+  },
+  // -------------------------------------------------------------------------
+  // IE2 · la temporada del Instituto Alius
+  // -------------------------------------------------------------------------
+  {
+    id: 'hakuren', name: 'Instituto Hakuren', color: '#38bdf8', kit: ['#e0f2fe', '#0369a1'], element: 'aire', power: 0.84,
+    taunt: 'La ventisca juega con nosotros. Abrigaos.',
+    lineup: [],
+  },
+  {
+    id: 'shin-teikoku', name: 'Nuevo Instituto Imperial', color: '#4338ca', kit: ['#818cf8', '#1e1b4b'], element: 'bosque', power: 0.96,
+    taunt: 'El Imperio ha vuelto. Y esta vez sin ataduras.',
+    lineup: [],
+  },
+  {
+    id: 'dark-emperors', name: 'Emperadores Oscuros', color: '#7e22ce', kit: ['#1e1b4b', '#6b21a8'], element: 'bosque', power: 0.98,
+    taunt: 'Vuestros amigos ya no os reconocen. Nosotros tampoco.',
+    lineup: [],
+  },
+  {
+    id: 'epsilon-kai', name: 'Epsilon Mejorado', color: '#16a34a', kit: ['#4ade80', '#14532d'], element: 'bosque', power: 1.02,
+    taunt: 'La versión anterior fue el borrador.',
+    lineup: [],
+  },
+  // -------------------------------------------------------------------------
+  // IE3 · más selecciones del Mundial
+  // -------------------------------------------------------------------------
+  {
+    id: 'the-kingdom', name: 'The Kingdom', color: '#eab308', kit: ['#facc15', '#166534'], element: 'fuego', power: 1.04,
+    taunt: 'En Brasil el balón se acaricia, no se golpea.',
+    lineup: [],
+  },
+  {
+    id: 'rose-griffon', name: 'Rose Griffon', color: '#ec4899', kit: ['#f9a8d4', '#831843'], element: 'aire', power: 1.02,
+    taunt: 'Elegancia francesa. Vais a perder con estilo.',
+    lineup: [],
+  },
+  {
+    id: 'brockenborg', name: 'Brockenborg', color: '#525252', kit: ['#e5e5e5', '#171717'], element: 'montana', power: 1.06,
+    taunt: 'Máquinas. Sin fisuras, sin dudas, sin piedad.',
+    lineup: [],
+  },
+  {
+    id: 'ogre', name: 'Team Ogre', color: '#166534', kit: ['#14532d', '#052e16'], element: 'montana', power: 1.12,
+    taunt: 'Venimos del futuro a borraros del torneo.',
+    lineup: [],
+  },
+  {
+    id: 'neo-japan', name: 'Neo Japan', color: '#b91c1c', kit: ['#fecaca', '#7f1d1d'], element: 'fuego', power: 1.08,
+    taunt: 'Nosotros somos la selección que Japón merecía.',
+    lineup: [],
+  },
+  {
+    id: 'gaia', name: 'Team Gaia', color: '#0d9488', kit: ['#5eead4', '#134e4a'], element: 'bosque', power: 1.10,
+    taunt: 'El planeta entero juega de nuestra parte.',
+    lineup: [],
+  },
 ]
-
 export const TEAM_BY_ID = new Map(TEAMS.map((t) => [t.id, t]))
 
 /**
@@ -220,7 +308,8 @@ export const SAGAS: Saga[] = [
     desc: 'La primera temporada: el torneo nacional de institutos.',
     teams: ['raimon', 'occult', 'otaku', 'mikage', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
     playable: ['raimon', 'occult', 'royal'],
-    scoutTeams: ['kfc', 'oumihara', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero'],
+    scoutTeams: ['kfc', 'oumihara', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero',
+      'kasamino', 'senbayama', 'shuuyou-meito', 'the-fires', 'the-mountains', 'the-woods'],
   },
   {
     id: 'alius',
@@ -228,7 +317,8 @@ export const SAGAS: Saga[] = [
     desc: 'La segunda temporada: la caravana Raimon contra los equipos alienígenas.',
     teams: ['raimon', 'yokato', 'oumihara', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis'],
     playable: ['raimon', 'genesis'],
-    scoutTeams: ['occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero'],
+    scoutTeams: ['occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero',
+      'hakuren', 'shin-teikoku', 'dark-emperors', 'epsilon-kai'],
   },
   {
     id: 'ffi',
@@ -236,7 +326,8 @@ export const SAGAS: Saga[] = [
     desc: 'La tercera temporada: las selecciones del mundial juvenil.',
     teams: ['inazuma-japan', 'big-waves', 'desert-lion', 'knights-of-queen', 'fire-dragon', 'the-empire', 'unicorn', 'orpheus', 'little-gigant'],
     playable: ['inazuma-japan', 'orpheus', 'unicorn'],
-    scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero'],
+    scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero',
+      'the-kingdom', 'rose-griffon', 'brockenborg', 'ogre', 'neo-japan', 'gaia'],
   },
 ]
 

@@ -75,9 +75,7 @@ const FILL_IN = {
 }
 
 /** Nombres del doblaje ESPAÑOL que la wiki trae con el del inglés. */
-const NAME_FIX = {
-  Domon: 'Mac Robingo',
-}
+const NAME_FIX = {}
 
 /**
  * Equipos CLONADOS: la wiki resolvía dos páginas distintas a la misma
@@ -85,6 +83,16 @@ const NAME_FIX = {
  * fichajes y ojeadores. Se emite solo el bueno.
  */
 const CLONE_TEAMS = new Set(['wild'])
+
+/**
+ * Equipos de RECLUTAMIENTO (los que el juego arma juntando gente suelta por
+ * elemento). Se emiten los ÚLTIMOS para que el id limpio se lo quede el equipo
+ * de la historia: si no, Mac Robingo salía como jugador de The Fires y su
+ * Brasil se quedaba con el `-2`.
+ */
+const LOW_PRIORITY_TEAMS = new Set([
+  'the-fires', 'the-mountains', 'the-woods', 'windies', 'extra-stars', 'kage-no-hero', 'chaos',
+])
 
 /**
  * Estrellas ESCRITAS A MANO para los personajes cuyo peso en la serie conozco.
@@ -99,6 +107,21 @@ const CLONE_TEAMS = new Set(['wild'])
  * que merezca más estrellas, se añade aquí y se vuelve a generar el fichero.
  */
 const STARS = {
+  // --- Capitanes y cracks de los equipos añadidos (IE1/IE2/IE3) ---
+  'Mac Robingo': 5, // capitán de Brasil
+  'Carlos Lagarto': 4,
+  'Gato Carvalho': 4,
+  'Teles Torrue': 5, // capitán de The Empire
+  'Rococo Urupa': 5, // capitán de Little Gigant
+  'Fideo Ardena': 5,
+  'Dylan Keith': 5,
+  'Mark Kruger': 5, // capitán de Brockenborg
+  'Gianluca Zanardi': 4,
+  'Napolion Ambrose': 4, // Rose Griffon
+  'Yukimura Hyouga': 4,
+  'Fubuki Atsuya': 4,
+  'Aiden Frost': 5, // Hakuren
+  'Ray Dark': 5,
   // --- Raimon
   'Mark Evans': 5,        // Endou, capitán y portero titular
   'Axel Blaze': 5,        // Gouenji, el killer
@@ -323,7 +346,9 @@ async function main() {
   const seenIds = new Set()
   /** Todo lo emitido, por equipo: de aquí sale el relleno de convocatorias. */
   const emitted = {}
-  for (const [teamId, rawList0] of Object.entries(data)) {
+  const ordered = Object.entries(data)
+    .sort((a, b) => Number(LOW_PRIORITY_TEAMS.has(a[0])) - Number(LOW_PRIORITY_TEAMS.has(b[0])))
+  for (const [teamId, rawList0] of ordered) {
     if (CLONE_TEAMS.has(teamId)) continue
     // Se completan las fichas cojas ANTES de nada: si no, el filtro de abajo
     // se las come y el equipo sale con menos gente.
@@ -417,9 +442,6 @@ async function main() {
   lines.push("  hellion: 'leonard-o-shea',")
   lines.push("  'hellion-2': 'leonard-o-shea-2',")
   lines.push("  scuba: 'chad-taylor',")
-  // Renombrados al doblaje español (ver `NAME_FIX`) y equipos clonados que ya
-  // no se emiten: las partidas viejas siguen encontrando a los suyos.
-  lines.push("  'bobby-shearer': 'mac-robingo',")
   lines.push('}')
   lines.push('')
   lines.push('export function getPlayerBase(id: string): PlayerBase {')

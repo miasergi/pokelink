@@ -31,9 +31,9 @@ const UA = 'pokelink-inazuma-techniques/1.0 (script de un solo uso)'
 
 /**
  * Categorías de la wiki de las que se saca el catálogo. De cada una se cogen
- * SOLO las técnicas que debutaron en el primer juego (`debut_game` con
- * `{{Media|games|IE}}`): son las de la primera temporada, que es la que cubre
- * este modo. Sin ese filtro entraban cientos de técnicas de GO, Ares y Galaxy.
+ * SOLO las técnicas de la SAGA ORIGINAL (`debut_game` con `{{Media|games|IE}}`,
+ * `IE2` o `IE3`): las tres temporadas que cubre este modo. Sin ese filtro
+ * entraban cientos de técnicas de GO, Ares y Galaxy.
  */
 const CATEGORIES = [
   'Category:Shoot hissatsu',
@@ -462,11 +462,11 @@ async function fetchTechnique(title) {
   const wt = parsed?.parse?.wikitext?.['*']
   if (!wt) return null
 
-  // Primera y segunda entrega: es lo que cubre la primera temporada del anime
-  // (el Football Frontier). Sin la segunda faltaban clásicos como La Torre o la
-  // Ventisca Eterna.
+  // Las TRES entregas de la saga original: Football Frontier, Instituto Alius
+  // y el Mundial. Con solo IE1-IE2, las selecciones de la FFI (Fire Dragon,
+  // The Kingdom, Ogre…) se quedaban sin sus técnicas de verdad.
   const debut = longField(wt, 'debut_game')
-  if (!/\{\{Media\|games\|IE(2)?\}\}/.test(debut)) return null
+  if (!/\{\{Media\|games\|IE([23])?\}\}/.test(debut)) return null
   const name = dubName(wt, title)
 
   // Algunas técnicas son de dos clases (`type` y `type2`). Se queda la

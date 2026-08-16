@@ -66,6 +66,25 @@ const TEAMS = {
   windies: ['The Windies'],
   'extra-stars': ['Extra Stars'],
   'kage-no-hero': ['Kage no Hero'],
+  // --- IE1: institutos del Football Frontier que faltaban ---
+  kasamino: ['Kasamino'],
+  senbayama: ['Senbayama'],
+  'shuuyou-meito': ['Shuuyou Meito Gakuen', 'Shuuyou Meito'],
+  'the-fires': ['The Fires'],
+  'the-mountains': ['The Mountains'],
+  'the-woods': ['The Woods'],
+  // --- IE2: la temporada del Instituto Alius y los Emperadores Oscuros ---
+  hakuren: ['Hakuren'],
+  'shin-teikoku': ['Shin Teikoku Gakuen'],
+  'dark-emperors': ['Dark Emperors'],
+  'epsilon-kai': ['Epsilon Kai'],
+  // --- IE3: las selecciones del Mundial que faltaban ---
+  'the-kingdom': ['The Kingdom'],
+  'rose-griffon': ['Rose Griffon'],
+  brockenborg: ['Brockenborg'],
+  ogre: ['Ogre'],
+  'neo-japan': ['Neo Japan'],
+  gaia: ['Gaia (team)', 'Gaia'],
 }
 
 /** Los cuatro elementos, como los escribe la wiki en inglés. */

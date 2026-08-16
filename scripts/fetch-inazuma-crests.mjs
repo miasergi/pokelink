@@ -65,6 +65,25 @@ const WIKI_NAME = {
   windies: ['The Windies'],
   'extra-stars': ['Extra Stars'],
   'kage-no-hero': ['Kage no Hero'],
+  // IE1: institutos del Football Frontier.
+  kasamino: ['Kasamino'],
+  senbayama: ['Senbayama'],
+  'shuuyou-meito': ['Shuuyou Meito Gakuen', 'Shuuyou Meito'],
+  'the-fires': ['The Fires'],
+  'the-mountains': ['The Mountains'],
+  'the-woods': ['The Woods'],
+  // IE2: Instituto Alius y Emperadores Oscuros.
+  hakuren: ['Hakuren'],
+  'shin-teikoku': ['Shin Teikoku Gakuen'],
+  'dark-emperors': ['Dark Emperors'],
+  'epsilon-kai': ['Epsilon Kai', 'Epsilon'],
+  // IE3: selecciones del Mundial.
+  'the-kingdom': ['The Kingdom'],
+  'rose-griffon': ['Rose Griffon'],
+  brockenborg: ['Brockenborg'],
+  ogre: ['Ogre'],
+  'neo-japan': ['Neo Japan'],
+  gaia: ['Gaia (team)', 'Gaia'],
 }
 
 async function api(params) {
@@ -93,17 +112,25 @@ function firstThumb(json) {
  * la wiki miden 64×64 — y encima el thumbnailer los servía como WebP diminuto
  * con extensión .png, que era el motivo de que varios «no tuvieran logo».
  */
-async function findEmblem(name) {
-  for (const title of [
-    `File:${name} emblem (VR).png`,
-    `File:${name} emblem.png`, `File:${name} Emblem.png`, `File:${name} emblem.jpg`,
-  ]) {
-    try {
-      const j = await api({ action: 'query', titles: title, prop: 'imageinfo', iiprop: 'url', iiurlwidth: String(SIZE) })
-      const url = firstThumb(j)
-      if (url) return url
-    } catch { /* siguiente */ }
+async function findEmblem(names) {
+  const list = Array.isArray(names) ? names : [names]
+  // PRIMERO los nombres de fichero EXACTOS de TODOS los alias. El «Fire
+  // Dragon» llevaba el escudo equivocado porque la búsqueda a ciegas del
+  // primer alias («Fire Dragon (team)», que no existe) se colaba antes que el
+  // fichero exacto del segundo («Fire Dragon emblem (VR).png»).
+  for (const name of list) {
+    for (const title of [
+      `File:${name} emblem (VR).png`,
+      `File:${name} emblem.png`, `File:${name} Emblem.png`, `File:${name} emblem.jpg`,
+    ]) {
+      try {
+        const j = await api({ action: 'query', titles: title, prop: 'imageinfo', iiprop: 'url', iiurlwidth: String(SIZE) })
+        const url = firstThumb(j)
+        if (url) return url
+      } catch { /* siguiente */ }
+    }
   }
+  const name = list[0]
   // Búsqueda abierta entre los ficheros.
   try {
     const j = await api({ action: 'query', list: 'search', srsearch: `${name} emblem`, srnamespace: '6', srlimit: '5' })
@@ -143,7 +170,7 @@ async function main() {
   } catch { console.log('  ✗ logo del juego') }
 
   const src = await readFile(SOURCE, 'utf8')
-  const bracketIds = [...src.matchAll(/id: '([a-z]+)', name: '([^']+)'/g)].map((m) => m[1])
+  const bracketIds = [...src.matchAll(/id: '([a-z0-9-]+)', name: '([^']+)'/g)].map((m) => m[1])
   // También los equipos que solo existen en el catálogo de jugadores.
   const playersSrc = await readFile(join(ROOT, 'src', 'data', 'inazuma', 'players.ts'), 'utf8')
   const playerTeams = [...new Set([...playersSrc.matchAll(/team: '([a-z0-9-]+)'/g)].map((m) => m[1]))]
@@ -156,11 +183,7 @@ async function main() {
     if (!force && await exists(dest)) { skipped++; continue }
     const names = WIKI_NAME[id] ?? [id]
     try {
-      let url = null
-      for (const name of names) {
-        url = await findEmblem(name)
-        if (url) break
-      }
+      const url = await findEmblem(names)
       if (!url) { missing.push(id); console.log(`  ✗ ${id} — sin escudo`); continue }
       // El CDN de Fandom re-codifica a WebP hagas lo que hagas con los
       // headers; lo único que respeta es el parámetro `format=png` en la URL.
