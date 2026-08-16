@@ -102,6 +102,8 @@ export default function MatchView() {
         attackerCrest: crestOf(last.side === mine),
         defenderCrest: crestOf(last.side !== mine),
         chance: last.chance,
+        // Elemento del disparo (técnica o tirador): las llamas del balón.
+        element: last.element,
         kind: 'tiro',
       })
     } else if (last.kind === 'duel') {

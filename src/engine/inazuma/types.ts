@@ -298,6 +298,8 @@ export interface MatchSide {
   defs: Actor[]
   mids: Actor[]
   fwds: Actor[]
+  /** Suplentes (el RIVAL también viaja con banquillo y cambia al descanso). */
+  bench?: Actor[]
   goals: number
   /** Barra de Ruptura 0-100. A 100 se puede activar la Supervibración. */
   burst: number
@@ -403,6 +405,11 @@ export interface ChainState {
    * de la decisión.
    */
   spirit?: { uid: string; power: number }
+  /**
+   * TIRO LEJANO: la jugada saltó de la penetración directamente al mano a
+   * mano. La distancia penaliza la potencia del disparo (LONG_SHOT_MALUS).
+   */
+  longShot?: boolean
 }
 
 // ---------------------------------------------------------------------------

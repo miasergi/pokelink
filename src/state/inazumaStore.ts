@@ -23,7 +23,7 @@ import {
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, playerScore, reformation, substitute, swapOnPitch } from '@/engine/inazuma/match'
+import { advance, chooseOption, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
@@ -162,6 +162,9 @@ function getRng(save: InazumaSave): RNG {
   }
   return rng
 }
+
+/** Cambios hechos en el descanso, para anunciarlos al reanudar. */
+let halftimeSubNotes: { inName: string; outName: string }[] = []
 
 /** Fase de ENTRADA pedida desde fuera (el menú principal): p. ej. 'album'. */
 let pendingEntry: InazumaPhase | null = null
@@ -1014,6 +1017,26 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   clearRevealPlayer: () => set({ revealPlayer: null }),
 
   resumeSecondHalf: () => {
+    const { match } = get()
+    if (match) {
+      // ANUNCIO de los cambios hechos en el descanso (los tuyos) y los del
+      // RIVAL, que también tiene banquillo y derecho a 3 cambios: entran a la
+      // cola de revelado y se narran al arrancar la segunda parte.
+      const mySide = sideOf(match, playerSide(match))
+      const evs: MatchEvent[] = halftimeSubNotes.map((n) => ({
+        kind: 'possession',
+        minute: match.minute,
+        side: playerSide(match),
+        text: `Cambio en ${mySide.name}: entra ${n.inName} por ${n.outName}.`,
+      }))
+      evs.push(...rivalHalftimeSubs(match))
+      if (evs.length) {
+        match.events.push(...evs)
+        revealQueue.push(...evs)
+      }
+      halftimeSubNotes = []
+      set({ match: { ...match } })
+    }
     set({ halftimeBreak: false, playing: true })
     stopTicker()
     ticker = setTimeout(() => get().tick(), 250)
@@ -1064,6 +1087,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const err = substitute(match, outUid, incoming)
     if (err) { set({ message: err }); return }
     play('select')
+    // Se apunta para ANUNCIARLO al arrancar la segunda parte.
+    halftimeSubNotes.push({ inName: incoming.name, outName: out.name })
     set({
       match: { ...match },
       message: `${incoming.name} entra por ${out.name}. Quedan ${match.subsLeft} cambios.`,

@@ -7,8 +7,8 @@ import { getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalRarity, rivalRarityMap,
-  slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
+  levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
+  rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
@@ -233,6 +233,15 @@ export function startMatch(
   const home = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
+
+  // El RIVAL también viaja con BANQUILLO (los suplentes de su plantilla real,
+  // 12º-14º): al descanso su banquillo hace hasta 3 cambios, como el tuyo.
+  const xiIds = new Set(rivals.map((r) => r.baseId))
+  away.bench = startingSquad(teamId)
+    .slice(11)
+    .map(getPlayerBase)
+    .filter((b) => !xiIds.has(b.id))
+    .map((b, i) => actorFromRival(rivalFromBase(b, node.level ?? 10, team.power, rivalRarityMap(teamId, bossIdx).get(b.id) ?? rivalRarity(bossIdx)), 100 + i))
 
   return { match: createMatch({ seed: rng.getState(), home, away, decisionMode }, rng), rng, node }
 }

@@ -179,6 +179,8 @@ describe('render de pantallas (smoke)', () => {
     for (const p of rivalStartingXI(node.teamId!)) {
       expect(preview).toContain(p.name.split(' ')[0])
     }
+    // Los BANQUILLOS también se ven en la previa (el rival y el tuyo).
+    expect(preview).toContain('Banquillo')
 
     // Partido: el campo tiene que contar la MISMA jugada que el motor.
     const setup = startMatch(save, node)

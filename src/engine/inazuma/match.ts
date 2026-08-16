@@ -390,6 +390,13 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
 // Resolución de un eslabón
 // ---------------------------------------------------------------------------
 
+/**
+ * Penalización del TIRO LEJANO: disparar desde fuera del área ahorra el duelo
+ * de penetración, pero la distancia le come potencia al disparo. Calibrado
+ * para que sea una apuesta real, no un atajo gratis ni una opción basura.
+ */
+export const LONG_SHOT_MALUS = 0.72
+
 function executeDuel(
   m: MatchState, rng: RNG, out: MatchEvent[],
   attacker: Actor, defender: Actor,
@@ -409,9 +416,15 @@ function executeDuel(
   if (atkBurst) atkSide.burstTurns -= 1
   if (defBurst) defSide.burstTurns -= 1
 
+  const atkDuelist = toDuelist(attacker, atkTech, atkBurst, chain.spirit, chain.sprint)
+  // El tiro lejano paga la distancia AQUÍ, con el mismo factor con el que se
+  // calcularon las estrellas de la opción: lo que se enseña es lo que se tira.
+  if (chain.longShot && step === 'definicion') {
+    atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS
+  }
   const r = resolveDuel(
     step,
-    toDuelist(attacker, atkTech, atkBurst, chain.spirit, chain.sprint),
+    atkDuelist,
     toDuelist(defender, defTech, defBurst, chain.spirit, chain.sprint),
     rng,
     chain.momentum,
@@ -517,6 +530,9 @@ function executeDuel(
       chain.carrier = header.uid
       chain.defenderUid = defSide.keeper.uid
       chain.spirit = undefined
+      // El remate del córner es a bocajarro: si el tiro anterior era lejano,
+      // la distancia ya no pinta nada.
+      chain.longShot = undefined
       exhaustionCheck(m, out, attacker)
       return
     }
@@ -725,6 +741,23 @@ function buildDecision(
     }
   }
 
+  // 4b) TIRO LEJANO: desde el borde del área se puede armar la pierna sin
+  //     ganar antes el duelo de penetración. A cambio, la distancia le come
+  //     potencia al disparo (LONG_SHOT_MALUS): apuesta, no atajo.
+  if (mode === 'ataque' && step === 'penetracion') {
+    const keeper = defSide.keeper
+    const t = pickAiTechnique(affordable(actor, 'tiro', free), actor.pt, keeper.element, 'definicion')
+    const cost = free ? 0 : (t?.cost ?? 0)
+    const opt = buildOption(m, 'definicion', mode, attacker, keeper, momentum, {
+      id: 'longshot',
+      label: t ? `Tiro lejano · ${t.name}` : 'Tiro lejano',
+      tech: t, cost,
+      powerScale: LONG_SHOT_MALUS,
+    })
+    opt.detail = `${opt.detail} · desde lejos`
+    options.push(opt)
+  }
+
   // 5) SPRINT: quemar aguante por potencia EN ESTE duelo. Convierte el
   //    cansancio en decisión táctica — y no si ya vas con la lengua fuera.
   const plainChance = options[0]?.chance ?? 0.5
@@ -816,7 +849,7 @@ function passCandidates(side: MatchSide, carrier: Actor, rivalElement: Element):
 function buildOption(
   m: MatchState, step: ChainStep, mode: 'ataque' | 'defensa',
   attacker: Actor, defender: Actor, momentum: number,
-  spec: { id: string; label: string; tech: Technique | undefined; cost: number; mateElement?: Element },
+  spec: { id: string; label: string; tech: Technique | undefined; cost: number; mateElement?: Element; powerScale?: number },
 ): DecisionOption {
   const atkSide = sideOf(m, m.chain!.side)
   const defSide = sideOf(m, otherSide(m.chain!.side))
@@ -835,9 +868,13 @@ function buildOption(
   const atkTech = mode === 'ataque' ? myTech : rivalTech
   const defTech = mode === 'ataque' ? rivalTech : myTech
   const spirit = m.chain?.spirit
+  const atkDuelist = toDuelist(attacker, atkTech, atkSide.burstTurns > 0, spirit, m.chain?.sprint)
+  // Tiro lejano: la misma penalización que aplicará `executeDuel`, para que
+  // las estrellas del botón sean las del duelo de verdad.
+  if (spec.powerScale) atkDuelist.boost = (atkDuelist.boost ?? 1) * spec.powerScale
   const { chance } = duelChance(
     step,
-    toDuelist(attacker, atkTech, atkSide.burstTurns > 0, spirit, m.chain?.sprint),
+    atkDuelist,
     toDuelist(defender, defTech, defSide.burstTurns > 0, spirit, m.chain?.sprint),
     momentum,
   )
@@ -928,6 +965,15 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     return out
   }
 
+  // TIRO LEJANO: la jugada salta de la penetración directamente al mano a
+  // mano con el portero. El malus de distancia lo aplica `executeDuel` vía
+  // `chain.longShot` (el flag muere con la jugada: cada posesión estrena chain).
+  if (optionId === 'longshot' && chain.step === 'penetracion') {
+    chain.step = 'definicion'
+    chain.defenderUid = defSide.keeper.uid
+    chain.longShot = true
+  }
+
   let attacker = findActor(atkSide, chain.carrier)
   // El defensor quedó fijado al entrar en el eslabón (ver `ChainState`), así
   // que es exactamente el mismo contra el que se calcularon las estrellas.
@@ -940,6 +986,10 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   } else if (optionId.startsWith('combo:')) {
     // Combinada: ya viene con su bono; no pasa por las Mejoras individuales.
     myTech = comboTechnique(optionId.slice(6))
+  } else if (optionId === 'longshot') {
+    // La MISMA elección determinista con la que se calcularon las estrellas
+    // del botón (mejor tiro pagable contra el elemento del portero).
+    myTech = pickAiTechnique(affordable(attacker, 'tiro', atkSide.burstTurns > 0), attacker.pt, defender.element, 'definicion')
   } else if (optionId.startsWith('pass:')) {
     // El PASE no es un duelo: llega siempre, y el que recibe juega el duelo
     // CON SUS OPCIONES (antes el receptor entraba al duelo sin poder elegir
@@ -1131,6 +1181,41 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
     return null
   }
   return 'Ese jugador no está en el campo.'
+}
+
+/**
+ * Cambios del RIVAL en el descanso: su banquillo entra por los más fundidos
+ * (hasta 3, priorizando el mismo puesto). Devuelve los anuncios.
+ */
+export function rivalHalftimeSubs(m: MatchState): MatchEvent[] {
+  const rivalSide = otherSide(playerSide(m))
+  const side = sideOf(m, rivalSide)
+  const bench = (side.bench ?? []).slice()
+  if (!bench.length) return []
+  const out: MatchEvent[] = []
+  const lines: Actor[][] = [side.defs, side.mids, side.fwds]
+  const tired = lines.flat()
+    .filter((a) => a.stamina < 62 || a.pt < a.ptMax * 0.35)
+    .sort((a, b) => (a.stamina + (a.pt / Math.max(1, a.ptMax)) * 40) - (b.stamina + (b.pt / Math.max(1, b.ptMax)) * 40))
+  let subs = 0
+  for (const outP of tired) {
+    if (subs >= 3 || !bench.length) break
+    const bi = bench.findIndex((b) => b.position === outP.position)
+    const inc = bench.splice(bi >= 0 ? bi : 0, 1)[0]
+    for (const line of lines) {
+      const i = line.findIndex((a) => a.uid === outP.uid)
+      if (i >= 0) { inc.position = outP.position; line[i] = inc; break }
+    }
+    subs++
+    out.push({
+      kind: 'possession',
+      minute: m.minute,
+      side: rivalSide,
+      text: `Cambio en ${side.name}: entra ${inc.name} por ${outP.name}.`,
+    })
+  }
+  side.bench = bench
+  return out
 }
 
 /**

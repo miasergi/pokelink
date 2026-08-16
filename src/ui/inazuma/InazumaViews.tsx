@@ -26,7 +26,7 @@ import { SQUAD_SIZE } from '@/engine/inazuma/types'
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
-import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
+import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
 import { bossIndexForLayer } from '@/engine/inazuma/tournament'
@@ -375,6 +375,14 @@ export function PreviewView() {
                 })
               }}
             />
+            {/* SU BANQUILLO: los suplentes con los que viaja (y que pueden
+                entrar en su descanso). */}
+            <BenchStrip
+              players={startingSquad(matchNode.teamId).slice(11).map((pid) => {
+                const b = getPlayerBase(pid)
+                return { baseId: b.id, name: b.name, position: b.position, rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1 }
+              })}
+            />
           </>
         )}
 
@@ -418,6 +426,15 @@ export function PreviewView() {
               techniques: p.techniques,
             })
           }}
+        />
+        {/* TU BANQUILLO, también a la vista en la previa. */}
+        <BenchStrip
+          players={save.roster
+            .filter((p) => !(lineup?.all ?? []).some((x) => x.uid === p.uid))
+            .map((p) => {
+              const b = getPlayerBase(p.baseId)
+              return { baseId: b.id, name: b.name, position: b.position, rarity: rarityOf(p) }
+            })}
         />
       </div>
 
@@ -706,6 +723,38 @@ function FormationPicker() {
         ))}
       </div>
       <p className="text-[10px] text-slate-500 mt-1">{current.desc}</p>
+    </div>
+  )
+}
+
+/** Tira compacta de BANQUILLO para la previa: retrato, nombre y puesto. */
+function BenchStrip({ players }: {
+  players: { baseId: string; name: string; position: string; rarity: number }[]
+}) {
+  if (!players.length) return null
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+      <div className="text-[9px] uppercase tracking-widest text-slate-600 mb-1">Banquillo</div>
+      <div className="flex gap-2 overflow-x-auto pb-0.5">
+        {players.map((p) => (
+          <div key={p.baseId} className="shrink-0 w-[46px] flex flex-col items-center">
+            <div
+              className="relative w-9 h-9 rounded-lg overflow-hidden border-2 grid place-items-center bg-slate-800"
+              style={{ borderColor: p.rarity === 4 ? 'transparent' : rarityBorder(p.rarity) }}
+            >
+              <ImgFallback
+                src={portraitUrl(p.baseId)}
+                className="w-full h-full object-cover object-top"
+                alt={p.name}
+                fallback={<span className="text-[9px] font-extrabold">{p.name.slice(0, 2).toUpperCase()}</span>}
+              />
+              {p.rarity === 4 && <span className="mc-ring rounded-lg" />}
+            </div>
+            <span className="text-[8px] text-slate-400 truncate w-full text-center leading-tight mt-0.5">{p.name.split(' ')[0]}</span>
+            <span className="text-[7px] text-slate-600 font-bold leading-none">{p.position}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

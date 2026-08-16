@@ -548,6 +548,11 @@ export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: numbe
   return known
 }
 
+/** `toRival` para consumo externo (banquillo rival del partido). */
+export function rivalFromBase(b: PlayerBase, level: number, power: number, rarity: number): RivalPlayer {
+  return toRival(b, level, power, rarity, false)
+}
+
 function toRival(b: PlayerBase, level: number, power: number, rarity: number, elite = false): RivalPlayer {
   // Misma vara que tus jugadores: atributos por RAREZA (la de la ronda), nivel
   // y el `power` del equipo como último empujón.

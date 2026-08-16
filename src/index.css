@@ -209,6 +209,21 @@ body {
 }
 .animate-showcase-zoom { animation: showcase-zoom 1.6s ease-out forwards; }
 
+/* EL VIAJE DEL BALÓN a puerta: sale grande desde abajo y encoge hacia la
+   portería del fondo. La curva acelera al principio (el latigazo del tiro). */
+@keyframes ball-flight {
+  0% { transform: translate(-50%, 56vh) scale(1.8); }
+  100% { transform: translate(-50%, 0) scale(0.5); }
+}
+.animate-ball-flight { animation: ball-flight 1s cubic-bezier(.25, .7, .45, 1) forwards; }
+
+/* Las llamas del balón parpadean mientras vuela. */
+@keyframes flame-flicker {
+  0%, 100% { opacity: .95; transform: scale(1); }
+  50% { opacity: .55; transform: scale(1.28); }
+}
+.animate-flame-flicker { animation: flame-flicker .32s ease-in-out infinite; }
+
 /* Barra de suspense del tiro: se llena en un segundo largo. */
 @keyframes suspense-fill {
   from { width: 0%; }
