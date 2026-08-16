@@ -394,6 +394,13 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
  */
 export const LONG_SHOT_MALUS = 0.72
 
+/**
+ * Desventaja del que se cruza en el camino de un tiro lejano. Va a la
+ * desesperada — no estaba colocado para eso — así que parte por debajo: sin
+ * este freno, ningún disparo de fuera llegaría jamás a puerta.
+ */
+const INTERCEPT_BIAS = 0.62
+
 function executeDuel(
   m: MatchState, rng: RNG, out: MatchEvent[],
   attacker: Actor, defender: Actor,
@@ -417,7 +424,8 @@ function executeDuel(
   // El tiro lejano paga la distancia AQUÍ, con el mismo factor con el que se
   // calcularon las estrellas de la opción: lo que se enseña es lo que se tira.
   if (chain.longShot && step === 'definicion') {
-    atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS
+    // Distancia + lo que le hayan comido los defensas por el camino.
+    atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS * (chain.longShotPower ?? 1)
   }
   const r = resolveDuel(
     step,
@@ -738,19 +746,42 @@ function buildDecision(
   }
 
   // 4b) TIRO LEJANO: desde el borde del área se puede armar la pierna sin
-  //     ganar antes el duelo de penetración. A cambio, la distancia le come
-  //     potencia al disparo (LONG_SHOT_MALUS): apuesta, no atajo.
+  //     ganar antes el duelo de penetración. A cambio paga DOS peajes: la
+  //     distancia le come potencia (LONG_SHOT_MALUS) y, sobre todo, el balón
+  //     tiene que cruzar la defensa — el mejor bloqueador se le pone delante
+  //     y puede pararlo o desviarlo (`interceptLongShot`). Apuesta, no atajo.
   if (mode === 'ataque' && step === 'penetracion') {
     const keeper = defSide.keeper
     const t = pickAiTechnique(affordable(actor, 'tiro', free), actor.pt, keeper.element, 'definicion')
     const cost = free ? 0 : (t?.cost ?? 0)
+    // Probabilidad de PASAR la defensa: es el mismo duelo que resolverá
+    // `interceptLongShot`, así que el botón puede contarlo de antemano.
+    const blockers = [...defSide.defs, ...defSide.mids]
+    const blocker = blockers.length
+      ? blockers.reduce((best, a) => (a.stats.defensa > best.stats.defensa ? a : best), blockers[0])
+      : null
+    let pPass = 1
+    if (blocker) {
+      const bTech = pickAiTechnique(
+        affordable(blocker, 'bloqueo', defSide.burstTurns > 0), blocker.pt, t?.element ?? actor.element, 'definicion',
+      )
+      const bDuelist = toDuelist(blocker, bTech, defSide.burstTurns > 0)
+      bDuelist.boost = (bDuelist.boost ?? 1) * INTERCEPT_BIAS
+      pPass = duelChance('definicion', toDuelist(attacker, t, free), bDuelist).chance
+    }
     const opt = buildOption(m, 'definicion', mode, attacker, keeper, momentum, {
       id: 'longshot',
       label: t ? `Tiro lejano · ${t.name}` : 'Tiro lejano',
       tech: t, cost,
-      powerScale: LONG_SHOT_MALUS,
+      // Distancia + el mordisco medio que se lleva la defensa al rozarlo.
+      powerScale: LONG_SHOT_MALUS * (1 - 0.3 * (1 - pPass) / 2),
     })
-    opt.detail = `${opt.detail} · desde lejos`
+    // El % del botón es el del DISPARO, igual que en todas las demás opciones
+    // (cada duelo enseña el suyo). El riesgo de que te lo bloqueen va aparte,
+    // en la sublínea: fundir las dos probabilidades en un solo número dejaba
+    // esta opción sin poder compararse con el resto — se leía como la peor de
+    // la lista aun cuando era la jugada buena.
+    opt.detail = `${opt.detail} · ${Math.round(pPass * 100)} % de pasar la defensa`
     options.push(opt)
   }
 
@@ -870,6 +901,68 @@ function buildOption(
 }
 
 /**
+ * DEFENSAS EN EL CAMINO DEL TIRO LEJANO. Disparar desde fuera no es solo
+ * cuestión de distancia: entre el balón y la portería hay gente, y esa gente
+ * se cruza. El mejor bloqueador del rival que quede por delante intenta
+ * PARARLO con su supertécnica de bloqueo:
+ *   · si gana, el disparo muere ahí (y el balón cambia de dueño);
+ *   · si pierde pero le roza, el tiro llega DESVIADO — cuanto más cerca estuvo
+ *     de cortarlo, menos potencia le queda para batir al portero.
+ * Es lo que impide que el tiro lejano sea un atajo gratis a la portería.
+ */
+function interceptLongShot(
+  m: MatchState, rng: RNG, out: MatchEvent[],
+  shooter: Actor, shotTech: Technique | undefined, defSide: MatchSide,
+): 'blocked' | number {
+  // El que se cruza: el mejor bloqueador de los que están por delante
+  // (defensas y medios), con su técnica de bloqueo si puede pagarla.
+  const pool = [...defSide.defs, ...defSide.mids]
+  if (!pool.length) return 1
+  const blocker = pool.reduce((best, a) => (a.stats.defensa > best.stats.defensa ? a : best), pool[0])
+  const blockTech = pickAiTechnique(
+    affordable(blocker, 'bloqueo', defSide.burstTurns > 0),
+    blocker.pt,
+    shotTech?.element ?? shooter.element,
+    'definicion',
+  )
+  spend(blocker, blockTech, defSide.burstTurns > 0)
+  blocker.stamina = Math.max(0, blocker.stamina - STAMINA_PER_DUEL)
+
+  const atk = toDuelist(shooter, shotTech, m.chain ? sideOf(m, m.chain.side).burstTurns > 0 : false)
+  const def = toDuelist(blocker, blockTech, defSide.burstTurns > 0)
+  // El que se cruza va a la desesperada: sale con desventaja a propósito, o
+  // ningún tiro de lejos llegaría nunca a puerta.
+  def.boost = (def.boost ?? 1) * INTERCEPT_BIAS
+  const r = resolveDuel('definicion', atk, def, rng)
+
+  out.push({
+    kind: 'duel',
+    minute: m.minute,
+    side: m.chain!.side,
+    step: 'definicion',
+    attacker: shooter.name,
+    attackerUid: shooter.uid,
+    defender: blocker.name,
+    defenderUid: blocker.uid,
+    technique: shotTech?.name,
+    counter: blockTech?.name,
+    element: shotTech?.element ?? shooter.element,
+    effectiveness: r.effectiveness,
+    success: r.success,
+    chance: r.chance,
+    longShot: true,
+    text: r.success
+      ? `${shooter.name} dispara de lejos y el balón pasa rozando a ${blocker.name}…`
+      : `¡${blocker.name} se cruza y BLOQUEA el disparo lejano de ${shooter.name}!`,
+  })
+  addBurst(defSide, BURST_ON_DUEL)
+  if (!r.success) return 'blocked'
+  // Pasó, pero no limpio: cuanto más cerca estuvo el bloqueo, más potencia se
+  // deja por el camino (hasta un 30 %).
+  return 1 - 0.3 * (1 - r.chance)
+}
+
+/**
  * Aplica la opción elegida y reanuda el partido. Devuelve los eventos emitidos
  * (vacío si la opción era activar la Supervibración: eso NO consume la jugada,
  * se vuelve a preguntar con la barra ya encendida).
@@ -922,10 +1015,34 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
   // TIRO LEJANO: la jugada salta de la penetración directamente al mano a
   // mano con el portero. El malus de distancia lo aplica `executeDuel` vía
   // `chain.longShot` (el flag muere con la jugada: cada posesión estrena chain).
+  // Eventos que se emiten ANTES del duelo principal (el cruce de la defensa
+  // en un tiro lejano): se cuentan primero, que es el orden en que pasan.
+  const pre: MatchEvent[] = []
   if (optionId === 'longshot' && chain.step === 'penetracion') {
     chain.step = 'definicion'
     chain.defenderUid = defSide.keeper.uid
     chain.longShot = true
+    // ANTES de llegar al portero, el balón tiene que cruzar la defensa.
+    const shooter0 = findActor(atkSide, chain.carrier)
+    const shotTech0 = pickAiTechnique(
+      affordable(shooter0, 'tiro', atkSide.burstTurns > 0), shooter0.pt, defSide.keeper.element, 'definicion',
+    )
+    const res = interceptLongShot(m, rng, pre, shooter0, shotTech0, defSide)
+    if (res === 'blocked') {
+      pre.push({
+        kind: 'turnover',
+        minute: m.minute,
+        side: otherSide(chain.side),
+        text: `Balón para ${defSide.name}.`,
+      })
+      m.chain = null
+      m.play += 1
+      m.decision = null
+      m.phase = 'playing'
+      m.events.push(...pre)
+      return pre
+    }
+    chain.longShotPower = res
   }
 
   let attacker = findActor(atkSide, chain.carrier)
@@ -980,7 +1097,7 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
 
   m.decision = null
   m.phase = 'playing'
-  const out: MatchEvent[] = []
+  const out: MatchEvent[] = [...pre]
   // En la tanda no hay jugada que seguir: es un tiro y a otra cosa.
   if (m.stage === 'penaltis' && m.shootout?.pending) {
     resolvePenalty(

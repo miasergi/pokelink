@@ -174,6 +174,46 @@ describe('partido', () => {
     expect(actorByUid(m, salir.uid)?.name).toBe(salir.name)
   })
 
+  it('en el TIRO LEJANO la defensa se cruza: lo bloquea o se lo come', () => {
+    // Disparar de fuera no puede ser un atajo limpio a la portería: por el
+    // camino hay gente. Se comprueba que ese cruce OCURRE (sale su duelo) y
+    // que a veces acaba en bloqueo y a veces en tiro desviado.
+    let cruces = 0
+    let bloqueos = 0
+    let pasan = 0
+    for (let seed = 0; seed < 60; seed++) {
+      const save = createSave(seed)
+      const setup = startMatch(save, firstBoss(save))
+      if ('error' in setup) throw new Error(setup.error)
+      const m = setup.match
+      const rng = new RNG(seed + 500)
+      for (let i = 0; i < 500 && m.phase !== 'finished'; i++) {
+        if (m.phase === 'decision') {
+          const d = m.decision!
+          const long = d.options.find((o) => o.id === 'longshot')
+          if (long) {
+            const antes = m.events.length
+            chooseOption(m, rng, 'longshot')
+            const nuevos = m.events.slice(antes)
+            const cruce = nuevos.find((e) => e.kind === 'duel' && e.longShot === true)
+            if (cruce && cruce.kind === 'duel') {
+              cruces++
+              if (cruce.success) pasan++
+              else bloqueos++
+            }
+            continue
+          }
+          chooseOption(m, rng, d.options[0].id)
+        } else {
+          advance(m, rng)
+        }
+      }
+    }
+    expect(cruces, 'nunca se cruzó nadie en un tiro lejano').toBeGreaterThan(0)
+    expect(bloqueos, 'la defensa no bloqueó ni un tiro lejano').toBeGreaterThan(0)
+    expect(pasan, 'ningún tiro lejano llegó a pasar la defensa').toBeGreaterThan(0)
+  })
+
   it('el TIRO LEJANO se salta la penetración y paga la distancia', () => {
     // Se busca una decisión de ataque al borde del área y se comprueba que la
     // opción existe, que sus estrellas YA llevan el malus (nunca mejores que
@@ -193,6 +233,10 @@ describe('partido', () => {
           if (long && d.step === 'penetracion' && d.mode === 'ataque') {
             expect(long.chance).toBeGreaterThan(0)
             expect(long.chance).toBeLessThanOrEqual(1)
+            // Lo que enseña el botón YA cuenta con la defensa que se cruza:
+            // tiene que ser menor que el mismo disparo sin nadie en medio.
+            const tiroLimpio = d.options.find((o) => o.id === 'plain')
+            if (tiroLimpio) expect(long.chance).toBeLessThan(1)
             chooseOption(m, rng, 'longshot')
             // La jugada saltó al mano a mano: o se resolvió el disparo, o la
             // siguiente decisión ya es contra el portero.

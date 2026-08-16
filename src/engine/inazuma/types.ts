@@ -400,6 +400,12 @@ export interface ChainState {
    * mano. La distancia penaliza la potencia del disparo (LONG_SHOT_MALUS).
    */
   longShot?: boolean
+  /**
+   * Potencia que le queda al TIRO LEJANO tras cruzarse con un defensa por el
+   * camino: 1 = pasó limpio, <1 = le rozaron y llega desviado. Lo fija
+   * `interceptLongShot`.
+   */
+  longShotPower?: number
 }
 
 // ---------------------------------------------------------------------------
