@@ -9,7 +9,7 @@ import { create } from 'zustand'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { RARITY_COLOR, RARITY_GRADIENT, RARITY_LABEL } from '@/engine/inazuma/roster'
+import { RARITY_COLOR, RARITY_GRADIENT } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import type { Element, InazumaItem, NodeKind, Technique } from '@/engine/inazuma/types'
 
@@ -86,27 +86,6 @@ export function rarityChipStyle(tier: number, innerBg: string): React.CSSPropert
   return { border: `2px solid ${rarityBorder(tier)}`, background: innerBg }
 }
 
-/**
- * La estrella de RAREZA: una sola, coloreada por tramo. Se mantiene para los
- * sitios sin carta (ofertas del ojeador, listas compactas).
- */
-export function Stars({ n, className = 'w-3 h-3' }: { n: number; className?: string }) {
-  const tier = Math.max(1, Math.min(4, Math.round(n)))
-  const color = RARITY_COLOR[tier]
-  return (
-    <span
-      className="inline-flex items-center align-middle"
-      title={`Rareza: ${RARITY_LABEL[tier]}`}
-      style={tier === 4 ? { filter: `drop-shadow(0 0 3px ${color})` } : undefined}
-    >
-      <Icon
-        name="star"
-        className={`${className} ${tier === 4 ? 'animate-pulse' : ''}`}
-        style={{ color }}
-      />
-    </span>
-  )
-}
 
 /**
  * IMAGEN de un concepto del modo (PNG de Twemoji, bajadas por

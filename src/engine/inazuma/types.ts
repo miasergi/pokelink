@@ -82,8 +82,18 @@ export interface PlayerBase {
    * Demoníaca → Mano Infinita). Generada por `emit-inazuma-players.mjs`.
    */
   signature?: string[]
-  /** 1 = relleno, 5 = leyenda. Controla el precio y la rareza en el draft. */
-  rarity: 1 | 2 | 3 | 4 | 5
+  /**
+   * PESO DEL PERSONAJE EN LA SERIE (1 = relleno de plantilla, 5 = leyenda).
+   *
+   * OJO: esto NO es la rareza que ves en el juego. La rareza (Normal,
+   * Avanzado, Ídolo, Legendario) va de 1 a 4, vive en `PlayerInstance.rarity`,
+   * empieza SIEMPRE en Normal para lo que fichas y sube con medallas. Esto de
+   * aquí es otra cosa: cuánto pinta el personaje en la serie, y solo decide
+   * con qué frecuencia lo ofrece el ojeador, lo que cuesta traspasarlo y si
+   * sale de titular en SU equipo. Se llamaba `rarity` y las dos escalas se
+   * confundían constantemente.
+   */
+  fame: 1 | 2 | 3 | 4 | 5
   /** Slug del retrato en `public/inazuma/players/<slug>.webp`. Opcional. */
   portrait?: string
 }

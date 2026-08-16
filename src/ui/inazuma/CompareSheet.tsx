@@ -6,11 +6,11 @@ import { createPortal } from 'react-dom'
 import { Button, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
-import { effectiveStats } from '@/engine/inazuma/roster'
+import { effectiveStats, RARITY_LABEL, rarityOf } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { PlayerRow, portraitUrl } from '@/ui/inazuma/PlayerCard'
-import { ElementIcon, Stars } from '@/ui/inazuma/Glyphs'
+import { ElementIcon, rarityBorder } from '@/ui/inazuma/Glyphs'
 import type { Element, Position, Stats } from '@/engine/inazuma/types'
 
 /** Un lado de la comparación, ya resuelto a números. */
@@ -50,7 +50,9 @@ export default function CompareSheet({ a, onClose }: { a: CompareBlock; onClose:
         position: getPlayerBase(bPlayer.baseId).position,
         element: getPlayerBase(bPlayer.baseId).element,
         level: bPlayer.level,
-        rarity: getPlayerBase(bPlayer.baseId).rarity,
+        // La rareza REAL del jugador (Normal → Legendario), no el peso de
+        // catálogo: son escalas distintas y aquí se colaba la equivocada.
+        rarity: rarityOf(bPlayer),
         stats: effectiveStats(bPlayer),
       }
     : null
@@ -146,7 +148,12 @@ function Head({ block, right }: { block: CompareBlock; right?: boolean }) {
           {block.position} · Nv.{block.level}
           <ElementIcon element={block.element} className="w-3 h-3" />
         </div>
-        <Stars n={block.rarity} className="w-2 h-2" />
+        <span
+          className="text-[9px] font-extrabold uppercase tracking-widest"
+          style={{ color: rarityBorder(Math.max(1, Math.min(4, block.rarity))) }}
+        >
+          {RARITY_LABEL[Math.max(1, Math.min(4, block.rarity))]}
+        </span>
       </div>
     </div>
   )

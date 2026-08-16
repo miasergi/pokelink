@@ -68,7 +68,7 @@ function randomSquadIds(rng: RNG): string[] {
   const byPos = (pos: PlayerBase['position'], n: number) =>
     rng.shuffle(PLAYERS.filter((p) => p.position === pos).map((p) => p.id)).slice(0, n)
   const picks = [...byPos('POR', 2), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 4)]
-  return picks.sort((a, b) => getPlayerBase(b).rarity - getPlayerBase(a).rarity)
+  return picks.sort((a, b) => getPlayerBase(b).fame - getPlayerBase(a).fame)
 }
 
 export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions = {}): InazumaSave {

@@ -91,7 +91,7 @@ export function rarityStats(baseId: string, position: Position, rarity: number):
  * el campo: heredan la rareza de catálogo (capada al máximo nuevo).
  */
 export function rarityOf(p: PlayerInstance): number {
-  return p.rarity ?? Math.min(MAX_RARITY, getPlayerBase(p.baseId).rarity)
+  return p.rarity ?? Math.min(MAX_RARITY, getPlayerBase(p.baseId).fame)
 }
 
 /**
@@ -149,7 +149,7 @@ export function rivalRarityPlan(bossIndex: number): number[] {
 export function rivalRarityMap(teamId: string, bossIndex: number): Map<string, number> {
   const xi = rivalStartingXI(teamId)
   const plan = rivalRarityPlan(bossIndex)
-  const ranked = [...xi].sort((a, b) => b.rarity - a.rarity)
+  const ranked = [...xi].sort((a, b) => b.fame - a.fame)
   const out = new Map<string, number>()
   ranked.forEach((b, i) => out.set(b.id, plan[Math.min(i, plan.length - 1)] ?? 1))
   return out
@@ -538,7 +538,7 @@ export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: numbe
   // El paso EXTRA de los cracks ★5 solo a partir del tramo alto (nivel 30+):
   // desde el primer partido hacía que «el rival no para de usar supertécnicas»
   // mientras tu equipo aún despertaba las suyas.
-  if (elite && b.rarity >= 5 && level >= 30 && known.length < chain.length) known = chain.slice(0, known.length + 1)
+  if (elite && b.fame >= 5 && level >= 30 && known.length < chain.length) known = chain.slice(0, known.length + 1)
   return known
 }
 
@@ -663,5 +663,5 @@ export function signablePool(beatenTeams: string[], ownTeam?: string, sagaId?: s
 
 /** Precio de traspaso, para la tienda y el resumen del fichaje. */
 export function transferValue(base: PlayerBase, level: number): number {
-  return Math.round((300 + base.rarity * 450) * (1 + level * 0.03))
+  return Math.round((300 + base.fame * 450) * (1 + level * 0.03))
 }

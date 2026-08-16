@@ -17,9 +17,10 @@ export function signingLevel(save: InazumaSave): number {
 }
 
 /**
- * Peso de rareza según lo avanzado que vaya el torneo: al principio no aparecen
- * leyendas (arruinaría la curva) y al final no aparecen suplentes (no servirían
- * de nada).
+ * Peso del PERSONAJE (`PlayerBase.fame`) según lo avanzado que vaya el torneo:
+ * al principio no aparecen leyendas (arruinaría la curva) y al final no
+ * aparecen suplentes de plantilla (no servirían de nada). Nada que ver con la
+ * rareza Normal/Avanzado/Ídolo/Legendario, que siempre empieza en Normal.
  */
 function rarityWeight(rarity: number, bossIndex: number): number {
   const progress = Math.min(1, bossIndex / 7)
@@ -59,8 +60,8 @@ export function learnableByRoster(save: InazumaSave) {
 /**
  * Jugadores fichables ahora mismo: el CATÁLOGO ENTERO (cualquier jugador
  * puede aparecer — todos llegan en rareza Normal y los subes tú), sin repetir
- * los que ya tienes. El peso por rareza de catálogo sigue mandando en QUIÉN
- * sale más a menudo según lo avanzado que vayas.
+ * los que ya tienes. El peso del personaje en la serie (`fame`) sigue mandando
+ * en QUIÉN sale más a menudo según lo avanzado que vayas.
  */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   // Se descarta por NOMBRE, no por id: el catálogo tiene al mismo chaval en
@@ -78,7 +79,7 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
 function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {
   const pool = availableSignings(save).filter((p) => !exclude.has(p.id))
   if (!pool.length) return null
-  const pick = weightedPick(pool, (p) => rarityWeight(p.rarity, bossIndexForLayer(save.layer)), rng)
+  const pick = weightedPick(pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)
   if (!pick) return null
   exclude.add(pick.id)
   const level = signingLevel(save)
@@ -88,8 +89,8 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
     title: `Fichar a ${pick.name}`,
     // Los fichajes NO cuestan dinero: son la recompensa de la casilla, como
     // una captura en el modo Pokémon. El dinero es solo para la tienda.
-    // Sin la palabra de rareza: la UI pinta las ESTRELLAS y los atributos
-    // reales, que informan más que «titular» o «de rotación».
+    // Sin etiqueta de rareza: todo fichaje llega en Normal, y la carta ya
+    // pinta sus atributos reales — informan más que «titular» o «de rotación».
     desc: `${pick.position} · nivel ${level}`,
     playerId: pick.id,
     level,

@@ -95,7 +95,12 @@ const LOW_PRIORITY_TEAMS = new Set([
 ])
 
 /**
- * Estrellas ESCRITAS A MANO para los personajes cuyo peso en la serie conozco.
+ * PESO EN LA SERIE, escrito a mano para los personajes que conozco.
+ *
+ * OJO: no es la RAREZA del juego (Normal/Avanzado/Ídolo/Legendario, que va de
+ * 1 a 4 y la subes tú con medallas). Esto es cuánto pinta el personaje en la
+ * serie: decide con qué frecuencia lo ofrece el ojeador, lo que cuesta
+ * traspasarlo y si sale de titular en SU equipo.
  *
  * El orden de la wiki no es un escalafón de calidad: coloca a los jugadores por
  * el orden en que aparecen en la ficha del equipo, así que Axel Blaze (el
@@ -394,7 +399,7 @@ async function main() {
       const signature = signatureFor(allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [])
       const techs = techsFor(signature, rarity)
       lines.push('  {')
-      lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, rarity: ${rarity},`)
+      lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, fame: ${rarity},`)
       lines.push(`    stats: { tiro: ${st.tiro}, control: ${st.control}, fisico: ${st.fisico}, defensa: ${st.defensa}, velocidad: ${st.velocidad}, aguante: ${st.aguante} },`)
       lines.push(`    techniques: [${techs.map(q).join(', ')}],`)
       if (signature.length) lines.push(`    signature: [${signature.map(q).join(', ')}],`)
@@ -406,7 +411,7 @@ async function main() {
   // --- JUGADORES CUSTOM (fuera del crawler). El retrato ya está en
   //     public/inazuma/players/<id>.png, así que el fetch los ignora. ---
   lines.push('  {')
-  lines.push("    id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', rarity: 5, // original")
+  lines.push("    id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', fame: 5, // original")
   lines.push('    stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },')
   lines.push("    techniques: ['lightning-accel', 'atomic-flare'],")
   lines.push("    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],")

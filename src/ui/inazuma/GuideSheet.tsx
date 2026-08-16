@@ -3,7 +3,7 @@
 //
 // Existe porque en los playtests las mismas dudas salieron una y otra vez:
 // «¿qué son los PT?», «¿por qué sube de nivel el banquillo?», «¿qué diferencia
-// hay entre estrellas y nivel?». El tutorial de bienvenida pasa una vez y se
+// hay entre rareza y nivel?». El tutorial de bienvenida pasa una vez y se
 // olvida; esto queda a un toque de distancia, siempre.
 import { useState } from 'react'
 import { createPortal } from 'react-dom'

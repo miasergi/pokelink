@@ -443,7 +443,8 @@ export function TeamSelectView() {
         ].map((id) => {
           const team = getTeam(id)
           const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
-          const stars = squad.filter((p) => p.rarity >= 4)
+          // Los nombres GRANDES de esa plantilla (peso en la serie, no rareza).
+          const stars = squad.filter((p) => p.fame >= 4)
           const info = ELEMENT_INFO[team.element]
           return (
             <Card

@@ -1,6 +1,6 @@
 // ALINEACIÓN de solo lectura, con el MISMO aspecto que la del vestuario: filas
-// de ataque a portería sobre el césped, fichas con retrato, media, nivel y
-// estrellas. La usan la previa del partido (tu once Y el del rival) para que
+// de ataque a portería sobre el césped, fichas con retrato, nivel, elemento y
+// borde de rareza. La usan la previa del partido (tu once Y el del rival) para que
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
 import { useState } from 'react'
