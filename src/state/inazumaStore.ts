@@ -179,6 +179,24 @@ function stopTicker() {
   if (ticker) { clearTimeout(ticker); ticker = null }
 }
 
+/**
+ * EL CRONÓMETRO. Late cada 100 ms y suma el minuto correspondiente: a ×1, un
+ * minuto de partido por segundo real. Se para solo cuando el partido no está
+ * corriendo o hay una cinemática en pantalla — igual que un árbitro parando el
+ * reloj, que es justo lo que se pidió para las supertécnicas.
+ */
+const CLOCK_STEP_MS = 100
+let clockTimer: ReturnType<typeof setInterval> | null = null
+
+function stopClock() {
+  if (clockTimer) { clearInterval(clockTimer); clockTimer = null }
+}
+
+/** Minutos que avanza el reloj por segundo real, según el ajuste de ritmo. */
+function clockRate(speed: number): number {
+  return speed >= 1000 ? 1 : speed >= 400 ? 2 : 4
+}
+
 /** Fases desde las que es seguro guardar (fuera de un partido). */
 const SAFE_PHASES: InazumaPhase[] = ['map', 'squad', 'shop', 'bag', 'stats', 'album', 'draft', 'victory', 'gameover', 'title']
 
@@ -284,6 +302,13 @@ interface InazumaState {
   setSpeed: (ms: number) => void
   setAutoPlay: (v: boolean) => void
   tick: () => void
+  /**
+   * CRONÓMETRO del partido en minutos (con decimales). Corre a 1 minuto por
+   * segundo real y se PARA en las cinemáticas, en el descanso y mientras
+   * decides. Los eventos no se revelan hasta que el reloj llega a su minuto,
+   * así que el partido se vive en tiempo de partido y no a golpe de temporizador.
+   */
+  clock: number
   decide: (optionId: string) => void
   finishMatch: () => void
 
@@ -369,6 +394,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   itemFx: null,
   halftimeBreak: false,
   revealPlayer: null,
+  clock: 0,
 
   setUiBusy: (v) => {
     if (get().uiBusy === v) return
@@ -379,6 +405,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   initInazuma: async () => {
     stopTicker()
+    stopClock()
     revealQueue = []
     const save = await loadInazuma()
     rng = null
@@ -594,7 +621,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if ('error' in setup) { set({ message: setup.error }); return }
     matchRng = setup.rng
     revealQueue = []
+    stopClock()
     set({
+      // El cronómetro arranca de cero con cada partido.
+      clock: 0,
       match: setup.match,
       feed: setup.match.events.slice(),
       phase: 'match',
@@ -622,8 +652,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         advance(match, matchRng)
       }
     }
+    // SIMULACIÓN instantánea: no hay reloj que valga, se planta al final.
     revealQueue = []
-    set({ match: { ...match }, feed: match.events.slice(), playing: false })
+    stopClock()
+    set({ match: { ...match }, feed: match.events.slice(), playing: false, clock: match.minute })
   },
 
   simulatePachanga: () => {
@@ -720,7 +752,29 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   tick: () => {
     stopTicker()
     const { match, playing, speed, autoPlay } = get()
-    if (!match || !matchRng) return
+    if (!match) return
+
+    // EL RELOJ va por su cuenta mientras haya partido: corre si se está
+    // jugando y no hay cinemática encima, y en el descanso salta a 45. Se
+    // enciende ANTES del resto de comprobaciones para que dependa solo de que
+    // haya partido, no de la maquinaria del motor.
+    if (!clockTimer) {
+      clockTimer = setInterval(() => {
+        const st = get()
+        if (!st.match || st.match.phase === 'finished') { stopClock(); return }
+        // Parado en cinemáticas, en el descanso y mientras decides.
+        if (!st.playing || st.uiBusy || st.halftimeBreak) return
+        const rate = clockRate(st.speed)
+        const cap = st.match.stage === 'reglamentario' ? 90 : 120
+        // El reloj nunca adelanta a la jugada que aún está por contarse: si el
+        // siguiente evento es del 70' no tiene sentido plantarse en el 80'.
+        const nextMin = revealQueue.length ? revealQueue[0].minute : cap
+        const limit = Math.min(cap, Math.max(nextMin, st.clock))
+        const next = Math.min(limit, st.clock + rate * (CLOCK_STEP_MS / 1000))
+        if (next !== st.clock) set({ clock: next })
+      }, CLOCK_STEP_MS)
+    }
+    if (!matchRng) return
 
     // CINEMÁTICA EN PANTALLA: el latido espera. Revelar por debajo movía el
     // césped a mitad de animación (los emparejamientos «bailaban») y dejaba
@@ -732,11 +786,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     //    el partido se PARA de verdad en el tiro, la parada y el gol — y el
     //    panel de decisión nunca aparece con jugadas a medio contar.
     if (revealQueue.length) {
+      // EL RELOJ MANDA: hasta que no llega el minuto del evento, no se cuenta.
+      // Así entre jugada y jugada corre el tiempo de verdad (con el césped
+      // moviéndose) en vez de encadenarse los lances uno detrás de otro.
+      if (revealQueue[0].minute > get().clock + 0.001) {
+        ticker = setTimeout(() => get().tick(), CLOCK_STEP_MS)
+        return
+      }
       const e = revealQueue.shift()!
       soundFor(e)
       // El DESCANSO abre su panel (consumibles y cambios) y el partido espera.
       if (e.kind === 'halftime') {
-        set({ match: { ...match }, feed: [...get().feed, e], playing: false, halftimeBreak: true })
+        set({ match: { ...match }, feed: [...get().feed, e], playing: false, halftimeBreak: true, clock: 45 })
         return
       }
       // El multiplicador de velocidad acelera el trámite, pero los momentos
@@ -788,6 +849,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   finishMatch: () => {
     stopTicker()
+    stopClock()
     revealQueue = []
     const { match, matchNode, save } = get()
     if (!match || !matchNode || !save || match.phase !== 'finished') return

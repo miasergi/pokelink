@@ -24,7 +24,7 @@ import type { Actor, ChainStep, Element, MatchEvent, MatchState, Technique } fro
 
 export default function MatchView() {
   const {
-    match, feed, playing, speed, autoPlay, save, matchNode,
+    match, feed, playing, speed, autoPlay, save, matchNode, clock,
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
   } = useInazuma()
   const simMatch = useSettings((s) => s.inazumaSimMatch)
@@ -48,7 +48,9 @@ export default function MatchView() {
   const clearStage = useCallback(() => { setStage(null); setShotFlight(null) }, [])
   // DISPARO EN VUELO: la cinemática avisa y el CÉSPED pinta el balón ardiendo
   // camino de la portería (antes viajaba dentro de la propia cinemática).
-  const [shotFlight, setShotFlight] = useState<{ key: number; element?: Element; mine: boolean; landed?: boolean } | null>(null)
+  const [shotFlight, setShotFlight] = useState<
+    { key: number; element?: Element; mine: boolean; landed?: boolean; toUid?: string } | null
+  >(null)
   const stageRef = useRef<StageData | null>(null)
   stageRef.current = stage
   const onFlight = useCallback((active: boolean) => {
@@ -56,7 +58,7 @@ export default function MatchView() {
     // Al terminar el vuelo el balón NO desaparece: se queda EN LA PORTERÍA
     // mientras se resuelve la parada. Antes volvía de golpe a los pies del que
     // había disparado, que era justo lo que se veía raro.
-    if (active) setShotFlight(st ? { key: st.key, element: st.element, mine: st.attackerMine } : null)
+    if (active) setShotFlight(st ? { key: st.key, element: st.element, mine: st.attackerMine, toUid: st.toUid } : null)
     else setShotFlight((f) => (f ? { ...f, landed: true } : null))
   }, [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
@@ -102,6 +104,25 @@ export default function MatchView() {
           1900,
         )
       }
+    } else if (last.kind === 'duel' && last.intercept) {
+      // EL CRUCE de un defensa en la trayectoria del disparo. Tiene su propia
+      // cinemática (el balón va HASTA ÉL y ahí lanza su bloqueo); antes se
+      // trataba como un disparo más y la cinemática de tiro salía dos veces,
+      // con el balón yendo y viniendo.
+      setStage({
+        key: feed.length,
+        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
+        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
+        attackerWins: last.success,
+        attackerMine: last.side === mine,
+        attackerCrest: crestOf(last.side === mine),
+        defenderCrest: crestOf(last.side !== mine),
+        chance: last.chance,
+        element: last.element,
+        // El balón se PARA en el que se cruza, no sigue a portería.
+        toUid: last.defenderUid,
+        kind: 'bloqueo',
+      })
     } else if (last.kind === 'duel' && last.step === 'definicion') {
       // Cinemática SOLO en los DISPAROS (y penaltis): los duelos de regate
       // vs bloqueo NO paran el partido — se resuelven con un FLASH sobre el
@@ -190,6 +211,7 @@ export default function MatchView() {
         myTeamId={teamDisplay(save ?? {}).crestId}
         rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
         frozen={frozen}
+        clock={clock}
       />
       {/* EL PARTIDO EN VIVO: el césped completo con los 22 y el balón es el
           cuerpo de la pantalla. Lee el feed YA CONTADO (sin la línea en
@@ -357,12 +379,14 @@ function eventIsMine(match: MatchState, e: MatchEvent): boolean {
   return 'side' in e ? e.side === mine : false
 }
 
-function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen }: {
+function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
   match: MatchState
   feed: MatchEvent[]
   myTeamId?: string
   rivalTeamId?: string
   frozen?: boolean
+  /** Cronómetro del partido (minutos): corre a 1 por segundo real. */
+  clock: number
 }) {
   const mineSide = playerSide(match)
   const mine = sideOf(match, mineSide)
@@ -380,9 +404,12 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen }: {
   }
   const burst = burstRef.current
 
-  // El minuto también sale de lo REVELADO: el del motor va jugadas por delante.
-  let minute = 0
-  for (const e of feed) if ('minute' in e && e.minute > minute) minute = e.minute
+  // EL CRONÓMETRO manda: corre a un minuto por segundo real y se para en las
+  // cinemáticas. Se respeta el suelo de lo ya revelado por si el reloj se
+  // quedara corto (simulación instantánea, saltos de tramo…).
+  let revealed = 0
+  for (const e of feed) if ('minute' in e && e.minute > revealed) revealed = e.minute
+  const minute = Math.max(Math.floor(clock), revealed)
 
   // El marcador se saca de lo REVELADO, no del motor: el motor ya sabe el gol
   // mientras el escenario del tiro aún se está contando, y ver moverse el
@@ -757,7 +784,12 @@ function MatchSummary({ match }: { match: MatchState }) {
   ] as const
 
   const isMine = (e: MatchEvent, want: boolean) => 'side' in e && (e.side === mineSide) === want
-  const [tA, tB] = count((e, m) => e.kind === 'duel' && e.step === 'definicion' && isMine(e, m))
+  // Los TIROS no cuentan el cruce de un defensa: ese lance es un bloqueo, no
+  // un disparo a puerta más.
+  const [tA, tB] = count((e, m) => e.kind === 'duel' && e.step === 'definicion' && !e.intercept && isMine(e, m))
+  // BLOQUEOS: disparos cortados por un defensa que se cruza en la trayectoria.
+  // Se apuntan al equipo que DEFIENDE, que es quien los hace.
+  const [bA, bB] = count((e, m) => e.kind === 'duel' && !!e.intercept && !e.success && isMine(e, !m))
   const [sA, sB] = count((e, m) => e.kind === 'save' && isMine(e, m))
   const [dA, dB] = count((e, m) => e.kind === 'duel' && (e.success ? isMine(e, m) : isMine(e, !m)))
   const [pA, pB] = count((e, m) => e.kind === 'possession' && isMine(e, m))
@@ -767,6 +799,7 @@ function MatchSummary({ match }: { match: MatchState }) {
     || (!m && isMine(e, true) && !!e.counter)))
   rows.push({ label: 'Tiros', a: tA, b: tB })
   rows.push({ label: 'Paradas', a: sA, b: sB })
+  rows.push({ label: 'Disparos bloqueados', a: bA, b: bB })
   rows.push({ label: 'Duelos ganados', a: dA, b: dB })
   rows.push({ label: 'Posesiones', a: pA, b: pB })
   rows.push({ label: 'Supertécnicas', a: qA, b: qB })

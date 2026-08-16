@@ -42,9 +42,11 @@ export interface StageData {
   chance?: number
   /** Elemento del disparo (técnica o tirador): tiñe las LLAMAS del balón. */
   element?: Element
+  /** Si el balón NO va a la portería sino a un jugador (el que se cruza). */
+  toUid?: string
   /** Marcador de la TANDA (solo penaltis): se planta en grande en escena. */
   shootoutScore?: [number, number]
-  kind: 'regate' | 'tiro' | 'penalti' | 'pase'
+  kind: 'regate' | 'tiro' | 'penalti' | 'pase' | 'bloqueo'
 }
 
 const idOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -87,6 +89,11 @@ const TL = {
   pase: { end: 1200 },
   regate: { end: 2400 },
   tiro: { flight: 1900, keeper: 3300, outcome: 4700, endGoal: 4850, endSave: 6300 },
+  // El CRUCE de un defensa: el balón viaja hasta él (el escenario se aparta y
+  // se ve por el césped), lanza su bloqueo y se resuelve. NO lleva la foto del
+  // tirador: esa ya se vio, y repetirla era lo que hacía que el disparo
+  // pareciera contarse dos veces.
+  bloqueo: { block: 1200, outcome: 2500, end: 3700 },
 } as const
 
 export default function DuelStage({ stage, onDone, onFlight }: {
@@ -115,7 +122,13 @@ export default function DuelStage({ stage, onDone, onFlight }: {
     const shooting = stage.kind === 'tiro' || stage.kind === 'penalti'
     const timers: ReturnType<typeof setTimeout>[] = []
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms))
-    if (stage.kind === 'pase') {
+    if (stage.kind === 'bloqueo') {
+      // Fase 0: EL BALÓN VUELA hasta el que se cruza (lo pinta el césped).
+      onFlightRef.current?.(true)
+      at(TL.bloqueo.block, () => { setPhase(1); onFlightRef.current?.(false) })
+      at(TL.bloqueo.outcome, () => setPhase(2))
+      at(TL.bloqueo.end, () => { setShown(null); onDoneRef.current() })
+    } else if (stage.kind === 'pase') {
       at(TL.pase.end, () => { setShown(null); onDoneRef.current() })
     } else if (!shooting) {
       at(TL.regate.end, () => { setShown(null); onDoneRef.current() })
@@ -139,8 +152,10 @@ export default function DuelStage({ stage, onDone, onFlight }: {
 
   // CADA CLASE DE DUELO CON SU CARA: sin el rótulo (y su color), un regate
   // contra un bloqueo y un disparo contra el portero se veían idénticos.
-  const kindBanner = shown.kind === 'regate'
-    ? { text: 'DUELO POR EL BALÓN', color: '#38bdf8' }
+  const kindBanner = shown.kind === 'bloqueo'
+    ? { text: '¡SE CRUZA EN LA TRAYECTORIA!', color: '#f59e0b' }
+    : shown.kind === 'regate'
+      ? { text: 'DUELO POR EL BALÓN', color: '#38bdf8' }
     : shown.kind === 'penalti'
       ? { text: '¡PENALTI!', color: '#f59e0b' }
       : shown.kind === 'pase'
@@ -158,7 +173,9 @@ export default function DuelStage({ stage, onDone, onFlight }: {
 
   // Durante el VUELO el escenario DESAPARECE: el balón en llamas lo pinta el
   // césped, y taparlo con un velo negro sería contarlo dos veces.
-  if (shooting && phase === 1) return <div key={shown.key} />
+  if ((shooting && phase === 1) || (shown.kind === 'bloqueo' && phase === 0)) {
+    return <div key={shown.key} />
+  }
 
   return (
     <div key={shown.key} className="absolute inset-0 z-[60] pointer-events-none">
@@ -215,6 +232,23 @@ export default function DuelStage({ stage, onDone, onFlight }: {
             color: resultColor,
             crest: shown.attackerWins ? shown.attackerCrest : shown.defenderCrest,
           } : undefined}
+        />
+      )}
+
+      {/* EL CRUCE: la supertécnica del defensa que se pone en la trayectoria,
+          y si el balón se queda ahí o se le escapa. */}
+      {shown.kind === 'bloqueo' && phase >= 1 && (
+        <Showcase
+          side={shown.defender}
+          tech={defTech}
+          crest={shown.defenderCrest}
+          fallbackAction="¡BLOQUEO!"
+          color={kindBanner.color}
+          stamp={phase >= 2
+            ? shown.attackerWins
+              ? { text: '¡SE LE ESCAPA!', color: resultColor, crest: shown.attackerCrest }
+              : { text: '¡BALÓN BLOQUEADO!', color: resultColor, crest: shown.defenderCrest }
+            : undefined}
         />
       )}
 

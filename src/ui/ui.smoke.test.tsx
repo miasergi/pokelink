@@ -219,6 +219,34 @@ describe('render de pantallas (smoke)', () => {
       useInazuma.setState({ save, matchNode: null, phase: 'map' })
     }
 
+    // EL CRONÓMETRO corre a un minuto por segundo real y se PARA cuando hay
+    // una cinemática en pantalla (`uiBusy`), que es lo que se pidió para las
+    // supertécnicas.
+    {
+      const live = startMatch(save, node)
+      if ('error' in live) throw new Error(live.error)
+      useInazuma.setState({ match: live.match, feed: live.match.events.slice(), phase: 'match', playing: true, clock: 0, uiBusy: false })
+      vi.useFakeTimers()
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      const root = createRoot(host)
+      act(() => { root.render(createElement(InazumaScreen)) })
+      act(() => { useInazuma.getState().tick() })
+      act(() => { vi.advanceTimersByTime(3000) })
+      const corriendo = useInazuma.getState().clock
+      expect(corriendo, 'el cronómetro no avanza').toBeGreaterThan(1)
+      // Con cinemática en pantalla, el reloj se planta.
+      act(() => { useInazuma.getState().setUiBusy(true) })
+      act(() => { vi.advanceTimersByTime(3000) })
+      expect(useInazuma.getState().clock, 'el cronómetro no se para en las cinemáticas')
+        .toBeCloseTo(corriendo, 5)
+      act(() => { useInazuma.getState().setUiBusy(false) })
+      act(() => { root.unmount() })
+      host.remove()
+      vi.useRealTimers()
+      useInazuma.setState({ playing: false, uiBusy: false })
+    }
+
     // EL PARTIDO NO VA POR TURNOS: sin que llegue ni un evento nuevo, el
     // césped se mueve solo (la jugada avanza y luego el balón circula). Si
     // esto se rompe, el campo vuelve a quedarse congelado entre eventos —

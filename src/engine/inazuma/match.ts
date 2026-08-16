@@ -951,6 +951,9 @@ function interceptLongShot(
     success: r.success,
     chance: r.chance,
     longShot: true,
+    // Marca el CRUCE: sin ella la UI lo trataba como un disparo más y montaba
+    // la cinemática de tiro DOS veces (con el balón yendo y viniendo).
+    intercept: true,
     text: r.success
       ? `${shooter.name} dispara de lejos y el balón pasa rozando a ${blocker.name}…`
       : `¡${blocker.name} se cruza y BLOQUEA el disparo lejano de ${shooter.name}!`,

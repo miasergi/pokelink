@@ -72,7 +72,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
    * portería contraria envuelto en llamas del color de su elemento. Lo activa
    * la cinemática del tiro entre la supertécnica y la parada.
    */
-  flight?: { key: number; element?: Element; mine: boolean; landed?: boolean } | null
+  flight?: { key: number; element?: Element; mine: boolean; landed?: boolean; toUid?: string } | null
   /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
   current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null
   /** Escudos: van de FONDO en la ficha de cada jugador (en vez del color). */
@@ -323,6 +323,16 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
     : { x: 50, y: 50 }
 
+  // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
+  const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
+  const blockerSpot = blocker
+    ? (() => {
+      const isMine = myActors.some((a) => a.uid === blocker.uid)
+      const sp = spotOf(blocker, isMine)
+      return { x: mx(sp.x), y: my(sp.y) }
+    })()
+    : null
+
   const danger = step === 'definicion'
 
   return (
@@ -404,7 +414,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           <ShotBall
             key={flight.key}
             from={{ x: mx(ball.x), y: my(ball.y) }}
-            to={{ x: mx(flight.mine ? 95 : 5), y: 50 }}
+            // Si alguien se cruza, el balón se PARA EN ÉL; si no, va a la
+            // portería contraria. Así se entiende de dónde sale el bloqueo.
+            to={blockerSpot ?? { x: mx(flight.mine ? 95 : 5), y: 50 }}
             color={flameOf(flight.element)}
             mine={secondHalf ? !flight.mine : flight.mine}
             // Ya llegó: se queda EN LA PORTERÍA mientras se resuelve la
