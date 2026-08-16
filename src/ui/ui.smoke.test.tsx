@@ -182,6 +182,42 @@ describe('render de pantallas (smoke)', () => {
     // Los BANQUILLOS también se ven en la previa (el rival y el tuyo).
     expect(preview).toContain('Banquillo')
 
+    // EL PARTIDO NO VA POR TURNOS: sin que llegue ni un evento nuevo, el
+    // césped se mueve solo (la jugada avanza y luego el balón circula). Si
+    // esto se rompe, el campo vuelve a quedarse congelado entre eventos —
+    // que es justo lo que se veía como «juego por turnos».
+    {
+      const live = startMatch(save, node)
+      if ('error' in live) throw new Error(live.error)
+      const rng2 = new RNG(9)
+      // Se avanza hasta tener un duelo revelado (algo que pintar en el campo).
+      for (let i = 0; i < 60 && !live.match.events.some((e) => e.kind === 'duel'); i++) {
+        if (live.match.phase === 'decision') chooseOption(live.match, rng2, live.match.decision!.options[0].id)
+        else advance(live.match, rng2)
+      }
+      // `playing: false` A PROPÓSITO: con la retransmisión parada el feed NO
+      // puede cambiar, así que si el campo se mueve es porque se mueve SOLO —
+      // que es justo lo que se quiere demostrar.
+      useInazuma.setState({ match: live.match, feed: live.match.events.slice(), phase: 'match', playing: false })
+      vi.useFakeTimers()
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      const root = createRoot(host)
+      act(() => { root.render(createElement(InazumaScreen)) })
+      const spots = () => [...host.querySelectorAll<HTMLElement>('[style*="left"]')]
+        .map((e) => `${e.style.left},${e.style.top}`).join('|')
+      const before = spots()
+      act(() => { vi.advanceTimersByTime(1500) })
+      const mid = spots()
+      act(() => { vi.advanceTimersByTime(6000) })
+      const later = spots()
+      act(() => { root.unmount() })
+      host.remove()
+      vi.useRealTimers()
+      expect(before, 'el campo no se mueve mientras avanza la jugada').not.toBe(mid)
+      expect(mid, 'el campo se congela al terminar de avanzar la jugada').not.toBe(later)
+    }
+
     // Partido: el campo tiene que contar la MISMA jugada que el motor.
     const setup = startMatch(save, node)
     if ('error' in setup) throw new Error(setup.error)

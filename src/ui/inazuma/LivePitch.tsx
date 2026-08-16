@@ -8,7 +8,7 @@
 // REGLA DE ORO heredada del mini-campo: todo se deriva del feed REVELADO (o
 // del emparejamiento de la decisión/cinemática en curso), nunca del estado
 // vivo del motor — leerlo destriparía jugadas aún no contadas.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import { ImgFallback } from '@/ui/components/kit'
@@ -22,6 +22,16 @@ import type { Actor, ChainStep, Element, MatchEvent, MatchState } from '@/engine
 function flameOf(el: Element | undefined): string {
   return el ? ELEMENT_INFO[el].color : '#e2e8f0'
 }
+
+/**
+ * Cuánto dura el AVANCE continuo de una jugada (ms). Es el tiempo en el que el
+ * balón recorre su zona y el bloque acompaña, antes de quedarse esperando al
+ * siguiente evento.
+ */
+const PHASE_MS = 2600
+
+/** Metros (en % de ancho) que el balón recorre DENTRO de su eslabón. */
+const ZONE_RUN = 7
 
 /** Avance del balón (en % de ancho) por eslabón, atacando hacia la DERECHA. */
 const STEP_X: Record<ChainStep, number> = { construccion: 38, penetracion: 60, definicion: 82 }
@@ -74,13 +84,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const myActors = [home.keeper, ...home.defs, ...home.mids, ...home.fwds]
   const theirActors = [away.keeper, ...away.defs, ...away.mids, ...away.fwds]
 
-  // EL LATIDO TÁCTICO: cada ~1.6 s el equipo recibe su instrucción y DESLIZA
-  // hacia ella. El movimiento es POR LÍNEAS con dirección clara (atacar =
-  // empujar, defender = replegar), no un onduleo individual — «los jugadores
-  // ondean en vez de tener una decisión clara» fue el reporte.
-  const [beat, setBeat] = useState(0)
+  // EL PARTIDO NO VA POR TURNOS. Antes las posiciones solo cambiaban cuando
+  // llegaba un evento: todo el mundo quieto, y de golpe un salto de todos a la
+  // vez. Ahora corre un RELOJ propio (~14 fps) y la jugada AVANZA sola entre
+  // eventos: el balón progresa por su zona y el bloque acompaña, así que el
+  // movimiento es continuo y va SIEMPRE en la dirección que cuenta la jugada.
+  const [now, setNow] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setBeat((b) => b + 1), 1600)
+    const t = setInterval(() => setNow((n) => n + 1), 70)
     return () => clearInterval(t)
   }, [])
 
@@ -108,7 +119,33 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const myAnchor = anchors(home.keeper, home.defs, home.mids, home.fwds, true)
   const theirAnchor = anchors(away.keeper, away.defs, away.mids, away.fwds, false)
 
-  const ballX = step != null ? (iAttack ? STEP_X[step] : 100 - STEP_X[step]) : 50
+  // PROGRESO DE LA JUGADA: 0 al revelarse el evento, 1 unos segundos después.
+  // Es el motor del movimiento continuo — sin él, entre evento y evento el
+  // campo se queda congelado y parece un juego por turnos.
+  const startedAt = useRef({ len: -1, t: 0 })
+  if (startedAt.current.len !== feed.length) {
+    startedAt.current = { len: feed.length, t: Date.now() }
+  }
+  const elapsed = Date.now() - startedAt.current.t
+  // `now` solo está para forzar el re-render del reloj; el valor real es el
+  // tiempo transcurrido.
+  void now
+  const ease = (t: number) => 1 - (1 - t) * (1 - t)
+  const phase = elapsed / PHASE_MS
+  const progress = ease(Math.max(0, Math.min(1, phase)))
+  // Y CUANDO LA JUGADA YA HA AVANZADO no se congela todo: el equipo MANTIENE
+  // la posesión mientras busca el hueco. `hold` es el tiempo que llevamos
+  // esperando al siguiente evento (o a que decidas), y de él sale la
+  // circulación del balón — que es lo que mantiene vivo el campo.
+  const hold = Math.max(0, phase - 1)
+
+  // El balón AVANZA dentro de su zona mientras dura la jugada (y retrocede un
+  // pelín al empezar, que es como se gana un metro antes de atacar).
+  const zone = step != null ? STEP_X[step] : 50
+  const zoneFrom = step != null ? zone - ZONE_RUN : 50
+  const zoneTo = step != null ? zone + ZONE_RUN : 50
+  const rawBallX = zoneFrom + (zoneTo - zoneFrom) * progress
+  const ballX = step == null ? 50 : iAttack ? rawBallX : 100 - rawBallX
 
   // LECTURA DE PARTIDO (de lo revelado): marcador y minuto. De aquí sale el
   // ÁNIMO táctico de cada equipo en el tramo final.
@@ -149,7 +186,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     const push = attacking
       ? (({ DEF: 4, MED: 7, DEL: 10 } as Record<string, number>)[a.position] ?? 0) * atkBoost
       : (({ DEF: -4, MED: -7, DEL: -9 } as Record<string, number>)[a.position] ?? 0) * defBoost
-    return push * dir * deep
+    // El bloque ACOMPAÑA a la jugada: arranca a media subida y termina de
+    // meterse según avanza el balón. Antes el empuje era un valor fijo por
+    // evento y todo el equipo daba un salto seco al revelarse cada duelo.
+    return push * dir * deep * (0.55 + 0.45 * progress)
   }
 
   // APOYOS CON PROPÓSITO: los compañeros del portador más cercanos al balón
@@ -167,6 +207,19 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       .forEach((x) => supportUids.add(x.a.uid))
   }
 
+  // CIRCULACIÓN: el balón va rotando entre el que lo lleva y sus apoyos, un
+  // toque cada ~1.1 s, mientras no haya cinemática ni decisión en pantalla.
+  // Sin esto el campo se quedaba congelado entre evento y evento y el partido
+  // parecía ir por turnos.
+  const supportList = [...supportUids]
+  const circulateTo = !current && supportList.length
+    ? (() => {
+      const slot = Math.floor(hold / 1.1) % (supportList.length + 1)
+      return slot === 0 ? null : supportList[slot - 1]
+    })()
+    : null
+  const ballHolderUid = circulateTo ?? carrierUid
+
   const clampX = (x: number) => Math.max(4, Math.min(96, x))
   const clampY = (y: number) => Math.max(7, Math.min(93, y))
 
@@ -174,8 +227,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // la BASCULACIÓN — el bloque se desplaza hacia el balón, como en el fútbol
   // de verdad. Sustituye al onduleo aleatorio que había antes: cada
   // desplazamiento tiene ahora un porqué.
-  const carrierAnchor = carrierUid
-    ? (myAnchor.get(carrierUid) ?? theirAnchor.get(carrierUid))
+  const carrierAnchor = ballHolderUid
+    ? (myAnchor.get(ballHolderUid) ?? theirAnchor.get(ballHolderUid))
     : undefined
   const ballLane = carrierAnchor ? carrierAnchor.y * 0.6 + 20 : 50
 
@@ -183,7 +236,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // geometría se calcula igual y se ESPEJA solo al pintar (jugadores, balón y
   // porterías) cuando el descanso ya se contó.
   const secondHalf = feed.some((e) => e.kind === 'halftime')
+  // Cambiar de campo es GIRAR EL CAMPO 180°, no reflejarlo: si solo se espeja
+  // la horizontal, el extremo izquierdo aparece de extremo derecho. Se espejan
+  // las dos coordenadas.
   const mx = (x: number) => (secondHalf ? 100 - x : x)
+  const my = (y: number) => (secondHalf ? 100 - y : y)
 
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
@@ -195,9 +252,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       return { x: clampX(ballX), y: base.y * 0.6 + 20 }
     }
     if (a.uid === markerUid) {
-      // Su marcador le sale al paso: entre el balón y SU portería.
+      // Su marcador le sale al paso: entre el balón y SU portería, y le va
+      // COMIENDO terreno según avanza la jugada (de ahí la sensación de
+      // persecución en vez de dos fichas pegadas desde el primer fotograma).
       if (a.position === 'POR') return base
-      return { x: clampX(ballX + (isMine ? -7 : 7)), y: base.y * 0.6 + 20 }
+      const gap = 11 - 5 * progress
+      return { x: clampX(ballX + (isMine ? -gap : gap)), y: base.y * 0.6 + 20 }
     }
     // El portero apenas se pasea por su área.
     if (a.position === 'POR') {
@@ -206,9 +266,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     }
     // APOYO: acude hacia el balón, un paso por detrás, a dar línea de pase.
     if (supportUids.has(a.uid)) {
+      // Va LLEGANDO a dar la línea de pase: sale de su sitio y acude, no
+      // aparece ya colocado.
+      const tx = ballX + (isMine ? -9 : 9)
+      const ty = 50 + (base.y - 50) * 0.45
       return {
-        x: clampX(ballX + (isMine ? -9 : 9)),
-        y: clampY(50 + (base.y - 50) * 0.45),
+        x: clampX(base.x + (tx - base.x) * (0.45 + 0.55 * progress)),
+        y: clampY(base.y + (ty - base.y) * (0.45 + 0.55 * progress)),
       }
     }
     // GEGENPRESSING: el equipo que acaba de perder el balón se echa encima
@@ -237,13 +301,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     }
   }
 
-  // Punto del balón: en los pies del que lo lleva… y CIRCULANDO: sin decisión
-  // ni cinemática encima, cada tercer latido el balón visita a un apoyo y
-  // vuelve (un dame-y-ven cosmético — el partido nunca se queda en seco).
-  const circulateTo = !current && beat % 3 === 2 && supportUids.size
-    ? [...supportUids][0]
-    : null
-  const ballHolderUid = circulateTo ?? carrierUid
+  // Punto del balón: en los pies del que lo lleva… y CIRCULANDO: cuando la
+  // jugada ya ha avanzado y no hay decisión ni cinemática encima, el balón se
+  // apoya un momento en un compañero y vuelve (el dame-y-ven de toda la vida:
+  // el partido nunca se queda en seco esperando al siguiente evento).
   const ballCarrier = ballHolderUid ? actorByUid(match, ballHolderUid) : null
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
@@ -312,14 +373,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               {myActors.map((a) => {
                 const s = spotOf(a, true)
                 return (
-                  <LiveDot key={a.uid} actor={a} spot={{ ...s, x: mx(s.x) }} teamColor={mineBg} crest={myCrest}
+                  <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={mineBg} crest={myCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
                 )
               })}
               {theirActors.map((a) => {
                 const s = spotOf(a, false)
                 return (
-                  <LiveDot key={a.uid} actor={a} spot={{ ...s, x: mx(s.x) }} teamColor={theirBg} crest={theirCrest}
+                  <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={theirBg} crest={theirCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
                 )
               })}
@@ -330,41 +391,74 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         {/* EL BALÓN, con su propia transición: los pases se ven volar. Y si
             hay DISPARO en vuelo, sale ardiendo hacia la portería rival. */}
         {flight ? (
-          <div
+          <ShotBall
             key={flight.key}
-            className="absolute z-30 w-4 h-4 -ml-2 -mt-2 pointer-events-none animate-shot-travel"
-            style={{
-              left: `${mx(ball.x)}%`,
-              top: `${ball.y}%`,
-              // Recorrido hasta la portería que ataca (espejado en la segunda
-              // parte, igual que el resto de la geometría).
-              ['--shot-dx' as string]: `${(mx(flight.mine ? 96 : 4) - mx(ball.x)) * 0.92}%`,
-              ['--shot-dy' as string]: `${50 - ball.y}%`,
-            }}
-          >
-            {/* Aura y estela de llamas del color del elemento del disparo. */}
-            <span
-              className="absolute -inset-3 rounded-full blur-[6px] animate-flame-flicker"
-              style={{ background: `radial-gradient(circle, ${flameOf(flight.element)}dd, ${flameOf(flight.element)}55 55%, transparent 75%)` }}
-            />
-            <span
-              className="absolute top-1/2 -translate-y-1/2 h-3 w-12 blur-[4px]"
-              style={{
-                [flight.mine ? 'right' : 'left']: '60%',
-                background: `linear-gradient(${flight.mine ? 'to left' : 'to right'}, ${flameOf(flight.element)}cc, transparent)`,
-              }}
-            />
-            <Pic name="ball" className="relative w-4 h-4 drop-shadow" />
-          </div>
+            from={{ x: mx(ball.x), y: my(ball.y) }}
+            to={{ x: mx(flight.mine ? 95 : 5), y: 50 }}
+            color={flameOf(flight.element)}
+            mine={secondHalf ? !flight.mine : flight.mine}
+          />
         ) : (
           <div
             className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
-            style={{ left: `${mx(ball.x)}%`, top: `${ball.y}%` }}
+            style={{ left: `${mx(ball.x)}%`, top: `${my(ball.y)}%` }}
           >
             <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * EL DISPARO POR EL CÉSPED: el balón sale de los pies del tirador y viaja
+ * hasta la portería contraria envuelto en llamas de su elemento.
+ *
+ * Se animan `left`/`top` (que SÍ son porcentajes del campo) en vez de un
+ * `transform: translate(%)`: los porcentajes de `translate` van sobre el
+ * tamaño del propio balón (16 px), así que el «viaje» eran cuatro píxeles y
+ * parecía que la pelota se quedaba quieta con su color encima.
+ */
+function ShotBall({ from, to, color, mine }: {
+  from: Spot
+  to: Spot
+  color: string
+  /** Dirección del disparo: coloca la estela por detrás del balón. */
+  mine: boolean
+}) {
+  // Primer fotograma en el ORIGEN y, al siguiente, al destino: así la
+  // transición de CSS tiene de dónde salir (si se monta ya en el destino no
+  // hay animación que valga).
+  const [at, setAt] = useState(from)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setAt(to)))
+    return () => cancelAnimationFrame(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return (
+    <div
+      className="absolute z-30 w-4 h-4 -ml-2 -mt-2 pointer-events-none"
+      style={{
+        left: `${at.x}%`,
+        top: `${at.y}%`,
+        // El latigazo: sale rápido y llega frenando.
+        transition: 'left 1.15s cubic-bezier(.16,.8,.36,1), top 1.15s cubic-bezier(.16,.8,.36,1)',
+      }}
+    >
+      <span
+        className="absolute -inset-3 rounded-full blur-[6px] animate-flame-flicker"
+        style={{ background: `radial-gradient(circle, ${color}dd, ${color}55 55%, transparent 75%)` }}
+      />
+      {/* La estela va SIEMPRE por detrás, según hacia dónde se dispara. */}
+      <span
+        className="absolute top-1/2 -translate-y-1/2 h-3 w-14 blur-[4px]"
+        style={{
+          [mine ? 'right' : 'left']: '55%',
+          background: `linear-gradient(${mine ? 'to left' : 'to right'}, ${color}dd, transparent)`,
+        }}
+      />
+      <Pic name="ball" className="relative w-4 h-4 drop-shadow" />
     </div>
   )
 }
@@ -406,11 +500,12 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        // Los de la jugada, rápidos y sin retardo; el resto desliza LARGO
-        // (cubre el latido táctico casi entero: carrera CONTINUA, sin el
-        // «se para todo en seco» entre latidos).
-        transitionDuration: active ? '600ms' : '1500ms',
-        transitionDelay: active ? '0ms' : `${(h % 5) * 70}ms`,
+        // El destino ahora se MUEVE solo (la jugada avanza sin parar), así que
+        // la transición ya no tiene que cubrir un latido entero: es un
+        // suavizado corto. Con los 1500 ms de antes, cada ficha iba un segundo
+        // y medio por detrás de su sitio y el campo se veía a destiempo.
+        transitionDuration: active ? '260ms' : '520ms',
+        transitionDelay: active ? '0ms' : `${(h % 4) * 25}ms`,
       }}
     >
       <div className="flex flex-col items-center">

@@ -1123,6 +1123,7 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
     const i = line.findIndex((a) => a.uid === outUid)
     if (i < 0) continue
     incoming.position = line[i].position
+    side.gone = [...(side.gone ?? []), line[i]]
     if (line === lines[0]) side.keeper = incoming
     else line[i] = incoming
     m.subsLeft -= 1
@@ -1155,7 +1156,12 @@ export function rivalHalftimeSubs(m: MatchState): MatchEvent[] {
     const inc = bench.splice(bi >= 0 ? bi : 0, 1)[0]
     for (const line of lines) {
       const i = line.findIndex((a) => a.uid === outP.uid)
-      if (i >= 0) { inc.position = outP.position; line[i] = inc; break }
+      if (i >= 0) {
+        side.gone = [...(side.gone ?? []), line[i]]
+        inc.position = outP.position
+        line[i] = inc
+        break
+      }
     }
     subs++
     out.push({
@@ -1239,7 +1245,12 @@ export function playerScore(m: MatchState): [number, number] {
 /** Busca a cualquier jugador del partido por uid, sea del bando que sea. */
 export function actorByUid(m: MatchState, uid: string): Actor | undefined {
   for (const side of [m.home, m.away]) {
-    const hit = [side.keeper, ...side.defs, ...side.mids, ...side.fwds].find((a) => a.uid === uid)
+    // Campo, banquillo Y sustituidos: el que marcó en el minuto 20 y salió en
+    // el descanso sigue teniendo su gol en el resumen.
+    const hit = [
+      side.keeper, ...side.defs, ...side.mids, ...side.fwds,
+      ...(side.bench ?? []), ...(side.gone ?? []),
+    ].find((a) => a.uid === uid)
     if (hit) return hit
   }
   return undefined

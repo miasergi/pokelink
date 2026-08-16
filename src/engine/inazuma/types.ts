@@ -293,6 +293,12 @@ export interface MatchSide {
   /** Suplentes (el RIVAL también viaja con banquillo y cambia al descanso). */
   bench?: Actor[]
   goals: number
+  /**
+   * Los que YA SALIERON del campo (sustituidos). Sin esta lista, el resumen
+   * perdía sus goles y su MVP: `actorByUid` no los encontraba porque el cambio
+   * los borra de las líneas, y la tarjeta desaparecía en silencio.
+   */
+  gone?: Actor[]
   /** Barra de Ruptura 0-100. A 100 se puede activar la Supervibración. */
   burst: number
   /** Acciones que quedan de Supervibración activa (0 = inactiva). */

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { RNG } from '@/utils/rng'
 import { ITEMS, ITEM_BY_ID, stockFor } from '@/data/inazuma/items'
 import { elementMultiplier, ELEMENT_ADVANTAGE, ELEMENT_WEAKNESS } from './elements'
-import { actorByUid, advance, chooseOption, playerScore } from './match'
+import { actorByUid, advance, chooseOption, playerScore, substitute } from './match'
 import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
@@ -142,6 +142,26 @@ function playMatch(save: InazumaSave, node: TournamentNode): MatchState {
 }
 
 describe('partido', () => {
+  it('un goleador SUSTITUIDO sigue existiendo para el resumen', () => {
+    // El 5-4 en el que «no salieron los goles del rival ni el MVP»: al cambiar
+    // a un jugador se le borraba de las líneas, `actorByUid` ya no lo
+    // encontraba y su tarjeta desaparecía en silencio del resumen. Con los
+    // cambios del rival en el descanso, esto pasaba en casi todos los partidos.
+    const save = createSave(11)
+    const setup = startMatch(save, firstBoss(save))
+    if ('error' in setup) throw new Error(setup.error)
+    const m = setup.match
+    const side = m.home.isPlayer ? m.home : m.away
+    const salir = side.fwds[0]
+    const banquillo = { ...salir, uid: 'suplente-test', name: 'Suplente de Prueba' }
+    expect(actorByUid(m, salir.uid)).toBeDefined()
+    expect(substitute(m, salir.uid, banquillo)).toBeNull()
+    // Ya no está en el campo…
+    expect([side.keeper, ...side.defs, ...side.mids, ...side.fwds].some((a) => a.uid === salir.uid)).toBe(false)
+    // …pero el resumen lo sigue encontrando, con su nombre y su ficha.
+    expect(actorByUid(m, salir.uid)?.name).toBe(salir.name)
+  })
+
   it('el TIRO LEJANO se salta la penetración y paga la distancia', () => {
     // Se busca una decisión de ataque al borde del área y se comprueba que la
     // opción existe, que sus estrellas YA llevan el malus (nunca mejores que
