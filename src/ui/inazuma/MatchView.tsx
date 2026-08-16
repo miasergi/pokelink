@@ -19,6 +19,7 @@ import { Crest, KindIcon, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
+import { RARITY_LABEL } from '@/engine/inazuma/roster'
 import { ImgFallback } from '@/ui/components/kit'
 import type { Actor, ChainStep, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
@@ -61,12 +62,13 @@ export default function MatchView() {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
       setStage({
         key: feed.length,
-        attacker: { name: last.shooter, baseId: actorByUid(match, last.shooterUid)?.baseId, techName: last.technique },
-        defender: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId },
+        attacker: { name: last.shooter, baseId: actorByUid(match, last.shooterUid)?.baseId, rarity: actorByUid(match, last.shooterUid)?.rarity, techName: last.technique },
+        defender: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId, rarity: actorByUid(match, last.keeperUid)?.rarity },
         attackerWins: last.scored,
         attackerMine: last.side === mine,
         attackerCrest: crestOf(last.side === mine),
         defenderCrest: crestOf(last.side !== mine),
+        shootoutScore: last.shootout,
         kind: 'penalti',
       })
       if (last.scored) {
@@ -83,13 +85,13 @@ export default function MatchView() {
       }
     } else if (
       last.kind === 'duel'
-      && (last.step === 'definicion' || ((last.technique || last.counter) && last.step !== 'construccion'))
+      && (last.step === 'definicion'
+        || ((last.success ? last.technique : last.counter) && last.step !== 'construccion'))
     ) {
-      // Cinemática SOLO para lo gordo: tiros/penaltis siempre, y duelos con
-      // técnica en TRES CUARTOS. La salida de balón (aunque lleve técnica) y
-      // los duelos a pelo se cuentan en el CÉSPED — el partido en vivo es el
-      // protagonista, no una cadena de cortes. El pase tampoco corta: su
-      // vuelo se ve en el campo.
+      // Cinemática SOLO para lo gordo: tiros/penaltis siempre, y duelos de
+      // tres cuartos donde LA TÉCNICA GANA (si el duelo lo decide un regate o
+      // un corte a pelo, el juego sigue y lo cuenta el césped/ticker — parar
+      // el partido para enseñar la técnica del PERDEDOR no contaba nada).
       setStage({
         key: feed.length,
         attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
@@ -712,18 +714,20 @@ function MatchSummary({ match }: { match: MatchState }) {
   rows.push({ label: 'Posesiones', a: pA, b: pB })
   rows.push({ label: 'Supertécnicas', a: qA, b: qB })
 
-  // Jugador del partido: goles ×3 + duelos ganados, de los DOS equipos.
+  // Jugador del partido (por UID): goles ×3 + duelos ganados + paradas.
   const score = new Map<string, number>()
   for (const e of match.events) {
-    if (e.kind === 'goal') score.set(e.scorer, (score.get(e.scorer) ?? 0) + 3)
+    if (e.kind === 'goal') score.set(e.scorerUid, (score.get(e.scorerUid) ?? 0) + 3)
     if (e.kind === 'duel') {
-      const winner = e.success ? e.attacker : e.defender
+      const winner = e.success ? e.attackerUid : e.defenderUid
       score.set(winner, (score.get(winner) ?? 0) + 1)
     }
-    if (e.kind === 'save') score.set(e.keeper, (score.get(e.keeper) ?? 0) + 1)
+    if (e.kind === 'save') score.set(e.keeperUid, (score.get(e.keeperUid) ?? 0) + 1)
   }
-  const mvp = [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-  const scorers = match.scorers
+  const mvpUid = [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+  const goals = match.events.filter((e): e is Extract<MatchEvent, { kind: 'goal' }> => e.kind === 'goal')
+  const myGoals = goals.filter((g) => g.side === mineSide)
+  const theirGoals = goals.filter((g) => g.side !== mineSide)
 
   return (
     <div className="rounded-2xl border border-slate-700/70 bg-slate-800/40 p-3">
@@ -748,17 +752,80 @@ function MatchSummary({ match }: { match: MatchState }) {
           )
         })}
       </div>
-      {scorers.length > 0 && (
-        <div className="mt-2 text-[11px] text-slate-300 text-center flex items-center justify-center gap-1 flex-wrap">
-          <Pic name="ball" className="w-3.5 h-3.5" />
-          {scorers.join(', ')}
+
+      {/* GOLEADORES con su tarjeta (foto, nombre, posición, rareza, elemento
+          y minuto), cada bando en su lado. */}
+      {goals.length > 0 && (
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col gap-1">
+            {myGoals.map((g, i) => <ScorerCard key={`m${i}`} match={match} uid={g.scorerUid} minute={g.minute} mine />)}
+          </div>
+          <div className="flex flex-col gap-1">
+            {theirGoals.map((g, i) => <ScorerCard key={`t${i}`} match={match} uid={g.scorerUid} minute={g.minute} />)}
+          </div>
         </div>
       )}
-      {mvp && (
-        <div className="mt-1 text-[11px] text-center text-amber-300 font-bold">
-          Jugador del partido: {mvp}
+
+      {/* MVP con su tarjeta completa. */}
+      {mvpUid && (
+        <div className="mt-2">
+          <div className="text-[9px] uppercase tracking-widest text-amber-300 font-extrabold text-center mb-1">
+            Jugador del partido
+          </div>
+          <ScorerCard match={match} uid={mvpUid} mvp mine={!!actorByUid(match, mvpUid) && [sideOf(match, mineSide)].some((s) => [s.keeper, ...s.defs, ...s.mids, ...s.fwds].some((a) => a.uid === mvpUid))} />
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Tarjeta de goleador/MVP: retrato con anillo de rareza, nombre, posición,
+ * elemento y el minuto del gol (o la corona del MVP).
+ */
+function ScorerCard({ match, uid, minute, mine, mvp }: {
+  match: MatchState
+  uid: string
+  minute?: number
+  mine?: boolean
+  mvp?: boolean
+}) {
+  const a = actorByUid(match, uid)
+  if (!a) return null
+  const info = ELEMENT_INFO[a.element]
+  const tier = a.rarity ?? 1
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 ${
+      mvp ? 'border-amber-500/60 bg-amber-500/10' : mine ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-rose-500/40 bg-rose-500/5'
+    }`}>
+      <div
+        className="relative w-9 h-9 shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
+        style={{ borderColor: tier === 4 ? 'transparent' : rarityBorder(tier) }}
+      >
+        <ImgFallback
+          src={portraitUrl(a.baseId)}
+          className="w-full h-full object-cover object-top"
+          alt={a.name}
+          fallback={<span className="text-[10px] font-extrabold">{a.name.slice(0, 2).toUpperCase()}</span>}
+        />
+        {tier === 4 && <span className="mc-ring rounded-full" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px] font-bold truncate">{a.name}</div>
+        <div className="flex items-center gap-1 text-[9px] text-slate-400">
+          <span className="font-extrabold text-slate-300">{a.position}</span>
+          <Icon name={info.icon} className="w-2.5 h-2.5" style={{ color: info.color }} />
+          <span className="font-extrabold uppercase tracking-wide" style={{ color: rarityBorder(tier) }}>
+            {RARITY_LABEL[tier]}
+          </span>
+        </div>
+      </div>
+      {minute != null && (
+        <span className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-extrabold tabular-nums text-slate-300">
+          <Pic name="ball" className="w-3 h-3" />{minute}′
+        </span>
+      )}
+      {mvp && <Icon name="star" className="w-4 h-4 shrink-0 text-amber-300" />}
     </div>
   )
 }

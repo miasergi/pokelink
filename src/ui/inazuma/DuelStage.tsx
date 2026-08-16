@@ -39,6 +39,8 @@ export interface StageData {
   defenderCrest?: string
   /** Probabilidad real del atacante (0-1): la barra de suspense la enseña. */
   chance?: number
+  /** Marcador de la TANDA (solo penaltis): se planta en grande en escena. */
+  shootoutScore?: [number, number]
   kind: 'regate' | 'tiro' | 'penalti' | 'pase'
 }
 
@@ -138,6 +140,31 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         className="absolute inset-x-0 top-0 h-1 animate-fade-in"
         style={{ background: kindBanner.color }}
       />
+
+      {/* ESCENOGRAFÍA DE PENALTI: la portería de frente con su red, el punto
+          de penalti y la tanda en grande — que se sienta la ceremonia, no un
+          lance más del juego. */}
+      {shown.kind === 'penalti' && (
+        <div className="absolute inset-0 animate-fade-in pointer-events-none">
+          <svg viewBox="0 0 420 300" className="absolute inset-x-0 top-[6%] mx-auto w-[86%] opacity-45">
+            <path d="M30 250V40h360v210" fill="none" stroke="#e2e8f0" strokeWidth="8" strokeLinecap="round" />
+            <g stroke="rgba(255,255,255,.4)" strokeWidth="1.6" fill="none">
+              {Array.from({ length: 15 }, (_, i) => (
+                <path key={`v${i}`} d={`M${44 + i * 24} 44 Q ${44 + i * 24} 150 ${50 + i * 22.8} 246`} />
+              ))}
+              {Array.from({ length: 8 }, (_, i) => (
+                <path key={`h${i}`} d={`M34 ${50 + i * 26} Q 210 ${58 + i * 28} 386 ${50 + i * 26}`} />
+              ))}
+            </g>
+            <circle cx="210" cy="282" r="6" fill="rgba(255,255,255,.5)" />
+          </svg>
+          {shown.shootoutScore && (
+            <div className="absolute top-[4%] left-1/2 -translate-x-1/2 px-4 py-1 rounded-2xl border-2 border-amber-400/80 bg-slate-950/90 text-2xl font-black tabular-nums text-amber-200 shadow-lg">
+              {shown.shootoutScore[0]} – {shown.shootoutScore[1]}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* FASES 0-1: el cara a cara (queda de fondo cuando entra el grande). */}
       <div className={`absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 transition-opacity duration-300 ${phase >= 2 ? 'opacity-15' : ''}`}>

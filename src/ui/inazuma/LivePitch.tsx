@@ -10,6 +10,7 @@
 // vivo del motor — leerlo destriparía jugadas aún no contadas.
 import { useEffect, useState } from 'react'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
+import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
@@ -226,15 +227,29 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
               : `${STEP_ZONE[step]} · ataca ${sideOf(match, atkSide!).name.replace('Instituto ', '')}`}
         </div>
 
-        {/* LOS 22: cada uno hacia su sitio con transición — el movimiento. */}
-        {myActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={home.color} crest={myCrest}
-            carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
-        ))}
-        {theirActors.map((a) => (
-          <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={away.color} crest={theirCrest}
-            carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
-        ))}
+        {/* LOS 22: cada uno hacia su sitio con transición — el movimiento.
+            El fondo del retrato lleva LOS COLORES DEL EQUIPO (el del escudo,
+            en degradado tipo camiseta), con el escudo encima. */}
+        {(() => {
+          const jersey = (crest: string | undefined, fallback: string) => {
+            const c = (crest ? TEAM_BY_ID.get(crest)?.color : undefined) ?? fallback
+            return `linear-gradient(135deg, ${c} 0%, ${c} 45%, rgba(15,23,42,0.55) 100%)`
+          }
+          const mineBg = jersey(myCrest, home.color)
+          const theirBg = jersey(theirCrest, away.color)
+          return (
+            <>
+              {myActors.map((a) => (
+                <LiveDot key={a.uid} actor={a} spot={spotOf(a, true)} teamColor={mineBg} crest={myCrest}
+                  carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+              ))}
+              {theirActors.map((a) => (
+                <LiveDot key={a.uid} actor={a} spot={spotOf(a, false)} teamColor={theirBg} crest={theirCrest}
+                  carrier={a.uid === carrierUid} marker={a.uid === markerUid} />
+              ))}
+            </>
+          )
+        })()}
 
         {/* EL BALÓN, con su propia transición: los pases se ven volar. */}
         <div
