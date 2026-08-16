@@ -110,31 +110,60 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
 
   const ballX = step != null ? (iAttack ? STEP_X[step] : 100 - STEP_X[step]) : 50
 
+  // LECTURA DE PARTIDO (de lo revelado): marcador y minuto. De aquí sale el
+  // ÁNIMO táctico de cada equipo en el tramo final.
+  let myGoals = 0
+  let theirGoals = 0
+  let minute = 0
+  for (const e of feed) {
+    if (e.kind === 'goal') { if (e.side === mine) myGoals++; else theirGoals++ }
+    if ('minute' in e && e.minute > minute) minute = e.minute
+  }
+  // ÁNIMO: perdiendo del 65' en adelante, el equipo SE VUELCA (ataca con más
+  // gente y ni repliega); ganando, echa el CANDADO (bloque bajo y toque).
+  const moodOf = (isMine: boolean): 'urgente' | 'candado' | null => {
+    if (minute < 65) return null
+    const diff = isMine ? myGoals - theirGoals : theirGoals - myGoals
+    return diff < 0 ? 'urgente' : diff > 0 ? 'candado' : null
+  }
+  const myMood = moodOf(true)
+  const theirMood = moodOf(false)
+
+  // PRESIÓN TRAS PÉRDIDA: si lo último contado es un robo, el equipo que
+  // acaba de perder el balón se ECHA ENCIMA un latido (gegenpressing).
+  const lastEv = feed[feed.length - 1]
+  const pressSide = lastEv?.kind === 'turnover' ? lastEv.side : null
+
   // VUELCO POR LÍNEAS: el equipo que ataca EMPUJA (más cuanto más arriba
   // juega) y el que defiende REPLIEGA hacia su portería, cada línea en
-  // bloque. Con el balón en el área, el empuje se acentúa (todos volcados).
+  // bloque. Con el balón en el área, el empuje se acentúa; el ÁNIMO del
+  // tramo final lo amplifica o lo encoge.
   const rowPush = (a: Actor, isMine: boolean): number => {
     if (atkSide == null || a.position === 'POR') return 0
     const dir = isMine ? 1 : -1
     const attacking = (atkSide === mine) === isMine
     const deep = step === 'definicion' ? 1.35 : 1
+    const mood = isMine ? myMood : theirMood
+    const atkBoost = mood === 'urgente' ? 1.5 : mood === 'candado' ? 0.6 : 1
+    const defBoost = mood === 'urgente' ? 0.5 : mood === 'candado' ? 1.3 : 1
     const push = attacking
-      ? ({ DEF: 4, MED: 7, DEL: 10 } as Record<string, number>)[a.position] ?? 0
-      : ({ DEF: -4, MED: -7, DEL: -9 } as Record<string, number>)[a.position] ?? 0
+      ? (({ DEF: 4, MED: 7, DEL: 10 } as Record<string, number>)[a.position] ?? 0) * atkBoost
+      : (({ DEF: -4, MED: -7, DEL: -9 } as Record<string, number>)[a.position] ?? 0) * defBoost
     return push * dir * deep
   }
 
-  // APOYOS CON PROPÓSITO: los dos compañeros del portador más cercanos al
-  // balón ACUDEN a dar línea de pase — se ve a quién podría jugársela.
+  // APOYOS CON PROPÓSITO: los compañeros del portador más cercanos al balón
+  // ACUDEN a dar línea de pase (TRES si el equipo va a la desesperada).
   const supportUids = new Set<string>()
   if (atkSide != null && carrierUid) {
     const atkTeamMine = atkSide === mine
+    const atkMood = atkTeamMine ? myMood : theirMood
     const anchorOf = (a: Actor) => (atkTeamMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
     ;(atkTeamMine ? myActors : theirActors)
       .filter((a) => a.uid !== carrierUid && a.uid !== markerUid && a.position !== 'POR')
       .map((a) => ({ a, d: Math.abs(anchorOf(a).x - ballX) + Math.abs(anchorOf(a).y - 50) * 0.6 }))
       .sort((x, y) => x.d - y.d)
-      .slice(0, 2)
+      .slice(0, atkMood === 'urgente' ? 3 : 2)
       .forEach((x) => supportUids.add(x.a.uid))
   }
 
@@ -166,18 +195,27 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
         y: clampY(50 + (base.y - 50) * 0.45),
       }
     }
+    // GEGENPRESSING: el equipo que acaba de perder el balón se echa encima
+    // del punto de pérdida durante un latido — presión tras pérdida.
+    if (pressSide != null && ((pressSide === mine) === isMine)) {
+      return {
+        x: clampX(base.x + (ballX - base.x) * 0.35 + noise(a.uid, beat, 1) * 1.2),
+        y: clampY(base.y + (50 - base.y) * 0.18 + noise(a.uid, beat, 2) * 2),
+      }
+    }
     const isAtkTeam = atkSide != null && (atkSide === mine) === isMine
     // OLA DE DESMARQUES: en cada latido, UNA línea del equipo atacante
     // aprieta un paso extra (DEF → MED → DEL, por turnos).
     const lineIdx = ({ DEF: 0, MED: 1, DEL: 2 } as Record<string, number>)[a.position] ?? 0
     const wave = isAtkTeam && beat % 3 === lineIdx ? (isMine ? 3.5 : -3.5) : 0
     // BANDAS Y BLOQUE: atacando, los de banda se ABREN hacia su banda;
-    // defendiendo, el bloque se CIERRA hacia el centro.
+    // defendiendo, el bloque se CIERRA hacia el centro (más aún con candado).
+    const defMood = isMine ? myMood : theirMood
     const wing = atkSide == null
       ? 0
       : isAtkTeam
         ? (base.y < 30 ? -4 : base.y > 70 ? 4 : 0)
-        : (base.y < 50 ? 3 : -3)
+        : (base.y < 50 ? 3 : -3) * (defMood === 'candado' ? 1.5 : 1)
     return {
       x: clampX(base.x + rowPush(a, isMine) + wave + noise(a.uid, beat, 1) * 1.2),
       y: clampY(base.y + wing + noise(a.uid, beat, 2) * 2.2),
@@ -226,6 +264,20 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
               ? '¡OCASIÓN DE GOL!'
               : `${STEP_ZONE[step]} · ataca ${sideOf(match, atkSide!).name.replace('Instituto ', '')}`}
         </div>
+
+        {/* El ÁNIMO del tramo final, dicho en voz alta: se entiende POR QUÉ
+            el campo se inclina como se inclina. */}
+        {(myMood || theirMood) && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-950/70 text-amber-200/90">
+            {myMood === 'urgente'
+              ? `¡${home.name.replace('Instituto ', '')} se vuelca a por el partido!`
+              : myMood === 'candado'
+                ? `${home.name.replace('Instituto ', '')} echa el candado`
+                : theirMood === 'urgente'
+                  ? `¡${away.name.replace('Instituto ', '')} se vuelca a por el partido!`
+                  : `${away.name.replace('Instituto ', '')} echa el candado`}
+          </div>
+        )}
 
         {/* LOS 22: cada uno hacia su sitio con transición — el movimiento.
             El fondo del retrato lleva LOS COLORES DEL EQUIPO (el del escudo,
