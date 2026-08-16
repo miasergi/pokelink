@@ -117,18 +117,6 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
 // Montaje del partido
 // ---------------------------------------------------------------------------
 
-/**
- * Nivel al que un jugador DESPIERTA su Espíritu Guerrero. Antes estaba
- * disponible desde el minuto uno y rompía el arranque: un duelo con ×2 de
- * potencia en la primera ronda decide el partido él solo.
- */
-export const SPIRIT_AWAKEN_LEVEL = 30
-
-/** Espíritu genérico por elemento, para los 4★ sin espíritu de catálogo. */
-const GENERIC_SPIRIT: Record<string, string> = {
-  fuego: 'pegaso', bosque: 'ent', aire: 'kraken', montana: 'majin',
-}
-
 function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
   const base = getPlayerBase(p.baseId)
   return {
@@ -147,12 +135,6 @@ function actorFromPlayer(p: PlayerInstance, role?: Position): Actor {
     ptMax: ptMax(p),
     techniques: p.techniques,
     techLevels: p.techLevels,
-    // El Espíritu pide las DOS cosas: experiencia (nivel 30) y rareza
-    // MULTICOLOR. Si el catálogo no le asigna uno propio, invoca el genérico
-    // de su elemento — cualquier 4★ puede rugir.
-    spirit: p.level >= SPIRIT_AWAKEN_LEVEL && rarityOf(p) >= MAX_RARITY
-      ? (base.spirit ?? GENERIC_SPIRIT[base.element])
-      : undefined,
   }
 }
 

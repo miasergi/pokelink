@@ -45,7 +45,7 @@ const SECTIONS: Section[] = [
       <>
         El COLOR de la carta de cada jugador: gris (Normal), morado (Avanzado), oro (Ídolo) y multicolor (Legendario). Sube sus <B>atributos</B>,
         alarga su <B>cadena</B> (1, 2, 3 o 4 supertécnicas — cada paso lleva el borde de la rareza que lo
-        abre) y en <B>multicolor</B> despierta su Espíritu Guerrero (con nivel 30). CUALQUIERA puede llegar
+        abre). CUALQUIERA puede llegar
         al máximo: se empieza con todo Normales y se sube con <B>Medallas de talento</B> (3 por partido, 1
         por traspaso, también en tiendas) — y tras cada pachanga, UNO de los que la jugaron sube solo, con
         su pantalla. Los rivales van nivelados con la eliminatoria.
@@ -80,10 +80,9 @@ const SECTIONS: Section[] = [
     title: 'Ruptura — la barra del partido',
     body: (
       <>
-        La barra fina de la parte de arriba del partido. Se llena encadenando jugadas ganadas y se gasta de
-        una de dos maneras, una vez llena: <B>Supervibración</B> (tres acciones seguidas gratis y con
-        potencia extra) o <B>Espíritu Guerrero</B> (un único duelo demoledor). El espíritu <B>se despierta
-        al nivel 30</B>: al principio del torneo nadie lo tiene disponible.
+        La barra fina de la parte de arriba del partido. Se llena encadenando jugadas ganadas y, una vez
+        llena, se gasta en la <B>Supervibración</B>: tres acciones seguidas gratis y con la potencia
+        multiplicada. Elige bien el momento — vuelve a costar llenarla entera.
       </>
     ),
   },

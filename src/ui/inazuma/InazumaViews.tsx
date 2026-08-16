@@ -13,7 +13,7 @@ import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { MedalHint } from '@/ui/inazuma/BagView'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -22,6 +22,7 @@ import {
   SIGNATURE_LEVELS, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
+import type { Element as InazumaElement } from '@/engine/inazuma/types'
 
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
@@ -351,7 +352,6 @@ export function PreviewView() {
                 // multicolor entera).
                 rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
                 level: matchNode.level ?? 10,
-                hasSpirit: !!b.spirit,
               }))}
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)
@@ -380,7 +380,11 @@ export function PreviewView() {
             <BenchStrip
               players={startingSquad(matchNode.teamId).slice(11).map((pid) => {
                 const b = getPlayerBase(pid)
-                return { baseId: b.id, name: b.name, position: b.position, rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1 }
+                return {
+                  baseId: b.id, name: b.name, position: b.position, element: b.element,
+                  level: matchNode.level ?? save.layer * 7,
+                  rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
+                }
               })}
             />
           </>
@@ -433,7 +437,7 @@ export function PreviewView() {
             .filter((p) => !(lineup?.all ?? []).some((x) => x.uid === p.uid))
             .map((p) => {
               const b = getPlayerBase(p.baseId)
-              return { baseId: b.id, name: b.name, position: b.position, rarity: rarityOf(p) }
+              return { baseId: b.id, name: b.name, position: b.position, element: b.element, level: p.level, rarity: rarityOf(p) }
             })}
         />
       </div>
@@ -727,33 +731,45 @@ function FormationPicker() {
   )
 }
 
-/** Tira compacta de BANQUILLO para la previa: retrato, nombre y puesto. */
+/**
+ * Tira compacta de BANQUILLO para la previa. Cada suplente enseña LO MISMO que
+ * un titular del tablero: retrato con su rareza, nombre, demarcación, tipo
+ * elemental y nivel — sin eso no había forma de saber a quién tienes en
+ * reserva sin entrar a la ficha.
+ */
 function BenchStrip({ players }: {
-  players: { baseId: string; name: string; position: string; rarity: number }[]
+  players: { baseId: string; name: string; position: string; element: InazumaElement; level: number; rarity: number }[]
 }) {
   if (!players.length) return null
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-2 py-1.5">
       <div className="text-[9px] uppercase tracking-widest text-slate-600 mb-1">Banquillo</div>
       <div className="flex gap-2 overflow-x-auto pb-0.5">
-        {players.map((p) => (
-          <div key={p.baseId} className="shrink-0 w-[46px] flex flex-col items-center">
-            <div
-              className="relative w-9 h-9 rounded-lg overflow-hidden border-2 grid place-items-center bg-slate-800"
-              style={{ borderColor: p.rarity === 4 ? 'transparent' : rarityBorder(p.rarity) }}
-            >
-              <ImgFallback
-                src={portraitUrl(p.baseId)}
-                className="w-full h-full object-cover object-top"
-                alt={p.name}
-                fallback={<span className="text-[9px] font-extrabold">{p.name.slice(0, 2).toUpperCase()}</span>}
-              />
-              {p.rarity === 4 && <span className="mc-ring rounded-lg" />}
+        {players.map((p) => {
+          const info = ELEMENT_INFO[p.element]
+          return (
+            <div key={p.baseId} className="shrink-0 w-[50px] flex flex-col items-center">
+              <div
+                className={`relative w-9 h-9 rounded-lg overflow-hidden grid place-items-center bg-slate-800 ${p.rarity === 4 ? '' : 'border-2'}`}
+                style={p.rarity === 4 ? undefined : { borderColor: rarityBorder(p.rarity) }}
+              >
+                <ImgFallback
+                  src={portraitUrl(p.baseId)}
+                  className="w-full h-full object-cover object-top"
+                  alt={p.name}
+                  fallback={<span className="text-[9px] font-extrabold">{p.name.slice(0, 2).toUpperCase()}</span>}
+                />
+                {p.rarity === 4 && <span className="mc-ring rounded-lg" />}
+              </div>
+              <span className="text-[8px] text-slate-300 truncate w-full text-center leading-tight mt-0.5">{p.name.split(' ')[0]}</span>
+              <div className="flex items-center justify-center gap-0.5 text-[7px] leading-none text-slate-400">
+                <span className="font-extrabold text-slate-300">{p.position}</span>
+                <Icon name={ELEMENT_ICON[p.element]} className="w-2 h-2" style={{ color: info.color }} />
+                Nv.{p.level}
+              </div>
             </div>
-            <span className="text-[8px] text-slate-400 truncate w-full text-center leading-tight mt-0.5">{p.name.split(' ')[0]}</span>
-            <span className="text-[7px] text-slate-600 font-bold leading-none">{p.position}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -1249,6 +1265,18 @@ export function DraftView() {
                 )}
                 <div className="text-[11px] text-slate-400">{o.desc}</div>
               </div>
+              {/* Cartas de PAGO: el precio a la vista, y en rojo si no llega. */}
+              {o.kind === 'objeto' && o.cost ? (
+                <span
+                  className={`shrink-0 text-[11px] font-extrabold tabular-nums px-2 py-0.5 rounded-full border ${
+                    save.coins >= o.cost
+                      ? 'text-amber-300 border-amber-400/50 bg-amber-500/10'
+                      : 'text-rose-300 border-rose-400/50 bg-rose-500/10'
+                  }`}
+                >
+                  −{o.cost.toLocaleString('es-ES')} ₽
+                </span>
+              ) : null}
               <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
             </div>
             {/* Los atributos con los que llegaría, para no fichar a ciegas. */}

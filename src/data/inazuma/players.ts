@@ -19,28 +19,24 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 37, control: 48, fisico: 61, defensa: 116, velocidad: 46, aguante: 72 },
     techniques: ['god-hand', 'ijigen-the-hand'],
     signature: ['god-hand', 'ijigen-the-hand', 'majin-the-hand', 'god-catch'],
-    spirit: 'majin',
   },
   {
     id: 'axel-blaze', name: 'Axel Blaze', team: 'raimon', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 113, control: 77, fisico: 55, defensa: 26, velocidad: 62, aguante: 40 },
     techniques: ['honoo-no-kazamidori', 'fire-tornado'],
     signature: ['honoo-no-kazamidori', 'fire-tornado', 'inazuma-break', 'bakunetsu-storm'],
-    spirit: 'pegaso',
   },
   {
     id: 'nathan-swift', name: 'Nathan Swift', team: 'raimon', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 33, control: 48, fisico: 79, defensa: 94, velocidad: 38, aguante: 48 },
     techniques: ['shippuu-dash', 'quick-draw'],
     signature: ['shippuu-dash', 'quick-draw', 'triple-boost', 'zigzag-spark'],
-    spirit: 'kraken',
   },
   {
     id: 'kevin-dragonfly', name: 'Kevin Dragonfly', team: 'raimon', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 99, control: 68, fisico: 49, defensa: 23, velocidad: 56, aguante: 36 },
     techniques: ['wyvern-crash', 'dragon-tornado'],
     signature: ['wyvern-crash', 'dragon-tornado', 'dragon-crash', 'illusion-ball'],
-    spirit: 'ent',
   },
   {
     id: 'jack-wallside', name: 'Jack Wallside', team: 'raimon', position: 'DEF', element: 'montana', rarity: 3,
@@ -79,12 +75,6 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['suisei-shoot', 'water-veil', 'double-cyclone', 'inazuma-1gou-otoshi'],
   },
   {
-    id: 'bobby-shearer', name: 'Bobby Shearer', team: 'raimon', position: 'DEF', element: 'bosque', rarity: 3,
-    stats: { tiro: 25, control: 36, fisico: 64, defensa: 78, velocidad: 38, aguante: 42 },
-    techniques: ['fake-ball'],
-    signature: ['fake-ball', 'death-zone', 'noroi', 'asteroid-belt'],
-  },
-  {
     id: 'jim-wraith', name: 'Jim Wraith', team: 'raimon', position: 'DEF', element: 'bosque', rarity: 2,
     stats: { tiro: 25, control: 32, fisico: 54, defensa: 62, velocidad: 25, aguante: 38 },
     techniques: ['super-scan-df'],
@@ -102,27 +92,30 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['rolling-kick'],
     signature: ['rolling-kick', 'bunshin-feint', 'doppelganger', 'dark-tornado'],
   },
+  {
+    id: 'mac-robingo', name: 'Mac Robingo', team: 'raimon', position: 'DEF', element: 'bosque', rarity: 1,
+    stats: { tiro: 18, control: 29, fisico: 50, defensa: 58, velocidad: 23, aguante: 30 },
+    techniques: ['onryou'],
+    signature: ['onryou', 'death-zone', 'noroi', 'asteroid-belt'],
+  },
   // ============================== OCCULT
   {
     id: 'nathan-jones', name: 'Nathan Jones', team: 'occult', position: 'POR', element: 'aire', rarity: 5,
     stats: { tiro: 37, control: 47, fisico: 67, defensa: 113, velocidad: 47, aguante: 69 },
     techniques: ['tornado-catch', 'procyon-net'],
     signature: ['tornado-catch', 'procyon-net', 'safety-protect', 'ijigen-the-hand'],
-    spirit: 'kraken',
   },
   {
     id: 'russell-walk', name: 'Russell Walk', team: 'occult', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 29, control: 48, fisico: 82, defensa: 87, velocidad: 40, aguante: 46 },
     techniques: ['fake-ball', 'bunshin-shoot'],
     signature: ['fake-ball', 'bunshin-shoot', 'maboroshi-dribble', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'jason-jones', name: 'Jason Jones', team: 'occult', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 27, control: 45, fisico: 77, defensa: 89, velocidad: 37, aguante: 44 },
     techniques: ['coil-turn', 'hawk-shot'],
     signature: ['coil-turn', 'hawk-shot', 'aikidou', 'senpuujin'],
-    spirit: 'kraken',
   },
   {
     id: 'ken-furan', name: 'Ken Furan', team: 'occult', position: 'DEF', element: 'montana', rarity: 3,
@@ -196,21 +189,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 37, control: 46, fisico: 66, defensa: 116, velocidad: 50, aguante: 71 },
     techniques: ['wild-claw', 'dokonjou-catch'],
     signature: ['wild-claw', 'dokonjou-catch', 'triple-defense', 'mugen-the-hand'],
-    spirit: 'majin',
   },
   {
     id: 'marcus-train', name: 'Marcus Train', team: 'otaku', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 27, control: 47, fisico: 83, defensa: 86, velocidad: 40, aguante: 51 },
     techniques: ['fake-bomber', 'dokonjou-bat'],
     signature: ['fake-bomber', 'dokonjou-bat', 'hitori-one-two', 'super-shikofumi'],
-    spirit: 'pegaso',
   },
   {
     id: 'light-nobel', name: 'Light Nobel', team: 'otaku', position: 'MED', element: 'bosque', rarity: 4,
     stats: { tiro: 48, control: 87, fisico: 39, defensa: 50, velocidad: 57, aguante: 44 },
     techniques: ['magic', 'bunshin-shoot'],
     signature: ['magic', 'bunshin-shoot', 'doppelganger', 'southern-crosscut'],
-    spirit: 'ent',
   },
   {
     id: 'walter-valiant', name: 'Walter Valiant', team: 'otaku', position: 'MED', element: 'fuego', rarity: 3,
@@ -278,115 +268,24 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['gravitation'],
     signature: ['gravitation', 'megane-crash', 'gorimuchuu', 'body-shield'],
   },
-  // ============================== WILD
-  {
-    id: 'charlie-boardfield', name: 'Charlie Boardfield', team: 'wild', position: 'POR', element: 'fuego', rarity: 5,
-    stats: { tiro: 30, control: 54, fisico: 64, defensa: 116, velocidad: 49, aguante: 63 },
-    techniques: ['pressure-punch', 'double-rocket'],
-    signature: ['pressure-punch', 'double-rocket', 'beast-fang', 'power-shield'],
-    spirit: 'pegaso',
-  },
-  {
-    id: 'hugo-tallgeese', name: 'Hugo Tallgeese', team: 'wild', position: 'MED', element: 'fuego', rarity: 4,
-    stats: { tiro: 50, control: 90, fisico: 47, defensa: 56, velocidad: 59, aguante: 40 },
-    techniques: ['heat-tackle', 'honoo-no-kazamidori'],
-    signature: ['heat-tackle', 'honoo-no-kazamidori', 'planet-shield', 'fuusen-gum'],
-    spirit: 'pegaso',
-  },
-  {
-    id: 'wilson-fishman', name: 'Wilson Fishman', team: 'wild', position: 'DEF', element: 'bosque', rarity: 4,
-    stats: { tiro: 27, control: 49, fisico: 79, defensa: 88, velocidad: 44, aguante: 44 },
-    techniques: ['onryou', 'wyvern-crash'],
-    signature: ['onryou', 'wyvern-crash', 'noroi', 'kumo-no-ito'],
-    spirit: 'ent',
-  },
-  {
-    id: 'peter-johnson', name: 'Peter Johnson', team: 'wild', position: 'DEF', element: 'bosque', rarity: 3,
-    stats: { tiro: 26, control: 39, fisico: 70, defensa: 78, velocidad: 30, aguante: 45 },
-    techniques: ['super-scan-df'],
-    signature: ['super-scan-df', 'dual-strike', 'tatsumaki-dokugiri', 'kumo-no-ito'],
-  },
-  {
-    id: 'leonard-o-shea', name: 'Leonard O\'Shea', team: 'wild', position: 'DEF', element: 'montana', rarity: 3,
-    stats: { tiro: 30, control: 38, fisico: 64, defensa: 75, velocidad: 36, aguante: 38 },
-    techniques: ['shikofumi'],
-    signature: ['shikofumi', 'eagle-buster', 'gorimuchuu', 'the-wall'],
-  },
-  {
-    id: 'cham-lion', name: 'Cham Lion', team: 'wild', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 39, control: 82, fisico: 41, defensa: 44, velocidad: 47, aguante: 37 },
-    techniques: ['kamaitachi'],
-    signature: ['kamaitachi', 'inazuma-otoshi', 'perfect-tower', 'zigzag-spark'],
-  },
-  {
-    id: 'steve-eagle', name: 'Steve Eagle', team: 'wild', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 46, control: 77, fisico: 39, defensa: 43, velocidad: 45, aguante: 37 },
-    techniques: ['aurora-dribble'],
-    signature: ['aurora-dribble', 'spiral-shot', 'double-cyclone', 'ribbon-shower'],
-  },
-  {
-    id: 'bruce-monkey', name: 'Bruce Monkey', team: 'wild', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 40, control: 73, fisico: 33, defensa: 49, velocidad: 49, aguante: 34 },
-    techniques: ['aurora-dribble'],
-    signature: ['aurora-dribble', 'inazuma-1gou', 'double-cyclone', 'shippuu-dash'],
-  },
-  {
-    id: 'gary-lancaster', name: 'Gary Lancaster', team: 'wild', position: 'DEL', element: 'montana', rarity: 3,
-    stats: { tiro: 90, control: 59, fisico: 39, defensa: 24, velocidad: 53, aguante: 31 },
-    techniques: ['kung-fu-attack'],
-    signature: ['kung-fu-attack', 'prima-donna', 'roadroller-tackle', 'gaia-break'],
-  },
-  {
-    id: 'harry-snake', name: 'Harry Snake', team: 'wild', position: 'DEL', element: 'bosque', rarity: 2,
-    stats: { tiro: 68, control: 51, fisico: 34, defensa: 20, velocidad: 41, aguante: 28 },
-    techniques: ['hyakuretsu-shot'],
-    signature: ['hyakuretsu-shot', 'warp-drive', 'rock-wall-dam', 'koutei-penguin-2gou'],
-  },
-  {
-    id: 'adrian-speed', name: 'Adrian Speed', team: 'wild', position: 'DEL', element: 'aire', rarity: 2,
-    stats: { tiro: 75, control: 50, fisico: 35, defensa: 18, velocidad: 46, aguante: 24 },
-    techniques: ['zigzag-spark'],
-    signature: ['zigzag-spark', 'spiral-shot', 'double-cyclone', 'eternal-blizzard'],
-  },
-  {
-    id: 'chad-bullford', name: 'Chad Bullford', team: 'wild', position: 'DEF', element: 'fuego', rarity: 2,
-    stats: { tiro: 23, control: 30, fisico: 62, defensa: 66, velocidad: 32, aguante: 32 },
-    techniques: ['volcano-cut'],
-    signature: ['volcano-cut', 'honoo-no-kazamidori', 'armadillo-circus', 'flame-dance'],
-  },
-  {
-    id: 'alan-coe', name: 'Alan Coe', team: 'wild', position: 'MED', element: 'bosque', rarity: 1,
-    stats: { tiro: 30, control: 52, fisico: 23, defensa: 28, velocidad: 33, aguante: 23 },
-    techniques: ['super-scan-of'],
-    signature: ['super-scan-of', 'run-ball-run', 'doppelganger', 'illusion-ball'],
-  },
-  {
-    id: 'philip-anders', name: 'Philip Anders', team: 'wild', position: 'DEL', element: 'fuego', rarity: 1,
-    stats: { tiro: 60, control: 41, fisico: 29, defensa: 18, velocidad: 30, aguante: 18 },
-    techniques: ['abisegeri'],
-    signature: ['abisegeri', 'flame-veil', 'giant-spin', 'ryuusei-blade'],
-  },
   // ============================== SHURIKEN
   {
     id: 'juno-hundertmark', name: 'Juno Hundertmark', team: 'shuriken', position: 'DEF', element: 'aire', rarity: 5,
     stats: { tiro: 30, control: 57, fisico: 94, defensa: 105, velocidad: 49, aguante: 52 },
     techniques: ['blade-attack', 'condor-dive'],
     signature: ['blade-attack', 'condor-dive', 'tamanori-pierrot', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'newton-flust', name: 'Newton Flust', team: 'shuriken', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 31, control: 50, fisico: 77, defensa: 86, velocidad: 41, aguante: 42 },
     techniques: ['shikofumi', 'snake-shot'],
     signature: ['shikofumi', 'snake-shot', 'gorimuchuu', 'the-wall'],
-    spirit: 'majin',
   },
   {
     id: 'oleander-meadows', name: 'Oleander Meadows', team: 'shuriken', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 29, control: 46, fisico: 82, defensa: 92, velocidad: 37, aguante: 44 },
     techniques: ['gravitation', 'megane-crash'],
     signature: ['gravitation', 'megane-crash', 'ninin-sankyaku', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'galen-thunderbird', name: 'Galen Thunderbird', team: 'shuriken', position: 'DEF', element: 'montana', rarity: 3,
@@ -456,89 +355,86 @@ export const PLAYERS: PlayerBase[] = [
   },
   // ============================== FARM
   {
-    id: 'charlie-boardfield-2', name: 'Charlie Boardfield', team: 'farm', position: 'POR', element: 'fuego', rarity: 5,
-    stats: { tiro: 39, control: 47, fisico: 69, defensa: 115, velocidad: 50, aguante: 65 },
+    id: 'charlie-boardfield', name: 'Charlie Boardfield', team: 'farm', position: 'POR', element: 'fuego', rarity: 5,
+    stats: { tiro: 30, control: 54, fisico: 64, defensa: 116, velocidad: 49, aguante: 63 },
     techniques: ['pressure-punch', 'double-rocket'],
     signature: ['pressure-punch', 'double-rocket', 'beast-fang', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
-    id: 'hugo-tallgeese-2', name: 'Hugo Tallgeese', team: 'farm', position: 'MED', element: 'fuego', rarity: 4,
-    stats: { tiro: 48, control: 92, fisico: 47, defensa: 56, velocidad: 57, aguante: 37 },
+    id: 'hugo-tallgeese', name: 'Hugo Tallgeese', team: 'farm', position: 'MED', element: 'fuego', rarity: 4,
+    stats: { tiro: 50, control: 90, fisico: 47, defensa: 56, velocidad: 59, aguante: 40 },
     techniques: ['heat-tackle', 'honoo-no-kazamidori'],
     signature: ['heat-tackle', 'honoo-no-kazamidori', 'planet-shield', 'fuusen-gum'],
-    spirit: 'pegaso',
   },
   {
-    id: 'wilson-fishman-2', name: 'Wilson Fishman', team: 'farm', position: 'DEF', element: 'bosque', rarity: 4,
-    stats: { tiro: 33, control: 50, fisico: 77, defensa: 85, velocidad: 42, aguante: 51 },
+    id: 'wilson-fishman', name: 'Wilson Fishman', team: 'farm', position: 'DEF', element: 'bosque', rarity: 4,
+    stats: { tiro: 27, control: 49, fisico: 79, defensa: 88, velocidad: 44, aguante: 44 },
     techniques: ['onryou', 'wyvern-crash'],
     signature: ['onryou', 'wyvern-crash', 'noroi', 'kumo-no-ito'],
-    spirit: 'ent',
   },
   {
-    id: 'peter-johnson-2', name: 'Peter Johnson', team: 'farm', position: 'DEF', element: 'bosque', rarity: 3,
-    stats: { tiro: 24, control: 42, fisico: 72, defensa: 75, velocidad: 36, aguante: 43 },
+    id: 'peter-johnson', name: 'Peter Johnson', team: 'farm', position: 'DEF', element: 'bosque', rarity: 3,
+    stats: { tiro: 26, control: 39, fisico: 70, defensa: 78, velocidad: 30, aguante: 45 },
     techniques: ['super-scan-df'],
     signature: ['super-scan-df', 'dual-strike', 'tatsumaki-dokugiri', 'kumo-no-ito'],
   },
   {
-    id: 'leonard-o-shea-2', name: 'Leonard O\'Shea', team: 'farm', position: 'DEF', element: 'montana', rarity: 3,
-    stats: { tiro: 22, control: 45, fisico: 65, defensa: 74, velocidad: 32, aguante: 38 },
+    id: 'leonard-o-shea', name: 'Leonard O\'Shea', team: 'farm', position: 'DEF', element: 'montana', rarity: 3,
+    stats: { tiro: 30, control: 38, fisico: 64, defensa: 75, velocidad: 36, aguante: 38 },
     techniques: ['shikofumi'],
     signature: ['shikofumi', 'eagle-buster', 'gorimuchuu', 'the-wall'],
   },
   {
-    id: 'cham-lion-2', name: 'Cham Lion', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 40, control: 78, fisico: 40, defensa: 44, velocidad: 50, aguante: 36 },
+    id: 'cham-lion', name: 'Cham Lion', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
+    stats: { tiro: 39, control: 82, fisico: 41, defensa: 44, velocidad: 47, aguante: 37 },
     techniques: ['kamaitachi'],
     signature: ['kamaitachi', 'inazuma-otoshi', 'perfect-tower', 'zigzag-spark'],
   },
   {
-    id: 'steve-eagle-2', name: 'Steve Eagle', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 42, control: 76, fisico: 39, defensa: 43, velocidad: 47, aguante: 35 },
+    id: 'steve-eagle', name: 'Steve Eagle', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
+    stats: { tiro: 46, control: 77, fisico: 39, defensa: 43, velocidad: 45, aguante: 37 },
     techniques: ['aurora-dribble'],
     signature: ['aurora-dribble', 'spiral-shot', 'double-cyclone', 'ribbon-shower'],
   },
   {
-    id: 'bruce-monkey-2', name: 'Bruce Monkey', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
-    stats: { tiro: 46, control: 81, fisico: 33, defensa: 46, velocidad: 45, aguante: 31 },
+    id: 'bruce-monkey', name: 'Bruce Monkey', team: 'farm', position: 'MED', element: 'aire', rarity: 3,
+    stats: { tiro: 40, control: 73, fisico: 33, defensa: 49, velocidad: 49, aguante: 34 },
     techniques: ['aurora-dribble'],
     signature: ['aurora-dribble', 'inazuma-1gou', 'double-cyclone', 'shippuu-dash'],
   },
   {
-    id: 'gary-lancaster-2', name: 'Gary Lancaster', team: 'farm', position: 'DEL', element: 'montana', rarity: 3,
-    stats: { tiro: 82, control: 64, fisico: 41, defensa: 22, velocidad: 50, aguante: 27 },
+    id: 'gary-lancaster', name: 'Gary Lancaster', team: 'farm', position: 'DEL', element: 'montana', rarity: 3,
+    stats: { tiro: 90, control: 59, fisico: 39, defensa: 24, velocidad: 53, aguante: 31 },
     techniques: ['kung-fu-attack'],
     signature: ['kung-fu-attack', 'prima-donna', 'roadroller-tackle', 'gaia-break'],
   },
   {
-    id: 'harry-snake-2', name: 'Harry Snake', team: 'farm', position: 'DEL', element: 'bosque', rarity: 2,
-    stats: { tiro: 77, control: 55, fisico: 37, defensa: 18, velocidad: 38, aguante: 28 },
+    id: 'harry-snake', name: 'Harry Snake', team: 'farm', position: 'DEL', element: 'bosque', rarity: 2,
+    stats: { tiro: 68, control: 51, fisico: 34, defensa: 20, velocidad: 41, aguante: 28 },
     techniques: ['hyakuretsu-shot'],
     signature: ['hyakuretsu-shot', 'warp-drive', 'rock-wall-dam', 'koutei-penguin-2gou'],
   },
   {
-    id: 'adrian-speed-2', name: 'Adrian Speed', team: 'farm', position: 'DEL', element: 'aire', rarity: 2,
-    stats: { tiro: 70, control: 52, fisico: 32, defensa: 19, velocidad: 37, aguante: 21 },
+    id: 'adrian-speed', name: 'Adrian Speed', team: 'farm', position: 'DEL', element: 'aire', rarity: 2,
+    stats: { tiro: 75, control: 50, fisico: 35, defensa: 18, velocidad: 46, aguante: 24 },
     techniques: ['zigzag-spark'],
     signature: ['zigzag-spark', 'spiral-shot', 'double-cyclone', 'eternal-blizzard'],
   },
   {
-    id: 'chad-bullford-2', name: 'Chad Bullford', team: 'farm', position: 'DEF', element: 'fuego', rarity: 2,
-    stats: { tiro: 20, control: 38, fisico: 57, defensa: 62, velocidad: 31, aguante: 31 },
+    id: 'chad-bullford', name: 'Chad Bullford', team: 'farm', position: 'DEF', element: 'fuego', rarity: 2,
+    stats: { tiro: 23, control: 30, fisico: 62, defensa: 66, velocidad: 32, aguante: 32 },
     techniques: ['volcano-cut'],
     signature: ['volcano-cut', 'honoo-no-kazamidori', 'armadillo-circus', 'flame-dance'],
   },
   {
-    id: 'alan-coe-2', name: 'Alan Coe', team: 'farm', position: 'MED', element: 'bosque', rarity: 1,
-    stats: { tiro: 28, control: 55, fisico: 26, defensa: 29, velocidad: 35, aguante: 24 },
+    id: 'alan-coe', name: 'Alan Coe', team: 'farm', position: 'MED', element: 'bosque', rarity: 1,
+    stats: { tiro: 30, control: 52, fisico: 23, defensa: 28, velocidad: 33, aguante: 23 },
     techniques: ['super-scan-of'],
     signature: ['super-scan-of', 'run-ball-run', 'doppelganger', 'illusion-ball'],
   },
   {
-    id: 'philip-anders-2', name: 'Philip Anders', team: 'farm', position: 'DEL', element: 'fuego', rarity: 1,
-    stats: { tiro: 58, control: 42, fisico: 27, defensa: 18, velocidad: 33, aguante: 25 },
+    id: 'philip-anders', name: 'Philip Anders', team: 'farm', position: 'DEL', element: 'fuego', rarity: 1,
+    stats: { tiro: 60, control: 41, fisico: 29, defensa: 18, velocidad: 30, aguante: 18 },
     techniques: ['abisegeri'],
     signature: ['abisegeri', 'flame-veil', 'giant-spin', 'ryuusei-blade'],
   },
@@ -548,21 +444,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 36, control: 53, fisico: 67, defensa: 111, velocidad: 50, aguante: 67 },
     techniques: ['rocket-kobushi', 'full-power-shield'],
     signature: ['rocket-kobushi', 'full-power-shield', 'burnout', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
     id: 'malcolm-night', name: 'Malcolm Night', team: 'kirkwood', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 27, control: 45, fisico: 77, defensa: 93, velocidad: 41, aguante: 47 },
     techniques: ['fake-bomber', 'triple-boost'],
     signature: ['fake-bomber', 'triple-boost', 'hitori-one-two', 'super-shikofumi'],
-    spirit: 'pegaso',
   },
   {
     id: 'alfred-meenan', name: 'Alfred Meenan', team: 'kirkwood', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 27, control: 42, fisico: 80, defensa: 87, velocidad: 37, aguante: 47 },
     techniques: ['super-scan-df', 'run-ball-run'],
     signature: ['super-scan-df', 'run-ball-run', 'noroi', 'kumo-no-ito'],
-    spirit: 'ent',
   },
   {
     id: 'dan-mirthful', name: 'Dan Mirthful', team: 'kirkwood', position: 'DEF', element: 'bosque', rarity: 3,
@@ -636,21 +529,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 58, control: 104, fisico: 45, defensa: 58, velocidad: 60, aguante: 49 },
     techniques: ['illusion-ball', 'death-zone'],
     signature: ['illusion-ball', 'death-zone', 'koutei-penguin-2gou', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'david-samford', name: 'David Samford', team: 'royal', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 101, control: 69, fisico: 42, defensa: 29, velocidad: 58, aguante: 31 },
     techniques: ['kung-fu-head', 'zanzou'],
     signature: ['kung-fu-head', 'zanzou', 'rock-wall-dam', 'koutei-penguin-2gou'],
-    spirit: 'ent',
   },
   {
     id: 'joseph-king', name: 'Joseph King', team: 'royal', position: 'POR', element: 'fuego', rarity: 4,
     stats: { tiro: 27, control: 42, fisico: 53, defensa: 100, velocidad: 47, aguante: 58 },
     techniques: ['rocket-kobushi', 'double-rocket'],
     signature: ['rocket-kobushi', 'double-rocket', 'kaenhousha', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
     id: 'peter-drent', name: 'Peter Drent', team: 'royal', position: 'DEF', element: 'montana', rarity: 3,
@@ -724,21 +614,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 58, control: 100, fisico: 46, defensa: 62, velocidad: 65, aguante: 41 },
     techniques: ['god-knows', 'dual-pass'],
     signature: ['god-knows', 'dual-pass', 'killer-slide', 'heaven-s-time'],
-    spirit: 'ent',
   },
   {
     id: 'paul-siddon', name: 'Paul Siddon', team: 'zeus', position: 'POR', element: 'montana', rarity: 4,
     stats: { tiro: 35, control: 41, fisico: 59, defensa: 102, velocidad: 48, aguante: 57 },
     techniques: ['makiwari-chop', 'dokonjou-catch'],
     signature: ['makiwari-chop', 'dokonjou-catch', 'god-hand', 'mugen-the-hand'],
-    spirit: 'majin',
   },
   {
     id: 'apollo-light', name: 'Apollo Light', team: 'zeus', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 35, control: 50, fisico: 80, defensa: 90, velocidad: 44, aguante: 46 },
     techniques: ['onryou', 'wyvern-crash'],
     signature: ['onryou', 'wyvern-crash', 'maboroshi-dribble', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'jeff-iron', name: 'Jeff Iron', team: 'zeus', position: 'DEF', element: 'fuego', rarity: 3,
@@ -812,21 +699,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 35, control: 49, fisico: 88, defensa: 103, velocidad: 49, aguante: 54 },
     techniques: ['cyclone', 'inazuma-otoshi'],
     signature: ['cyclone', 'inazuma-otoshi', 'moonsault', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'earl-eton', name: 'Earl Eton', team: 'kfc', position: 'MED', element: 'bosque', rarity: 4,
     stats: { tiro: 53, control: 94, fisico: 42, defensa: 55, velocidad: 58, aguante: 38 },
     techniques: ['magic', 'death-zone'],
     signature: ['magic', 'death-zone', 'rock-wall-dam', 'southern-crosscut'],
-    spirit: 'ent',
   },
   {
     id: 'sothern-newman', name: 'Sothern Newman', team: 'kfc', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 27, control: 46, fisico: 80, defensa: 89, velocidad: 44, aguante: 47 },
     techniques: ['gravitation', 'reflect-buster'],
     signature: ['gravitation', 'reflect-buster', 'mogura-feint', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'taylor-higgins', name: 'Taylor Higgins', team: 'kfc', position: 'MED', element: 'aire', rarity: 3,
@@ -888,21 +772,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 35, control: 50, fisico: 64, defensa: 110, velocidad: 52, aguante: 68 },
     techniques: ['nekketsu-punch', 'double-rocket'],
     signature: ['nekketsu-punch', 'double-rocket', 'burnout', 'nekketsu-head'],
-    spirit: 'pegaso',
   },
   {
     id: 'chad-taylor', name: 'Chad Taylor', team: 'oumihara', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 31, control: 43, fisico: 81, defensa: 93, velocidad: 38, aguante: 42 },
     techniques: ['blade-attack', 'condor-dive'],
     signature: ['blade-attack', 'condor-dive', 'moonsault', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'victor-hills', name: 'Victor Hills', team: 'oumihara', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 30, control: 44, fisico: 80, defensa: 93, velocidad: 44, aguante: 43 },
     techniques: ['gravitation', 'megane-crash'],
     signature: ['gravitation', 'megane-crash', 'gorimuchuu', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'hurley-kane', name: 'Hurley Kane', team: 'oumihara', position: 'DEF', element: 'aire', rarity: 3,
@@ -947,14 +828,20 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['back-tornado', 'water-veil', 'double-cyclone', 'northern-impact'],
   },
   {
+    id: 'shark-shooter', name: 'Shark Shooter', team: 'oumihara', position: 'DEL', element: 'aire', rarity: 2,
+    stats: { tiro: 77, control: 47, fisico: 32, defensa: 22, velocidad: 44, aguante: 26 },
+    techniques: ['suisei-shoot'],
+    signature: ['suisei-shoot', 'water-veil', 'double-cyclone', 'inazuma-1gou-otoshi'],
+  },
+  {
     id: 'gaston-cooley', name: 'Gaston Cooley', team: 'oumihara', position: 'POR', element: 'aire', rarity: 2,
     stats: { tiro: 25, control: 36, fisico: 37, defensa: 77, velocidad: 36, aguante: 47 },
     techniques: ['tsumuji'],
     signature: ['tsumuji', 'jikuu-no-kabe', 'safety-protect', 'hanafubuki'],
   },
   {
-    id: 'bevan-breakfast', name: 'Bevan Breakfast', team: 'oumihara', position: 'DEF', element: 'bosque', rarity: 2,
-    stats: { tiro: 18, control: 36, fisico: 60, defensa: 70, velocidad: 32, aguante: 38 },
+    id: 'bevan-breakfast', name: 'Bevan Breakfast', team: 'oumihara', position: 'DEF', element: 'bosque', rarity: 1,
+    stats: { tiro: 18, control: 30, fisico: 50, defensa: 59, velocidad: 28, aguante: 33 },
     techniques: ['onryou'],
     signature: ['onryou', 'run-ball-run', 'noroi', 'sigma-zone'],
   },
@@ -970,27 +857,30 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 36, control: 51, fisico: 64, defensa: 110, velocidad: 49, aguante: 67 },
     techniques: ['yugamu-kuukan', 'black-hole'],
     signature: ['yugamu-kuukan', 'black-hole', 'bunshin-block', 'wormhole'],
-    spirit: 'ent',
   },
   {
     id: 'harry-leading', name: 'Harry Leading', team: 'mikage', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 32, control: 43, fisico: 80, defensa: 92, velocidad: 44, aguante: 48 },
     techniques: ['blade-attack', 'inazuma-otoshi'],
     signature: ['blade-attack', 'inazuma-otoshi', 'moonsault', 'senpuujin'],
-    spirit: 'kraken',
   },
   {
     id: 'terry-stronger', name: 'Terry Stronger', team: 'mikage', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 33, control: 46, fisico: 83, defensa: 90, velocidad: 38, aguante: 48 },
     techniques: ['volcano-cut', 'triple-boost'],
     signature: ['volcano-cut', 'triple-boost', 'hitori-one-two', 'flame-dance'],
-    spirit: 'pegaso',
   },
   {
     id: 'philip-marvel', name: 'Philip Marvel', team: 'mikage', position: 'DEF', element: 'montana', rarity: 3,
     stats: { tiro: 26, control: 37, fisico: 66, defensa: 77, velocidad: 32, aguante: 41 },
     techniques: ['gravitation'],
     signature: ['gravitation', 'snake-shot', 'ninin-sankyaku', 'no-escape'],
+  },
+  {
+    id: 'noel-good', name: 'Noel Good', team: 'mikage', position: 'DEF', element: 'bosque', rarity: 3,
+    stats: { tiro: 23, control: 44, fisico: 73, defensa: 73, velocidad: 31, aguante: 37 },
+    techniques: ['super-scan-df'],
+    signature: ['super-scan-df', 'bunshin-shoot', 'noroi', 'asteroid-belt'],
   },
   {
     id: 'tyron-rock', name: 'Tyron Rock', team: 'mikage', position: 'MED', element: 'fuego', rarity: 3,
@@ -1017,8 +907,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['volcano-cut', 'dokonjou-bat', 'boost-glider', 'flame-dance'],
   },
   {
-    id: 'reg-underwood', name: 'Reg Underwood', team: 'mikage', position: 'MED', element: 'bosque', rarity: 3,
-    stats: { tiro: 43, control: 73, fisico: 38, defensa: 46, velocidad: 51, aguante: 31 },
+    id: 'reg-underwood', name: 'Reg Underwood', team: 'mikage', position: 'MED', element: 'bosque', rarity: 2,
+    stats: { tiro: 36, control: 61, fisico: 32, defensa: 39, velocidad: 44, aguante: 26 },
     techniques: ['super-scan-of'],
     signature: ['super-scan-of', 'wyvern-crash', 'killer-slide', 'southern-crosscut'],
   },
@@ -1035,8 +925,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['super-armadillo', 'snake-shot', 'roadroller-tackle', 'toumei-feint'],
   },
   {
-    id: 'clive-mooney', name: 'Clive Mooney', team: 'mikage', position: 'DEL', element: 'fuego', rarity: 2,
-    stats: { tiro: 68, control: 50, fisico: 34, defensa: 21, velocidad: 40, aguante: 28 },
+    id: 'clive-mooney', name: 'Clive Mooney', team: 'mikage', position: 'DEL', element: 'fuego', rarity: 1,
+    stats: { tiro: 56, control: 41, fisico: 29, defensa: 18, velocidad: 33, aguante: 24 },
     techniques: ['meteor-attack'],
     signature: ['meteor-attack', 'meteor-shower', 'planet-shield', 'neo-galaxy'],
   },
@@ -1052,21 +942,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 36, control: 48, fisico: 60, defensa: 108, velocidad: 48, aguante: 67 },
     techniques: ['yugamu-kuukan', 'dual-smash'],
     signature: ['yugamu-kuukan', 'dual-smash', 'shoot-pocket', 'bunshin-block'],
-    spirit: 'ent',
   },
   {
     id: 'parry-waxon', name: 'Parry Waxon', team: 'manyuuji', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 33, control: 43, fisico: 79, defensa: 91, velocidad: 35, aguante: 43 },
     techniques: ['coil-turn', 'condor-dive'],
     signature: ['coil-turn', 'condor-dive', 'moonsault', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'bri-spark', name: 'Bri Spark', team: 'manyuuji', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 26, control: 46, fisico: 80, defensa: 90, velocidad: 44, aguante: 44 },
     techniques: ['ushiro-no-shoumen', 'snake-shot'],
     signature: ['ushiro-no-shoumen', 'snake-shot', 'mogura-feint', 'the-wall'],
-    spirit: 'majin',
   },
   {
     id: 'max-fortune', name: 'Max Fortune', team: 'manyuuji', position: 'DEF', element: 'bosque', rarity: 3,
@@ -1140,21 +1027,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 31, control: 48, fisico: 61, defensa: 117, velocidad: 48, aguante: 71 },
     techniques: ['black-hole', 'god-hand'],
     signature: ['black-hole', 'god-hand', 'bunshin-block', 'mugen-the-hand'],
-    spirit: 'ent',
   },
   {
     id: 'drancis-fake', name: 'Drancis Fake', team: 'yokato', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 33, control: 43, fisico: 80, defensa: 86, velocidad: 43, aguante: 49 },
     techniques: ['coil-turn', 'spiral-shot'],
     signature: ['coil-turn', 'spiral-shot', 'moonsault', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'mick-mishap', name: 'Mick Mishap', team: 'yokato', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 28, control: 42, fisico: 75, defensa: 92, velocidad: 40, aguante: 43 },
     techniques: ['onryou', 'run-ball-run'],
     signature: ['onryou', 'run-ball-run', 'noroi', 'good-smell'],
-    spirit: 'ent',
   },
   {
     id: 'louis-leave', name: 'Louis Leave', team: 'yokato', position: 'DEF', element: 'fuego', rarity: 3,
@@ -1228,21 +1112,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 31, control: 52, fisico: 64, defensa: 116, velocidad: 50, aguante: 68 },
     techniques: ['killer-blade', 'dual-smash'],
     signature: ['killer-blade', 'dual-smash', 'shoot-pocket', 'wormhole'],
-    spirit: 'ent',
   },
   {
     id: 'connor-shuttle', name: 'Connor Shuttle', team: 'gemini-storm', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 27, control: 51, fisico: 77, defensa: 88, velocidad: 37, aguante: 47 },
     techniques: ['cyclone', 'spiral-shot'],
     signature: ['cyclone', 'spiral-shot', 'tamanori-pierrot', 'senpuujin'],
-    spirit: 'kraken',
   },
   {
     id: 'jim-landing', name: 'Jim Landing', team: 'gemini-storm', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 29, control: 48, fisico: 76, defensa: 91, velocidad: 43, aguante: 48 },
     techniques: ['fake-bomber', 'dokonjou-bat'],
     signature: ['fake-bomber', 'dokonjou-bat', 'armadillo-circus', 'super-shikofumi'],
-    spirit: 'pegaso',
   },
   {
     id: 'grant-icewater', name: 'Grant Icewater', team: 'gemini-storm', position: 'DEF', element: 'montana', rarity: 3,
@@ -1298,21 +1179,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 31, control: 46, fisico: 62, defensa: 111, velocidad: 51, aguante: 69 },
     techniques: ['wild-claw', 'dokonjou-catch'],
     signature: ['wild-claw', 'dokonjou-catch', 'gigant-wall', 'god-catch'],
-    spirit: 'majin',
   },
   {
     id: 'craven-kenville', name: 'Craven Kenville', team: 'epsilon', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 26, control: 47, fisico: 82, defensa: 94, velocidad: 44, aguante: 46 },
     techniques: ['fake-bomber', 'honoo-no-kazamidori'],
     signature: ['fake-bomber', 'honoo-no-kazamidori', 'armadillo-circus', 'flame-dance'],
-    spirit: 'pegaso',
   },
   {
     id: 'anna-mole', name: 'Anna Mole', team: 'epsilon', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 26, control: 45, fisico: 83, defensa: 92, velocidad: 43, aguante: 44 },
     techniques: ['super-scan-df', 'wyvern-crash'],
     signature: ['super-scan-df', 'wyvern-crash', 'noroi', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'kayson-wattever', name: 'Kayson Wattever', team: 'epsilon', position: 'DEF', element: 'aire', rarity: 3,
@@ -1368,21 +1246,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 32, control: 52, fisico: 67, defensa: 110, velocidad: 45, aguante: 67 },
     techniques: ['wild-claw', 'mugen-no-kabe'],
     signature: ['wild-claw', 'mugen-no-kabe', 'gigant-wall', 'god-catch'],
-    spirit: 'majin',
   },
   {
     id: 'alan-downhill', name: 'Alan Downhill', team: 'diamond-dust', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 31, control: 49, fisico: 82, defensa: 89, velocidad: 37, aguante: 45 },
     techniques: ['cyclone', 'hawk-shot'],
     signature: ['cyclone', 'hawk-shot', 'tamanori-pierrot', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'claire-lesnow', name: 'Claire Lesnow', team: 'diamond-dust', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 28, control: 42, fisico: 80, defensa: 92, velocidad: 43, aguante: 50 },
     techniques: ['blade-attack', 'spiral-shot'],
     signature: ['blade-attack', 'spiral-shot', 'aikidou', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'albert-denver', name: 'Albert Denver', team: 'diamond-dust', position: 'DEF', element: 'montana', rarity: 3,
@@ -1438,21 +1313,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 32, control: 54, fisico: 67, defensa: 110, velocidad: 49, aguante: 63 },
     techniques: ['pressure-punch', 'double-rocket'],
     signature: ['pressure-punch', 'double-rocket', 'beast-fang', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
     id: 'bonnie-sparks', name: 'Bonnie Sparks', team: 'prominence', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 31, control: 47, fisico: 76, defensa: 87, velocidad: 35, aguante: 44 },
     techniques: ['onryou', 'bunshin-shoot'],
     signature: ['onryou', 'bunshin-shoot', 'noroi', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'val-flamewood', name: 'Val Flamewood', team: 'prominence', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 30, control: 47, fisico: 82, defensa: 92, velocidad: 41, aguante: 42 },
     techniques: ['fake-bomber', 'triple-boost'],
     signature: ['fake-bomber', 'triple-boost', 'hitori-one-two', 'photon-flash'],
-    spirit: 'pegaso',
   },
   {
     id: 'sean-ashford', name: 'Sean Ashford', team: 'prominence', position: 'DEF', element: 'bosque', rarity: 3,
@@ -1508,21 +1380,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 38, control: 45, fisico: 66, defensa: 110, velocidad: 51, aguante: 65 },
     techniques: ['aurora-curtain', 'procyon-net'],
     signature: ['aurora-curtain', 'procyon-net', 'swan-dive', 'hanafubuki'],
-    spirit: 'kraken',
   },
   {
     id: 'gail-baker', name: 'Gail Baker', team: 'genesis', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 30, control: 43, fisico: 77, defensa: 92, velocidad: 41, aguante: 51 },
     techniques: ['blade-attack', 'inazuma-otoshi'],
     signature: ['blade-attack', 'inazuma-otoshi', 'moonsault', 'senpuujin'],
-    spirit: 'kraken',
   },
   {
     id: 'kim-powell', name: 'Kim Powell', team: 'genesis', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 34, control: 49, fisico: 76, defensa: 93, velocidad: 37, aguante: 44 },
     techniques: ['volcano-cut', 'triple-boost'],
     signature: ['volcano-cut', 'triple-boost', 'armadillo-circus', 'flame-dance'],
-    spirit: 'pegaso',
   },
   {
     id: 'zack-cummings', name: 'Zack Cummings', team: 'genesis', position: 'DEF', element: 'montana', rarity: 3,
@@ -1578,21 +1447,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 36, control: 45, fisico: 68, defensa: 111, velocidad: 48, aguante: 72 },
     techniques: ['pressure-punch', 'double-rocket'],
     signature: ['pressure-punch', 'double-rocket', 'beast-fang', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
     id: 'bonnie-sparks-2', name: 'Bonnie Sparks', team: 'chaos', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 32, control: 43, fisico: 75, defensa: 87, velocidad: 43, aguante: 47 },
     techniques: ['onryou', 'bunshin-shoot'],
     signature: ['onryou', 'bunshin-shoot', 'noroi', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'claire-lesnow-2', name: 'Claire Lesnow', team: 'chaos', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 32, control: 44, fisico: 77, defensa: 88, velocidad: 44, aguante: 44 },
     techniques: ['blade-attack', 'spiral-shot'],
     signature: ['blade-attack', 'spiral-shot', 'aikidou', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'albert-denver-2', name: 'Albert Denver', team: 'chaos', position: 'DEF', element: 'montana', rarity: 3,
@@ -1666,35 +1532,30 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 31, control: 45, fisico: 64, defensa: 117, velocidad: 49, aguante: 69 },
     techniques: ['god-hand', 'ijigen-the-hand'],
     signature: ['god-hand', 'ijigen-the-hand', 'majin-the-hand', 'god-catch'],
-    spirit: 'majin',
   },
   {
     id: 'axel-blaze-2', name: 'Axel Blaze', team: 'inazuma-japan', position: 'DEL', element: 'fuego', rarity: 5,
     stats: { tiro: 113, control: 81, fisico: 57, defensa: 30, velocidad: 60, aguante: 34 },
     techniques: ['honoo-no-kazamidori', 'fire-tornado'],
     signature: ['honoo-no-kazamidori', 'fire-tornado', 'inazuma-break', 'bakunetsu-storm'],
-    spirit: 'pegaso',
   },
   {
     id: 'nathan-swift-2', name: 'Nathan Swift', team: 'inazuma-japan', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 29, control: 44, fisico: 76, defensa: 93, velocidad: 38, aguante: 42 },
     techniques: ['shippuu-dash', 'quick-draw'],
     signature: ['shippuu-dash', 'quick-draw', 'triple-boost', 'zigzag-spark'],
-    spirit: 'kraken',
   },
   {
     id: 'david-samford-2', name: 'David Samford', team: 'inazuma-japan', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 98, control: 73, fisico: 43, defensa: 22, velocidad: 57, aguante: 37 },
     techniques: ['kung-fu-head', 'zanzou'],
     signature: ['kung-fu-head', 'zanzou', 'rock-wall-dam', 'koutei-penguin-2gou'],
-    spirit: 'ent',
   },
   {
     id: 'kevin-dragonfly-2', name: 'Kevin Dragonfly', team: 'inazuma-japan', position: 'DEL', element: 'bosque', rarity: 4,
     stats: { tiro: 97, control: 70, fisico: 43, defensa: 25, velocidad: 57, aguante: 29 },
     techniques: ['wyvern-crash', 'dragon-tornado'],
     signature: ['wyvern-crash', 'dragon-tornado', 'dragon-crash', 'illusion-ball'],
-    spirit: 'ent',
   },
   {
     id: 'jack-wallside-2', name: 'Jack Wallside', team: 'inazuma-japan', position: 'DEF', element: 'montana', rarity: 3,
@@ -1756,21 +1617,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 30, control: 48, fisico: 66, defensa: 110, velocidad: 45, aguante: 72 },
     techniques: ['tornado-catch', 'procyon-net'],
     signature: ['tornado-catch', 'procyon-net', 'safety-protect', 'ijigen-the-hand'],
-    spirit: 'kraken',
   },
   {
     id: 'water', name: 'Water', team: 'big-waves', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 26, control: 43, fisico: 81, defensa: 90, velocidad: 39, aguante: 49 },
     techniques: ['blade-attack', 'hawk-shot'],
     signature: ['blade-attack', 'hawk-shot', 'moonsault', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'sonny-shore', name: 'Sonny Shore', team: 'big-waves', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 32, control: 46, fisico: 76, defensa: 86, velocidad: 37, aguante: 44 },
     techniques: ['volcano-cut', 'dokonjou-bat'],
     signature: ['volcano-cut', 'dokonjou-bat', 'boost-glider', 'super-shikofumi'],
-    spirit: 'pegaso',
   },
   {
     id: 'kjell-snapper', name: 'Kjell Snapper', team: 'big-waves', position: 'DEF', element: 'bosque', rarity: 3,
@@ -1797,14 +1655,20 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['judge-through', 'dokonjou-bat', 'planet-shield', 'fuusen-gum'],
   },
   {
+    id: 'surf-club', name: 'Surf Club', team: 'big-waves', position: 'MED', element: 'aire', rarity: 3,
+    stats: { tiro: 39, control: 75, fisico: 38, defensa: 43, velocidad: 52, aguante: 38 },
+    techniques: ['kamaitachi'],
+    signature: ['kamaitachi', 'condor-dive', 'hurricane-arrow', 'zigzag-spark'],
+  },
+  {
     id: 'dolph-hensen', name: 'Dolph Hensen', team: 'big-waves', position: 'MED', element: 'aire', rarity: 3,
     stats: { tiro: 41, control: 77, fisico: 34, defensa: 49, velocidad: 47, aguante: 38 },
     techniques: ['tatsumaki-senpuu'],
     signature: ['tatsumaki-senpuu', 'hawk-shot', 'perfect-tower', 'ribbon-shower'],
   },
   {
-    id: 'hamilton-reith', name: 'Hamilton Reith', team: 'big-waves', position: 'DEL', element: 'bosque', rarity: 3,
-    stats: { tiro: 84, control: 65, fisico: 38, defensa: 22, velocidad: 44, aguante: 32 },
+    id: 'hamilton-reith', name: 'Hamilton Reith', team: 'big-waves', position: 'DEL', element: 'bosque', rarity: 2,
+    stats: { tiro: 70, control: 55, fisico: 32, defensa: 19, velocidad: 37, aguante: 27 },
     techniques: ['hyakuretsu-shot'],
     signature: ['hyakuretsu-shot', 'zanzou', 'killer-slide', 'double-tornado'],
   },
@@ -1821,8 +1685,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['killer-blade', 'dual-smash', 'shoot-pocket', 'wormhole'],
   },
   {
-    id: 'summer', name: 'Summer', team: 'big-waves', position: 'MED', element: 'fuego', rarity: 2,
-    stats: { tiro: 34, control: 62, fisico: 31, defensa: 35, velocidad: 38, aguante: 33 },
+    id: 'summer', name: 'Summer', team: 'big-waves', position: 'MED', element: 'fuego', rarity: 1,
+    stats: { tiro: 28, control: 52, fisico: 26, defensa: 29, velocidad: 32, aguante: 28 },
     techniques: ['heat-tackle'],
     signature: ['heat-tackle', 'twin-boost', 'planet-shield', 'fuusen-gum'],
   },
@@ -1838,21 +1702,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 33, control: 54, fisico: 63, defensa: 114, velocidad: 51, aguante: 70 },
     techniques: ['nekketsu-punch', 'full-power-shield'],
     signature: ['nekketsu-punch', 'full-power-shield', 'kaenhousha', 'nekketsu-head'],
-    spirit: 'pegaso',
   },
   {
     id: 'faraz-farooq', name: 'Faraz Farooq', team: 'desert-lion', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 27, control: 46, fisico: 83, defensa: 91, velocidad: 40, aguante: 50 },
     techniques: ['onryou', 'koutei-penguin-1gou'],
     signature: ['onryou', 'koutei-penguin-1gou', 'noroi', 'kumo-no-ito'],
-    spirit: 'ent',
   },
   {
     id: 'bilal-kalil', name: 'Bilal Kalil', team: 'desert-lion', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 31, control: 43, fisico: 82, defensa: 85, velocidad: 35, aguante: 47 },
     techniques: ['fake-ball', 'wyvern-crash'],
     signature: ['fake-ball', 'wyvern-crash', 'maboroshi-dribble', 'sigma-zone'],
-    spirit: 'ent',
   },
   {
     id: 'jamila-wali', name: 'Jamila Wali', team: 'desert-lion', position: 'DEF', element: 'montana', rarity: 3,
@@ -1926,21 +1787,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 55, control: 98, fisico: 48, defensa: 60, velocidad: 68, aguante: 43 },
     techniques: ['god-knows', 'dual-pass'],
     signature: ['god-knows', 'dual-pass', 'killer-slide', 'heaven-s-time'],
-    spirit: 'ent',
   },
   {
     id: 'jeongsu-cho', name: 'Jeongsu Cho', team: 'fire-dragon', position: 'POR', element: 'bosque', rarity: 4,
     stats: { tiro: 32, control: 44, fisico: 60, defensa: 95, velocidad: 44, aguante: 59 },
     techniques: ['killer-blade', 'dual-smash'],
     signature: ['killer-blade', 'dual-smash', 'shoot-pocket', 'wormhole'],
-    spirit: 'ent',
   },
   {
     id: 'umi-hwang', name: 'Umi Hwang', team: 'fire-dragon', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 26, control: 50, fisico: 78, defensa: 93, velocidad: 38, aguante: 47 },
     techniques: ['coil-turn', 'spiral-shot'],
     signature: ['coil-turn', 'spiral-shot', 'aikidou', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'dooyoon-hong', name: 'Dooyoon Hong', team: 'fire-dragon', position: 'DEF', element: 'aire', rarity: 3,
@@ -2014,21 +1872,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 33, control: 46, fisico: 63, defensa: 109, velocidad: 51, aguante: 68 },
     techniques: ['rocket-kobushi', 'double-rocket'],
     signature: ['rocket-kobushi', 'double-rocket', 'beast-fang', 'god-hand-triple'],
-    spirit: 'pegaso',
   },
   {
     id: 'thiago-torres', name: 'Thiago Torres', team: 'the-empire', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 26, control: 50, fisico: 83, defensa: 92, velocidad: 38, aguante: 42 },
     techniques: ['fake-bomber', 'honoo-no-kazamidori'],
     signature: ['fake-bomber', 'honoo-no-kazamidori', 'armadillo-circus', 'flame-dance'],
-    spirit: 'pegaso',
   },
   {
     id: 'julio-acosta', name: 'Julio Acosta', team: 'the-empire', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 29, control: 49, fisico: 80, defensa: 90, velocidad: 44, aguante: 45 },
     techniques: ['fake-ball', 'bunshin-shoot'],
     signature: ['fake-ball', 'bunshin-shoot', 'tatsumaki-dokugiri', 'sigma-zone'],
-    spirit: 'ent',
   },
   {
     id: 'grande-diaz', name: 'Grande Díaz', team: 'the-empire', position: 'DEF', element: 'bosque', rarity: 3,
@@ -2096,21 +1951,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 34, control: 46, fisico: 66, defensa: 116, velocidad: 52, aguante: 68 },
     techniques: ['rocket-kobushi', 'double-rocket'],
     signature: ['rocket-kobushi', 'double-rocket', 'kaenhousha', 'god-hand-triple'],
-    spirit: 'pegaso',
   },
   {
     id: 'david-buckingham', name: 'David Buckingham', team: 'knights-of-queen', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 26, control: 50, fisico: 80, defensa: 87, velocidad: 41, aguante: 45 },
     techniques: ['ushiro-no-shoumen', 'megane-crash'],
     signature: ['ushiro-no-shoumen', 'megane-crash', 'gorimuchuu', 'body-shield'],
-    spirit: 'majin',
   },
   {
     id: 'lance-rawton', name: 'Lance Rawton', team: 'knights-of-queen', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 30, control: 48, fisico: 80, defensa: 91, velocidad: 37, aguante: 46 },
     techniques: ['cyclone', 'inazuma-otoshi'],
     signature: ['cyclone', 'inazuma-otoshi', 'moonsault', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'edge-ripper', name: 'Edge Ripper', team: 'knights-of-queen', position: 'DEF', element: 'bosque', rarity: 3,
@@ -2137,14 +1989,20 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['heat-tackle', 'triangle-z', 'planet-shield', 'reppuu-dash'],
   },
   {
+    id: 'edgar-partinus', name: 'Edgar Partinus', team: 'knights-of-queen', position: 'DEL', element: 'aire', rarity: 3,
+    stats: { tiro: 90, control: 62, fisico: 42, defensa: 23, velocidad: 50, aguante: 26 },
+    techniques: ['back-tornado'],
+    signature: ['back-tornado', 'water-veil', 'hurricane-arrow', 'inazuma-break'],
+  },
+  {
     id: 'phillip-owen', name: 'Phillip Owen', team: 'knights-of-queen', position: 'DEL', element: 'montana', rarity: 3,
     stats: { tiro: 89, control: 57, fisico: 38, defensa: 22, velocidad: 46, aguante: 32 },
     techniques: ['rainbow-loop'],
     signature: ['rainbow-loop', 'monkey-turn', 'mega-wall', 'megaton-head'],
   },
   {
-    id: 'servilius-jeeves', name: 'Servilius Jeeves', team: 'knights-of-queen', position: 'POR', element: 'montana', rarity: 3,
-    stats: { tiro: 26, control: 39, fisico: 53, defensa: 83, velocidad: 35, aguante: 54 },
+    id: 'servilius-jeeves', name: 'Servilius Jeeves', team: 'knights-of-queen', position: 'POR', element: 'montana', rarity: 2,
+    stats: { tiro: 22, control: 33, fisico: 46, defensa: 69, velocidad: 29, aguante: 46 },
     techniques: ['makiwari-chop'],
     signature: ['makiwari-chop', 'dokonjou-catch', 'triple-defense', 'majin-the-hand'],
   },
@@ -2161,8 +2019,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['cross-drive', 'oouchiwa', 'perfect-tower', 'northern-impact'],
   },
   {
-    id: 'mikey', name: 'Mikey', team: 'knights-of-queen', position: 'MED', element: 'bosque', rarity: 2,
-    stats: { tiro: 38, control: 65, fisico: 32, defensa: 36, velocidad: 43, aguante: 25 },
+    id: 'mikey', name: 'Mikey', team: 'knights-of-queen', position: 'MED', element: 'bosque', rarity: 1,
+    stats: { tiro: 32, control: 54, fisico: 27, defensa: 30, velocidad: 36, aguante: 20 },
     techniques: ['super-scan-of'],
     signature: ['super-scan-of', 'dual-strike', 'doppelganger', 'dual-pass'],
   },
@@ -2178,21 +2036,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 38, control: 46, fisico: 60, defensa: 109, velocidad: 49, aguante: 66 },
     techniques: ['yugamu-kuukan', 'slash-nail'],
     signature: ['yugamu-kuukan', 'slash-nail', 'shoot-pocket', 'bunshin-block'],
-    spirit: 'ent',
   },
   {
     id: 'ted-bryant', name: 'Ted Bryant', team: 'unicorn', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 33, control: 46, fisico: 84, defensa: 87, velocidad: 38, aguante: 47 },
     techniques: ['shikofumi', 'eagle-buster'],
     signature: ['shikofumi', 'eagle-buster', 'ninin-sankyaku', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'tony-strider', name: 'Tony Strider', team: 'unicorn', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 33, control: 46, fisico: 77, defensa: 87, velocidad: 40, aguante: 46 },
     techniques: ['fake-bomber', 'honoo-no-kazamidori'],
     signature: ['fake-bomber', 'honoo-no-kazamidori', 'hitori-one-two', 'super-shikofumi'],
-    spirit: 'pegaso',
   },
   {
     id: 'drake-dynamo', name: 'Drake Dynamo', team: 'unicorn', position: 'DEF', element: 'aire', rarity: 3,
@@ -2266,21 +2121,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 30, control: 46, fisico: 68, defensa: 111, velocidad: 51, aguante: 71 },
     techniques: ['tsumuji', 'kogarashi'],
     signature: ['tsumuji', 'kogarashi', 'ice-block', 'hanafubuki'],
-    spirit: 'kraken',
   },
   {
     id: 'vento-galliano', name: 'Vento Galliano', team: 'orpheus', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 35, control: 44, fisico: 83, defensa: 86, velocidad: 36, aguante: 47 },
     techniques: ['blade-attack', 'spiral-shot'],
     signature: ['blade-attack', 'spiral-shot', 'moonsault', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'otto-nobili', name: 'Otto Nobili', team: 'orpheus', position: 'DEF', element: 'bosque', rarity: 4,
     stats: { tiro: 35, control: 44, fisico: 81, defensa: 86, velocidad: 44, aguante: 47 },
     techniques: ['onryou', 'bunshin-shoot'],
     signature: ['onryou', 'bunshin-shoot', 'noroi', 'asteroid-belt'],
-    spirit: 'ent',
   },
   {
     id: 'anton-graziuso', name: 'Anton Graziuso', team: 'orpheus', position: 'DEF', element: 'fuego', rarity: 3,
@@ -2354,21 +2206,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 34, control: 50, fisico: 66, defensa: 111, velocidad: 54, aguante: 67 },
     techniques: ['toughness-block', 'mugen-no-kabe'],
     signature: ['toughness-block', 'mugen-no-kabe', 'gigant-wall', 'god-catch'],
-    spirit: 'majin',
   },
   {
     id: 'zephyr-vitesse', name: 'Zephyr Vitesse', team: 'little-gigant', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 33, control: 50, fisico: 82, defensa: 87, velocidad: 44, aguante: 47 },
     techniques: ['cyclone', 'condor-dive'],
     signature: ['cyclone', 'condor-dive', 'tamanori-pierrot', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'walter', name: 'Walter', team: 'little-gigant', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 34, control: 49, fisico: 77, defensa: 90, velocidad: 44, aguante: 43 },
     techniques: ['ushiro-no-shoumen', 'eagle-buster'],
     signature: ['ushiro-no-shoumen', 'eagle-buster', 'ninin-sankyaku', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'jimi-gaines', name: 'Jimi Gaines', team: 'little-gigant', position: 'DEF', element: 'bosque', rarity: 3,
@@ -2442,21 +2291,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 31, control: 49, fisico: 77, defensa: 93, velocidad: 38, aguante: 42 },
     techniques: ['shippuu-dash', 'quick-draw'],
     signature: ['shippuu-dash', 'quick-draw', 'triple-boost', 'zigzag-spark'],
-    spirit: 'kraken',
   },
   {
     id: 'harry-caine', name: 'Harry Caine', team: 'windies', position: 'POR', element: 'aire', rarity: 4,
     stats: { tiro: 29, control: 44, fisico: 54, defensa: 98, velocidad: 45, aguante: 61 },
     techniques: ['tornado-catch', 'kogarashi'],
     signature: ['tornado-catch', 'kogarashi', 'swan-dive', 'hanafubuki'],
-    spirit: 'kraken',
   },
   {
     id: 'florence-tripps', name: 'Florence Tripps', team: 'windies', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 34, control: 49, fisico: 79, defensa: 87, velocidad: 38, aguante: 45 },
     techniques: ['coil-turn', 'inazuma-1gou'],
     signature: ['coil-turn', 'inazuma-1gou', 'moonsault', 'the-tower'],
-    spirit: 'kraken',
   },
   {
     id: 'chloe-glazier', name: 'Chloe Glazier', team: 'windies', position: 'DEF', element: 'aire', rarity: 3,
@@ -2501,14 +2347,20 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['back-tornado', 'dokugiri-no-jutsu', 'perfect-tower', 'wolf-legend'],
   },
   {
+    id: 'zeke-valanche-2', name: 'Zeke Valanche', team: 'windies', position: 'DEL', element: 'fuego', rarity: 2,
+    stats: { tiro: 74, control: 49, fisico: 32, defensa: 18, velocidad: 40, aguante: 25 },
+    techniques: ['abisegeri'],
+    signature: ['abisegeri', 'meteor-shower', 'planet-shield', 'neo-galaxy'],
+  },
+  {
     id: 'gene-whalon-2', name: 'Gene Whalon', team: 'windies', position: 'POR', element: 'aire', rarity: 2,
     stats: { tiro: 26, control: 33, fisico: 41, defensa: 76, velocidad: 33, aguante: 46 },
     techniques: ['tornado-catch'],
     signature: ['tornado-catch', 'procyon-net', 'safety-protect', 'ijigen-the-hand'],
   },
   {
-    id: 'drack-dragon-gorn', name: 'Drack "Dragon" Gorn', team: 'windies', position: 'DEF', element: 'aire', rarity: 2,
-    stats: { tiro: 25, control: 31, fisico: 58, defensa: 67, velocidad: 29, aguante: 38 },
+    id: 'drack-dragon-gorn', name: 'Drack "Dragon" Gorn', team: 'windies', position: 'DEF', element: 'aire', rarity: 1,
+    stats: { tiro: 22, control: 25, fisico: 48, defensa: 56, velocidad: 24, aguante: 32 },
     techniques: ['coil-turn'],
     signature: ['coil-turn', 'condor-dive', 'tamanori-pierrot', 'the-tower'],
   },
@@ -2524,21 +2376,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 39, control: 56, fisico: 90, defensa: 105, velocidad: 44, aguante: 53 },
     techniques: ['super-scan-df', 'bunshin-shoot'],
     signature: ['super-scan-df', 'bunshin-shoot', 'maboroshi-dribble', 'good-smell'],
-    spirit: 'ent',
   },
   {
     id: 'mitzi-mittens-holly', name: 'Mitzi "Mittens" Holly', team: 'extra-stars', position: 'DEF', element: 'fuego', rarity: 4,
     stats: { tiro: 32, control: 44, fisico: 82, defensa: 89, velocidad: 44, aguante: 51 },
     techniques: ['fake-bomber', 'triangle-z'],
     signature: ['fake-bomber', 'triangle-z', 'armadillo-circus', 'photon-flash'],
-    spirit: 'pegaso',
   },
   {
     id: 'bluster-tryadd', name: 'Bluster Tryadd', team: 'extra-stars', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 31, control: 47, fisico: 82, defensa: 93, velocidad: 37, aguante: 50 },
     techniques: ['coil-turn', 'inazuma-1gou'],
     signature: ['coil-turn', 'inazuma-1gou', 'tamanori-pierrot', 'ice-ground'],
-    spirit: 'kraken',
   },
   {
     id: 'francie-holly', name: 'Francie Holly', team: 'extra-stars', position: 'MED', element: 'aire', rarity: 3,
@@ -2612,21 +2461,18 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 33, control: 50, fisico: 68, defensa: 116, velocidad: 51, aguante: 67 },
     techniques: ['pressure-punch', 'double-rocket'],
     signature: ['pressure-punch', 'double-rocket', 'burnout', 'power-shield'],
-    spirit: 'pegaso',
   },
   {
     id: 'trey-prongs', name: 'Trey Prongs', team: 'kage-no-hero', position: 'DEF', element: 'aire', rarity: 4,
     stats: { tiro: 33, control: 50, fisico: 80, defensa: 87, velocidad: 36, aguante: 51 },
     techniques: ['cyclone', 'revolution-v'],
     signature: ['cyclone', 'revolution-v', 'aikidou', 'senpuujin'],
-    spirit: 'kraken',
   },
   {
     id: 'amelio-amethyst-thyst', name: 'Amelio "Amethyst" Thyst', team: 'kage-no-hero', position: 'DEF', element: 'montana', rarity: 4,
     stats: { tiro: 35, control: 46, fisico: 82, defensa: 93, velocidad: 40, aguante: 44 },
     techniques: ['ushiro-no-shoumen', 'megane-crash'],
     signature: ['ushiro-no-shoumen', 'megane-crash', 'mogura-feint', 'no-escape'],
-    spirit: 'majin',
   },
   {
     id: 'esme-hexe', name: 'Esme Hexe', team: 'kage-no-hero', position: 'MED', element: 'bosque', rarity: 3,
@@ -2699,12 +2545,11 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },
     techniques: ['lightning-accel', 'atomic-flare'],
     signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],
-    spirit: 'pegaso',
   },
 ]
 
 /** Institutos del torneo; el resto de equipos son SOLO fichables. */
-const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])
+const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])
 
 /** Equipos extra (temporada 2 y Alius): su gente entra por el ojeador. */
 export const EXTRA_TEAMS: string[] = [...new Set(PLAYERS.map((p) => p.team))].filter((t) => !BRACKET_TEAMS.has(t))
@@ -2738,6 +2583,7 @@ const LEGACY_IDS: Record<string, string> = {
   hellion: 'leonard-o-shea',
   'hellion-2': 'leonard-o-shea-2',
   scuba: 'chad-taylor',
+  'bobby-shearer': 'mac-robingo',
 }
 
 export function getPlayerBase(id: string): PlayerBase {
@@ -2763,14 +2609,18 @@ export function formationFor(teamId: string): string {
 }
 
 /**
- * Convocatorias que el CANON deja cortas de 14. El Genesis alinea 11 en todos
- * los juegos, así que su banquillo se completa con compañeros del propio
- * Instituto Alius, elegidos a dedo (nada de azar): Desarm llegó a jugar de
- * portero EN el Genesis en el anime, y Burn y Gazel son los capitanes de
- * Prominence y Diamond Dust.
+ * Convocatorias que el CANON deja cortas de 14 (o sin portero). Se completan
+ * con jugadores de equipos hermanos — los Alius entre ellos — para que
+ * cualquier instituto se pueda jugar con un once y un banquillo de verdad.
  */
 const SQUAD_FILL: Record<string, string[]> = {
-  genesis: ['dave-quagmire', 'claude-beacons', 'bryce-whitingale'],
+  kfc: ['darren-lachance-2', 'alan-coe'],
+  'gemini-storm': ['ben-north-2', 'brenda-firequest-2', 'claude-beacons-2'],
+  epsilon: ['ben-north-2', 'brenda-firequest-2', 'claude-beacons-2'],
+  'diamond-dust': ['ben-north-2', 'brenda-firequest-2', 'claude-beacons'],
+  prominence: ['ben-north-2', 'brenda-firequest-2', 'bryce-whitingale'],
+  genesis: ['ben-north-2', 'brenda-firequest-2', 'bryce-whitingale'],
+  'the-empire': ['alan-coe'],
 }
 
 /**
@@ -2786,8 +2636,14 @@ export function startingSquad(teamId: string, formationId?: string): string[] {
     own.filter((p) => p.position === pos).slice(0, n).map((p) => p.id)
   const picked = [...line('POR', 1), ...line('DEF', f.defs), ...line('MED', f.mids), ...line('DEL', f.fwds)]
   const bench = own.filter((p) => !picked.includes(p.id)).map((p) => p.id)
-  const fill = (SQUAD_FILL[teamId] ?? []).slice(0, Math.max(0, 14 - picked.length - bench.length))
-  return [...picked, ...bench, ...fill]
+  const extra = SQUAD_FILL[teamId] ?? []
+  // Si el equipo no tiene portero propio, el prestado entra en el ONCE.
+  const borrowedKeeper = picked.length && own.some((p) => p.position === 'POR')
+    ? []
+    : extra.filter((id) => PLAYER_BY_ID.get(id)?.position === 'POR').slice(0, 1)
+  const rest = extra.filter((id) => !borrowedKeeper.includes(id))
+  const fill = rest.slice(0, Math.max(0, 14 - picked.length - bench.length - borrowedKeeper.length))
+  return [...borrowedKeeper, ...picked, ...bench, ...fill]
 }
 
 /** Once inicial del Raimon (compatibilidad). */

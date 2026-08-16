@@ -10,12 +10,12 @@ import { actorByUid, advance, chooseOption, playerScore } from './match'
 import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
-import { getPlayerBase } from '@/data/inazuma/players'
+import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import { getTeam, PLAYABLE_TEAMS, SAGAS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
   autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
-  learnSignature, recordMatchStats, signatureNext, SPIRIT_AWAKEN_LEVEL, startMatch, startPachanga,
+  learnSignature, recordMatchStats, signatureNext, startMatch, startPachanga,
 } from './game'
 import { EVENTS, getEvent } from '@/data/inazuma/events'
 import { availableCombos } from '@/data/inazuma/combos'
@@ -54,6 +54,31 @@ describe('plantilla', () => {
       // (11 titulares + banquillo), nunca menos de un once legal.
       expect(save.roster.length, teamId).toBeGreaterThanOrEqual(11)
       expect(lineupError(save.roster, save.lineup, save.formation), teamId).toBeNull()
+    }
+  })
+
+  it('CADA equipo sale con 14 convocados y con portero', () => {
+    // Al canon se le quedan equipos con 11 (los Alius) y hasta alguno sin
+    // guantes: `SQUAD_FILL` los completa, y ningún instituto puede saltar al
+    // campo sin portero.
+    for (const teamId of [...new Set(PLAYERS.map((p) => p.team))]) {
+      if (teamId === 'libre') continue
+      const squad = startingSquad(teamId)
+      expect(squad.length, teamId).toBe(14)
+      expect(squad.filter((id) => getPlayerBase(id).position === 'POR').length, teamId)
+        .toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('el ojeador NUNCA ofrece a alguien que ya tienes (ni con otro id)', () => {
+    // El mismo chaval está en varias plantillas del catálogo (selección,
+    // Chaos…), así que se descarta por NOMBRE: filtrando por id te lo volvían
+    // a ofrecer con el id de su otro equipo.
+    const save = createSave(7)
+    const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
+    for (const p of availableSignings(save)) expect(owned.has(p.name)).toBe(false)
+    for (const o of buildScoutOffer(save, new RNG(3))) {
+      if (o.kind === 'fichaje') expect(owned.has(getPlayerBase(o.playerId).name)).toBe(false)
     }
   })
 
@@ -117,6 +142,49 @@ function playMatch(save: InazumaSave, node: TournamentNode): MatchState {
 }
 
 describe('partido', () => {
+  it('el TIRO LEJANO se salta la penetración y paga la distancia', () => {
+    // Se busca una decisión de ataque al borde del área y se comprueba que la
+    // opción existe, que sus estrellas YA llevan el malus (nunca mejores que
+    // las del mismo disparo desde dentro) y que al elegirla el duelo pasa a
+    // ser contra el PORTERO.
+    let checked = false
+    for (let seed = 0; seed < 40 && !checked; seed++) {
+      const save = createSave(seed)
+      const setup = startMatch(save, firstBoss(save))
+      if ('error' in setup) throw new Error(setup.error)
+      const m = setup.match
+      const rng = new RNG(seed)
+      for (let i = 0; i < 400 && m.phase !== 'finished'; i++) {
+        if (m.phase === 'decision') {
+          const d = m.decision!
+          const long = d.options.find((o) => o.id === 'longshot')
+          if (long && d.step === 'penetracion' && d.mode === 'ataque') {
+            expect(long.chance).toBeGreaterThan(0)
+            expect(long.chance).toBeLessThanOrEqual(1)
+            chooseOption(m, rng, 'longshot')
+            // La jugada saltó al mano a mano: o se resolvió el disparo, o la
+            // siguiente decisión ya es contra el portero.
+            expect(m.chain?.step === 'definicion' || m.chain == null).toBe(true)
+            checked = true
+            break
+          }
+          chooseOption(m, rng, d.options[0].id)
+        } else {
+          advance(m, rng)
+        }
+      }
+    }
+    expect(checked, 'ninguna decisión ofreció Tiro lejano en 40 partidos').toBe(true)
+  })
+
+  it('una técnica MEJORADA se anuncia con su versión (V2)', () => {
+    const p = createPlayer('mark-evans', 30, { rarity: 4 })
+    const techId = p.techniques[0]
+    if (!techId) return
+    const actor = { ...p, techLevels: { [techId]: 1 } } as unknown as Parameters<typeof actorTechnique>[0]
+    expect(actorTechnique(actor, techId)?.name).toMatch(/ V2$/)
+  })
+
   it('termina siempre y nunca en tablas: prórroga y penaltis si hace falta', () => {
     let extraTimes = 0
     let shootouts = 0
@@ -1016,28 +1084,6 @@ describe('coherencia', () => {
     })
     // Y un fichaje que LLEGA a nivel alto trae lo suyo despierto.
     expect(createPlayer('axel-blaze', 30, { rarity: 4 }).techniques).toContain('fire-tornado')
-  })
-
-  it('el Espíritu Guerrero pide nivel Y rareza multicolor', () => {
-    const save = createSave(3)
-    save.roster = save.roster.map((p) => ({ ...p, level: 10, rarity: 4 }))
-    const low = startMatch(save, firstBoss(save))
-    if ('error' in low) throw new Error(low.error)
-    const mineLow = low.match.home
-    expect([mineLow.keeper, ...mineLow.defs, ...mineLow.mids, ...mineLow.fwds].every((a) => !a.spirit)).toBe(true)
-
-    // Nivel sin rareza: tampoco.
-    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL, rarity: 1 }))
-    const mid = startMatch(save, firstBoss(save))
-    if ('error' in mid) throw new Error(mid.error)
-    const mineMid = mid.match.home
-    expect([mineMid.keeper, ...mineMid.defs, ...mineMid.mids, ...mineMid.fwds].every((a) => !a.spirit)).toBe(true)
-
-    save.roster = save.roster.map((p) => ({ ...p, level: SPIRIT_AWAKEN_LEVEL, rarity: 4 }))
-    const high = startMatch(save, firstBoss(save))
-    if ('error' in high) throw new Error(high.error)
-    const mineHigh = high.match.home
-    expect([mineHigh.keeper, ...mineHigh.defs, ...mineHigh.mids, ...mineHigh.fwds].some((a) => a.spirit)).toBe(true)
   })
 
   it('las combinadas se GANAN: hace falta despertar la técnica y tener al socio', () => {

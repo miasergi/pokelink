@@ -38,8 +38,7 @@ export function nextPlayerUid(): string {
 // cualquier jugador puede llegar al máximo — y manda sobre las tres cosas:
 //  · sus ATRIBUTOS (presupuesto por rareza, con la forma de su demarcación y
 //    un ruido determinista por identidad: dos oros no son clones),
-//  · cuántos pasos de su CADENA puede despertar (1/2/3/4),
-//  · y el ESPÍRITU GUERRERO, exclusivo del multicolor.
+//  · y cuántos pasos de su CADENA puede despertar (1/2/3/4).
 // Los atributos ya NO salen de `base.stats`: así un Willy Glass multicolor es
 // de verdad de lo más top, que es el punto de poder subir a cualquiera.
 // ---------------------------------------------------------------------------
@@ -474,11 +473,6 @@ export function rivalStartingXI(teamId: string): PlayerBase[] {
   const picked = [...line('POR', 1), ...line('DEF', 4), ...line('MED', 4), ...line('DEL', 2)]
   if (picked.length < 11) picked.push(...own.filter((p) => !picked.includes(p)).slice(0, 11 - picked.length))
   return picked.slice(0, 11)
-}
-
-/** Espíritu del jugador base, para pasarlo al partido. */
-export function spiritOf(baseId: string): string | undefined {
-  return getPlayerBase(baseId).spirit
 }
 
 /**

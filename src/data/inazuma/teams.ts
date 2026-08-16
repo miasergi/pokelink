@@ -45,14 +45,6 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    // LEGACY: «Wild» resultó ser el mismo Nose que Farm (redirect de la wiki).
-    // Se conserva para que los saves viejos no revienten, pero ya no entra en
-    // ningún cuadro (no está en `SAGAS`).
-    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', kit: ['#d97706', '#78350f'], element: 'montana', power: 0.84,
-    taunt: 'Aquí no se juega al fútbol. Aquí se sobrevive.',
-    lineup: [],
-  },
-  {
     id: 'mikage', name: 'Instituto Brain', color: '#14b8a6', element: 'bosque', power: 0.84,
     taunt: 'Vuestras jugadas están calculadas antes de que las penséis.',
     lineup: [],
@@ -236,7 +228,7 @@ export const SAGAS: Saga[] = [
     desc: 'La segunda temporada: la caravana Raimon contra los equipos alienígenas.',
     teams: ['raimon', 'yokato', 'oumihara', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis'],
     playable: ['raimon', 'genesis'],
-    scoutTeams: ['occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero'],
+    scoutTeams: ['occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero'],
   },
   {
     id: 'ffi',

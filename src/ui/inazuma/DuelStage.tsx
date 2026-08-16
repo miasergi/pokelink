@@ -50,10 +50,20 @@ export interface StageData {
 const idOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 const BY_NAME = new Map(TECHNIQUES.map((t) => [t.name.toLowerCase(), t.id]))
 
-/** Técnica del catálogo a partir del nombre que traen los eventos del motor. */
+/**
+ * Técnica del catálogo a partir del nombre que traen los eventos del motor.
+ * Los nombres pueden llegar con la VERSIÓN de la Mejora («Mano Celestial V2»):
+ * se recorta para buscar en el catálogo, pero el nombre que se PINTA conserva
+ * la versión (lo compone `withName`).
+ */
 export function techniqueByName(name: string | undefined): Technique | undefined {
   if (!name) return undefined
-  return getTechnique(idOf(name)) ?? (BY_NAME.has(name.toLowerCase()) ? getTechnique(BY_NAME.get(name.toLowerCase())!) : undefined)
+  const clean = name.replace(/\s+V\d+$/, '')
+  const found = getTechnique(idOf(clean))
+    ?? (BY_NAME.has(clean.toLowerCase()) ? getTechnique(BY_NAME.get(clean.toLowerCase())!) : undefined)
+  // Se devuelve con el NOMBRE tal cual vino: si el jugador la lleva mejorada,
+  // la cinemática tiene que cantar «V2».
+  return found && found.name !== name ? { ...found, name } : found
 }
 
 /** Colores de camiseta del equipo del escudo: el REBORDE de la cinemática. */
@@ -62,24 +72,29 @@ function kitOf(crest: string | undefined): [string, string] | undefined {
 }
 
 /**
- * LÍNEA DE TIEMPO por clase de duelo (fases):
- *  0 atacante · 1 defensor + CHOQUE · 2 PROTAGONISTA a pantalla grande (la
- *  técnica en foto gigante, o la acción a pelo, con la foto y el nombre del
- *  que la hace) · y en los TIROS: 3 el BALÓN volando a puerta envuelto en
- *  llamas de su elemento · 4 cinemática de la PARADA del portero con la barra
- *  de suspense cargando ENCIMA · 5 desenlace (sello de paradón, o cierre y
- *  celebración con el balón perforando la red).
- * El regate resuelve en la fase 2 (el protagonista ES el ganador del duelo).
+ * LÍNEA DE TIEMPO por clase de duelo (fases). YA NO HAY CARA A CARA: el «VS»
+ * paraba el partido para contar algo que la propia acción ya cuenta. Lo que
+ * queda es la FOTO GRANDE de lo que se hace:
+ *  · regate/bloqueo: 0 la supertécnica (o la acción) del que gana el duelo,
+ *    con el sello del desenlace.
+ *  · tiro/penalti: 0 la supertécnica del que dispara · 1 VUELO (el escenario
+ *    se aparta y el balón en llamas viaja POR EL CÉSPED) · 2 la parada del
+ *    portero con la barra de suspense · 3 desenlace.
  * Tiempos holgados A PROPÓSITO: el playtest cantó que las técnicas «se
  * esfumaban» antes de poder leerlas.
  */
 const TL = {
-  pase: { defender: 500, end: 1700 },
-  regate: { defender: 600, show: 1600, end: 3900 },
-  tiro: { defender: 650, show: 1600, flight: 3400, keeper: 4550, outcome: 5950, endGoal: 6100, endSave: 7800 },
+  pase: { end: 1200 },
+  regate: { end: 2400 },
+  tiro: { flight: 1900, keeper: 3300, outcome: 4700, endGoal: 4850, endSave: 6300 },
 } as const
 
-export default function DuelStage({ stage, onDone }: { stage: StageData | null; onDone: () => void }) {
+export default function DuelStage({ stage, onDone, onFlight }: {
+  stage: StageData | null
+  onDone: () => void
+  /** Avisa cuando el balón viaja: el CÉSPED lo pinta, no el escenario. */
+  onFlight?: (active: boolean) => void
+}) {
   const [shown, setShown] = useState<StageData | null>(null)
   const [phase, setPhase] = useState(0)
   // `onDone` entra por ref: si estuviera en las deps del efecto, un padre que
@@ -87,6 +102,11 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
   // mitad — el duelo se veía DOS veces. La animación solo depende del duelo.
   const onDoneRef = useRef(onDone)
   onDoneRef.current = onDone
+  const onFlightRef = useRef(onFlight)
+  onFlightRef.current = onFlight
+  // Si el escenario muere a mitad del vuelo (partido saltado), el césped no
+  // se queda con el balón ardiendo para siempre.
+  useEffect(() => () => onFlightRef.current?.(false), [])
 
   useEffect(() => {
     if (!stage) return
@@ -96,18 +116,15 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
     const timers: ReturnType<typeof setTimeout>[] = []
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms))
     if (stage.kind === 'pase') {
-      at(TL.pase.defender, () => setPhase(1))
       at(TL.pase.end, () => { setShown(null); onDoneRef.current() })
     } else if (!shooting) {
-      at(TL.regate.defender, () => setPhase(1))
-      at(TL.regate.show, () => setPhase(2))
       at(TL.regate.end, () => { setShown(null); onDoneRef.current() })
     } else {
-      at(TL.tiro.defender, () => setPhase(1))
-      at(TL.tiro.show, () => setPhase(2))
-      at(TL.tiro.flight, () => setPhase(3))
-      at(TL.tiro.keeper, () => setPhase(4))
-      at(TL.tiro.outcome, () => setPhase(5))
+      // El VUELO se avisa fuera: el césped pinta el balón en llamas mientras
+      // el escenario se quita de en medio.
+      at(TL.tiro.flight, () => { setPhase(1); onFlightRef.current?.(true) })
+      at(TL.tiro.keeper, () => { setPhase(2); onFlightRef.current?.(false) })
+      at(TL.tiro.outcome, () => setPhase(3))
       // El GOL no se cuenta aquí: el escenario cierra y la celebración (con la
       // red perforada) toma el relevo. La parada sí: sello sobre el paradón.
       at(stage.attackerWins ? TL.tiro.endGoal : TL.tiro.endSave, () => { setShown(null); onDoneRef.current() })
@@ -133,15 +150,15 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
   const winnerMine = shown.attackerWins ? shown.attackerMine : !shown.attackerMine
   const resultColor = winnerMine ? '#22c55e' : '#f43f5e'
 
-  // Las LLAMAS del balón: el elemento de la técnica de tiro, o el del tirador.
-  const shotElement: Element | undefined = atkTech?.element ?? shown.element
-  const flameColor = shotElement ? ELEMENT_INFO[shotElement].color : kindBanner.color
-
   // El PROTAGONISTA de la fase 2: en el regate, el GANADOR del duelo con lo
   // que hizo; en el tiro, el que dispara (el desenlace aún no se sabe).
   const star = shooting || shown.attackerWins
     ? { side: shown.attacker, tech: atkTech, crest: shown.attackerCrest, action: shooting ? '¡DISPARO!' : '¡REGATE!' }
     : { side: shown.defender, tech: defTech, crest: shown.defenderCrest, action: shown.kind === 'regate' ? '¡ENTRADA!' : '¡BLOQUEO!' }
+
+  // Durante el VUELO el escenario DESAPARECE: el balón en llamas lo pinta el
+  // césped, y taparlo con un velo negro sería contarlo dos veces.
+  if (shooting && phase === 1) return <div key={shown.key} />
 
   return (
     <div key={shown.key} className="absolute inset-0 z-[60] pointer-events-none">
@@ -160,9 +177,9 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
       {/* ESCENOGRAFÍA DE PENALTI: la portería de frente con su red, el punto
           de penalti y la tanda en grande — que se sienta la ceremonia, no un
           lance más del juego. */}
-      {shown.kind === 'penalti' && phase !== 3 && (
+      {shown.kind === 'penalti' && (
         <div className="absolute inset-0 animate-fade-in pointer-events-none">
-          <GoalNet className="absolute inset-x-0 top-[6%] mx-auto w-[86%] opacity-45" />
+          <GoalNet className="absolute inset-x-0 top-[6%] mx-auto w-[86%] opacity-40" />
           {shown.shootoutScore && (
             <div className="absolute top-[4%] left-1/2 -translate-x-1/2 px-4 py-1 rounded-2xl border-2 border-amber-400/80 bg-slate-950/90 text-2xl font-black tabular-nums text-amber-200 shadow-lg">
               {shown.shootoutScore[0]} – {shown.shootoutScore[1]}
@@ -171,50 +188,22 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
         </div>
       )}
 
-      {/* FASES 0-1: el cara a cara (queda de fondo cuando entra el grande). */}
-      <div className={`absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 transition-opacity duration-300 ${phase >= 2 ? 'opacity-15' : ''}`}>
+      {/* El RÓTULO de la clase de lance, arriba: dice de qué va esto sin
+          robarle la pantalla a la foto grande. */}
+      <div className="absolute inset-x-0 top-3 flex justify-center">
         <div
           className="rounded-full border-2 px-4 py-1 text-[12px] font-black uppercase tracking-widest animate-pop-in"
           style={{ color: kindBanner.color, borderColor: kindBanner.color, background: 'rgba(2,6,23,.85)' }}
         >
           {kindBanner.text}
         </div>
-        <Fighter
-          side={shown.attacker}
-          tech={atkTech}
-          label={shown.kind === 'pase' ? 'pasa' : shown.kind === 'regate' ? 'ataca' : 'dispara'}
-          crest={shown.attackerCrest}
-          plain={shown.kind === 'pase'}
-        />
-
-        {/* VS y el defensor entran DESPUÉS: el orden cuenta la jugada. En el
-            pase no hay «contra»: el segundo es el COMPAÑERO que recibe. */}
-        {phase >= 1 && (
-          <>
-            <div className="relative text-xl font-black text-white/70 animate-pop-in leading-none">
-              {shown.kind === 'pase' ? '→' : 'VS'}
-              {/* El CHOQUE: un fogonazo cuando las dos propuestas se cruzan. */}
-              {shown.kind !== 'pase' && (
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full animate-clash-pop"
-                  style={{ background: `radial-gradient(circle, #ffffffcc, ${kindBanner.color}55 55%, transparent 70%)` }} />
-              )}
-            </div>
-            <Fighter
-              side={shown.defender}
-              tech={defTech}
-              label={shown.kind === 'pase' ? 'recibe' : shown.kind === 'regate' ? 'defiende' : 'bajo palos'}
-              crest={shown.defenderCrest}
-              plain={shown.kind === 'pase'}
-              right
-            />
-          </>
-        )}
       </div>
 
-      {/* FASE 2: el PROTAGONISTA a pantalla grande — su técnica en foto
-          gigante (o la acción a pelo) con SU retrato, el reborde con los
-          colores de SU equipo y el nombre DENTRO de la imagen. */}
-      {phase === 2 && shown.kind !== 'pase' && (
+      {/* FASE 0: la SUPERTÉCNICA (o la acción) a pantalla grande, con el
+          retrato del que la hace, el reborde con los colores de SU equipo y
+          el nombre DENTRO de la imagen. En los regates y bloqueos, además, el
+          sello del desenlace: es todo lo que dura el lance. */}
+      {phase === 0 && shown.kind !== 'pase' && (
         <Showcase
           side={star.side}
           tech={star.tech}
@@ -228,34 +217,12 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
           } : undefined}
         />
       )}
-      {/* El regate mantiene su desenlace en pantalla hasta el cierre. */}
-      {phase > 2 && !shooting && shown.kind !== 'pase' && (
-        <Showcase
-          side={star.side}
-          tech={star.tech}
-          crest={star.crest}
-          fallbackAction={star.action}
-          color={kindBanner.color}
-          stamp={{
-            text: shown.attackerWins ? '¡SE ESCAPA!' : '¡BALÓN ROBADO!',
-            color: resultColor,
-            crest: shown.attackerWins ? shown.attackerCrest : shown.defenderCrest,
-          }}
-        />
-      )}
 
-      {/* FASE 3 (tiros): EL BALÓN VUELA A PUERTA envuelto en llamas del color
-          del elemento del disparo. El disparo ya se ha visto; la parada aún
-          no: este es el viaje entre las dos. */}
-      {shooting && phase === 3 && (
-        <BallFlight color={flameColor} shooter={shown.attacker.name} />
-      )}
-
-      {/* FASES 4-5 (tiros): la cinemática de LA PARADA — el portero con su
+      {/* FASES 2-3 (tiros): la cinemática de LA PARADA — el portero con su
           técnica en grande — y la barra de suspense cargando ENCIMA mientras
           tanto. El desenlace cae sobre ella: sello de paradón, o cierre (la
           red la perfora la celebración de gol). */}
-      {shooting && phase >= 4 && (
+      {shooting && phase >= 2 && (
         <>
           <Showcase
             side={shown.defender}
@@ -263,11 +230,11 @@ export default function DuelStage({ stage, onDone }: { stage: StageData | null; 
             crest={shown.defenderCrest}
             fallbackAction="¡PARADA!"
             color="#22c55e"
-            stamp={phase >= 5 && !shown.attackerWins
+            stamp={phase >= 3 && !shown.attackerWins
               ? { text: '¡PARADÓN!', color: resultColor, crest: shown.defenderCrest }
               : undefined}
           />
-          {phase === 4 && (
+          {phase === 2 && (
             <div className="absolute inset-x-8 bottom-[10%] z-10 flex flex-col items-center gap-1.5">
               <div className="text-lg font-black uppercase tracking-widest text-white animate-pulse drop-shadow">
                 ¿ENTRA?
@@ -304,53 +271,6 @@ function GoalNet({ className }: { className?: string }) {
       </g>
       <circle cx="210" cy="282" r="6" fill="rgba(255,255,255,.5)" />
     </svg>
-  )
-}
-
-/**
- * EL VIAJE DEL BALÓN: tras la técnica de tiro, el balón sale disparado hacia
- * la portería del fondo envuelto en llamas del color del elemento del disparo
- * (fuego rojo, bosque verde, aire azul, montaña ocre). Encoge según se aleja:
- * perspectiva de andar por casa, pero se LEE.
- */
-function BallFlight({ color, shooter }: { color: string; shooter: string }) {
-  return (
-    <div className="absolute inset-0 pointer-events-none animate-fade-in">
-      <GoalNet className="absolute inset-x-0 top-[8%] mx-auto w-[72%] opacity-40" />
-      {/* El balón (con su estela y su aura de llamas) vuela de abajo arriba. */}
-      <div className="absolute left-1/2 top-[16%] animate-ball-flight">
-        <div className="relative w-16 h-16">
-          {/* Aura de llamas: dos capas desfasadas que parpadean. */}
-          <div
-            className="absolute -inset-6 rounded-full blur-md animate-flame-flicker"
-            style={{ background: `radial-gradient(circle, ${color}e6, ${color}66 55%, transparent 78%)` }}
-          />
-          <div
-            className="absolute -inset-2 rounded-full blur-[3px]"
-            style={{ background: `radial-gradient(circle, #ffffff88, ${color}bb 65%, transparent 85%)` }}
-          />
-          {/* Estela: cono de fuego que queda POR DEBAJO del balón que sube. */}
-          <div
-            className="absolute left-1/2 top-[65%] -translate-x-1/2 w-10 h-32 blur-md"
-            style={{ background: `linear-gradient(to bottom, ${color}cc, ${color}44 55%, transparent)` }}
-          />
-          {/* El balón. */}
-          <div
-            className="relative w-full h-full rounded-full"
-            style={{
-              background: 'radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 62%, #64748b)',
-              boxShadow: 'inset -5px -7px 12px rgba(0,0,0,.4)',
-            }}
-          />
-        </div>
-      </div>
-      <div
-        className="absolute inset-x-0 bottom-[14%] text-center text-xl font-black uppercase tracking-widest drop-shadow animate-pop-in"
-        style={{ color, textShadow: `0 0 18px ${color}` }}
-      >
-        ¡Allá va el disparo de {shooter}!
-      </div>
-    </div>
   )
 }
 
@@ -455,73 +375,4 @@ const KIND_FALLBACK_ICON: Record<string, string> = {
   '¡BLOQUEO!': 'shield',
   '¡DISPARO!': 'shoot',
   '¡PARADA!': 'glove',
-}
-
-/** Un lado del duelo: retrato + nombre + su técnica (imagen real) o la acción simple. */
-function Fighter({ side, tech, label, right, crest, plain }: {
-  side: StageSide
-  tech?: Technique
-  label: string
-  right?: boolean
-  /** Escudo del equipo del luchador, en grande a su lado. */
-  crest?: string
-  /** Sin hueco de técnica (los pases no llevan): retrato y nombre a secas. */
-  plain?: boolean
-}) {
-  const info = tech ? ELEMENT_INFO[tech.element] : null
-  return (
-    <div className={`flex items-center gap-3 w-full max-w-sm ${right ? 'flex-row-reverse animate-slide-left' : 'animate-slide-right'}`}>
-      {crest && <Crest teamId={crest} className="w-9 h-9 shrink-0 drop-shadow" />}
-      <div className="relative shrink-0">
-        <div
-          className="relative w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-900 shadow-xl"
-          // Legendario = anillo multicolor animado, no el borde rosa plano.
-          style={{ borderColor: side.rarity === 4 ? 'transparent' : side.rarity ? rarityBorder(side.rarity) : (info?.color ?? '#64748b') }}
-        >
-          <ImgFallback
-            src={side.baseId ? portraitUrl(side.baseId) : ''}
-            alt={side.name}
-            className="w-full h-full object-cover object-top"
-            fallback={<span className="grid place-items-center w-full h-full text-base font-extrabold text-white">
-              {side.name.slice(0, 2).toUpperCase()}
-            </span>}
-          />
-          {side.rarity === 4 && <span className="mc-ring rounded-full" />}
-        </div>
-      </div>
-      <div className={`min-w-0 flex-1 ${right ? 'text-right' : ''}`}>
-        <div className="text-[13px] font-extrabold text-white truncate">{side.name}</div>
-        <div className="text-[10px] uppercase tracking-widest text-white/50">{label}</div>
-      </div>
-      {/* La técnica, con su imagen real y su nombre; sin técnica, la acción a pelo. */}
-      {tech ? (
-        <div className="shrink-0 flex flex-col items-center gap-1">
-          <div
-            className="w-24 h-24 rounded-2xl overflow-hidden border-4 grid place-items-center bg-slate-950"
-            style={{ borderColor: info!.color, boxShadow: `0 0 22px ${info!.color}` }}
-          >
-            <ImgFallback
-              src={techniqueImage(tech.id)}
-              alt={tech.name}
-              className="w-full h-full object-cover"
-              fallback={<Icon name={ELEMENT_ICON[tech.element]} className="w-10 h-10" style={{ color: info!.color }} />}
-            />
-          </div>
-          <span
-            className="max-w-[8.5rem] inline-flex items-center gap-1 truncate px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-slate-950/85 border"
-            style={{ color: info!.color, borderColor: `${info!.color}88` }}
-          >
-            <TechIcons tech={tech} className="w-2.5 h-2.5" />
-            {tech.name}
-          </span>
-        </div>
-      ) : plain ? null : (
-        <div className="shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-white/20 grid place-items-center text-[10px] font-bold text-white/40 text-center px-1">
-          sin
-          <br />
-          técnica
-        </div>
-      )}
-    </div>
-  )
 }

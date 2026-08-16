@@ -28,7 +28,6 @@ export interface BoardChip {
   ptMax?: number
   /** Demarcación natural, para el aviso rojo si no coincide con `role`. */
   position?: Position
-  hasSpirit?: boolean
   /** Objeto equipado: su imagen asoma en la esquina de la ficha. */
   itemId?: string
 }
@@ -141,9 +140,6 @@ function Chip({ chip, onTap, onSwap }: {
           <span className="absolute -top-1.5 -left-1.5 rounded px-1 text-[8px] font-black leading-tight bg-rose-500 text-white border border-black/40">
             {chip.position}
           </span>
-        )}
-        {chip.hasSpirit && (
-          <Icon name="spirit" className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-300" title="Espíritu Guerrero" />
         )}
         {/* El objeto que lleva, asomando: se ve quién va equipado sin entrar. */}
         {chip.itemId && (

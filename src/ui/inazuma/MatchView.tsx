@@ -20,7 +20,7 @@ import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
-import type { Actor, ChainStep, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
+import type { Actor, ChainStep, Element, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
@@ -46,6 +46,15 @@ export default function MatchView() {
   }, [flash])
   const clearGol = useCallback(() => setGol(null), [])
   const clearStage = useCallback(() => setStage(null), [])
+  // DISPARO EN VUELO: la cinemática avisa y el CÉSPED pinta el balón ardiendo
+  // camino de la portería (antes viajaba dentro de la propia cinemática).
+  const [shotFlight, setShotFlight] = useState<{ key: number; element?: Element; mine: boolean } | null>(null)
+  const stageRef = useRef<StageData | null>(null)
+  stageRef.current = stage
+  const onFlight = useCallback((active: boolean) => {
+    const st = stageRef.current
+    setShotFlight(active && st ? { key: st.key, element: st.element, mine: st.attackerMine } : null)
+  }, [])
   // Escudo del que marca: el tuyo o el del instituto rival de esta casilla.
   const crestOf = (mine: boolean) => (mine ? teamDisplay(save ?? {}).crestId : matchNode?.teamId)
   // Cada evento se ESCENIFICA una sola vez. El objeto `match` cambia de
@@ -107,14 +116,30 @@ export default function MatchView() {
         kind: 'tiro',
       })
     } else if (last.kind === 'duel') {
-      // FLASH no bloqueante del duelo de campo: el juego sigue por debajo.
+      // Duelo de campo (regate contra bloqueo). CON SUPERTÉCNICA se enseña la
+      // foto grande de la que GANA el duelo — sin el cara a cara, que era lo
+      // que sobraba. SIN técnica no hay nada que enseñar: un flash y el juego
+      // sigue sin pararse.
       const winnerTech = last.success ? last.technique : last.counter
       const winnerMine = (last.side === mine) === last.success
-      setFlash({
-        key: feed.length,
-        text: winnerTech ? `¡${winnerTech.toUpperCase()}!` : last.success ? '¡REGATE!' : '¡CORTE!',
-        color: winnerMine ? '#34d399' : '#f87171',
-      })
+      if (winnerTech) {
+        setStage({
+          key: feed.length,
+          attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
+          defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
+          attackerWins: last.success,
+          attackerMine: last.side === mine,
+          attackerCrest: crestOf(last.side === mine),
+          defenderCrest: crestOf(last.side !== mine),
+          kind: 'regate',
+        })
+      } else {
+        setFlash({
+          key: feed.length,
+          text: last.success ? '¡REGATE!' : '¡CORTE!',
+          color: winnerMine ? '#34d399' : '#f87171',
+        })
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed.length])
@@ -153,7 +178,7 @@ export default function MatchView() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-      <DuelStage stage={stage} onDone={clearStage} />
+      <DuelStage stage={stage} onDone={clearStage} onFlight={onFlight} />
       <HalftimePanel />
       <Scoreboard
         match={match}
@@ -196,6 +221,7 @@ export default function MatchView() {
               current={current}
               myCrest={teamDisplay(save ?? {}).crestId}
               theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+              flight={shotFlight}
             />
             {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
             {flash && (
@@ -476,8 +502,6 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
       )
     case 'burst':
       return <Banner text={event.text} tone="burst" />
-    case 'spirit':
-      return <Banner text={event.text} tone="burst" icon="spirit" />
     case 'save':
       return <Line minute={event.minute} text={event.text} accent={isMine ? '#22c55e' : '#94a3b8'} />
     case 'turnover':

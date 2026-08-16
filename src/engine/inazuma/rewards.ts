@@ -63,8 +63,11 @@ export function learnableByRoster(save: InazumaSave) {
  * sale más a menudo según lo avanzado que vayas.
  */
 export function availableSignings(save: InazumaSave): PlayerBase[] {
-  const owned = new Set(save.roster.map((p) => p.baseId))
-  const pool = PLAYERS.filter((p) => !owned.has(p.id))
+  // Se descarta por NOMBRE, no por id: el catálogo tiene al mismo chaval en
+  // varias plantillas (y con nombres alternativos), y filtrando solo por id te
+  // ofrecían «otra vez» a alguien que ya estaba en tu vestuario.
+  const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
+  const pool = PLAYERS.filter((p) => !owned.has(p.name))
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])
@@ -93,6 +96,9 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
   }
 }
 
+/** Lo que cobra el ojeador por su agenda (el Fichaje estrella). */
+export const SCOUT_STAR_PRICE = 1000
+
 /** Las tres fichas del ojeador. Todas son fichajes: es su razón de existir. */
 export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
   const seen = new Set<string>()
@@ -109,8 +115,11 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
       kind: 'objeto',
       id: 'scout-estrella',
       title: 'La agenda del ojeador',
-      desc: 'Fichaje estrella a la mochila: busca y ficha al jugador EXACTO que quieras del catálogo.',
+      desc: `Fichaje estrella: busca y ficha al jugador EXACTO que quieras del catálogo. Cuesta ${SCOUT_STAR_PRICE.toLocaleString('es-ES')} ₽.`,
       itemId: 'fichaje-estrella',
+      // A diferencia del resto de cartas, ESTA se paga: elegir tú al jugador
+      // que quieras del catálogo entero es demasiado como para salir gratis.
+      cost: SCOUT_STAR_PRICE,
     })
   }
   // Si ya has fichado a todo el mundo, el ojeador paga en metálico.

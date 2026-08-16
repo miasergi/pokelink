@@ -57,8 +57,34 @@ function pickTechs(all, position, element, n) {
   return pool.slice(0, n).map((t) => t.id)
 }
 
-/** Espíritu por elemento, solo para ★4-★5. */
-const SPIRIT = { fuego: 'pegaso', bosque: 'ent', aire: 'kraken', montana: 'majin' }
+// ---------------------------------------------------------------------------
+// PARCHES DE DATOS (la wiki no siempre está fina)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fichas INCOMPLETAS que el crawler descartaba por no traer demarcación o
+ * elemento. Se completan a mano (por nombre de wiki) en vez de perder al
+ * jugador: eran cinco equipos jugando con uno menos.
+ */
+const FILL_IN = {
+  'Shark The Deep': { position: 'DEL' },
+  Nori: { element: 'bosque' },
+  "Surfin' Bu": { position: 'MED', element: 'aire' },
+  Edgar: { element: 'aire' },
+  Zel: { element: 'fuego' },
+}
+
+/** Nombres del doblaje ESPAÑOL que la wiki trae con el del inglés. */
+const NAME_FIX = {
+  Domon: 'Mac Robingo',
+}
+
+/**
+ * Equipos CLONADOS: la wiki resolvía dos páginas distintas a la misma
+ * plantilla, y el catálogo acababa con 14 jugadores duplicados que salían en
+ * fichajes y ojeadores. Se emite solo el bueno.
+ */
+const CLONE_TEAMS = new Set(['wild'])
 
 /**
  * Estrellas ESCRITAS A MANO para los personajes cuyo peso en la serie conozco.
@@ -295,7 +321,17 @@ async function main() {
   lines.push('export const PLAYERS: PlayerBase[] = [')
 
   const seenIds = new Set()
-  for (const [teamId, rawList] of Object.entries(data)) {
+  /** Todo lo emitido, por equipo: de aquí sale el relleno de convocatorias. */
+  const emitted = {}
+  for (const [teamId, rawList0] of Object.entries(data)) {
+    if (CLONE_TEAMS.has(teamId)) continue
+    // Se completan las fichas cojas ANTES de nada: si no, el filtro de abajo
+    // se las come y el equipo sale con menos gente.
+    const rawList = rawList0.map((p) => {
+      const fix = FILL_IN[p.wiki] ?? FILL_IN[p.name]
+      const name = NAME_FIX[p.wiki] ?? p.name
+      return fix || name !== p.name ? { ...p, ...fix, name } : p
+    })
     lines.push(`  // ${'='.repeat(30)} ${teamId.toUpperCase()}`)
     // Se ordena por estrellas ANTES de emitir: `startingSquad` coge los
     // primeros de cada línea, así que el orden del fichero ES el once titular.
@@ -331,8 +367,8 @@ async function main() {
       lines.push(`    stats: { tiro: ${st.tiro}, control: ${st.control}, fisico: ${st.fisico}, defensa: ${st.defensa}, velocidad: ${st.velocidad}, aguante: ${st.aguante} },`)
       lines.push(`    techniques: [${techs.map(q).join(', ')}],`)
       if (signature.length) lines.push(`    signature: [${signature.map(q).join(', ')}],`)
-      if (rarity >= 4) lines.push(`    spirit: ${q(SPIRIT[p.element])},`)
       lines.push('  },')
+      ;(emitted[teamId] ??= []).push({ id, position: p.position, rarity })
       idx++
     }
   }
@@ -343,12 +379,11 @@ async function main() {
   lines.push('    stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },')
   lines.push("    techniques: ['lightning-accel', 'atomic-flare'],")
   lines.push("    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],")
-  lines.push("    spirit: 'pegaso',")
   lines.push('  },')
   lines.push(']')
   lines.push('')
   lines.push('/** Institutos del torneo; el resto de equipos son SOLO fichables. */')
-  lines.push("const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'wild', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])")
+  lines.push("const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])")
   lines.push('')
   lines.push('/** Equipos extra (temporada 2 y Alius): su gente entra por el ojeador. */')
   lines.push('export const EXTRA_TEAMS: string[] = [...new Set(PLAYERS.map((p) => p.team))].filter((t) => !BRACKET_TEAMS.has(t))')
@@ -382,6 +417,9 @@ async function main() {
   lines.push("  hellion: 'leonard-o-shea',")
   lines.push("  'hellion-2': 'leonard-o-shea-2',")
   lines.push("  scuba: 'chad-taylor',")
+  // Renombrados al doblaje español (ver `NAME_FIX`) y equipos clonados que ya
+  // no se emiten: las partidas viejas siguen encontrando a los suyos.
+  lines.push("  'bobby-shearer': 'mac-robingo',")
   lines.push('}')
   lines.push('')
   lines.push('export function getPlayerBase(id: string): PlayerBase {')
@@ -406,15 +444,52 @@ async function main() {
   lines.push('  return bestFormationFor(squadCounts(teamId)).id')
   lines.push('}')
   lines.push('')
+  // RELLENO DE CONVOCATORIAS: al canon se le quedan equipos con 11 (los Alius)
+  // y alguno sin portero, y aquí TODOS juegan con 14 y con guantes. Se completa
+  // con gente de equipos hermanos (Alius con Alius, y si no, del mismo elenco),
+  // a dedo y determinista: nada de azar en los datos.
+  const DONORS = {
+    'gemini-storm': ['epsilon', 'chaos', 'genesis'],
+    epsilon: ['gemini-storm', 'chaos', 'genesis'],
+    'diamond-dust': ['prominence', 'chaos', 'genesis'],
+    prominence: ['diamond-dust', 'chaos', 'genesis'],
+    genesis: ['chaos', 'prominence', 'diamond-dust'],
+  }
+  const fills = {}
+  for (const [teamId, list] of Object.entries(emitted)) {
+    const need = 14 - list.length
+    const noKeeper = !list.some((x) => x.position === 'POR')
+    if (need <= 0 && !noKeeper) continue
+    // Donantes: los hermanos de saga si los hay; si no, cualquiera MENOS el
+    // Raimon (su gente es la tuya, no relleno de otros) — y siempre por la
+    // cola de la rareza: el que se presta es un suplente, no una estrella.
+    const pool = (DONORS[teamId] ?? Object.keys(emitted).filter((t) => t !== teamId && t !== 'raimon' && t !== 'libre'))
+      .flatMap((t) => emitted[t] ?? [])
+      .sort((a, b) => a.rarity - b.rarity || a.id.localeCompare(b.id))
+    const take = []
+    // Primero un PORTERO si no tiene: un equipo sin guantes es injugable.
+    if (noKeeper) {
+      const gk = pool.find((x) => x.position === 'POR')
+      if (gk) take.push(gk.id)
+    }
+    // Y después, los que hagan falta hasta 14, de menor a mayor rareza (el
+    // relleno es banquillo, no fichajes estrella).
+    for (const x of pool) {
+      if (take.length >= Math.max(need, take.length)) break
+      if (take.includes(x.id)) continue
+      take.push(x.id)
+    }
+    if (take.length) fills[teamId] = take
+  }
   lines.push('/**')
-  lines.push(' * Convocatorias que el CANON deja cortas de 14. El Genesis alinea 11 en todos')
-  lines.push(' * los juegos, así que su banquillo se completa con compañeros del propio')
-  lines.push(' * Instituto Alius, elegidos a dedo (nada de azar): Desarm llegó a jugar de')
-  lines.push(' * portero EN el Genesis en el anime, y Burn y Gazel son los capitanes de')
-  lines.push(' * Prominence y Diamond Dust.')
+  lines.push(' * Convocatorias que el CANON deja cortas de 14 (o sin portero). Se completan')
+  lines.push(' * con jugadores de equipos hermanos — los Alius entre ellos — para que')
+  lines.push(' * cualquier instituto se pueda jugar con un once y un banquillo de verdad.')
   lines.push(' */')
   lines.push('const SQUAD_FILL: Record<string, string[]> = {')
-  lines.push("  genesis: ['dave-quagmire', 'claude-beacons', 'bryce-whitingale'],")
+  for (const [teamId, ids] of Object.entries(fills)) {
+    lines.push(`  ${/^[a-z][a-z0-9]*$/.test(teamId) ? teamId : q(teamId)}: [${ids.map(q).join(', ')}],`)
+  }
   lines.push('}')
   lines.push('')
   lines.push('/**')
@@ -430,8 +505,14 @@ async function main() {
   lines.push('    own.filter((p) => p.position === pos).slice(0, n).map((p) => p.id)')
   lines.push("  const picked = [...line('POR', 1), ...line('DEF', f.defs), ...line('MED', f.mids), ...line('DEL', f.fwds)]")
   lines.push('  const bench = own.filter((p) => !picked.includes(p.id)).map((p) => p.id)')
-  lines.push('  const fill = (SQUAD_FILL[teamId] ?? []).slice(0, Math.max(0, 14 - picked.length - bench.length))')
-  lines.push('  return [...picked, ...bench, ...fill]')
+  lines.push('  const extra = SQUAD_FILL[teamId] ?? []')
+  lines.push('  // Si el equipo no tiene portero propio, el prestado entra en el ONCE.')
+  lines.push("  const borrowedKeeper = picked.length && own.some((p) => p.position === 'POR')")
+  lines.push('    ? []')
+  lines.push("    : extra.filter((id) => PLAYER_BY_ID.get(id)?.position === 'POR').slice(0, 1)")
+  lines.push('  const rest = extra.filter((id) => !borrowedKeeper.includes(id))')
+  lines.push('  const fill = rest.slice(0, Math.max(0, 14 - picked.length - bench.length - borrowedKeeper.length))')
+  lines.push('  return [...borrowedKeeper, ...picked, ...bench, ...fill]')
   lines.push('}')
   lines.push('')
   lines.push('/** Once inicial del Raimon (compatibilidad). */')

@@ -216,9 +216,9 @@ const PAGES = [
     body: 'Cada jugador tiene su depósito de PT. Lanzar una supertécnica cuesta los PT que pone en su ficha y se descuentan al usarla; sin saldo solo te queda el tiro sencillo. El depósito lo marca el aguante, y se rellena comiendo en el Rai Rai, con bebidas y al superar cada instituto.',
   },
   {
-    icon: 'spirit',
-    title: 'Ruptura y Espíritus',
-    body: 'Encadenar jugadas buenas llena la barra de Ruptura. Gástala en tres acciones gratis (Supervibración) o en un único duelo brutal (Espíritu Guerrero). Una cosa o la otra, y una vez por partido.',
+    icon: 'bolt',
+    title: 'Ruptura y Supervibración',
+    body: 'Encadenar jugadas buenas llena la barra de Ruptura. Al llenarse puedes activar la SUPERVIBRACIÓN: tres acciones sin gastar PT y con la potencia multiplicada. Una vez por barra, así que elige bien el momento.',
   },
   {
     icon: 'bench',

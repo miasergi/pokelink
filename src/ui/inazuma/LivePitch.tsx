@@ -16,17 +16,11 @@ import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import type { Actor, ChainStep, MatchEvent, MatchState } from '@/engine/inazuma/types'
+import type { Actor, ChainStep, Element, MatchEvent, MatchState } from '@/engine/inazuma/types'
 
-/**
- * Ruido determinista en [-1, 1] por (jugador, latido, canal): el «jogging»
- * táctico de cada uno. Determinista para que un re-render no teletransporte.
- */
-function noise(uid: string, beat: number, k: number): number {
-  let h = (2166136261 ^ (beat * 101 + k * 17)) >>> 0
-  for (const ch of uid) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
-  h = h >>> 0
-  return ((h % 1000) / 1000) * 2 - 1
+/** Color de las LLAMAS del disparo: el de su elemento (o blanco si va a pelo). */
+function flameOf(el: Element | undefined): string {
+  return el ? ELEMENT_INFO[el].color : '#e2e8f0'
 }
 
 /** Avance del balón (en % de ancho) por eslabón, atacando hacia la DERECHA. */
@@ -59,9 +53,15 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
   return out
 }
 
-export default function LivePitch({ match, feed, current, myCrest, theirCrest }: {
+export default function LivePitch({ match, feed, current, myCrest, theirCrest, flight }: {
   match: MatchState
   feed: MatchEvent[]
+  /**
+   * DISPARO EN VUELO: el balón sale de los pies del que tira y viaja a la
+   * portería contraria envuelto en llamas del color de su elemento. Lo activa
+   * la cinemática del tiro entre la supertécnica y la parada.
+   */
+  flight?: { key: number; element?: Element; mine: boolean } | null
   /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
   current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away' } | null
   /** Escudos: van de FONDO en la ficha de cada jugador (en vez del color). */
@@ -170,6 +170,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
   const clampX = (x: number) => Math.max(4, Math.min(96, x))
   const clampY = (y: number) => Math.max(7, Math.min(93, y))
 
+  // CARRIL DEL BALÓN: la banda por la que va la jugada. Es la referencia de
+  // la BASCULACIÓN — el bloque se desplaza hacia el balón, como en el fútbol
+  // de verdad. Sustituye al onduleo aleatorio que había antes: cada
+  // desplazamiento tiene ahora un porqué.
+  const carrierAnchor = carrierUid
+    ? (myAnchor.get(carrierUid) ?? theirAnchor.get(carrierUid))
+    : undefined
+  const ballLane = carrierAnchor ? carrierAnchor.y * 0.6 + 20 : 50
+
   // CAMBIO DE CAMPO tras el descanso, como en los partidos de verdad: toda la
   // geometría se calcula igual y se ESPEJA solo al pintar (jugadores, balón y
   // porterías) cuando el descanso ya se contó.
@@ -183,7 +192,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
       // El del balón, en el punto del eslabón, con un AMAGO por latido (el
       // regateador no se queda clavado). Los porteros no abandonan el área.
       if (a.position === 'POR') return base
-      return { x: clampX(ballX + noise(a.uid, beat, 4) * 1.5), y: base.y * 0.6 + 20 }
+      return { x: clampX(ballX), y: base.y * 0.6 + 20 }
     }
     if (a.uid === markerUid) {
       // Su marcador le sale al paso: entre el balón y SU portería.
@@ -192,12 +201,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
     }
     // El portero apenas se pasea por su área.
     if (a.position === 'POR') {
-      return { x: base.x, y: Math.max(34, Math.min(66, base.y + noise(a.uid, beat, 2) * 3)) }
+      // Se coloca en el palo por el que viene el balón: achica ángulo.
+      return { x: base.x, y: Math.max(34, Math.min(66, 50 + (ballLane - 50) * 0.45)) }
     }
     // APOYO: acude hacia el balón, un paso por detrás, a dar línea de pase.
     if (supportUids.has(a.uid)) {
       return {
-        x: clampX(ballX + (isMine ? -9 : 9) + noise(a.uid, beat, 1) * 1.5),
+        x: clampX(ballX + (isMine ? -9 : 9)),
         y: clampY(50 + (base.y - 50) * 0.45),
       }
     }
@@ -205,15 +215,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
     // del punto de pérdida durante un latido — presión tras pérdida.
     if (pressSide != null && ((pressSide === mine) === isMine)) {
       return {
-        x: clampX(base.x + (ballX - base.x) * 0.35 + noise(a.uid, beat, 1) * 1.2),
-        y: clampY(base.y + (50 - base.y) * 0.18 + noise(a.uid, beat, 2) * 2),
+        x: clampX(base.x + (ballX - base.x) * 0.35),
+        y: clampY(base.y + (ballLane - base.y) * 0.3),
       }
     }
     const isAtkTeam = atkSide != null && (atkSide === mine) === isMine
-    // OLA DE DESMARQUES: en cada latido, UNA línea del equipo atacante
-    // aprieta un paso extra (DEF → MED → DEL, por turnos).
-    const lineIdx = ({ DEF: 0, MED: 1, DEL: 2 } as Record<string, number>)[a.position] ?? 0
-    const wave = isAtkTeam && beat % 3 === lineIdx ? (isMine ? 3.5 : -3.5) : 0
     // BANDAS Y BLOQUE: atacando, los de banda se ABREN hacia su banda;
     // defendiendo, el bloque se CIERRA hacia el centro (más aún con candado).
     const defMood = isMine ? myMood : theirMood
@@ -222,9 +228,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
       : isAtkTeam
         ? (base.y < 30 ? -4 : base.y > 70 ? 4 : 0)
         : (base.y < 50 ? 3 : -3) * (defMood === 'candado' ? 1.5 : 1)
+    // BASCULACIÓN: el bloque se desliza hacia el carril del balón. El que
+    // defiende bascula MÁS (hay que taparle el camino) que el que ataca.
+    const slide = atkSide == null ? 0 : (ballLane - base.y) * (isAtkTeam ? 0.12 : 0.26)
     return {
-      x: clampX(base.x + rowPush(a, isMine) + wave + noise(a.uid, beat, 1) * 1.2),
-      y: clampY(base.y + wing + noise(a.uid, beat, 2) * 2.2),
+      x: clampX(base.x + rowPush(a, isMine)),
+      y: clampY(base.y + wing + slide),
     }
   }
 
@@ -241,7 +250,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
     : null
   const ball = carrierSpot
     ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
-    : { x: 50 + noise('ball', beat, 1) * 2, y: 50 + noise('ball', beat, 2) * 3 }
+    : { x: 50, y: 50 }
 
   const danger = step === 'definicion'
 
@@ -318,13 +327,43 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
           )
         })()}
 
-        {/* EL BALÓN, con su propia transición: los pases se ven volar. */}
-        <div
-          className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
-          style={{ left: `${mx(ball.x)}%`, top: `${ball.y}%` }}
-        >
-          <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
-        </div>
+        {/* EL BALÓN, con su propia transición: los pases se ven volar. Y si
+            hay DISPARO en vuelo, sale ardiendo hacia la portería rival. */}
+        {flight ? (
+          <div
+            key={flight.key}
+            className="absolute z-30 w-4 h-4 -ml-2 -mt-2 pointer-events-none animate-shot-travel"
+            style={{
+              left: `${mx(ball.x)}%`,
+              top: `${ball.y}%`,
+              // Recorrido hasta la portería que ataca (espejado en la segunda
+              // parte, igual que el resto de la geometría).
+              ['--shot-dx' as string]: `${(mx(flight.mine ? 96 : 4) - mx(ball.x)) * 0.92}%`,
+              ['--shot-dy' as string]: `${50 - ball.y}%`,
+            }}
+          >
+            {/* Aura y estela de llamas del color del elemento del disparo. */}
+            <span
+              className="absolute -inset-3 rounded-full blur-[6px] animate-flame-flicker"
+              style={{ background: `radial-gradient(circle, ${flameOf(flight.element)}dd, ${flameOf(flight.element)}55 55%, transparent 75%)` }}
+            />
+            <span
+              className="absolute top-1/2 -translate-y-1/2 h-3 w-12 blur-[4px]"
+              style={{
+                [flight.mine ? 'right' : 'left']: '60%',
+                background: `linear-gradient(${flight.mine ? 'to left' : 'to right'}, ${flameOf(flight.element)}cc, transparent)`,
+              }}
+            />
+            <Pic name="ball" className="relative w-4 h-4 drop-shadow" />
+          </div>
+        ) : (
+          <div
+            className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
+            style={{ left: `${mx(ball.x)}%`, top: `${ball.y}%` }}
+          >
+            <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -355,13 +394,11 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
   const ptDeg = Math.max(0, Math.min(1, actor.pt / Math.max(1, actor.ptMax))) * 180
   const aguDeg = Math.max(0, Math.min(1, actor.stamina / 100)) * 180
   const gauge = `conic-gradient(#38bdf8 0deg ${ptDeg}deg, rgba(2,6,23,.55) ${ptDeg}deg 180deg, rgba(2,6,23,.55) 180deg ${360 - aguDeg}deg, #22c55e ${360 - aguDeg}deg 360deg)`
-  // VIDA: variante y desfase de deriva POR JUGADOR (hash del uid), y la
-  // transición de posición con un pelín de retardo distinto en cada uno para
-  // que los movimientos de equipo ondulen en vez de ir en bloque. Los de la
-  // jugada van sin retardo: su movimiento es la noticia.
+  // Retardo mínimo por jugador (hash del uid) SOLO para que la línea no
+  // arranque como un bloque de plástico. Nada de deriva perpetua: cada
+  // desplazamiento responde a la jugada, no a una animación de adorno.
   let h = 0
   for (const ch of actor.uid) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  const drift = ['live-drift-a', 'live-drift-b', 'live-drift-c'][h % 3]
   return (
     <div
       className="absolute -translate-x-1/2 -translate-y-1/2 transition-all ease-in-out"
@@ -376,7 +413,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker }: {
         transitionDelay: active ? '0ms' : `${(h % 5) * 70}ms`,
       }}
     >
-      <div className={`flex flex-col items-center ${drift}`} style={{ animationDelay: `-${(h % 37) / 10}s` }}>
+      <div className="flex flex-col items-center">
       {/* anillo exterior de PT/AGU */}
       <div
         className={`rounded-full p-[3px] transition-all ${active ? 'scale-110' : ''}`}

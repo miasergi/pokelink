@@ -30,6 +30,9 @@ export function actorTechnique(actor: Actor, id: string): Technique | undefined 
   // Mejora se nota de verdad en el campo.
   return {
     ...t,
+    // El NOMBRE lleva la versión («Mano Celestial V2»): así la Mejora se ve en
+    // el campo — narración, cinemática y botones salen todos de aquí.
+    name: `${t.name} V${lv + 1}`,
     power: Math.round(t.power * (1 + lv * TECH_LEVEL_BONUS)),
     cost: techniqueCostFor(actor, t),
   }
@@ -45,7 +48,7 @@ export interface Duelist {
   technique?: Technique
   /** Supervibración activa: la técnica pega más y no cuesta PT. */
   burst?: boolean
-  /** Multiplicador extra del Espíritu Guerrero (1 = sin espíritu). */
+  /** Multiplicador extra (racha EN LLAMAS, sprint, tiro lejano…). 1 = ninguno. */
   boost?: number
 }
 

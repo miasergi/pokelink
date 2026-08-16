@@ -209,13 +209,14 @@ body {
 }
 .animate-showcase-zoom { animation: showcase-zoom 1.6s ease-out forwards; }
 
-/* EL VIAJE DEL BALÓN a puerta: sale grande desde abajo y encoge hacia la
-   portería del fondo. La curva acelera al principio (el latigazo del tiro). */
-@keyframes ball-flight {
-  0% { transform: translate(-50%, 56vh) scale(1.8); }
-  100% { transform: translate(-50%, 0) scale(0.5); }
+/* EL DISPARO POR EL CÉSPED: el balón sale de los pies del tirador y viaja a la
+   portería rival (el destino llega en --shot-dx/--shot-dy). Sale grande por el
+   latigazo y se asienta al llegar. */
+@keyframes shot-travel {
+  0% { transform: translate(0, 0) scale(1.5); }
+  100% { transform: translate(var(--shot-dx), var(--shot-dy)) scale(1); }
 }
-.animate-ball-flight { animation: ball-flight 1s cubic-bezier(.25, .7, .45, 1) forwards; }
+.animate-shot-travel { animation: shot-travel 1.3s cubic-bezier(.2, .75, .4, 1) forwards; }
 
 /* Las llamas del balón parpadean mientras vuela. */
 @keyframes flame-flicker {
@@ -254,29 +255,6 @@ body {
    posicionamiento (left/top) del exterior sigue con su transición limpia. */
 /* Amplitud contenida (±1.5px): es textura de zancada, no un baile — con ±3px
    los jugadores «ondeaban» y mareaba. */
-@keyframes live-drift-a {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(1.5px, -1px); }
-  50% { transform: translate(-1px, 1px); }
-  75% { transform: translate(1px, 1.5px); }
-  100% { transform: translate(-1.5px, -0.5px); }
-}
-@keyframes live-drift-b {
-  0% { transform: translate(0, 0); }
-  30% { transform: translate(-1.5px, 1px); }
-  55% { transform: translate(1px, -1.5px); }
-  80% { transform: translate(-0.5px, -1px); }
-  100% { transform: translate(1.5px, 0.5px); }
-}
-@keyframes live-drift-c {
-  0% { transform: translate(0, 0); }
-  35% { transform: translate(1px, 1px); }
-  60% { transform: translate(-1.5px, -1px); }
-  100% { transform: translate(0.5px, -1.5px); }
-}
-.live-drift-a { animation: live-drift-a 3.6s ease-in-out infinite alternate; }
-.live-drift-b { animation: live-drift-b 4.4s ease-in-out infinite alternate; }
-.live-drift-c { animation: live-drift-c 5.1s ease-in-out infinite alternate; }
 
 /* El balón late en los pies del que lo lleva. */
 @keyframes ball-bob {

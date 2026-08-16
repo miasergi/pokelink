@@ -86,11 +86,6 @@ export interface PlayerBase {
   rarity: 1 | 2 | 3 | 4 | 5
   /** Slug del retrato en `public/inazuma/players/<slug>.webp`. Opcional. */
   portrait?: string
-  /**
-   * Espíritu Guerrero. Solo lo tienen los jugadores grandes (★4-★5): es la
-   * carta que te guardas para un duelo concreto, no un pasivo.
-   */
-  spirit?: string
 }
 
 /** Un jugador concreto de TU plantilla, con su progresión de la partida. */
@@ -100,7 +95,7 @@ export interface PlayerInstance {
   level: number
   /**
    * RAREZA dinámica (1 bronce · 2 plata · 3 oro · 4 multicolor). Manda sobre
-   * los atributos, los pasos de cadena alcanzables y el Espíritu (solo 4).
+   * los atributos y los pasos de cadena alcanzables.
    * Ausente en saves viejos: `rarityOf` cae a la rareza de catálogo.
    */
   rarity?: number
@@ -190,7 +185,6 @@ export type MatchEvent =
   | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }
-  | { kind: 'spirit'; minute: number; side: Side; player: string; spirit: string; text: string }
   | { kind: 'exhausted'; minute: number; player: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
   | { kind: 'stage'; minute: number; stage: MatchStage; text: string }
@@ -284,8 +278,6 @@ export interface Actor {
   techniques: string[]
   /** Mejoras del objeto «Mejora», por id de técnica. Solo las tuyas. */
   techLevels?: Record<string, number>
-  /** Id del Espíritu Guerrero, si lo tiene. */
-  spirit?: string
 }
 
 export interface MatchSide {
@@ -305,8 +297,6 @@ export interface MatchSide {
   burst: number
   /** Acciones que quedan de Supervibración activa (0 = inactiva). */
   burstTurns: number
-  /** El Espíritu Guerrero se invoca UNA vez por partido y por equipo. */
-  spiritUsed?: boolean
 }
 
 export type MatchPhase = 'playing' | 'decision' | 'finished'
@@ -400,12 +390,6 @@ export interface ChainState {
    */
   passed?: boolean
   /**
-   * Espíritu invocado para ESTE duelo. Se invoca primero y luego eliges la
-   * técnica, así que el multiplicador tiene que sobrevivir a la reconstrucción
-   * de la decisión.
-   */
-  spirit?: { uid: string; power: number }
-  /**
    * TIRO LEJANO: la jugada saltó de la penetración directamente al mano a
    * mano. La distancia penaliza la potencia del disparo (LONG_SHOT_MALUS).
    */
@@ -483,7 +467,7 @@ export interface MapSegment {
  */
 export type DraftOption =
   | { kind: 'fichaje'; id: string; title: string; desc: string; playerId: string; level: number }
-  | { kind: 'objeto'; id: string; title: string; desc: string; itemId: string }
+  | { kind: 'objeto'; id: string; title: string; desc: string; itemId: string; /** Precio en ₽: la carta se cobra al elegirla (0 o ausente = gratis). */ cost?: number }
   | { kind: 'entrenamiento'; id: string; title: string; desc: string; levels: number }
   | { kind: 'tecnica'; id: string; title: string; desc: string; techniqueId: string; toBag?: boolean }
   | { kind: 'dinero'; id: string; title: string; desc: string; amount: number }

@@ -122,7 +122,6 @@ function holdFor(e: MatchEvent): number {
       if (e.step === 'definicion' && e.success) return 2600
       if (e.step === 'definicion' || e.technique || e.counter) return 3700
       return 500
-    case 'spirit':
     case 'burst':
     case 'stage': return 1100
     case 'kickoff':
@@ -143,7 +142,6 @@ function soundFor(e: MatchEvent): void {
       else if (e.technique || e.counter) play('supertecnica')
       else play('hit')
       break
-    case 'spirit':
     case 'burst': play('supertecnica'); break
     case 'kickoff':
     case 'halftime':
@@ -966,8 +964,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       void persistInazumaMeta({ signed: [opt.playerId] })
       message = `${getPlayerBase(opt.playerId).name} firma por el Raimon.`
     } else if (opt.kind === 'objeto') {
+      // Cartas de PAGO (la agenda del ojeador): si no llega el dinero, la
+      // carta no se gasta — se avisa y se sigue eligiendo.
+      if (opt.cost && next.coins < opt.cost) {
+        set({ message: `Te faltan ${(opt.cost - next.coins).toLocaleString('es-ES')} ₽ para eso.` })
+        return
+      }
+      if (opt.cost) next.coins -= opt.cost
       next.bag.push(opt.itemId)
-      message = `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila.`
+      message = opt.cost
+        ? `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila (−${opt.cost.toLocaleString('es-ES')} ₽).`
+        : `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila.`
     } else if (opt.kind === 'dinero') {
       next.coins += opt.amount
       message = `+${opt.amount.toLocaleString('es-ES')} ₽`
