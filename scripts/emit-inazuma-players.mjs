@@ -232,6 +232,13 @@ const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   const kind = KIND[position] ?? 'regate'
   const byId = new Map(all.map((t) => [t.id, t]))
+  // Puesto que ocupa cada técnica en SU moveset: es el orden en que las
+  // aprende en el juego, y es lo que manda al ordenar la cadena.
+  const canonRank = new Map()
+  hissatsu.forEach((h, i) => {
+    const id = slugTech(h)
+    if (!canonRank.has(id)) canonRank.set(id, i)
+  })
 
   const curated = (SIGNATURES[name] ?? []).filter((id) => byId.has(id))
 
@@ -267,7 +274,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
   }
   for (const id of [...realPrimary, ...realOther]) { if (merged.length < 4 && !merged.includes(id)) merged.push(id) }
 
-  if (merged.length >= 4) return sortSameKindAscending(merged.slice(0, 4), byId)
+  if (merged.length >= 4) return sortSameKindAscending(merged.slice(0, 4), byId, canonRank)
 
   // Relleno DETERMINISTA POR JUGADOR, cubriendo las clases que falten: la
   // cadena de un no-portero acaba con AL MENOS un tiro, un regate y un
@@ -295,7 +302,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
     const idx = Math.min(pool.length - 1, bandStart + ((h >>> (i * 5)) % (bandEnd - bandStart)))
     if (pool[idx]) picks.push(pool[idx].id)
   })
-  return sortSameKindAscending([...merged, ...picks].slice(0, 4), byId)
+  return sortSameKindAscending([...merged, ...picks].slice(0, 4), byId, canonRank)
 }
 
 /**
@@ -304,11 +311,22 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
  * igual tipo por potencia ascendente SIN mover sus huecos (el reparto de
  * tipos por hueco — y la rareza que lo desbloquea — no cambia).
  */
-function sortSameKindAscending(ids, byId) {
+function sortSameKindAscending(ids, byId, canonRank) {
   const out = ids.slice()
   for (const k of ['tiro', 'regate', 'bloqueo', 'parada']) {
     const slots = out.map((id, i) => ({ id, i })).filter((x) => byId.get(x.id)?.kind === k)
-    const sorted = slots.map((x) => x.id).sort((a, b) => byId.get(a).power - byId.get(b).power)
+    const sorted = slots.map((x) => x.id).sort((a, b) => {
+      // MANDA EL CANON: el orden del moveset del juego (Kevin Dragonfly
+      // aprende el Golpe de Dragón ANTES que el de Guiverno, aunque la
+      // potencia normalizada de la wiki diga lo contrario). La potencia solo
+      // desempata lo que el canon no ordena — el relleno inventado.
+      const ra = canonRank?.get(a)
+      const rb = canonRank?.get(b)
+      if (ra != null && rb != null) return ra - rb
+      if (ra != null) return -1
+      if (rb != null) return 1
+      return byId.get(a).power - byId.get(b).power
+    })
     slots.forEach((x, j) => { out[x.i] = sorted[j] })
   }
   return out

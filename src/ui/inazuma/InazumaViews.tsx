@@ -919,101 +919,99 @@ function PlayerDetail({
         </button>
         <PlayerCard player={player} />
 
-        {/* Las dos barras de la carta no se explican solas. En el playtest los
-            PT fueron lo más confuso del modo, así que se cuentan aquí mismo. */}
-        <div className="mt-2 rounded-xl border border-slate-700/70 bg-slate-800/40 px-2.5 py-2 text-[10px] text-slate-400 leading-relaxed">
-          <b className="text-sky-300">PT {Math.round(player.pt)}/{ptMax(player)}</b> — la gasolina de las
-          supertécnicas. Cada una cuesta lo que pone en su ficha y se descuenta al usarla. Sin PT
-          suficientes solo te queda el tiro sencillo. Se recuperan comiendo en el Rai Rai, con
-          bebidas y al terminar cada instituto. El depósito crece con el aguante.
-          <br />
-          <b className="text-emerald-300">AGU {Math.round(player.stamina)}/100</b> — el desgaste del
-          partido. Por debajo del 40 % rinde peor en todos los duelos.
-        </div>
-
+        {/* SUPERTÉCNICAS: una sola lista con su CADENA entera. Las que ya
+            tiene, con su potencia y coste reales; y a continuación las que le
+            quedan, con lo que le falta para despertarlas (nivel y rareza).
+            Antes eran dos apartados que decían casi lo mismo, y encima con
+            una parrafada explicando PT y aguante que ya nos sabemos. */}
         <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Supertécnicas</div>
         <div className="flex flex-col gap-1 mt-1">
-          {player.techniques.map((id) => {
-            const t = getTechnique(id)
-            if (!t) return null
-            const info = ELEMENT_INFO[t.element]
+          {(() => {
+            const chain = getPlayerBase(player.baseId).signature ?? []
+            // Lo aprendido primero (en el orden de su cadena, y lo que venga
+            // de fuera al final), y después lo que le queda por despertar.
+            const known = [
+              ...chain.filter((id) => player.techniques.includes(id)),
+              ...player.techniques.filter((id) => !chain.includes(id)),
+            ]
+            const pending = chain.filter((id) => !player.techniques.includes(id))
+            if (!known.length && !pending.length) {
+              return <div className="text-[11px] text-slate-600">Este jugador no tiene cadena de supertécnicas.</div>
+            }
             return (
-              <div key={id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
-                <TechniqueBadge tech={t} size={30} holder={player} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <TechIcons tech={t} className="w-3.5 h-3.5" />
-                    <span className="font-bold text-[12px]" style={{ color: info.color }}>
-                      {t.name}
-                      {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
-                    </span>
-                    {/* Potencia y coste EFECTIVOS (Mejoras aplicadas). */}
-                    <span className="text-[10px] text-slate-500">
-                      {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
-                    </span>
-                  </div>
-                  {t.desc && <div className="text-[10px] text-slate-500 italic truncate">{t.desc}</div>}
-                </div>
-              </div>
-            )
-          })}
-          {!player.techniques.length && (
-            <div className="text-[11px] text-slate-600">
-              Todavía no ha despertado ninguna. Su cadena empieza en las casillas de firma.
-            </div>
-          )}
-        </div>
-
-        {/* La CADENA característica: lo que este jugador puede llegar a
-            despertar, en orden, con lo pendiente en gris. Sin esto el sistema
-            de firmas sería una caja negra. */}
-        {(getPlayerBase(player.baseId).signature ?? []).length > 0 && (
-          <>
-            <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Su cadena</div>
-            <div className="mt-1 flex items-center gap-1 flex-wrap">
-              {(getPlayerBase(player.baseId).signature ?? []).map((id, i, arr) => {
-                const t = getTechnique(id)
-                if (!t) return null
-                const learnt = player.techniques.includes(id)
-                const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
-                // El paso i pide rareza i+1: el 2.º es de PLATA, el 3.º de ORO…
-                const needRarity = i + 1
-                const rarityLocked = rarityOf(player) < needRarity
-                const lvl = techLevel(player, id)
-                return (
-                  <span key={id} className="inline-flex items-center gap-1">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-lg px-1.5 py-1 ${
-                        learnt ? '' : 'opacity-55'
-                      }`}
-                      // El MARCO es la rareza que desbloquea el paso — y el 4.º
-                      // lleva el degradado de verdad, no un rosa plano.
-                      style={rarityChipStyle(needRarity, learnt ? 'rgba(217,70,239,0.08)' : 'rgba(30,41,59,0.45)')}
-                    >
-                      <TechniqueBadge tech={t} size={22} holder={player} />
-                      <TechIcons tech={t} className="w-2.5 h-2.5" />
-                      <span className={`text-[10px] font-bold ${learnt ? 'text-fuchsia-200' : 'text-slate-400'}`}>
-                        {t.name}
-                        {/* Las Mejoras aplicadas: V2, V3… */}
-                        {learnt && lvl > 0 && <span className="ml-1 text-amber-300">V{lvl + 1}</span>}
-                        {/* Qué le falta para despertar: nivel y/o rareza. */}
-                        {!learnt && (
-                          <span className="ml-1 text-slate-500">
-                            nv.{need}
-                            {rarityLocked && needRarity <= MAX_RARITY && (
-                              <span className="text-rose-300/90"> · {RARITY_LABEL[needRarity]}</span>
-                            )}
+              <>
+                {known.map((id) => {
+                  const t = getTechnique(id)
+                  if (!t) return null
+                  const info = ELEMENT_INFO[t.element]
+                  return (
+                    <div key={id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
+                      <TechniqueBadge tech={t} size={30} holder={player} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <TechIcons tech={t} className="w-3.5 h-3.5" />
+                          <span className="font-bold text-[12px]" style={{ color: info.color }}>
+                            {t.name}
+                            {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
                           </span>
-                        )}
-                      </span>
-                    </span>
-                    {i < arr.length - 1 && <Icon name="arrowRight" className="w-3 h-3 text-slate-600" />}
-                  </span>
-                )
-              })}
-            </div>
-          </>
-        )}
+                          {/* Potencia y coste EFECTIVOS (Mejoras aplicadas). */}
+                          <span className="text-[10px] text-slate-500">
+                            {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* LO QUE LE QUEDA, en el orden en que lo aprende, con el
+                    nivel y la rareza que abren cada paso. */}
+                {pending.map((id) => {
+                  const t = getTechnique(id)
+                  if (!t) return null
+                  const i = chain.indexOf(id)
+                  const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+                  // El paso i pide rareza i+1: el 2.º es de Avanzado, el 3.º de Ídolo…
+                  const needRarity = Math.min(MAX_RARITY, i + 1)
+                  const faltaNivel = player.level < need
+                  const faltaRareza = rarityOf(player) < needRarity
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 opacity-70"
+                      style={rarityChipStyle(needRarity, 'rgba(30,41,59,0.45)')}
+                    >
+                      <TechniqueBadge tech={t} size={30} holder={player} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <TechIcons tech={t} className="w-3.5 h-3.5" />
+                          <span className="font-bold text-[12px] text-slate-300">{t.name}</span>
+                          <span className="text-[10px] text-slate-500">{techniquePower(player, t)} pot.</span>
+                        </div>
+                        {/* Qué le falta EXACTAMENTE para despertarla. */}
+                        <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
+                          <span className={faltaNivel ? 'text-rose-300/90' : 'text-emerald-300/80'}>
+                            nivel {need}
+                          </span>
+                          <span className="text-slate-600">·</span>
+                          <span
+                            className="font-extrabold uppercase tracking-widest"
+                            style={{ color: faltaRareza ? rarityBorder(needRarity) : undefined }}
+                          >
+                            {RARITY_LABEL[needRarity]}
+                          </span>
+                          {!faltaNivel && !faltaRareza && (
+                            <span className="text-emerald-300/90">· lista para despertar</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )
+          })()}
+        </div>
 
         <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Equipamiento</div>
         {/* Con icono y QUÉ HACE cada pieza, al estilo PokéRogue: lo puesto se

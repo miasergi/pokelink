@@ -627,9 +627,51 @@ export function techLevel(p: PlayerInstance, techId: string): number {
  * mejoras no se notarían en el campo (que es justo el fallo que ya tuvimos con
  * los objetos de atributos).
  */
+/**
+ * Cuánto MÍNIMO gana un paso de cadena sobre el anterior. Sin esto, respetar
+ * el orden canónico dejaba cadenas que iban a peor.
+ */
+export const CHAIN_STEP_MIN_GAIN = 4
+
+/** ¿Existe esa ficha en el catálogo? (`getPlayerBase` lanza si no.) */
+const KNOWN_BASES = new Set(PLAYERS.map((p) => p.id))
+const PLAYER_BY_ID_HAS = (id: string) => KNOWN_BASES.has(id)
+
+/**
+ * POTENCIA DE UN PASO DE CADENA, con suelo.
+ *
+ * La cadena va en el orden del JUEGO (Kevin Dragonfly aprende el Golpe de
+ * Dragón antes que el de Guiverno), pero la potencia que trae la wiki mezcla
+ * versiones y no sirve de progresión: el Guiverno figura con 48 y el Dragón
+ * con 70, justo al revés de como se aprenden. Si se respeta el canon a pelo,
+ * el 88 % de las cadenas tenían algún paso MÁS FLOJO que el anterior — o sea,
+ * desbloquear te daba algo peor.
+ *
+ * Aquí se respeta el canon Y se garantiza la progresión: cada paso vale al
+ * menos lo que el mejor de los anteriores de SU cadena, más un margen.
+ */
+export function chainStepPower(baseId: string | undefined, techId: string, raw: number): number {
+  // Sin ficha conocida no hay cadena que respetar (actores de prueba, técnicas
+  // sueltas de partidas viejas…): se devuelve la potencia tal cual.
+  if (!baseId || !PLAYER_BY_ID_HAS(baseId)) return raw
+  const chain = getPlayerBase(baseId).signature ?? []
+  const i = chain.indexOf(techId)
+  if (i <= 0) return raw
+  let floor = 0
+  for (let k = 0; k < i; k++) {
+    const t = getTechnique(chain[k])
+    if (!t) continue
+    // El suelo se arrastra: cada paso ya viene con el suyo aplicado.
+    const p = Math.max(t.power, floor + CHAIN_STEP_MIN_GAIN)
+    if (p > floor) floor = p
+  }
+  return Math.max(raw, floor + CHAIN_STEP_MIN_GAIN)
+}
+
 export function techniquePower(p: PlayerInstance | undefined, tech: { id: string; power: number }): number {
   if (!p) return tech.power
-  return Math.round(tech.power * (1 + techLevel(p, tech.id) * TECH_LEVEL_BONUS))
+  const base = chainStepPower(p.baseId, tech.id, tech.power)
+  return Math.round(base * (1 + techLevel(p, tech.id) * TECH_LEVEL_BONUS))
 }
 
 /** ¿Se le puede aplicar una Mejora a esta técnica? */

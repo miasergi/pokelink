@@ -9,7 +9,7 @@ import type { RNG } from '@/utils/rng'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { elementMultiplier } from './elements'
 import type { Actor, ChainStep, Element, Stats, Technique } from './types'
-import { fatigueMultiplier, TECH_LEVEL_BONUS, techniqueCostFor } from './roster'
+import { chainStepPower, fatigueMultiplier, TECH_LEVEL_BONUS, techniqueCostFor } from './roster'
 
 /**
  * Resuelve una técnica EN MANOS DE UN ACTOR CONCRETO, con sus mejoras del
@@ -21,8 +21,12 @@ import { fatigueMultiplier, TECH_LEVEL_BONUS, techniqueCostFor } from './roster'
  * decorativos y valían cero medido con el bot.
  */
 export function actorTechnique(actor: Actor, id: string): Technique | undefined {
-  const t = getTechnique(id)
-  if (!t) return undefined
+  const t0 = getTechnique(id)
+  if (!t0) return undefined
+  // Suelo de CADENA: un paso nunca vale menos que los anteriores de la suya
+  // (el canon manda el orden, pero la progresión tiene que sostenerse).
+  const floored = chainStepPower(actor.baseId, id, t0.power)
+  const t = floored === t0.power ? t0 : { ...t0, power: floored }
   const lv = actor.techLevels?.[id] ?? 0
   if (!lv) return t
   // Más potencia Y más barata (ver `TECH_LEVEL_COST_CUT`): la resolución del
