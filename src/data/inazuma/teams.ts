@@ -30,17 +30,17 @@ import type { TeamBase } from '@/engine/inazuma/types'
 
 export const TEAMS: TeamBase[] = [
   {
-    id: 'raimon', name: 'Instituto Raimon', color: '#e11d48', element: 'montana', power: 1,
+    id: 'raimon', name: 'Instituto Raimon', color: '#e11d48', kit: ['#fbbf24', '#1d4ed8'], element: 'montana', power: 1,
     taunt: '¡Vamos, equipo! ¡Nos lo jugamos todo aquí!',
     lineup: [],
   },
   {
-    id: 'occult', name: 'Instituto Occult', color: '#7c3aed', element: 'bosque', power: 0.72,
+    id: 'occult', name: 'Instituto Occult', color: '#7c3aed', kit: ['#94a3b8', '#312e81'], element: 'bosque', power: 0.72,
     taunt: 'Este campo está maldito… y vosotros también.',
     lineup: [],
   },
   {
-    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', element: 'aire', power: 0.78,
+    id: 'otaku', name: 'Instituto Otaku', color: '#0ea5e9', kit: ['#bae6fd', '#0369a1'], element: 'aire', power: 0.78,
     taunt: 'Hemos calculado vuestras jugadas. Todas.',
     lineup: [],
   },
@@ -48,7 +48,7 @@ export const TEAMS: TeamBase[] = [
     // LEGACY: «Wild» resultó ser el mismo Nose que Farm (redirect de la wiki).
     // Se conserva para que los saves viejos no revienten, pero ya no entra en
     // ningún cuadro (no está en `SAGAS`).
-    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', element: 'montana', power: 0.84,
+    id: 'wild', name: 'Instituto Wild', color: '#ca8a04', kit: ['#d97706', '#78350f'], element: 'montana', power: 0.84,
     taunt: 'Aquí no se juega al fútbol. Aquí se sobrevive.',
     lineup: [],
   },
@@ -58,27 +58,27 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', element: 'aire', power: 0.89,
+    id: 'shuriken', name: 'Instituto Shuriken', color: '#334155', kit: ['#64748b', '#0f172a'], element: 'aire', power: 0.89,
     taunt: 'No nos veréis venir. Nunca lo hacen.',
     lineup: [],
   },
   {
-    id: 'farm', name: 'Instituto Farm', color: '#65a30d', element: 'bosque', power: 0.94,
+    id: 'farm', name: 'Instituto Farm', color: '#65a30d', kit: ['#86efac', '#166534'], element: 'bosque', power: 0.94,
     taunt: 'Llevamos madrugando desde los seis años. ¿Y vosotros?',
     lineup: [],
   },
   {
-    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', element: 'fuego', power: 1.02,
+    id: 'kirkwood', name: 'Instituto Kirkwood', color: '#f97316', kit: ['#fdba74', '#c2410c'], element: 'fuego', power: 1.02,
     taunt: 'Quemamos el campo entero si hace falta.',
     lineup: [],
   },
   {
-    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', element: 'bosque', power: 1.08,
+    id: 'royal', name: 'Royal Academy', color: '#1d4ed8', kit: ['#22c55e', '#b91c1c'], element: 'bosque', power: 1.08,
     taunt: 'El fútbol es una ciencia. Y vosotros no habéis estudiado.',
     lineup: [],
   },
   {
-    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', element: 'fuego', power: 1.15,
+    id: 'zeus', name: 'Instituto Zeus', color: '#facc15', kit: ['#f8fafc', '#a16207'], element: 'fuego', power: 1.15,
     taunt: 'Los dioses no pierden contra unos críos.',
     lineup: [],
   },
@@ -98,32 +98,32 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'gemini-storm', name: 'Tormenta Géminis', color: '#818cf8', element: 'aire', power: 0.86,
+    id: 'gemini-storm', name: 'Tormenta Géminis', color: '#818cf8', kit: ['#a5b4fc', '#3730a3'], element: 'aire', power: 0.86,
     taunt: 'Vuestro fútbol es de otro planeta. Del malo.',
     lineup: [],
   },
   {
-    id: 'epsilon', name: 'Épsilon', color: '#22d3ee', element: 'montana', power: 0.94,
+    id: 'epsilon', name: 'Épsilon', color: '#22d3ee', kit: ['#67e8f9', '#155e75'], element: 'montana', power: 0.94,
     taunt: 'Somos la segunda oleada. No habrá tercera: no hará falta.',
     lineup: [],
   },
   {
-    id: 'diamond-dust', name: 'Diamond Dust', color: '#7dd3fc', element: 'aire', power: 1.0,
+    id: 'diamond-dust', name: 'Diamond Dust', color: '#7dd3fc', kit: ['#e0f2fe', '#0284c7'], element: 'aire', power: 1.0,
     taunt: 'El hielo no negocia.',
     lineup: [],
   },
   {
-    id: 'prominence', name: 'Prominence', color: '#f97316', element: 'fuego', power: 1.05,
+    id: 'prominence', name: 'Prominence', color: '#f97316', kit: ['#fb923c', '#9a3412'], element: 'fuego', power: 1.05,
     taunt: 'Arded con nosotros o apartaos.',
     lineup: [],
   },
   {
-    id: 'chaos', name: 'Caos', color: '#a21caf', element: 'fuego', power: 1.1,
+    id: 'chaos', name: 'Caos', color: '#a21caf', kit: ['#e879f9', '#701a75'], element: 'fuego', power: 1.1,
     taunt: 'Fuego y hielo, juntos. No tenéis ninguna posibilidad.',
     lineup: [],
   },
   {
-    id: 'genesis', name: 'Génesis', color: '#6d28d9', element: 'aire', power: 1.15,
+    id: 'genesis', name: 'Génesis', color: '#6d28d9', kit: ['#c4b5fd', '#4c1d95'], element: 'aire', power: 1.15,
     taunt: 'Somos la obra maestra de la Academia Alius.',
     lineup: [],
   },
@@ -133,7 +133,7 @@ export const TEAMS: TeamBase[] = [
   // Internacional.
   // ------------------------------------------------------------------
   {
-    id: 'inazuma-japan', name: 'Inazuma Japan', color: '#1d4ed8', element: 'montana', power: 1,
+    id: 'inazuma-japan', name: 'Inazuma Japan', color: '#1d4ed8', kit: ['#3b82f6', '#f97316'], element: 'montana', power: 1,
     taunt: '¡Vamos a por el mundo, equipo!',
     lineup: [],
   },
@@ -163,17 +163,17 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'unicorn', name: 'Unicorn', color: '#2563eb', element: 'aire', power: 1.05,
+    id: 'unicorn', name: 'Unicorn', color: '#2563eb', kit: ['#dbeafe', '#1d4ed8'], element: 'aire', power: 1.05,
     taunt: 'Sueño americano, pesadilla vuestra.',
     lineup: [],
   },
   {
-    id: 'orpheus', name: 'Orpheus', color: '#0f766e', element: 'montana', power: 1.1,
+    id: 'orpheus', name: 'Orpheus', color: '#0f766e', kit: ['#2dd4bf', '#134e4a'], element: 'montana', power: 1.1,
     taunt: 'El fútbol nació aquí. Venid a aprender.',
     lineup: [],
   },
   {
-    id: 'little-gigant', name: 'Little Gigant', color: '#b91c1c', element: 'fuego', power: 1.15,
+    id: 'little-gigant', name: 'Little Gigant', color: '#b91c1c', kit: ['#ef4444', '#7f1d1d'], element: 'fuego', power: 1.15,
     taunt: 'Pequeños de nombre. Gigantes en el campo.',
     lineup: [],
   },

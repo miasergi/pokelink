@@ -19,7 +19,6 @@ import { Crest, KindIcon, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
-import { RARITY_LABEL } from '@/engine/inazuma/roster'
 import { ImgFallback } from '@/ui/components/kit'
 import type { Actor, ChainStep, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
@@ -725,7 +724,25 @@ function MatchSummary({ match }: { match: MatchState }) {
     if (e.kind === 'save') score.set(e.keeperUid, (score.get(e.keeperUid) ?? 0) + 1)
   }
   const mvpUid = [...score.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-  const goals = match.events.filter((e): e is Extract<MatchEvent, { kind: 'goal' }> => e.kind === 'goal')
+
+  // GOLES con su ASISTENCIA: el último pase de la misma posesión que acabó en
+  // los pies del goleador. Se busca hacia atrás y se corta en cualquier
+  // frontera de posesión (robo, gol, saque o una posesión nueva sin pase).
+  const assistFor = (goalIndex: number, scorerUid: string): string | null => {
+    for (let i = goalIndex - 1; i >= 0; i--) {
+      const e = match.events[i]
+      if (e.kind === 'turnover' || e.kind === 'goal' || e.kind === 'kickoff') return null
+      if (e.kind === 'possession') {
+        if (e.passToUid === scorerUid && e.passFromUid) return e.passFromUid
+        if (!e.passFromUid) return null
+      }
+    }
+    return null
+  }
+  const goals = match.events
+    .map((e, i) => ({ e, i }))
+    .filter((x): x is { e: Extract<MatchEvent, { kind: 'goal' }>; i: number } => x.e.kind === 'goal')
+    .map((x) => ({ ...x.e, assistUid: assistFor(x.i, x.e.scorerUid) }))
   const myGoals = goals.filter((g) => g.side === mineSide)
   const theirGoals = goals.filter((g) => g.side !== mineSide)
 
@@ -758,10 +775,10 @@ function MatchSummary({ match }: { match: MatchState }) {
       {goals.length > 0 && (
         <div className="mt-2 grid grid-cols-2 gap-1.5">
           <div className="flex flex-col gap-1">
-            {myGoals.map((g, i) => <ScorerCard key={`m${i}`} match={match} uid={g.scorerUid} minute={g.minute} mine />)}
+            {myGoals.map((g, i) => <ScorerCard key={`m${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} mine />)}
           </div>
           <div className="flex flex-col gap-1">
-            {theirGoals.map((g, i) => <ScorerCard key={`t${i}`} match={match} uid={g.scorerUid} minute={g.minute} />)}
+            {theirGoals.map((g, i) => <ScorerCard key={`t${i}`} match={match} uid={g.scorerUid} minute={g.minute} assistUid={g.assistUid} />)}
           </div>
         </div>
       )}
@@ -780,13 +797,15 @@ function MatchSummary({ match }: { match: MatchState }) {
 }
 
 /**
- * Tarjeta de goleador/MVP: retrato con anillo de rareza, nombre, posición,
- * elemento y el minuto del gol (o la corona del MVP).
+ * Tarjeta de goleador/MVP: retrato con anillo de rareza (el color del borde
+ * YA cuenta la rareza — sin etiqueta), posición, elemento, el minuto del gol
+ * y la ASISTENCIA si la hubo (o la estrella del MVP).
  */
-function ScorerCard({ match, uid, minute, mine, mvp }: {
+function ScorerCard({ match, uid, minute, assistUid, mine, mvp }: {
   match: MatchState
   uid: string
   minute?: number
+  assistUid?: string | null
   mine?: boolean
   mvp?: boolean
 }) {
@@ -794,6 +813,7 @@ function ScorerCard({ match, uid, minute, mine, mvp }: {
   if (!a) return null
   const info = ELEMENT_INFO[a.element]
   const tier = a.rarity ?? 1
+  const assist = assistUid ? actorByUid(match, assistUid) : null
   return (
     <div className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 ${
       mvp ? 'border-amber-500/60 bg-amber-500/10' : mine ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-rose-500/40 bg-rose-500/5'
@@ -815,10 +835,10 @@ function ScorerCard({ match, uid, minute, mine, mvp }: {
         <div className="flex items-center gap-1 text-[9px] text-slate-400">
           <span className="font-extrabold text-slate-300">{a.position}</span>
           <Icon name={info.icon} className="w-2.5 h-2.5" style={{ color: info.color }} />
-          <span className="font-extrabold uppercase tracking-wide" style={{ color: rarityBorder(tier) }}>
-            {RARITY_LABEL[tier]}
-          </span>
         </div>
+        {assist && (
+          <div className="text-[9px] text-sky-300/90 truncate">asist. {assist.name}</div>
+        )}
       </div>
       {minute != null && (
         <span className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-extrabold tabular-nums text-slate-300">

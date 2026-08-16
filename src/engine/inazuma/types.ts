@@ -153,9 +153,11 @@ export interface TeamBase {
   name: string
   /** Color principal del escudo/uniforme (hex). */
   color: string
+  /** Colores de la CAMISETA (principal y secundario), para el césped. */
+  kit?: [string, string]
   element: Element
   /** Frase del entrenador rival antes del partido. */
-  taunt: string
+  taunt?: string
   /** Ids de `PlayerBase` que forman su once. Se rellena si faltan. */
   lineup: string[]
   /** Multiplicador de dificultad sobre el nivel del rival. */

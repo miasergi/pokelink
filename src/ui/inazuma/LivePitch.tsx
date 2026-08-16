@@ -284,8 +284,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest }:
             en degradado tipo camiseta), con el escudo encima. */}
         {(() => {
           const jersey = (crest: string | undefined, fallback: string) => {
-            const c = (crest ? TEAM_BY_ID.get(crest)?.color : undefined) ?? fallback
-            return `linear-gradient(135deg, ${c} 0%, ${c} 45%, rgba(15,23,42,0.55) 100%)`
+            // Los colores de la CAMISETA del equipo (Raimon amarillo/azul,
+            // Royal verde/rojo…); sin kit definido, su color de escudo.
+            const team = crest ? TEAM_BY_ID.get(crest) : undefined
+            const [c1, c2] = team?.kit ?? [team?.color ?? fallback, 'rgba(15,23,42,0.55)']
+            return `linear-gradient(135deg, ${c1} 0%, ${c1} 48%, ${c2} 100%)`
           }
           const mineBg = jersey(myCrest, home.color)
           const theirBg = jersey(theirCrest, away.color)
