@@ -25,6 +25,13 @@ const OUT_DIR = join(ROOT, 'public', 'inazuma', 'players')
 const SOURCE = join(ROOT, 'src', 'data', 'inazuma', 'players.ts')
 const API = 'https://inazuma-eleven.fandom.com/api.php'
 const THUMB_SIZE = 256
+
+/**
+ * VETADOS: su única imagen en la wiki es una foto CON FONDO y no existe sprite
+ * transparente. Se borraron a mano (la carta con iniciales queda mejor) y este
+ * script los resucitaba en cada pasada — de ahí la lista.
+ */
+const DENYLIST = new Set(['shark-shooter', 'surf-club'])
 // Fandom rechaza el User-Agent por defecto de Node en algunas rutas.
 const UA = 'pokelink-inazuma-portraits/1.0 (script de un solo uso; contacto: repo owner)'
 
@@ -89,7 +96,8 @@ function firstThumb(json) {
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })
   const roster = await readRoster()
-  const targets = only.size ? roster.filter((p) => only.has(p.id)) : roster
+  const targets = (only.size ? roster.filter((p) => only.has(p.id)) : roster)
+    .filter((p) => !DENYLIST.has(p.id))
   if (!targets.length) {
     console.error('No hay jugadores que descargar. ¿Ids correctos?')
     process.exit(1)

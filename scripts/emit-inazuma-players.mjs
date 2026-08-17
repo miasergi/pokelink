@@ -316,9 +316,18 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
 
   const picks = []
   wanted.forEach((k, i) => {
-    const pool = fillPool
+    // Primero las de SU época; si esa combinación de clase y elemento no da
+    // (el catálogo de VR es corto en algunos cruces), se cae al catálogo
+    // completo: mejor una técnica clásica que una cadena coja de 2 pasos —
+    // que es justo lo que pasaba con 44 jugadores de Victory Road.
+    let pool = fillPool
       .filter((t) => t.kind === k && t.element === element && !merged.includes(t.id) && !picks.includes(t.id))
       .sort((a, b) => a.power - b.power)
+    if (!pool.length) {
+      pool = all
+        .filter((t) => t.kind === k && t.element === element && !merged.includes(t.id) && !picks.includes(t.id))
+        .sort((a, b) => a.power - b.power)
+    }
     if (!pool.length) return
     const slot = merged.length + i
     const bandStart = Math.floor((pool.length * slot) / 4)

@@ -143,6 +143,15 @@ describe('plantilla', () => {
       .toBeGreaterThan(base.mios)
   })
 
+  it('TODA cadena tiene sus 4 pasos (nadie se queda a medias)', () => {
+    // 44 jugadores de Victory Road salían con cadenas de 1-3 pasos: el relleno
+    // estaba limitado al pool de técnicas de su época, corto en algunos cruces
+    // de clase y elemento. Ahora cae al catálogo completo antes que dejar
+    // huecos — y esto vigila que no vuelva a pasar.
+    const cortas = PLAYERS.filter((p) => (p.signature ?? []).length < 4)
+    expect(cortas.map((p) => `${p.name} (${(p.signature ?? []).length})`)).toHaveLength(0)
+  })
+
   it('cada jugador lleva SUS supertécnicas, no un relleno', () => {
     // Edgar Partinus tiene que llevar Excalibur. Salía sin ella porque la wiki
     // guarda los movesets en `Module:Moveset/Users` y de la ficha del

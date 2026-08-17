@@ -272,8 +272,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'juno-hundertmark', name: 'Juno Hundertmark', team: 'shuriken', position: 'DEF', element: 'aire', fame: 5,
     stats: { tiro: 30, control: 57, fisico: 94, defensa: 105, velocidad: 49, aguante: 52 },
-    techniques: ['blade-attack', 'corodra-shoot'],
-    signature: ['blade-attack', 'corodra-shoot', 'aikidou', 'ice-ground'],
+    techniques: ['blade-attack', 'condor-dive'],
+    signature: ['blade-attack', 'condor-dive', 'aikidou', 'shinkuuma'],
   },
   {
     id: 'newton-flust', name: 'Newton Flust', team: 'shuriken', position: 'DEF', element: 'montana', fame: 4,
@@ -284,8 +284,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'oleander-meadows', name: 'Oleander Meadows', team: 'shuriken', position: 'DEF', element: 'montana', fame: 4,
     stats: { tiro: 29, control: 46, fisico: 82, defensa: 92, velocidad: 37, aguante: 44 },
-    techniques: ['block-circus', 'kurukuru-head'],
-    signature: ['block-circus', 'kurukuru-head', 'mogura-feint', 'iron-wall'],
+    techniques: ['shikofumi', 'jumping-thunder'],
+    signature: ['shikofumi', 'jumping-thunder', 'mogura-feint', 'kagome-kagome'],
   },
   {
     id: 'galen-thunderbird', name: 'Galen Thunderbird', team: 'shuriken', position: 'DEF', element: 'montana', fame: 3,
@@ -320,8 +320,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'thierry-reyes', name: 'Thierry Reyes', team: 'shuriken', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 45, control: 78, fisico: 37, defensa: 47, velocidad: 45, aguante: 38 },
-    techniques: ['dash-accel'],
-    signature: ['dash-accel', 'kamikakushi', 'roadroller-tackle', 'triple-dash'],
+    techniques: ['monkey-turn'],
+    signature: ['monkey-turn', 'jumping-thunder', 'stone-prison', 'toumei-feint'],
   },
   {
     id: 'hank-sullivan', name: 'Hank Sullivan', team: 'shuriken', position: 'MED', element: 'bosque', fame: 2,
@@ -339,7 +339,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'kevin-castle', name: 'Kevin Castle', team: 'shuriken', position: 'POR', element: 'aire', fame: 2,
     stats: { tiro: 18, control: 36, fisico: 44, defensa: 68, velocidad: 31, aguante: 46 },
     techniques: ['great-barrier-reef'],
-    signature: ['great-barrier-reef', 'swan-dive', 'galatyn', 'ijigen-the-hand'],
+    signature: ['great-barrier-reef', 'kogarashi', 'electrap', 'ijigen-the-hand'],
   },
   {
     id: 'john-reynolds', name: 'John Reynolds', team: 'shuriken', position: 'DEL', element: 'aire', fame: 1,
@@ -382,7 +382,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'leonard-o-shea', name: 'Leonard O\'Shea', team: 'farm', position: 'DEF', element: 'montana', fame: 3,
     stats: { tiro: 30, control: 38, fisico: 64, defensa: 75, velocidad: 36, aguante: 38 },
     techniques: ['gravitation'],
-    signature: ['gravitation', 'jumping-thunder', 'scissors-bomb', 'kagome-kagome'],
+    signature: ['gravitation', 'megane-crash', 'scissors-bomb', 'ground-quake'],
   },
   {
     id: 'cham-lion', name: 'Cham Lion', team: 'farm', position: 'MED', element: 'aire', fame: 3,
@@ -424,7 +424,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'chad-bullford', name: 'Chad Bullford', team: 'farm', position: 'DEF', element: 'fuego', fame: 2,
     stats: { tiro: 23, control: 30, fisico: 62, defensa: 66, velocidad: 32, aguante: 32 },
     techniques: ['rolling-slide'],
-    signature: ['rolling-slide', 'shikofumi', 'monkey-turn', 'fire-tornado'],
+    signature: ['rolling-slide', 'shikofumi', 'monkey-turn', 'tiger-storm'],
   },
   {
     id: 'alan-coe', name: 'Alan Coe', team: 'farm', position: 'MED', element: 'bosque', fame: 1,
@@ -600,7 +600,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'alessandro-il-grande', name: 'Alessandro il Grande', team: 'royal', position: 'POR', element: 'montana', fame: 2,
     stats: { tiro: 20, control: 36, fisico: 41, defensa: 68, velocidad: 30, aguante: 44 },
     techniques: ['chabudai-gaeshi'],
-    signature: ['chabudai-gaeshi', 'colosseo-guard', 'god-catch', 'mugen-the-hand'],
+    signature: ['chabudai-gaeshi', 'colosseo-guard', 'omega-the-hand', 'capoeira-snatch'],
   },
   {
     id: 'cliff-tomlinson', name: 'Cliff Tomlinson', team: 'royal', position: 'DEL', element: 'aire', fame: 2,
@@ -679,7 +679,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'iggy-russ', name: 'Iggy Russ', team: 'zeus', position: 'POR', element: 'aire', fame: 2,
     stats: { tiro: 24, control: 29, fisico: 40, defensa: 76, velocidad: 32, aguante: 43 },
     techniques: ['tsunami-wall'],
-    signature: ['tsunami-wall', 'galatyn', 'power-shield', 'seigi-no-tekken'],
+    signature: ['tsunami-wall', 'galatyn', 'power-shield', 'high-voltage'],
   },
   {
     id: 'gus-heeley', name: 'Gus Heeley', team: 'zeus', position: 'DEL', element: 'montana', fame: 2,
@@ -697,8 +697,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'walt-riverside', name: 'Walt Riverside', team: 'kfc', position: 'MED', element: 'aire', fame: 5,
     stats: { tiro: 57, control: 105, fisico: 48, defensa: 56, velocidad: 67, aguante: 44 },
-    techniques: ['kamaitachi', 'revolution-v'],
-    signature: ['kamaitachi', 'revolution-v', 'go-to-heaven', 'heaven-s-time'],
+    techniques: ['tatsumaki-senpuu', 'spiral-shot'],
+    signature: ['tatsumaki-senpuu', 'spiral-shot', 'go-to-heaven', 'shippuu-dash'],
   },
   {
     id: 'robert-silver', name: 'Robert Silver', team: 'kfc', position: 'DEF', element: 'aire', fame: 4,
@@ -709,8 +709,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'earl-eton', name: 'Earl Eton', team: 'kfc', position: 'MED', element: 'bosque', fame: 4,
     stats: { tiro: 53, control: 94, fisico: 42, defensa: 55, velocidad: 58, aguante: 38 },
-    techniques: ['zanzou', 'bunshin-shoot'],
-    signature: ['zanzou', 'bunshin-shoot', 'demon-cut', 'illusion-ball'],
+    techniques: ['zanzou', 'koutei-penguin-1gou'],
+    signature: ['zanzou', 'koutei-penguin-1gou', 'rock-wall-dam', 'southern-crosscut'],
   },
   {
     id: 'sothern-newman', name: 'Sothern Newman', team: 'kfc', position: 'DEF', element: 'montana', fame: 3,
@@ -721,8 +721,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'irwin-hall', name: 'Irwin Hall', team: 'kfc', position: 'MED', element: 'bosque', fame: 3,
     stats: { tiro: 39, control: 81, fisico: 35, defensa: 47, velocidad: 45, aguante: 32 },
-    techniques: ['zanzou'],
-    signature: ['zanzou', 'koutei-penguin-1gou', 'rock-wall-dam', 'southern-crosscut'],
+    techniques: ['warp-drive'],
+    signature: ['warp-drive', 'koutei-penguin-1gou', 'asteroid-belt', 'killer-fields'],
   },
   {
     id: 'taylor-higgins', name: 'Taylor Higgins', team: 'kfc', position: 'MED', element: 'aire', fame: 3,
@@ -751,8 +751,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'verity-billows', name: 'Verity Billows', team: 'kfc', position: 'MED', element: 'bosque', fame: 2,
     stats: { tiro: 34, control: 62, fisico: 29, defensa: 43, velocidad: 44, aguante: 29 },
-    techniques: ['super-scan-of'],
-    signature: ['super-scan-of', 'mirage-shoot', 'asteroid-belt', 'southern-crosscut'],
+    techniques: ['zanzou'],
+    signature: ['zanzou', 'card-buster', 'rock-wall-dam', 'southern-crosscut'],
   },
   {
     id: 'bart-grantham', name: 'Bart Grantham', team: 'kfc', position: 'DEF', element: 'bosque', fame: 2,
@@ -782,14 +782,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'chad-taylor', name: 'Chad Taylor', team: 'oumihara', position: 'DEF', element: 'aire', fame: 4,
     stats: { tiro: 31, control: 43, fisico: 81, defensa: 93, velocidad: 38, aguante: 42 },
-    techniques: ['cyclone', 'corodra-shoot'],
-    signature: ['cyclone', 'corodra-shoot', 'tamanori-pierrot', 'senpuujin'],
+    techniques: ['coil-turn', 'tsunami-boost'],
+    signature: ['coil-turn', 'tsunami-boost', 'tamanori-pierrot', 'shinkuuma'],
   },
   {
     id: 'victor-hills', name: 'Victor Hills', team: 'oumihara', position: 'DEF', element: 'montana', fame: 4,
     stats: { tiro: 30, control: 44, fisico: 80, defensa: 93, velocidad: 44, aguante: 43 },
     techniques: ['no-escape', 'shikofumi'],
-    signature: ['no-escape', 'shikofumi', 'earthquake', 'heaven-drive'],
+    signature: ['no-escape', 'shikofumi', 'earthquake', 'unicorn-boost'],
   },
   {
     id: 'hurley-kane', name: 'Hurley Kane', team: 'oumihara', position: 'DEF', element: 'aire', fame: 3,
@@ -836,8 +836,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'shark-shooter', name: 'Shark Shooter', team: 'oumihara', position: 'DEL', element: 'aire', fame: 2,
     stats: { tiro: 77, control: 47, fisico: 32, defensa: 22, velocidad: 44, aguante: 26 },
-    techniques: ['inazuma-otoshi'],
-    signature: ['inazuma-otoshi', 'water-veil', 'go-to-heaven', 'the-birth'],
+    techniques: ['spinning-shoot'],
+    signature: ['spinning-shoot', 'tamanori-pierrot', 'spinning-cut', 'wolf-legend'],
   },
   {
     id: 'gaston-cooley', name: 'Gaston Cooley', team: 'oumihara', position: 'POR', element: 'aire', fame: 2,
@@ -903,8 +903,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'samuel-buster', name: 'Samuel Buster', team: 'mikage', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 41, control: 77, fisico: 34, defensa: 42, velocidad: 49, aguante: 30 },
-    techniques: ['judge-through'],
-    signature: ['judge-through', 'tsuutenkaku-shoot', 'super-shikofumi', 'lightning-accel'],
+    techniques: ['judge-through-2'],
+    signature: ['judge-through-2', 'dynamite-shoot', 'super-shikofumi', 'the-ikaros'],
   },
   {
     id: 'jonathan-seller', name: 'Jonathan Seller', team: 'mikage', position: 'DEL', element: 'aire', fame: 3,
@@ -915,14 +915,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'ujin-shin', name: 'Ujin Shin', team: 'mikage', position: 'DEF', element: 'fuego', fame: 2,
     stats: { tiro: 25, control: 32, fisico: 55, defensa: 63, velocidad: 30, aguante: 35 },
-    techniques: ['shooting-star'],
-    signature: ['shooting-star', 'dokonjou-bat', 'boost-glider', 'photon-flash'],
+    techniques: ['fake-bomber'],
+    signature: ['fake-bomber', 'dragon-cannon', 'reppuu-dash', 'jibashiri-kaen'],
   },
   {
     id: 'neil-turner', name: 'Neil Turner', team: 'mikage', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 68, control: 53, fisico: 37, defensa: 22, velocidad: 40, aguante: 28 },
-    techniques: ['shine-drive'],
-    signature: ['shine-drive', 'dog-run', 'super-shikofumi', 'fire-tornado'],
+    techniques: ['meteor-attack'],
+    signature: ['meteor-attack', 'judge-through-2', 'zigzag-flame', 'the-galaxy'],
   },
   {
     id: 'reg-underwood', name: 'Reg Underwood', team: 'mikage', position: 'MED', element: 'bosque', fame: 2,
@@ -982,8 +982,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'berdy-caster', name: 'Berdy Caster', team: 'manyuuji', position: 'DEL', element: 'bosque', fame: 3,
     stats: { tiro: 84, control: 60, fisico: 38, defensa: 21, velocidad: 47, aguante: 26 },
-    techniques: ['dual-strike'],
-    signature: ['dual-strike', 'tatsumaki-dokugiri', 'rock-wall-dam', 'gran-fenrir'],
+    techniques: ['bunshin-shoot'],
+    signature: ['bunshin-shoot', 'noroi', 'demon-cut', 'ganymede-proton'],
   },
   {
     id: 'lee-dinglite', name: 'Lee Dinglite', team: 'manyuuji', position: 'MED', element: 'bosque', fame: 3,
@@ -1032,7 +1032,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'darren-lachance', name: 'Darren LaChance', team: 'yokato', position: 'POR', element: 'bosque', fame: 5,
     stats: { tiro: 31, control: 48, fisico: 61, defensa: 117, velocidad: 48, aguante: 71 },
     techniques: ['god-hand', 'mugen-the-hand'],
-    signature: ['god-hand', 'mugen-the-hand', 'maou-the-hand', 'wormhole'],
+    signature: ['god-hand', 'mugen-the-hand', 'maou-the-hand', 'bunshin-block'],
   },
   {
     id: 'drancis-fake', name: 'Drancis Fake', team: 'yokato', position: 'DEF', element: 'aire', fame: 4,
@@ -1184,7 +1184,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'dave-quagmire', name: 'Dave Quagmire', team: 'epsilon', position: 'POR', element: 'montana', fame: 5,
     stats: { tiro: 31, control: 46, fisico: 62, defensa: 111, velocidad: 51, aguante: 69 },
     techniques: ['drill-smasher', 'wormhole'],
-    signature: ['drill-smasher', 'wormhole', 'ikari-no-tettsui', 'mugen-the-hand'],
+    signature: ['drill-smasher', 'wormhole', 'ikari-no-tettsui', 'gigant-wall'],
   },
   {
     id: 'craven-kenville', name: 'Craven Kenville', team: 'epsilon', position: 'DEF', element: 'fuego', fame: 4,
@@ -1251,7 +1251,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'ben-north', name: 'Ben North', team: 'diamond-dust', position: 'POR', element: 'montana', fame: 5,
     stats: { tiro: 32, control: 52, fisico: 67, defensa: 110, velocidad: 45, aguante: 67 },
     techniques: ['ice-block', 'wormhole'],
-    signature: ['ice-block', 'wormhole', 'tornado-catch', 'gigant-wall'],
+    signature: ['ice-block', 'wormhole', 'tornado-catch', 'god-catch'],
   },
   {
     id: 'alan-downhill', name: 'Alan Downhill', team: 'diamond-dust', position: 'DEF', element: 'aire', fame: 4,
@@ -1518,7 +1518,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'shawn-froste', name: 'Shawn Froste', team: 'inazuma-japan', position: 'DEL', element: 'aire', fame: 2,
     stats: { tiro: 69, control: 55, fisico: 34, defensa: 23, velocidad: 41, aguante: 27 },
     techniques: ['wolf-legend'],
-    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'ribbon-shower'],
+    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'shippuu-dash'],
   },
   {
     id: 'austin-hobbes', name: 'Austin Hobbes', team: 'inazuma-japan', position: 'DEL', element: 'bosque', fame: 1,
@@ -1537,7 +1537,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'gene-whalon', name: 'Gene Whalon', team: 'big-waves', position: 'POR', element: 'aire', fame: 5,
     stats: { tiro: 30, control: 48, fisico: 66, defensa: 110, velocidad: 45, aguante: 72 },
     techniques: ['great-barrier-reef', 'tsunami-wall'],
-    signature: ['great-barrier-reef', 'tsunami-wall', 'galatyn', 'seigi-no-tekken'],
+    signature: ['great-barrier-reef', 'tsunami-wall', 'ice-block', 'holy-zone'],
   },
   {
     id: 'water', name: 'Water', team: 'big-waves', position: 'DEF', element: 'aire', fame: 4,
@@ -1578,8 +1578,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'surf-club', name: 'Surf Club', team: 'big-waves', position: 'MED', element: 'aire', fame: 3,
     stats: { tiro: 39, control: 75, fisico: 38, defensa: 43, velocidad: 52, aguante: 38 },
-    techniques: ['tatsumaki-senpuu'],
-    signature: ['tatsumaki-senpuu', 'inazuma-1gou', 'the-tower', 'air-ride'],
+    techniques: ['kamaitachi'],
+    signature: ['kamaitachi', 'space-penguin', 'spinning-cut', 'shippuu-dash'],
   },
   {
     id: 'dolph-hensen', name: 'Dolph Hensen', team: 'big-waves', position: 'MED', element: 'aire', fame: 3,
@@ -1603,7 +1603,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'quincy-horace', name: 'Quincy Horace', team: 'big-waves', position: 'POR', element: 'bosque', fame: 2,
     stats: { tiro: 19, control: 29, fisico: 46, defensa: 73, velocidad: 27, aguante: 41 },
     techniques: ['great-barrier-reef'],
-    signature: ['great-barrier-reef', 'ice-block', 'shoot-pocket', 'bunshin-block'],
+    signature: ['great-barrier-reef', 'ice-block', 'shoot-pocket', 'maou-the-hand'],
   },
   {
     id: 'summer', name: 'Summer', team: 'big-waves', position: 'MED', element: 'fuego', fame: 1,
@@ -1682,7 +1682,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'majdi-ismail', name: 'Majdi Ismail', team: 'desert-lion', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 73, control: 48, fisico: 38, defensa: 19, velocidad: 38, aguante: 28 },
     techniques: ['mirage-shoot'],
-    signature: ['mirage-shoot', 'run-ball-run', 'dual-pass', 'sigma-zone'],
+    signature: ['mirage-shoot', 'run-ball-run', 'maboroshi-dribble', 'sigma-zone'],
   },
   {
     id: 'talal-hamad', name: 'Talal Hamad', team: 'desert-lion', position: 'POR', element: 'montana', fame: 2,
@@ -1712,50 +1712,50 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'jeongsu-cho', name: 'Jeongsu Cho', team: 'fire-dragon', position: 'POR', element: 'bosque', fame: 4,
     stats: { tiro: 32, control: 44, fisico: 60, defensa: 95, velocidad: 44, aguante: 59 },
-    techniques: ['yugamu-kuukan', 'the-end'],
-    signature: ['yugamu-kuukan', 'the-end', 'ijigen-the-hand', 'maou-the-hand'],
+    techniques: ['killer-blade', 'slash-nail'],
+    signature: ['killer-blade', 'slash-nail', 'ijigen-the-hand', 'bunshin-block'],
   },
   {
     id: 'umi-hwang', name: 'Umi Hwang', team: 'fire-dragon', position: 'DEF', element: 'aire', fame: 4,
     stats: { tiro: 26, control: 50, fisico: 78, defensa: 93, velocidad: 38, aguante: 47 },
-    techniques: ['whale-guard', 'divine-arrow'],
-    signature: ['whale-guard', 'divine-arrow', 'big-card', 'senpuujin'],
+    techniques: ['cyclone', 'revolution-v'],
+    signature: ['cyclone', 'revolution-v', 'aikidou', 'ice-ground'],
   },
   {
     id: 'dooyoon-hong', name: 'Dooyoon Hong', team: 'fire-dragon', position: 'DEF', element: 'aire', fame: 3,
     stats: { tiro: 29, control: 38, fisico: 68, defensa: 73, velocidad: 34, aguante: 38 },
-    techniques: ['cyclone'],
-    signature: ['cyclone', 'inazuma-1gou', 'fuujin-no-mai', 'ice-ground'],
+    techniques: ['frozen-steal'],
+    signature: ['frozen-steal', 'divine-arrow', 'aikidou', 'shinkuuma'],
   },
   {
     id: 'minho-cho', name: 'Minho Cho', team: 'fire-dragon', position: 'DEF', element: 'fuego', fame: 3,
     stats: { tiro: 30, control: 38, fisico: 67, defensa: 76, velocidad: 32, aguante: 42 },
-    techniques: ['sabaki-no-tettsui'],
-    signature: ['sabaki-no-tettsui', 'dynamite-shoot', 'liar-shot', 'photon-flash'],
+    techniques: ['shooting-star'],
+    signature: ['shooting-star', 'dragon-cannon', 'hitori-one-two', 'photon-flash'],
   },
   {
     id: 'songhwan-ko', name: 'Songhwan Ko', team: 'fire-dragon', position: 'DEF', element: 'bosque', fame: 3,
     stats: { tiro: 26, control: 37, fisico: 71, defensa: 76, velocidad: 37, aguante: 37 },
-    techniques: ['onryou'],
-    signature: ['onryou', 'death-zone', 'maboroshi-dribble', 'sigma-zone'],
+    techniques: ['quick-draw'],
+    signature: ['quick-draw', 'card-buster', 'tatsumaki-dokugiri', 'good-smell'],
   },
   {
     id: 'paekyeong-park', name: 'Paekyeong Park', team: 'fire-dragon', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 42, control: 78, fisico: 36, defensa: 49, velocidad: 50, aguante: 31 },
-    techniques: ['super-armadillo'],
-    signature: ['super-armadillo', 'jumping-thunder', 'barbarian-no-tate', 'super-elastico'],
+    techniques: ['dash-accel'],
+    signature: ['dash-accel', 'jumping-thunder', 'roadroller-tackle', 'jigoku-guruma'],
   },
   {
     id: 'changsu-choi', name: 'Changsu Choi', team: 'fire-dragon', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 47, control: 73, fisico: 35, defensa: 48, velocidad: 51, aguante: 30 },
-    techniques: ['judge-through'],
-    signature: ['judge-through', 'dokonjou-bat', 'jibashiri-kaen', 'fuusen-gum'],
+    techniques: ['heat-tackle'],
+    signature: ['heat-tackle', 'dynamite-shoot', 'super-shikofumi', 'the-ikaros'],
   },
   {
     id: 'eunyeong-kim', name: 'Eunyeong Kim', team: 'fire-dragon', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 40, control: 79, fisico: 41, defensa: 50, velocidad: 49, aguante: 32 },
-    techniques: ['super-armadillo'],
-    signature: ['super-armadillo', 'jumping-thunder', 'roadroller-tackle', 'toumei-feint'],
+    techniques: ['mogura-shuffle'],
+    signature: ['mogura-shuffle', 'kamikakushi', 'stone-prison', 'toumei-feint'],
   },
   {
     id: 'claude-beacons-2', name: 'Claude Beacons', team: 'fire-dragon', position: 'DEL', element: 'fuego', fame: 2,
@@ -1773,26 +1773,26 @@ export const PLAYERS: PlayerBase[] = [
     id: 'chi-won-ho', name: 'Chi-Won Ho', team: 'fire-dragon', position: 'POR', element: 'aire', fame: 2,
     stats: { tiro: 26, control: 32, fisico: 40, defensa: 71, velocidad: 34, aguante: 46 },
     techniques: ['great-barrier-reef'],
-    signature: ['great-barrier-reef', 'kogarashi', 'needle-hammer', 'hanafubuki'],
+    signature: ['great-barrier-reef', 'kogarashi', 'ice-block', 'holy-zone'],
   },
   {
     id: 'dong-hyun-seul', name: 'Dong-Hyun Seul', team: 'fire-dragon', position: 'DEF', element: 'fuego', fame: 1,
     stats: { tiro: 18, control: 26, fisico: 52, defensa: 56, velocidad: 21, aguante: 32 },
-    techniques: ['shooting-star'],
-    signature: ['shooting-star', 'honoo-no-kazamidori', 'fuusen-gum', 'jibashiri-kaen'],
+    techniques: ['sabaki-no-tettsui'],
+    signature: ['sabaki-no-tettsui', 'tsuutenkaku-shoot', 'reppuu-dash', 'photon-flash'],
   },
   {
     id: 'jung-hoon-yi', name: 'Jung-Hoon Yi', team: 'fire-dragon', position: 'MED', element: 'bosque', fame: 1,
     stats: { tiro: 30, control: 51, fisico: 25, defensa: 28, velocidad: 33, aguante: 26 },
-    techniques: ['warp-drive'],
-    signature: ['warp-drive', 'mirage-shoot', 'demon-cut', 'killer-fields'],
+    techniques: ['zanzou'],
+    signature: ['zanzou', 'death-zone-2', 'rock-wall-dam', 'southern-crosscut'],
   },
   // ============================== THE-EMPIRE
   {
     id: 'jorge-ortega', name: 'Jorge Ortega', team: 'the-empire', position: 'POR', element: 'fuego', fame: 5,
     stats: { tiro: 33, control: 46, fisico: 63, defensa: 109, velocidad: 51, aguante: 68 },
     techniques: ['million-hands', 'storm-rider'],
-    signature: ['million-hands', 'storm-rider', 'mugen-no-kabe', 'shootrap'],
+    signature: ['million-hands', 'storm-rider', 'mugen-no-kabe', 'god-hand-x'],
   },
   {
     id: 'thiago-torres', name: 'Thiago Torres', team: 'the-empire', position: 'DEF', element: 'fuego', fame: 4,
@@ -1827,8 +1827,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'roberto-torres', name: 'Roberto Torres', team: 'the-empire', position: 'MED', element: 'aire', fame: 3,
     stats: { tiro: 39, control: 75, fisico: 34, defensa: 50, velocidad: 47, aguante: 31 },
-    techniques: ['tatsumaki-senpuu'],
-    signature: ['tatsumaki-senpuu', 'tsunami-boost', 'the-tower', 'ribbon-shower'],
+    techniques: ['oouchiwa'],
+    signature: ['oouchiwa', 'inazuma-otoshi', 'go-to-heaven', 'heaven-s-time'],
   },
   {
     id: 'pablo', name: 'Pablo', team: 'the-empire', position: 'MED', element: 'aire', fame: 3,
@@ -1852,7 +1852,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'lionel-cruz', name: 'Lionel Cruz', team: 'the-empire', position: 'POR', element: 'aire', fame: 2,
     stats: { tiro: 19, control: 32, fisico: 43, defensa: 71, velocidad: 28, aguante: 44 },
     techniques: ['power-shield'],
-    signature: ['power-shield', 'full-power-shield', 'double-rocket', 'ijigen-the-hand'],
+    signature: ['power-shield', 'full-power-shield', 'double-rocket', 'storm-rider'],
   },
   {
     id: 'mario', name: 'Mario', team: 'the-empire', position: 'DEL', element: 'fuego', fame: 2,
@@ -1882,14 +1882,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'jonny-gascoigne', name: 'Jonny Gascoigne', team: 'knights-of-queen', position: 'DEF', element: 'bosque', fame: 4,
     stats: { tiro: 29, control: 45, fisico: 83, defensa: 86, velocidad: 43, aguante: 44 },
-    techniques: ['fake-ball', 'card-buster'],
-    signature: ['fake-ball', 'card-buster', 'ultra-moon', 'sneaking-raid'],
+    techniques: ['onryou', 'wyvern-crash'],
+    signature: ['onryou', 'wyvern-crash', 'dual-pass', 'good-smell'],
   },
   {
     id: 'david-buckingham', name: 'David Buckingham', team: 'knights-of-queen', position: 'DEF', element: 'montana', fame: 3,
     stats: { tiro: 22, control: 44, fisico: 70, defensa: 75, velocidad: 36, aguante: 39 },
-    techniques: ['block-circus'],
-    signature: ['block-circus', 'kurukuru-head', 'scissors-bomb', 'the-wall'],
+    techniques: ['gravitation'],
+    signature: ['gravitation', 'jumping-thunder', 'toumei-feint', 'kagome-kagome'],
   },
   {
     id: 'lance-rawton', name: 'Lance Rawton', team: 'knights-of-queen', position: 'DEF', element: 'aire', fame: 3,
@@ -1906,8 +1906,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'peter-naumann', name: 'Peter Naumann', team: 'knights-of-queen', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 90, control: 62, fisico: 38, defensa: 25, velocidad: 50, aguante: 29 },
-    techniques: ['triple-boost'],
-    signature: ['triple-boost', 'dog-run', 'super-shikofumi', 'bakunetsu-storm'],
+    techniques: ['triangle-z'],
+    signature: ['triangle-z', 'armadillo-circus', 'photon-flash', 'koutei-penguin-x'],
   },
   {
     id: 'gary-mane', name: 'Gary Mane', team: 'knights-of-queen', position: 'MED', element: 'montana', fame: 3,
@@ -1962,7 +1962,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'billy-dash', name: 'Billy Dash', team: 'unicorn', position: 'POR', element: 'bosque', fame: 4,
     stats: { tiro: 34, control: 40, fisico: 52, defensa: 95, velocidad: 44, aguante: 58 },
     techniques: ['flash-upper', 'rocket-kobushi'],
-    signature: ['flash-upper', 'rocket-kobushi', 'tsumuji', 'maou-the-hand'],
+    signature: ['flash-upper', 'rocket-kobushi', 'tsumuji', 'wormhole'],
   },
   {
     id: 'ted-bryant', name: 'Ted Bryant', team: 'unicorn', position: 'DEF', element: 'montana', fame: 4,
@@ -2022,7 +2022,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'alex-hawke', name: 'Alex Hawke', team: 'unicorn', position: 'POR', element: 'montana', fame: 2,
     stats: { tiro: 18, control: 35, fisico: 44, defensa: 73, velocidad: 30, aguante: 39 },
     techniques: ['counterstrike'],
-    signature: ['counterstrike', 'flash-upper', 'omega-the-hand', 'capoeira-snatch'],
+    signature: ['counterstrike', 'flash-upper', 'ikari-no-tettsui', 'omega-the-hand'],
   },
   {
     id: 'corey-washington', name: 'Corey Washington', team: 'unicorn', position: 'DEF', element: 'aire', fame: 1,
@@ -2041,7 +2041,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'gigi-blasi', name: 'Gigi Blasi', team: 'orpheus', position: 'POR', element: 'aire', fame: 5,
     stats: { tiro: 30, control: 46, fisico: 68, defensa: 111, velocidad: 51, aguante: 71 },
     techniques: ['colosseo-guard', 'gigant-wall'],
-    signature: ['colosseo-guard', 'gigant-wall', 'mugen-no-kabe', 'holy-zone'],
+    signature: ['colosseo-guard', 'gigant-wall', 'mugen-no-kabe', 'storm-rider'],
   },
   {
     id: 'vento-galliano', name: 'Vento Galliano', team: 'orpheus', position: 'DEF', element: 'aire', fame: 4,
@@ -2089,7 +2089,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'paolo-bianchi', name: 'Paolo Bianchi', team: 'orpheus', position: 'DEL', element: 'aire', fame: 3,
     stats: { tiro: 88, control: 60, fisico: 37, defensa: 25, velocidad: 51, aguante: 27 },
     techniques: ['odin-sword'],
-    signature: ['odin-sword', 'divine-arrow', 'hitori-one-two', 'ice-ground'],
+    signature: ['odin-sword', 'divine-arrow', 'hitori-one-two', 'senpuujin'],
   },
   {
     id: 'raffaele', name: 'Raffaele', team: 'orpheus', position: 'DEL', element: 'montana', fame: 2,
@@ -2126,7 +2126,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'hector-helio', name: 'Hector Helio', team: 'little-gigant', position: 'POR', element: 'montana', fame: 5,
     stats: { tiro: 34, control: 50, fisico: 66, defensa: 111, velocidad: 54, aguante: 67 },
     techniques: ['god-hand-x', 'tamashii-the-hand'],
-    signature: ['god-hand-x', 'tamashii-the-hand', 'god-hand', 'capoeira-snatch'],
+    signature: ['god-hand-x', 'tamashii-the-hand', 'god-hand', 'omega-the-hand'],
   },
   {
     id: 'zephyr-vitesse', name: 'Zephyr Vitesse', team: 'little-gigant', position: 'DEF', element: 'aire', fame: 4,
@@ -2192,7 +2192,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'keenan-difortune', name: 'Keenan DiFortune', team: 'little-gigant', position: 'POR', element: 'bosque', fame: 2,
     stats: { tiro: 25, control: 28, fisico: 39, defensa: 71, velocidad: 28, aguante: 40 },
     techniques: ['god-hand-x'],
-    signature: ['god-hand-x', 'mugen-the-hand', 'tamashii-the-hand', 'bunshin-block'],
+    signature: ['god-hand-x', 'mugen-the-hand', 'tamashii-the-hand', 'maou-the-hand'],
   },
   {
     id: 'jarell-mangrove', name: 'Jarell Mangrove', team: 'little-gigant', position: 'DEF', element: 'fuego', fame: 1,
@@ -2276,8 +2276,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'tet-aqua', name: 'Tet Aqua', team: 'kasamino', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 76, control: 47, fisico: 34, defensa: 23, velocidad: 38, aguante: 22 },
-    techniques: ['meteor-attack'],
-    signature: ['meteor-attack', 'naraku-otoshi', 'rolling-slide', 'fire-tornado'],
+    techniques: ['honoo-no-kazamidori'],
+    signature: ['honoo-no-kazamidori', 'armadillo-circus', 'photon-flash', 'koutei-penguin-x'],
   },
   {
     id: 'saul-tunk', name: 'Saul Tunk', team: 'kasamino', position: 'MED', element: 'fuego', fame: 1,
@@ -2325,8 +2325,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'joe-small', name: 'Joe Small', team: 'senbayama', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 40, control: 73, fisico: 33, defensa: 45, velocidad: 53, aguante: 36 },
-    techniques: ['mogura-shuffle'],
-    signature: ['mogura-shuffle', 'kurukuru-head', 'stone-prison', 'toumei-feint'],
+    techniques: ['dash-accel'],
+    signature: ['dash-accel', 'jumping-thunder', 'barbarian-no-tate', 'jigoku-guruma'],
   },
   {
     id: 'ike-steiner', name: 'Ike Steiner', team: 'senbayama', position: 'MED', element: 'bosque', fame: 3,
@@ -2508,7 +2508,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'shawn-froste-2', name: 'Shawn Froste', team: 'hakuren', position: 'DEL', element: 'aire', fame: 3,
     stats: { tiro: 89, control: 57, fisico: 39, defensa: 21, velocidad: 53, aguante: 28 },
     techniques: ['wolf-legend'],
-    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'ribbon-shower'],
+    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'shippuu-dash'],
   },
   {
     id: 'roland-climbstein', name: 'Roland Climbstein', team: 'hakuren', position: 'DEL', element: 'aire', fame: 3,
@@ -2945,8 +2945,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'theodor-ulrich', name: 'Theodor Ulrich', team: 'brockenborg', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 47, control: 73, fisico: 36, defensa: 43, velocidad: 47, aguante: 37 },
-    techniques: ['prima-donna'],
-    signature: ['prima-donna', 'megane-crash', 'roadroller-tackle', 'triple-dash'],
+    techniques: ['super-armadillo'],
+    signature: ['super-armadillo', 'kurukuru-head', 'barbarian-no-tate', 'jigoku-guruma'],
   },
   {
     id: 'jan-oster', name: 'Jan Oster', team: 'brockenborg', position: 'MED', element: 'bosque', fame: 3,
@@ -2975,8 +2975,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'peter-naumann-2', name: 'Peter Naumann', team: 'brockenborg', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 68, control: 49, fisico: 33, defensa: 18, velocidad: 40, aguante: 23 },
-    techniques: ['triple-boost'],
-    signature: ['triple-boost', 'dog-run', 'super-shikofumi', 'bakunetsu-storm'],
+    techniques: ['triangle-z'],
+    signature: ['triangle-z', 'armadillo-circus', 'photon-flash', 'koutei-penguin-x'],
   },
   {
     id: 'gerhard-enders', name: 'Gerhard Enders', team: 'brockenborg', position: 'POR', element: 'aire', fame: 2,
@@ -3115,8 +3115,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'neil-turner-2', name: 'Neil Turner', team: 'neo-japan', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 90, control: 57, fisico: 44, defensa: 23, velocidad: 48, aguante: 25 },
-    techniques: ['shine-drive'],
-    signature: ['shine-drive', 'dog-run', 'super-shikofumi', 'fire-tornado'],
+    techniques: ['meteor-attack'],
+    signature: ['meteor-attack', 'judge-through-2', 'zigzag-flame', 'the-galaxy'],
   },
   {
     id: 'sail-bluesea-2', name: 'Sail Bluesea', team: 'neo-japan', position: 'DEL', element: 'fuego', fame: 3,
@@ -3165,7 +3165,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'dave-quagmire-2', name: 'Dave Quagmire', team: 'gaia', position: 'POR', element: 'montana', fame: 5,
     stats: { tiro: 34, control: 46, fisico: 68, defensa: 116, velocidad: 45, aguante: 67 },
     techniques: ['drill-smasher', 'wormhole'],
-    signature: ['drill-smasher', 'wormhole', 'ikari-no-tettsui', 'mugen-the-hand'],
+    signature: ['drill-smasher', 'wormhole', 'ikari-no-tettsui', 'gigant-wall'],
   },
   {
     id: 'gail-baker-2', name: 'Gail Baker', team: 'gaia', position: 'DEF', element: 'aire', fame: 4,
@@ -3383,7 +3383,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'shawn-froste-3', name: 'Shawn Froste', team: 'windies', position: 'DEL', element: 'aire', fame: 3,
     stats: { tiro: 87, control: 62, fisico: 38, defensa: 21, velocidad: 53, aguante: 28 },
     techniques: ['wolf-legend'],
-    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'ribbon-shower'],
+    signature: ['wolf-legend', 'thunder-beast', 'eternal-blizzard', 'shippuu-dash'],
   },
   {
     id: 'roland-climbstein-2', name: 'Roland Climbstein', team: 'windies', position: 'DEL', element: 'aire', fame: 2,
@@ -3401,7 +3401,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'gene-whalon-2', name: 'Gene Whalon', team: 'windies', position: 'POR', element: 'aire', fame: 2,
     stats: { tiro: 26, control: 33, fisico: 41, defensa: 76, velocidad: 33, aguante: 46 },
     techniques: ['great-barrier-reef'],
-    signature: ['great-barrier-reef', 'tsunami-wall', 'galatyn', 'seigi-no-tekken'],
+    signature: ['great-barrier-reef', 'tsunami-wall', 'ice-block', 'holy-zone'],
   },
   {
     id: 'drack-dragon-gorn', name: 'Drack "Dragon" Gorn', team: 'windies', position: 'DEF', element: 'aire', fame: 1,
@@ -3420,7 +3420,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'kappa', name: 'Kappa', team: 'extra-stars', position: 'MED', element: 'bosque', fame: 5,
     stats: { tiro: 57, control: 97, fisico: 51, defensa: 65, velocidad: 63, aguante: 43 },
     techniques: ['meteor-shower', 'planet-shield'],
-    signature: ['meteor-shower', 'planet-shield', 'asteroid-belt', 'dark-matter'],
+    signature: ['meteor-shower', 'planet-shield', 'asteroid-belt', 'koutei-penguin-2gou'],
   },
   {
     id: 'ken-mayfield', name: 'Ken Mayfield', team: 'extra-stars', position: 'DEF', element: 'bosque', fame: 4,
@@ -3431,8 +3431,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'mitzi-mittens-holly', name: 'Mitzi "Mittens" Holly', team: 'extra-stars', position: 'DEF', element: 'fuego', fame: 4,
     stats: { tiro: 32, control: 44, fisico: 82, defensa: 89, velocidad: 44, aguante: 51 },
-    techniques: ['sabaki-no-tettsui', 'dynamite-shoot'],
-    signature: ['sabaki-no-tettsui', 'dynamite-shoot', 'liar-shot', 'jibashiri-kaen'],
+    techniques: ['shooting-star', 'tsuutenkaku-shoot'],
+    signature: ['shooting-star', 'tsuutenkaku-shoot', 'fuusen-gum', 'photon-flash'],
   },
   {
     id: 'sirius-pounding', name: 'Sirius Pounding', team: 'extra-stars', position: 'MED', element: 'montana', fame: 3,
@@ -3444,7 +3444,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'francie-holly', name: 'Francie Holly', team: 'extra-stars', position: 'MED', element: 'aire', fame: 3,
     stats: { tiro: 39, control: 76, fisico: 35, defensa: 48, velocidad: 47, aguante: 32 },
     techniques: ['ribbon-shower'],
-    signature: ['ribbon-shower', 'illusion-ball', 'tatsumaki-otoshi', 'ice-ground'],
+    signature: ['ribbon-shower', 'illusion-ball', 'inazuma-1gou-otoshi', 'shinkuuma'],
   },
   {
     id: 'ton-nino', name: 'Ton Nino', team: 'extra-stars', position: 'MED', element: 'aire', fame: 3,
@@ -3456,13 +3456,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'toasty-tryadd', name: 'Toasty Tryadd', team: 'extra-stars', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 90, control: 56, fisico: 44, defensa: 22, velocidad: 46, aguante: 30 },
     techniques: ['fire-tornado'],
-    signature: ['fire-tornado', 'hitori-one-two', 'photon-flash', 'tiger-storm'],
+    signature: ['fire-tornado', 'hitori-one-two', 'rolling-slide', 'ryuusei-blade'],
   },
   {
     id: 'kay-kmc-emcee', name: 'Kay "KMC" Emcee', team: 'extra-stars', position: 'DEL', element: 'bosque', fame: 3,
     stats: { tiro: 84, control: 56, fisico: 38, defensa: 20, velocidad: 48, aguante: 32 },
     techniques: ['koutei-penguin-2gou'],
-    signature: ['koutei-penguin-2gou', 'noroi', 'demon-cut', 'gran-fenrir'],
+    signature: ['koutei-penguin-2gou', 'noroi', 'demon-cut', 'supernova'],
   },
   {
     id: 'canon-evans', name: 'Canon Evans', team: 'extra-stars', position: 'DEL', element: 'aire', fame: 3,
@@ -3492,7 +3492,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'leafy-tryadd', name: 'Leafy Tryadd', team: 'extra-stars', position: 'POR', element: 'bosque', fame: 1,
     stats: { tiro: 18, control: 24, fisico: 30, defensa: 59, velocidad: 28, aguante: 32 },
     techniques: ['god-hand'],
-    signature: ['god-hand', 'dual-smash', 'shoot-pocket', 'maou-the-hand'],
+    signature: ['god-hand', 'slash-nail', 'bunshin-block', 'maou-the-hand'],
   },
   {
     id: 'thomas-feldt-3', name: 'Thomas Feldt', team: 'extra-stars', position: 'POR', element: 'bosque', fame: 1,
@@ -3505,25 +3505,25 @@ export const PLAYERS: PlayerBase[] = [
     id: 'venoma-sting', name: 'Venoma Sting', team: 'kage-no-hero', position: 'POR', element: 'fuego', fame: 5,
     stats: { tiro: 33, control: 50, fisico: 68, defensa: 116, velocidad: 51, aguante: 67 },
     techniques: ['shoot-pocket', 'hanafubuki'],
-    signature: ['shoot-pocket', 'hanafubuki', 'nekketsu-head', 'dai-bakuhatsu-harite'],
+    signature: ['shoot-pocket', 'hanafubuki', 'kaenhousha', 'dai-bakuhatsu-harite'],
   },
   {
     id: 'trey-prongs', name: 'Trey Prongs', team: 'kage-no-hero', position: 'DEF', element: 'aire', fame: 4,
     stats: { tiro: 33, control: 50, fisico: 80, defensa: 87, velocidad: 36, aguante: 51 },
-    techniques: ['blade-attack', 'inazuma-1gou'],
-    signature: ['blade-attack', 'inazuma-1gou', 'big-card', 'senpuujin'],
+    techniques: ['coil-turn', 'inazuma-1gou'],
+    signature: ['coil-turn', 'inazuma-1gou', 'tamanori-pierrot', 'ice-ground'],
   },
   {
     id: 'amelio-amethyst-thyst', name: 'Amelio "Amethyst" Thyst', team: 'kage-no-hero', position: 'DEF', element: 'montana', fame: 4,
     stats: { tiro: 35, control: 46, fisico: 82, defensa: 93, velocidad: 40, aguante: 44 },
     techniques: ['senpuujin', 'kangaroo-kick'],
-    signature: ['senpuujin', 'kangaroo-kick', 'dokonjou-club', 'the-wall'],
+    signature: ['senpuujin', 'kangaroo-kick', 'dragon-ground', 'ground-quake'],
   },
   {
     id: 'esme-hexe', name: 'Esme Hexe', team: 'kage-no-hero', position: 'MED', element: 'bosque', fame: 3,
     stats: { tiro: 45, control: 73, fisico: 38, defensa: 46, velocidad: 49, aguante: 38 },
     techniques: ['illusion-ball'],
-    signature: ['illusion-ball', 'ryuusei-blade', 'rock-wall-dam', 'dual-pass'],
+    signature: ['illusion-ball', 'ryuusei-blade', 'rock-wall-dam', 'devil-ball'],
   },
   {
     id: 'sally-honeywell', name: 'Sally Honeywell', team: 'kage-no-hero', position: 'MED', element: 'aire', fame: 3,
@@ -3534,50 +3534,50 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'algo-rithm', name: 'Algo Rithm', team: 'kage-no-hero', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 88, control: 59, fisico: 41, defensa: 19, velocidad: 53, aguante: 28 },
-    techniques: ['meteor-attack'],
-    signature: ['meteor-attack', 'naraku-otoshi', 'rolling-slide', 'ryuusei-blade'],
+    techniques: ['honoo-no-kazamidori'],
+    signature: ['honoo-no-kazamidori', 'dog-run', 'rolling-slide', 'bakunetsu-storm'],
   },
   {
     id: 'verity-quick', name: 'Verity Quick', team: 'kage-no-hero', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 84, control: 63, fisico: 41, defensa: 20, velocidad: 48, aguante: 30 },
-    techniques: ['triangle-z'],
-    signature: ['triangle-z', 'dog-run', 'photon-flash', 'bakunetsu-storm'],
+    techniques: ['abisegeri'],
+    signature: ['abisegeri', 'judge-through-2', 'zigzag-flame', 'neo-galaxy'],
   },
   {
     id: 'frankie-boulder', name: 'Frankie Boulder', team: 'kage-no-hero', position: 'DEL', element: 'bosque', fame: 3,
     stats: { tiro: 87, control: 64, fisico: 43, defensa: 26, velocidad: 45, aguante: 29 },
     techniques: ['dokonjou-bat'],
-    signature: ['dokonjou-bat', 'ryuusei-blade', 'fire-tornado', 'killer-fields'],
+    signature: ['dokonjou-bat', 'ryuusei-blade', 'fire-tornado', 'devil-ball'],
   },
   {
     id: 'captain-jokar', name: 'Captain Jokar', team: 'kage-no-hero', position: 'DEL', element: 'bosque', fame: 3,
     stats: { tiro: 87, control: 60, fisico: 42, defensa: 27, velocidad: 45, aguante: 29 },
     techniques: ['death-spear'],
-    signature: ['death-spear', 'eternal-blizzard', 'ryuusei-blade', 'southern-crosscut'],
+    signature: ['death-spear', 'eternal-blizzard', 'ryuusei-blade', 'illusion-ball'],
   },
   {
     id: 'aya-shadowe', name: 'Aya Shadowe', team: 'kage-no-hero', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 75, control: 53, fisico: 37, defensa: 24, velocidad: 40, aguante: 28 },
     techniques: ['shippuu-dash'],
-    signature: ['shippuu-dash', 'rc-shoot', 'photon-flash', 'the-galaxy'],
+    signature: ['shippuu-dash', 'dynamite-shoot', 'jibashiri-kaen', 'grand-fire'],
   },
   {
     id: 'oswald-bones', name: 'Oswald Bones', team: 'kage-no-hero', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 71, control: 49, fisico: 35, defensa: 22, velocidad: 37, aguante: 21 },
     techniques: ['rolling-kick'],
-    signature: ['rolling-kick', 'noroi', 'rock-wall-dam', 'bunshin-death-zone'],
+    signature: ['rolling-kick', 'bunshin-feint', 'rock-wall-dam', 'supernova'],
   },
   {
     id: 'jack-skipper', name: 'Jack Skipper', team: 'kage-no-hero', position: 'POR', element: 'fuego', fame: 2,
     stats: { tiro: 18, control: 34, fisico: 44, defensa: 75, velocidad: 28, aguante: 43 },
-    techniques: ['bakuretsu-punch'],
-    signature: ['bakuretsu-punch', 'double-rocket', 'power-shield', 'tamashii-the-hand'],
+    techniques: ['rocket-kobushi'],
+    signature: ['rocket-kobushi', 'full-power-shield', 'god-hand-triple', 'tamashii-the-hand'],
   },
   {
     id: 'eric-byrne', name: 'Eric Byrne', team: 'kage-no-hero', position: 'DEL', element: 'montana', fame: 1,
     stats: { tiro: 58, control: 41, fisico: 24, defensa: 18, velocidad: 32, aguante: 18 },
     techniques: ['abisegeri'],
-    signature: ['abisegeri', 'ryuusei-blade', 'gorimuchuu', 'ground-quake'],
+    signature: ['abisegeri', 'ryuusei-blade', 'mogura-feint', 'ground-quake'],
   },
   {
     id: 'bobby-yeller-yellow', name: 'Bobby "Yeller" Yellow', team: 'kage-no-hero', position: 'POR', element: 'bosque', fame: 1,
@@ -3596,7 +3596,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'jorge-ortega-2', name: 'Jorge Ortega', team: 'the-fires', position: 'POR', element: 'fuego', fame: 4,
     stats: { tiro: 34, control: 44, fisico: 59, defensa: 100, velocidad: 44, aguante: 56 },
     techniques: ['million-hands', 'storm-rider'],
-    signature: ['million-hands', 'storm-rider', 'mugen-no-kabe', 'shootrap'],
+    signature: ['million-hands', 'storm-rider', 'mugen-no-kabe', 'god-hand-x'],
   },
   {
     id: 'malcolm-night-3', name: 'Malcolm Night', team: 'the-fires', position: 'DEF', element: 'fuego', fame: 4,
@@ -3723,7 +3723,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'sung-jin-noh', name: 'Sung-Jin Noh', team: 'the-mountains', position: 'DEL', element: 'montana', fame: 3,
     stats: { tiro: 83, control: 63, fisico: 44, defensa: 22, velocidad: 49, aguante: 27 },
     techniques: ['kung-fu-attack'],
-    signature: ['kung-fu-attack', 'ninin-sankyaku', 'roadroller-tackle', 'heaven-drive'],
+    signature: ['kung-fu-attack', 'scissors-bomb', 'barbarian-no-tate', 'strike-samba'],
   },
   {
     id: 'phillip-owen-2', name: 'Phillip Owen', team: 'the-mountains', position: 'DEL', element: 'montana', fame: 2,
@@ -3820,13 +3820,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'paolo-bianchi-2', name: 'Paolo Bianchi', team: 'the-woods', position: 'DEL', element: 'aire', fame: 2,
     stats: { tiro: 68, control: 55, fisico: 32, defensa: 18, velocidad: 40, aguante: 26 },
     techniques: ['odin-sword'],
-    signature: ['odin-sword', 'divine-arrow', 'hitori-one-two', 'ice-ground'],
+    signature: ['odin-sword', 'divine-arrow', 'hitori-one-two', 'senpuujin'],
   },
   {
     id: 'keenan-difortune-2', name: 'Keenan DiFortune', team: 'the-woods', position: 'POR', element: 'bosque', fame: 2,
     stats: { tiro: 19, control: 34, fisico: 40, defensa: 75, velocidad: 30, aguante: 44 },
     techniques: ['god-hand-x'],
-    signature: ['god-hand-x', 'mugen-the-hand', 'tamashii-the-hand', 'bunshin-block'],
+    signature: ['god-hand-x', 'mugen-the-hand', 'tamashii-the-hand', 'maou-the-hand'],
   },
   {
     id: 'buddy-plains', name: 'Buddy Plains', team: 'the-woods', position: 'DEF', element: 'bosque', fame: 1,
@@ -3844,8 +3844,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'alix-la-fontaine', name: 'Alix La Fontaine', team: 'nagumohara', position: 'POR', element: 'aire', fame: 5,
     stats: { tiro: 37, control: 49, fisico: 63, defensa: 114, velocidad: 46, aguante: 68 },
-    techniques: ['hyouketsu-no-mai', 'majin-the-wave'],
-    signature: ['hyouketsu-no-mai', 'majin-the-wave'],
+    techniques: ['hyouketsu-no-mai', 'kogarashi'],
+    signature: ['hyouketsu-no-mai', 'kogarashi', 'holy-zone', 'majin-the-wave'],
   },
   {
     id: 'cade-shelby', name: 'Cade Shelby', team: 'nagumohara', position: 'DEF', element: 'aire', fame: 4,
@@ -3869,13 +3869,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'briar-bloomhurst', name: 'Briar Bloomhurst', team: 'nagumohara', position: 'DEL', element: 'montana', fame: 3,
     stats: { tiro: 86, control: 56, fisico: 44, defensa: 26, velocidad: 51, aguante: 28 },
     techniques: ['gou-no-issen'],
-    signature: ['gou-no-issen', 'shunrai', 'cyclone'],
+    signature: ['gou-no-issen', 'shunrai', 'cyclone', 'triple-dash'],
   },
   {
     id: 'destin-billows', name: 'Destin Billows', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 3,
     stats: { tiro: 43, control: 78, fisico: 38, defensa: 47, velocidad: 50, aguante: 31 },
     techniques: ['entertainer'],
-    signature: ['entertainer', 'death-samba', 'ayakashi-dribble'],
+    signature: ['entertainer', 'death-samba', 'rock-wall-dam', 'ayakashi-dribble'],
   },
   {
     id: 'charis-benzaie', name: 'Charis Benzaie', team: 'nagumohara', position: 'DEF', element: 'montana', fame: 3,
@@ -3898,14 +3898,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'davin-bullock', name: 'Davin Bullock', team: 'nagumohara', position: 'MED', element: 'fuego', fame: 2,
     stats: { tiro: 33, control: 61, fisico: 34, defensa: 43, velocidad: 43, aguante: 30 },
-    techniques: ['masou-kensei-clara-bunny'],
-    signature: ['masou-kensei-clara-bunny'],
+    techniques: ['judge-through'],
+    signature: ['judge-through', 'masou-kensei-clara-bunny', 'jibashiri-kaen', 'lightning-accel'],
   },
   {
     id: 'maine-alsop', name: 'Maine Alsop', team: 'nagumohara', position: 'MED', element: 'montana', fame: 2,
     stats: { tiro: 36, control: 62, fisico: 36, defensa: 34, velocidad: 40, aguante: 28 },
-    techniques: ['hokkyoku-guma-2gou'],
-    signature: ['hokkyoku-guma-2gou', 'metal-hammer'],
+    techniques: ['dash-accel'],
+    signature: ['dash-accel', 'hokkyoku-guma-2gou', 'jouheki-kyohei-warborg', 'jigoku-guruma'],
   },
   {
     id: 'dario-highton', name: 'Dario Highton', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 2,
@@ -3948,13 +3948,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'jazmine-carmine', name: 'Jazmine Carmine', team: 'ouja-raimon', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 39, control: 77, fisico: 38, defensa: 49, velocidad: 51, aguante: 33 },
     techniques: ['the-ikaros'],
-    signature: ['the-ikaros', 'cross-drive'],
+    signature: ['the-ikaros', 'cross-drive', 'zigzag-flame', 'judge-through-3'],
   },
   {
     id: 'curt-gale', name: 'Curt Gale', team: 'ouja-raimon', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 46, control: 79, fisico: 33, defensa: 45, velocidad: 53, aguante: 34 },
-    techniques: ['masou-kensei-clara-bunny'],
-    signature: ['masou-kensei-clara-bunny'],
+    techniques: ['flame-veil'],
+    signature: ['flame-veil', 'clara-bunny', 'rolling-slide', 'judge-through-3'],
   },
   {
     id: 'eleanor-estrella', name: 'Eleanor Estrella', team: 'ouja-raimon', position: 'MED', element: 'bosque', fame: 3,
@@ -4027,7 +4027,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'autry-rogers', name: 'Autry Rogers', team: 'hokuyou-gakuen', position: 'DEF', element: 'fuego', fame: 3,
     stats: { tiro: 23, control: 39, fisico: 70, defensa: 75, velocidad: 32, aguante: 44 },
     techniques: ['zigzag-flame'],
-    signature: ['zigzag-flame', 'megaton-head', 'dash-accel'],
+    signature: ['zigzag-flame', 'megaton-head', 'dash-accel', 'jibashiri-kaen'],
   },
   {
     id: 'bodhi-field', name: 'Bodhi Field', team: 'hokuyou-gakuen', position: 'MED', element: 'montana', fame: 3,
@@ -4045,7 +4045,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'hawky-savard', name: 'Hawky Savard', team: 'hokuyou-gakuen', position: 'MED', element: 'aire', fame: 3,
     stats: { tiro: 44, control: 75, fisico: 42, defensa: 43, velocidad: 51, aguante: 37 },
     techniques: ['niagara-falls'],
-    signature: ['niagara-falls', 'guruguru-shoot', 'murakumo-trap'],
+    signature: ['niagara-falls', 'guruguru-shoot', 'murakumo-trap', 'shippuu-dash'],
   },
   {
     id: 'taliesin-greenhunt', name: 'Taliesin Greenhunt', team: 'hokuyou-gakuen', position: 'MED', element: 'bosque', fame: 3,
@@ -4094,19 +4094,19 @@ export const PLAYERS: PlayerBase[] = [
     id: 'eugenio-provost', name: 'Eugenio Provost', team: 'ai-gakuen', position: 'POR', element: 'fuego', fame: 5,
     stats: { tiro: 30, control: 45, fisico: 67, defensa: 117, velocidad: 48, aguante: 72 },
     techniques: ['shoot-pocket', 'fire-wall'],
-    signature: ['shoot-pocket', 'fire-wall', 'tsuumande-goran'],
+    signature: ['shoot-pocket', 'fire-wall', 'tsuumande-goran', 'god-hand-x'],
   },
   {
     id: 'pradip-lurning', name: 'Pradip Lurning', team: 'ai-gakuen', position: 'DEF', element: 'fuego', fame: 4,
     stats: { tiro: 35, control: 46, fisico: 80, defensa: 93, velocidad: 38, aguante: 44 },
     techniques: ['profile-zone', 'hitori-one-two'],
-    signature: ['profile-zone', 'hitori-one-two', 'dog-run', 'cheat-blaster'],
+    signature: ['profile-zone', 'hitori-one-two', 'dog-run', 'backdraft'],
   },
   {
     id: 'talim-muskel', name: 'Talim Muskel', team: 'ai-gakuen', position: 'DEF', element: 'aire', fame: 4,
     stats: { tiro: 29, control: 43, fisico: 82, defensa: 89, velocidad: 38, aguante: 46 },
     techniques: ['zigzag-spark', 'murakumo-trap'],
-    signature: ['zigzag-spark', 'murakumo-trap', 'doublehead-eagle'],
+    signature: ['zigzag-spark', 'murakumo-trap', 'doublehead-eagle', 'shinkuuma'],
   },
   {
     id: 'synthian-volkel', name: 'Synthian Volkel', team: 'ai-gakuen', position: 'DEF', element: 'bosque', fame: 3,
@@ -4130,31 +4130,31 @@ export const PLAYERS: PlayerBase[] = [
     id: 'annalisa-cubon', name: 'Annalisa Cubon', team: 'ai-gakuen', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 40, control: 81, fisico: 41, defensa: 44, velocidad: 45, aguante: 30 },
     techniques: ['ultra-moon'],
-    signature: ['ultra-moon', 'tiger-drive', 'metal-hammer'],
+    signature: ['ultra-moon', 'tiger-drive', 'metal-hammer', 'jigoku-guruma'],
   },
   {
     id: 'cleo-balbot', name: 'Cleo Balbot', team: 'ai-gakuen', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 39, control: 81, fisico: 33, defensa: 44, velocidad: 52, aguante: 36 },
     techniques: ['quick-draw'],
-    signature: ['quick-draw', 'shooting-star', 'perfect-tower'],
+    signature: ['quick-draw', 'shooting-star', 'perfect-tower', 'lightning-accel'],
   },
   {
     id: 'reubel-kauntless', name: 'Reubel Kauntless', team: 'ai-gakuen', position: 'MED', element: 'bosque', fame: 3,
     stats: { tiro: 40, control: 78, fisico: 36, defensa: 48, velocidad: 45, aguante: 35 },
     techniques: ['zigzag-spark'],
-    signature: ['zigzag-spark', 'death-samba', 'ayakashi-dribble'],
+    signature: ['zigzag-spark', 'death-samba', 'demon-cut', 'ayakashi-dribble'],
   },
   {
     id: 'obert-deance', name: 'Obert Deance', team: 'ai-gakuen', position: 'DEL', element: 'montana', fame: 2,
     stats: { tiro: 75, control: 47, fisico: 31, defensa: 20, velocidad: 42, aguante: 26 },
     techniques: ['mega-quake'],
-    signature: ['mega-quake', 'hokkyoku-guma-2gou', 'super-megaton-head'],
+    signature: ['mega-quake', 'hokkyoku-guma-2gou', 'toumei-feint', 'super-megaton-head'],
   },
   {
     id: 'zuzu-intel', name: 'Zuzu Intel', team: 'ai-gakuen', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 70, control: 50, fisico: 38, defensa: 19, velocidad: 42, aguante: 23 },
     techniques: ['revolution-v'],
-    signature: ['revolution-v', 'killer-fields', 'perseus-orb'],
+    signature: ['revolution-v', 'killer-fields', 'demon-cut', 'perseus-orb'],
   },
   {
     id: 'bren-techner', name: 'Bren Techner', team: 'ai-gakuen', position: 'POR', element: 'montana', fame: 2,
@@ -4172,7 +4172,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'manila-brickit', name: 'Manila Brickit', team: 'ai-gakuen', position: 'DEL', element: 'fuego', fame: 1,
     stats: { tiro: 63, control: 44, fisico: 30, defensa: 18, velocidad: 38, aguante: 22 },
     techniques: ['zigzag-spark'],
-    signature: ['zigzag-spark', 'the-ikaros', 'backdraft'],
+    signature: ['zigzag-spark', 'the-ikaros', 'sunshine-blade', 'photon-flash'],
   },
   // ============================== HOUREIKAN
   {
@@ -4203,13 +4203,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'normon-peeveton', name: 'Normon Peeveton', team: 'houreikan', position: 'DEF', element: 'montana', fame: 3,
     stats: { tiro: 24, control: 42, fisico: 68, defensa: 76, velocidad: 37, aguante: 40 },
     techniques: ['slingshot'],
-    signature: ['slingshot', 'strike-samba', 'metal-hammer'],
+    signature: ['slingshot', 'strike-samba', 'jouheki-kyohei-warborg', 'jigoku-guruma'],
   },
   {
     id: 'prudence-witt', name: 'Prudence Witt', team: 'houreikan', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 41, control: 75, fisico: 37, defensa: 47, velocidad: 44, aguante: 38 },
     techniques: ['matador-feint'],
-    signature: ['matador-feint', 'prima-donna', 'gunshot'],
+    signature: ['matador-feint', 'prima-donna', 'gunshot', 'photon-flash'],
   },
   {
     id: 'dion-arbiter', name: 'Dion Arbiter', team: 'houreikan', position: 'MED', element: 'bosque', fame: 3,
@@ -4227,7 +4227,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'norwin-naeve', name: 'Norwin Naeve', team: 'houreikan', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 90, control: 60, fisico: 42, defensa: 28, velocidad: 53, aguante: 33 },
     techniques: ['twin-boost'],
-    signature: ['twin-boost', 'triple-boost', 'the-ikaros'],
+    signature: ['twin-boost', 'triple-boost', 'the-ikaros', 'flame-dance'],
   },
   {
     id: 'faust-fennrick', name: 'Faust Fennrick', team: 'houreikan', position: 'DEL', element: 'montana', fame: 2,
@@ -4245,26 +4245,26 @@ export const PLAYERS: PlayerBase[] = [
     id: 'brie-brillante', name: 'Brie Brillante', team: 'houreikan', position: 'POR', element: 'bosque', fame: 2,
     stats: { tiro: 23, control: 34, fisico: 37, defensa: 74, velocidad: 32, aguante: 43 },
     techniques: ['hanafubuki'],
-    signature: ['hanafubuki', 'shoot-pocket', 'ice-block', 'tricera-shield'],
+    signature: ['hanafubuki', 'shoot-pocket', 'ice-block', 'outer-world'],
   },
   {
     id: 'kieran-knavenly', name: 'Kieran Knavenly', team: 'houreikan', position: 'DEF', element: 'bosque', fame: 1,
     stats: { tiro: 22, control: 33, fisico: 44, defensa: 53, velocidad: 23, aguante: 25 },
-    techniques: ['death-samba'],
-    signature: ['death-samba', 'ayakashi-dribble'],
+    techniques: ['fake-ball'],
+    signature: ['fake-ball', 'death-samba', 'ayakashi-dribble', 'sneaking-raid'],
   },
   {
     id: 'alzen-wasruff', name: 'Alzen Wasruff', team: 'houreikan', position: 'DEF', element: 'montana', fame: 1,
     stats: { tiro: 18, control: 33, fisico: 44, defensa: 50, velocidad: 28, aguante: 24 },
     techniques: ['quick-draw'],
-    signature: ['quick-draw', 'gravitation', 'gunshot'],
+    signature: ['quick-draw', 'gravitation', 'gunshot', 'gorimuchuu'],
   },
   // ============================== IJIN-MEIBUNDOU
   {
     id: 'chat-baltauk', name: 'Chat Baltauk', team: 'ijin-meibundou', position: 'POR', element: 'bosque', fame: 5,
     stats: { tiro: 38, control: 49, fisico: 66, defensa: 112, velocidad: 52, aguante: 72 },
     techniques: ['gigant-wall', 'macaroni-spaghetti-sauce-zouryou'],
-    signature: ['gigant-wall', 'macaroni-spaghetti-sauce-zouryou', 'outer-world', 'tricera-shield'],
+    signature: ['gigant-wall', 'macaroni-spaghetti-sauce-zouryou', 'tricera-shield', 'outer-world'],
   },
   {
     id: 'keepie-upshire', name: 'Keepie Upshire', team: 'ijin-meibundou', position: 'MED', element: 'bosque', fame: 4,
@@ -4276,19 +4276,19 @@ export const PLAYERS: PlayerBase[] = [
     id: 'habib-liomont', name: 'Habib Liomont', team: 'ijin-meibundou', position: 'DEF', element: 'montana', fame: 4,
     stats: { tiro: 28, control: 50, fisico: 79, defensa: 87, velocidad: 42, aguante: 44 },
     techniques: ['profile-zone', 'hokkyoku-guma-2gou'],
-    signature: ['profile-zone', 'hokkyoku-guma-2gou', 'the-shelter'],
+    signature: ['profile-zone', 'hokkyoku-guma-2gou', 'mogura-feint', 'the-shelter'],
   },
   {
     id: 'histrion-etcher', name: 'Histrion Etcher', team: 'ijin-meibundou', position: 'DEF', element: 'fuego', fame: 3,
     stats: { tiro: 24, control: 42, fisico: 68, defensa: 81, velocidad: 37, aguante: 41 },
     techniques: ['ignite-steal'],
-    signature: ['ignite-steal', 'jibashiri-kaen', 'sunshine-blade'],
+    signature: ['ignite-steal', 'jibashiri-kaen', 'sunshine-blade', 'fuusen-gum'],
   },
   {
     id: 'elric-spiech', name: 'Elric Spiech', team: 'ijin-meibundou', position: 'DEF', element: 'montana', fame: 3,
     stats: { tiro: 30, control: 44, fisico: 65, defensa: 75, velocidad: 33, aguante: 43 },
     techniques: ['stone-prison'],
-    signature: ['stone-prison', 'no-escape', 'unbalance-pisa'],
+    signature: ['stone-prison', 'no-escape', 'unbalance-pisa', 'toumei-feint'],
   },
   {
     id: 'jorna-privinski', name: 'Jorna Privinski', team: 'ijin-meibundou', position: 'MED', element: 'aire', fame: 3,
@@ -4318,13 +4318,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'wilhelmina-goforth', name: 'Wilhelmina Goforth', team: 'ijin-meibundou', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 72, control: 52, fisico: 33, defensa: 20, velocidad: 46, aguante: 29 },
     techniques: ['triple-boost'],
-    signature: ['triple-boost', 'ignite-steal', 'cheat-blaster'],
+    signature: ['triple-boost', 'ignite-steal', 'reppuu-dash', 'backdraft'],
   },
   {
     id: 'viki-devine', name: 'Viki Devine', team: 'ijin-meibundou', position: 'MED', element: 'montana', fame: 2,
     stats: { tiro: 39, control: 64, fisico: 35, defensa: 37, velocidad: 38, aguante: 30 },
     techniques: ['kagome-kagome'],
-    signature: ['kagome-kagome', 'mega-quake', 'sword-of-d-artagnan'],
+    signature: ['kagome-kagome', 'mega-quake', 'gorimuchuu', 'sword-of-d-artagnan'],
   },
   {
     id: 'odell-farley', name: 'Odell Farley', team: 'ijin-meibundou', position: 'DEF', element: 'aire', fame: 2,
@@ -4336,7 +4336,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'horatio-tickner', name: 'Horatio Tickner', team: 'ijin-meibundou', position: 'DEF', element: 'bosque', fame: 1,
     stats: { tiro: 19, control: 33, fisico: 44, defensa: 55, velocidad: 23, aguante: 32 },
     techniques: ['ninin-sankyaku'],
-    signature: ['ninin-sankyaku', 'super-elastico', 'perseus-orb'],
+    signature: ['ninin-sankyaku', 'super-elastico', 'demon-cut', 'perseus-orb'],
   },
   {
     id: 'staton-folhard', name: 'Staton Folhard', team: 'ijin-meibundou', position: 'MED', element: 'aire', fame: 1,
@@ -4349,19 +4349,19 @@ export const PLAYERS: PlayerBase[] = [
     id: 'kiona-blackwell', name: 'Kiona Blackwell', team: 'keizen-arashiyama', position: 'POR', element: 'aire', fame: 5,
     stats: { tiro: 33, control: 49, fisico: 64, defensa: 116, velocidad: 46, aguante: 65 },
     techniques: ['big-spider', 'hyouketsu-no-mai'],
-    signature: ['big-spider', 'hyouketsu-no-mai', 'majin-the-wave'],
+    signature: ['big-spider', 'hyouketsu-no-mai', 'storm-rider', 'majin-the-wave'],
   },
   {
     id: 'lennox-portsman', name: 'Lennox Portsman', team: 'keizen-arashiyama', position: 'DEF', element: 'montana', fame: 4,
     stats: { tiro: 30, control: 46, fisico: 83, defensa: 86, velocidad: 43, aguante: 46 },
     techniques: ['no-escape', 'earthquake'],
-    signature: ['no-escape', 'earthquake', 'magaru-diamond-ray'],
+    signature: ['no-escape', 'earthquake', 'magaru-diamond-ray', 'triple-dash'],
   },
   {
     id: 'kaz-bloomfield', name: 'Kaz Bloomfield', team: 'keizen-arashiyama', position: 'DEF', element: 'bosque', fame: 4,
     stats: { tiro: 31, control: 50, fisico: 83, defensa: 89, velocidad: 38, aguante: 42 },
     techniques: ['onryou', 'death-samba'],
-    signature: ['onryou', 'death-samba', 'ayakashi-dribble'],
+    signature: ['onryou', 'death-samba', 'ayakashi-dribble', 'sneaking-raid'],
   },
   {
     id: 'govin-castlehoven', name: 'Govin Castlehoven', team: 'keizen-arashiyama', position: 'DEF', element: 'aire', fame: 3,
@@ -4373,13 +4373,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'floramira-pagotta', name: 'Floramira Pagotta', team: 'keizen-arashiyama', position: 'MED', element: 'aire', fame: 3,
     stats: { tiro: 43, control: 78, fisico: 37, defensa: 44, velocidad: 50, aguante: 34 },
     techniques: ['phantom-shoot'],
-    signature: ['phantom-shoot', 'onryou', 'niagara-falls'],
+    signature: ['phantom-shoot', 'onryou', 'niagara-falls', 'shippuu-dash'],
   },
   {
     id: 'alistar-montero', name: 'Alistar Montero', team: 'keizen-arashiyama', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 43, control: 81, fisico: 42, defensa: 43, velocidad: 48, aguante: 31 },
     techniques: ['killer-fields'],
-    signature: ['killer-fields', 'reflect-buster', 'block-circus'],
+    signature: ['killer-fields', 'reflect-buster', 'block-circus', 'gorimuchuu'],
   },
   {
     id: 'elijah-singleton', name: 'Elijah Singleton', team: 'keizen-arashiyama', position: 'MED', element: 'fuego', fame: 3,
@@ -4391,7 +4391,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'rohan-snatchett', name: 'Rohan Snatchett', team: 'keizen-arashiyama', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 40, control: 76, fisico: 39, defensa: 42, velocidad: 48, aguante: 35 },
     techniques: ['meteor-shower'],
-    signature: ['meteor-shower', 'sunshine-blade'],
+    signature: ['meteor-shower', 'sunshine-blade', 'zigzag-flame', 'fuusen-gum'],
   },
   {
     id: 'umbren-lightwood', name: 'Umbren Lightwood', team: 'keizen-arashiyama', position: 'DEL', element: 'aire', fame: 3,
@@ -4434,7 +4434,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'dax-prescott', name: 'Dax Prescott', team: 'nishinomiya', position: 'POR', element: 'aire', fame: 5,
     stats: { tiro: 30, control: 51, fisico: 60, defensa: 115, velocidad: 49, aguante: 71 },
     techniques: ['rocket-kobushi', 'hyouketsu-no-mai'],
-    signature: ['rocket-kobushi', 'hyouketsu-no-mai', 'majin-the-wave'],
+    signature: ['rocket-kobushi', 'hyouketsu-no-mai', 'hanafubuki', 'majin-the-wave'],
   },
   {
     id: 'edvan-trodden', name: 'Edvan Trodden', team: 'nishinomiya', position: 'DEF', element: 'aire', fame: 4,
@@ -4452,7 +4452,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'looke-raundoff', name: 'Looke Raundoff', team: 'nishinomiya', position: 'DEF', element: 'bosque', fame: 3,
     stats: { tiro: 23, control: 41, fisico: 73, defensa: 77, velocidad: 39, aguante: 40 },
     techniques: ['kumo-no-ito'],
-    signature: ['kumo-no-ito', 'death-samba', 'ayakashi-dribble'],
+    signature: ['kumo-no-ito', 'death-samba', 'ayakashi-dribble', 'sneaking-raid'],
   },
   {
     id: 'rutheo-wheyston', name: 'Rutheo Wheyston', team: 'nishinomiya', position: 'DEF', element: 'bosque', fame: 3,
@@ -4469,14 +4469,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'laymark-starwyn', name: 'Laymark Starwyn', team: 'nishinomiya', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 45, control: 81, fisico: 37, defensa: 41, velocidad: 45, aguante: 37 },
-    techniques: ['gou-no-issen'],
-    signature: ['gou-no-issen', 'metal-hammer'],
+    techniques: ['mogura-shuffle'],
+    signature: ['mogura-shuffle', 'gou-no-issen', 'metal-hammer', 'triple-dash'],
   },
   {
     id: 'moby-tidbitt', name: 'Moby Tidbitt', team: 'nishinomiya', position: 'MED', element: 'montana', fame: 3,
     stats: { tiro: 42, control: 78, fisico: 35, defensa: 49, velocidad: 52, aguante: 32 },
     techniques: ['super-armadillo'],
-    signature: ['super-armadillo', 'fake-ball', 'unbalance-pisa'],
+    signature: ['super-armadillo', 'fake-ball', 'unbalance-pisa', 'jigoku-guruma'],
   },
   {
     id: 'edgard-loathe', name: 'Edgard Loathe', team: 'nishinomiya', position: 'MED', element: 'aire', fame: 3,
@@ -4500,7 +4500,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'aysen-demacon', name: 'Aysen DeMacon', team: 'nishinomiya', position: 'DEL', element: 'montana', fame: 2,
     stats: { tiro: 76, control: 53, fisico: 35, defensa: 22, velocidad: 38, aguante: 28 },
     techniques: ['dokonjou-bat'],
-    signature: ['dokonjou-bat', 'metal-hammer', 'sword-of-d-artagnan'],
+    signature: ['dokonjou-bat', 'mogura-shuffle', 'jouheki-kyohei-warborg', 'sword-of-d-artagnan'],
   },
   {
     id: 'breppo-terrey', name: 'Breppo Terrey', team: 'nishinomiya', position: 'MED', element: 'fuego', fame: 1,
@@ -4567,13 +4567,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'syd-faircrest', name: 'Syd Faircrest', team: 'senjutsu-no-teikoku', position: 'MED', element: 'fuego', fame: 2,
     stats: { tiro: 36, control: 70, fisico: 33, defensa: 42, velocidad: 43, aguante: 32 },
     techniques: ['twin-boost-f'],
-    signature: ['twin-boost-f', 'killer-slide', 'death-zone'],
+    signature: ['twin-boost-f', 'killer-slide', 'death-zone', 'lightning-accel'],
   },
   {
     id: 'solan-brightmoor', name: 'Solan Brightmoor', team: 'senjutsu-no-teikoku', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 70, control: 47, fisico: 34, defensa: 22, velocidad: 38, aguante: 21 },
     techniques: ['death-zone-2'],
-    signature: ['death-zone-2', 'entertainer', 'perseus-orb'],
+    signature: ['death-zone-2', 'ayakashi-dribble', 'demon-cut', 'perseus-orb'],
   },
   {
     id: 'lenox-grinder', name: 'Lenox Grinder', team: 'senjutsu-no-teikoku', position: 'DEL', element: 'fuego', fame: 2,
@@ -4591,7 +4591,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'riggs-fornstrut', name: 'Riggs Fornstrut', team: 'senjutsu-no-teikoku', position: 'MED', element: 'montana', fame: 1,
     stats: { tiro: 31, control: 50, fisico: 27, defensa: 35, velocidad: 36, aguante: 26 },
     techniques: ['earthquake'],
-    signature: ['earthquake', 'unbalance-pisa'],
+    signature: ['earthquake', 'mogura-shuffle', 'unbalance-pisa', 'toumei-feint'],
   },
   // ============================== TOUFUU-IKOKUKAN
   {
@@ -4640,7 +4640,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'joey-beat', name: 'Joey Beat', team: 'toufuu-ikokukan', position: 'DEL', element: 'fuego', fame: 3,
     stats: { tiro: 88, control: 58, fisico: 36, defensa: 22, velocidad: 49, aguante: 30 },
     techniques: ['cheat-blaster'],
-    signature: ['cheat-blaster', 'naraku-otoshi', 'flame-dance', 'backdraft'],
+    signature: ['cheat-blaster', 'naraku-otoshi', 'flame-dance', 'sunshine-blade'],
   },
   {
     id: 'sikuvot-shivan', name: 'Sikuvot Shivan', team: 'toufuu-ikokukan', position: 'DEL', element: 'aire', fame: 3,
@@ -4664,7 +4664,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'kaos-dao', name: 'Kaos Dao', team: 'toufuu-ikokukan', position: 'POR', element: 'montana', fame: 2,
     stats: { tiro: 19, control: 34, fisico: 37, defensa: 73, velocidad: 35, aguante: 40 },
     techniques: ['rocket-kobushi'],
-    signature: ['rocket-kobushi', 'gigant-wall', 'god-hand-ev', 'god-catch-ft'],
+    signature: ['rocket-kobushi', 'gigant-wall', 'god-hand-ev', 'yuujou-no-god-hand'],
   },
   {
     id: 'edmond-pias', name: 'Edmond Pias', team: 'toufuu-ikokukan', position: 'DEF', element: 'aire', fame: 1,
@@ -4719,7 +4719,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'fergat-silverpine', name: 'Fergat Silverpine', team: 'hakuren-vr', position: 'MED', element: 'bosque', fame: 3,
     stats: { tiro: 47, control: 79, fisico: 41, defensa: 50, velocidad: 48, aguante: 30 },
     techniques: ['aurora-dribble'],
-    signature: ['aurora-dribble', 'super-elastico', 'freeze-shot'],
+    signature: ['aurora-dribble', 'super-elastico', 'freeze-shot', 'sneaking-raid'],
   },
   {
     id: 'arlo-galbrash', name: 'Arlo Galbrash', team: 'hakuren-vr', position: 'DEL', element: 'fuego', fame: 3,
@@ -4755,7 +4755,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'elon-entremet', name: 'Elon Entremet', team: 'hakuren-vr', position: 'DEF', element: 'bosque', fame: 1,
     stats: { tiro: 18, control: 32, fisico: 45, defensa: 52, velocidad: 20, aguante: 30 },
     techniques: ['rolling-slide'],
-    signature: ['rolling-slide', 'illusion-ball', 'koutei-penguin-2gou-feat-shark'],
+    signature: ['rolling-slide', 'illusion-ball', 'koutei-penguin-2gou-feat-shark', 'sneaking-raid'],
   },
   {
     id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', fame: 5, // original
