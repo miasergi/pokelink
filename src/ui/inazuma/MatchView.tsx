@@ -448,6 +448,53 @@ function eventIsMine(match: MatchState, e: MatchEvent): boolean {
   return 'side' in e ? e.side === mine : false
 }
 
+function TacticsSheet({ mine, theirs, mineName, theirName, onClose }: {
+  mine: string[]
+  theirs: string[]
+  mineName: string
+  theirName: string
+  onClose: () => void
+}) {
+  const bloque = (ids: string[], nombre: string, propias: boolean) => !ids.length ? null : (
+    <div className="mb-3">
+      <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
+        {propias ? `Tu equipo · ${nombre}` : `Rival · ${nombre}`}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {ids.map((id) => {
+          const t = getTactic(id)
+          if (!t) return null
+          return (
+            <div key={id} className="flex items-start gap-2.5 rounded-xl border px-2.5 py-2"
+              style={{ borderColor: `${t.color}55`, background: `${t.color}0d` }}>
+              <span className="grid place-items-center w-8 h-8 shrink-0 rounded-lg border" style={{ borderColor: `${t.color}88`, background: `${t.color}1a` }}>
+                <Icon name={t.icon} className="w-4.5 h-4.5" style={{ color: t.color }} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[12px] font-extrabold" style={{ color: t.color }}>{t.name}</span>
+                <span className="block text-[11px] text-slate-300 leading-snug">{t.desc}</span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[80svh] overflow-y-auto animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center font-extrabold mb-1">Filosofías en juego</div>
+        <p className="text-[10px] text-slate-500 text-center mb-3 leading-snug">
+          No son un bonus de números: cambian CÓMO se resuelve el partido, y las
+          tuyas se acumulan toda la partida (una nueva por instituto ganado).
+        </p>
+        {bloque(mine, mineName, true)}
+        {bloque(theirs, theirName, false)}
+      </div>
+    </div>
+  )
+}
+
 function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
   match: MatchState
   feed: MatchEvent[]
@@ -460,6 +507,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
   const mineSide = playerSide(match)
   const mine = sideOf(match, mineSide)
   const theirs = sideOf(match, otherSide(mineSide))
+  const [showTactics, setShowTactics] = useState(false)
 
   // La Ruptura sube al GANAR un duelo: si la barra se moviera durante la
   // animación, contaría el desenlace antes de tiempo. Congelada mientras haya
@@ -504,17 +552,20 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
       </div>
-      {/* LAS FILOSOFÍAS con las que sale tu equipo: la identidad de la partida,
-          a la vista durante todo el partido. */}
-      {!!(mine.tactics ?? []).length && (
-        <div className="mt-1.5 flex items-center justify-center gap-1 flex-wrap">
+      {/* LAS FILOSOFÍAS de los DOS equipos: la tuya acumulada y la canónica
+          del rival. TOCAR la fila abre la hoja que explica qué hace cada una
+          (el `title` del ratón no existe en el móvil y nadie sabía qué eran). */}
+      {(!!(mine.tactics ?? []).length || !!(theirs.tactics ?? []).length) && (
+        <button
+          onClick={() => setShowTactics(true)}
+          className="mt-1.5 w-full flex items-center justify-center gap-1 flex-wrap active:scale-[0.99] transition"
+        >
           {(mine.tactics ?? []).map((id) => {
             const t = getTactic(id)
             if (!t) return null
             return (
               <span
                 key={id}
-                title={t.desc}
                 className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide"
                 style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color }}
               >
@@ -523,7 +574,36 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
               </span>
             )
           })}
-        </div>
+          {!!(theirs.tactics ?? []).length && (
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[8px] uppercase tracking-widest text-slate-600">vs</span>
+              {(theirs.tactics ?? []).map((id) => {
+                const t = getTactic(id)
+                if (!t) return null
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-600/70 bg-slate-800/60 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-slate-400"
+                  >
+                    <Icon name={t.icon} className="w-2.5 h-2.5" />
+                    {t.name}
+                  </span>
+                )
+              })}
+            </span>
+          )}
+          <Icon name="question" className="w-3 h-3 text-slate-600" />
+        </button>
+      )}
+
+      {showTactics && (
+        <TacticsSheet
+          mine={mine.tactics ?? []}
+          theirs={theirs.tactics ?? []}
+          mineName={mine.name}
+          theirName={theirs.name}
+          onClose={() => setShowTactics(false)}
+        />
       )}
 
       {/* La tanda tiene su propio marcador, también sacado de lo revelado. */}

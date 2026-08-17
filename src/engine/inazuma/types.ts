@@ -174,6 +174,12 @@ export interface TeamBase {
   lineup: string[]
   /** Multiplicador de dificultad sobre el nivel del rival. */
   power: number
+  /**
+   * FILOSOFÍA CANÓNICA del instituto (id de `TACTICS`): su forma de jugar.
+   * El rival sale al campo con ella — los equipos no son sacos de números,
+   * tienen identidad, igual que tú vas acumulando las tuyas.
+   */
+  tactic?: string
 }
 
 // ---------------------------------------------------------------------------

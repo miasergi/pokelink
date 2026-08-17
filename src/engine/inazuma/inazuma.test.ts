@@ -96,6 +96,21 @@ describe('plantilla', () => {
     // repo — importarla dejó el despliegue roto tres commits.
   })
 
+  it('el RIVAL también juega con su filosofía canónica', () => {
+    const save = createSave(6)
+    const setup = startMatch(save, firstBoss(save))
+    if ('error' in setup) throw new Error(setup.error)
+    const away = setup.match.home.isPlayer ? setup.match.away : setup.match.home
+    // El primer instituto del cuadro lleva SU forma de jugar al campo.
+    expect((away.tactics ?? []).length, 'el rival salió sin filosofía').toBeGreaterThan(0)
+    // Y todo instituto con partido en el cuadro la tiene declarada.
+    for (const saga of SAGAS) {
+      for (const teamId of saga.teams) {
+        expect(getTeam(teamId).tactic, `${teamId} sin filosofía canónica`).toBeTruthy()
+      }
+    }
+  })
+
   it('las FILOSOFÍAS cambian el partido de verdad, no son una chapa', () => {
     // Cada una tiene que MOVER algo medible con la misma semilla. Si una deja
     // de tocar el motor (porque se movió el punto donde se leía), esto salta.

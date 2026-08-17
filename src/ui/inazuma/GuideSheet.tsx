@@ -22,6 +22,20 @@ const B = ({ children }: { children: React.ReactNode }) => <b className="text-sl
 
 const SECTIONS: Section[] = [
   {
+    icon: 'bolt',
+    title: 'Filosofías de equipo',
+    body: (
+      <>
+        Al ganar un instituto eliges UNA de tres filosofías, y la llevas <B>para el
+        resto de la partida</B> (se acumulan). No dan números: cambian cómo se
+        resuelve el partido — más contraataques, bloqueos más duros, supertécnicas
+        más baratas… Las ves como chapas bajo el marcador (tócalas para releerlas), y
+        el <B>rival también juega con la suya</B>: cada instituto tiene su forma
+        canónica de jugar.
+      </>
+    ),
+  },
+  {
     icon: 'ball',
     title: 'Cómo se gesta un gol',
     body: (

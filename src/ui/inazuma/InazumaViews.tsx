@@ -1233,6 +1233,15 @@ export function DraftView() {
             ? 'La filosofía del equipo · elige una para el resto de la partida'
             : `Elige tu recompensa${draftPicks > 1 ? ` · te quedan ${draftPicks}` : ''}`}
         </div>
+        {draft.some((o) => o.kind === 'tactica') && (
+          <p className="text-[11px] text-slate-400 leading-snug -mt-1">
+            Las filosofías NO dan números a jugadores: cambian CÓMO se resuelve el
+            partido (contraataques, bloqueos, coste de PT…). Se ACUMULAN: cada
+            instituto ganado añade una más, y las llevas a la vista bajo el marcador
+            — tócalas ahí para releer qué hace cada una. El rival también juega con
+            la suya.
+          </p>
+        )}
         {draft.map((o) => (
           <Card key={o.id} className="p-3" onClick={() => pickDraft(o.id)}>
             <div className="flex items-center gap-2.5">

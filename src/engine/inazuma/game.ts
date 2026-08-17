@@ -239,6 +239,8 @@ export function startMatch(
   // identidad de TU partida.
   home.tactics = save.tactics ?? []
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
+  // El RIVAL también juega con identidad: su filosofía canónica de instituto.
+  away.tactics = team.tactic ? [team.tactic] : []
 
   // El RIVAL también viaja con BANQUILLO (los suplentes de su plantilla real,
   // 12º-14º): al descanso su banquillo hace hasta 3 cambios, como el tuyo.
