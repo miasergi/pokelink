@@ -202,6 +202,16 @@ body {
 }
 .animate-clash-pop { animation: clash-pop .55s ease-out forwards; }
 
+/* FX de técnica EN EL CÉSPED: la burbuja brota junto al jugador y se queda
+   mientras dura la técnica. El transform de posición va en el style inline,
+   así que aquí solo se anima el scale del contenido. */
+@keyframes tech-pop {
+  0% { scale: .25; opacity: 0; }
+  60% { scale: 1.1; opacity: 1; }
+  100% { scale: 1; opacity: 1; }
+}
+.animate-tech-pop { animation: tech-pop .32s ease-out both; }
+
 /* La foto del protagonista respira: zoom lento mientras está en pantalla. */
 @keyframes showcase-zoom {
   from { transform: scale(1.12); }

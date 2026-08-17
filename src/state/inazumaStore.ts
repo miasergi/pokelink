@@ -116,12 +116,12 @@ function holdFor(e: MatchEvent): number {
   switch (e.kind) {
     case 'goal': return 2500        // la celebración entera (1.9s) + aire
     case 'penalty': return 4200     // escenario (2.3s) + celebración retardada
-    case 'save': return 1200        // la línea respira tras el escenario del tiro
+    case 'save': return 2400        // el FX del portero brota en el césped
     case 'duel':
       // El tiro que ACABA en gol corta antes: el escenario no pone sello (eso
       // sería el spoiler) y la celebración del evento de gol toma el relevo.
       if (e.step === 'definicion' && e.success) return 2600
-      if (e.step === 'definicion' || e.technique || e.counter) return 3700
+      if (e.step === 'definicion' || e.technique || e.counter) return 2900
       // Duelo de campo a pelo: antes 500 ms — pasaba sin que te dieras ni
       // cuenta de quién contra quién. Ahora respira y la CHISPA del césped
       // tiene su momento.

@@ -15,6 +15,8 @@ import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
+import TechniqueFX from '@/ui/inazuma/TechniqueFX'
+import { techniqueByName } from '@/ui/inazuma/DuelStage'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, Element, MatchEvent, MatchState } from '@/engine/inazuma/types'
@@ -191,6 +193,31 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
   const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
+  // FX DE TÉCNICA EN EL CÉSPED: la animación de la supertécnica aparece
+  // ANCLADA al jugador que la lanza, sin pantallas grandes que tapen el
+  // partido. Duelo con técnica → burbuja del atacante (y la respuesta del
+  // defensor, más pequeña); parada con técnica → burbuja del portero.
+  const techFxRef = useRef<{
+    key: number
+    until: number
+    entries: { uid: string; techName: string; chance?: number; big: boolean; win: boolean }[]
+  } | null>(null)
+  const techFxSeen = useRef(0)
+  {
+    const last = feed[feed.length - 1]
+    if (feed.length !== techFxSeen.current) {
+      techFxSeen.current = feed.length
+      if (last?.kind === 'duel' && (last.technique || last.counter)) {
+        const entries = []
+        if (last.technique) entries.push({ uid: last.attackerUid, techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success })
+        if (last.counter) entries.push({ uid: last.defenderUid, techName: last.counter, big: !last.technique, win: !last.success })
+        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries }
+      } else if (last?.kind === 'save' && last.technique) {
+        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries: [{ uid: last.keeperUid, techName: last.technique, big: true, win: true }] }
+      }
+    }
+  }
+
   // LA CHISPA del duelo de campo: al revelarse un regate/corte, un fogonazo
   // EN EL PUNTO donde está el balón. Sin ella, esos duelos pasaban sin que se
   // viera dónde ni entre quiénes.
@@ -198,7 +225,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const sparkSeen = useRef(0)
   {
     const last = feed[feed.length - 1]
-    if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
+    if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept && !last.technique && !last.counter) {
       sparkSeen.current = feed.length
       const winnerMine = (last.side === mine) === last.success
       spark.current = { key: feed.length, at: { ...lastBallLogical.current }, mine: winnerMine, until: nowMs + 1000 }
@@ -631,6 +658,45 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             </>
           )
         })()}
+
+        {/* FX DE TÉCNICA: la animación de la supertécnica, anclada al jugador
+            que la lanza. El partido sigue viéndose debajo — nada lo tapa. */}
+        {techFxRef.current && nowMs < techFxRef.current.until && techFxRef.current.entries.map((e) => {
+          const t = techniqueByName(e.techName)
+          if (!t) return null
+          const pos = shownPos.current.get(e.uid)
+          if (!pos) return null
+          const info = ELEMENT_INFO[t.element]
+          const size = e.big ? 'w-28 h-28' : 'w-16 h-16'
+          // Cerca del borde de arriba (la portería rival) la burbuja saldría
+          // del césped: ahí brota POR DEBAJO del jugador en vez de encima.
+          const above = pos.y > 30
+          return (
+            <div
+              key={`${techFxRef.current!.key}-${e.uid}`}
+              className="absolute z-[38] pointer-events-none flex flex-col items-center animate-tech-pop"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                transform: above ? 'translate(-50%, calc(-100% - 14px))' : 'translate(-50%, 12px)',
+              }}
+            >
+              <div
+                className={`${size} rounded-2xl overflow-hidden border-2 shadow-xl`}
+                style={{ borderColor: info.color, boxShadow: `0 0 22px ${info.color}88` }}
+              >
+                <TechniqueFX tech={t} />
+              </div>
+              <div
+                className="mt-0.5 max-w-[130px] truncate text-center text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-950/90 border"
+                style={{ color: info.color, borderColor: `${info.color}88` }}
+              >
+                {e.techName}
+                {e.chance != null && <span className="ml-1 text-amber-300">{Math.round(e.chance * 100)}%</span>}
+              </div>
+            </div>
+          )
+        })}
 
         {/* LA CHISPA del duelo de campo: fogonazo en el punto del choque. */}
         {spark.current && nowMs < spark.current.until && (

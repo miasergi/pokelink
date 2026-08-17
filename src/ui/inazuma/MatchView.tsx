@@ -88,6 +88,7 @@ export default function MatchView() {
     const mine = playerSide(match)
     if (last.kind === 'goal') {
       const isMine = last.side === mine
+      setShotFlight(null)
       setGol({ scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
     } else if (last.kind === 'penalty') {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
@@ -118,60 +119,30 @@ export default function MatchView() {
       // Filosofía ENCENDIDA: su cinemática de activación.
       setTacticFx({ key: feed.length, id: last.tactic, name: last.name, mine: last.side === mine })
     } else if (last.kind === 'duel' && last.intercept) {
-      // EL CRUCE de un defensa en la trayectoria del disparo. Tiene su propia
-      // cinemática (el balón va HASTA ÉL y ahí lanza su bloqueo); antes se
-      // trataba como un disparo más y la cinemática de tiro salía dos veces,
-      // con el balón yendo y viniendo.
-      setStage({
-        key: feed.length,
-        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
-        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
-        attackerWins: last.success,
-        attackerMine: last.side === mine,
-        attackerCrest: crestOf(last.side === mine),
-        defenderCrest: crestOf(last.side !== mine),
-        chance: last.chance,
-        element: last.element,
-        // El balón se PARA en el que se cruza, no sigue a portería.
-        toUid: last.defenderUid,
-        kind: 'bloqueo',
-      })
+      // EL CRUCE de un defensa en la trayectoria: SIN pantallas. El balón vuela
+      // por el césped HASTA ÉL y su bloqueo brota ahí mismo (LivePitch pinta el
+      // FX de la técnica anclado al jugador).
+      const key = feed.length
+      setShotFlight({ key, element: last.element, mine: last.side === mine, toUid: last.defenderUid })
+      setTimeout(() => setShotFlight((f) => (f && f.key === key ? { ...f, landed: true } : f)), 1000)
+      setTimeout(() => setShotFlight((f) => (f && f.key === key ? null : f)), 2300)
     } else if (last.kind === 'duel' && last.step === 'definicion') {
-      // Cinemática SOLO en los DISPAROS (y penaltis): los duelos de regate
-      // vs bloqueo NO paran el partido — se resuelven con un FLASH sobre el
-      // césped (la técnica ganadora, o «¡REGATE!»/«¡CORTE!» a pelo).
-      setStage({
-        key: feed.length,
-        attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
-        defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
-        attackerWins: last.success,
-        attackerMine: last.side === mine,
-        attackerCrest: crestOf(last.side === mine),
-        defenderCrest: crestOf(last.side !== mine),
-        chance: last.chance,
-        // Elemento del disparo (técnica o tirador): las llamas del balón.
-        element: last.element,
-        kind: 'tiro',
-      })
+      // DISPARO sin pantalla grande: la supertécnica brota sobre el tirador EN
+      // EL CÉSPED (LivePitch) y el balón sale ardiendo hacia la portería. La
+      // parada o el gol llegan como siguiente evento, también sobre el césped.
+      const key = feed.length
+      setTimeout(() => setShotFlight((f) => (f?.key === key ? f : { key, element: last.element, mine: last.side === mine })), 1100)
+      setTimeout(() => setShotFlight((f) => (f && f.key === key ? { ...f, landed: true } : f)), 2400)
+    } else if (last.kind === 'save') {
+      // La parada: el FX del portero sale anclado a él en el césped; el balón
+      // deja de verse en la portería en cuanto la parada «cuenta».
+      setTimeout(() => setShotFlight(null), 900)
     } else if (last.kind === 'duel') {
-      // Duelo de campo (regate contra bloqueo). CON SUPERTÉCNICA se enseña la
-      // foto grande de la que GANA el duelo — sin el cara a cara, que era lo
-      // que sobraba. SIN técnica no hay nada que enseñar: un flash y el juego
-      // sigue sin pararse.
-      const winnerTech = last.success ? last.technique : last.counter
-      const winnerMine = (last.side === mine) === last.success
-      if (winnerTech) {
-        setStage({
-          key: feed.length,
-          attacker: { name: last.attacker, baseId: actorByUid(match, last.attackerUid)?.baseId, rarity: actorByUid(match, last.attackerUid)?.rarity, techName: last.technique },
-          defender: { name: last.defender, baseId: actorByUid(match, last.defenderUid)?.baseId, rarity: actorByUid(match, last.defenderUid)?.rarity, techName: last.counter },
-          attackerWins: last.success,
-          attackerMine: last.side === mine,
-          attackerCrest: crestOf(last.side === mine),
-          defenderCrest: crestOf(last.side !== mine),
-          kind: 'regate',
-        })
-      } else {
+      // Duelo de campo (regate contra bloqueo). CON supertécnica, el FX brota
+      // sobre cada jugador en el propio césped (LivePitch); SIN técnica, un
+      // flash y la CHISPA del choque. El partido no se tapa nunca.
+      if (!last.technique && !last.counter) {
+        const winnerMine = (last.side === mine) === last.success
         setFlash({
           key: feed.length,
           text: last.success ? '¡REGATE!' : '¡CORTE!',
