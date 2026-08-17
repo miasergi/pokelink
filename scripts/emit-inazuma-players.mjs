@@ -409,6 +409,8 @@ async function main() {
   const seenIds = new Set()
   /** Todo lo emitido, por equipo: de aquí sale el relleno de convocatorias. */
   const emitted = {}
+  /** Capitán canónico de cada equipo (leído del infobox de su ficha). */
+  const captainByTeam = new Map()
   /**
    * Nombres ya emitidos por la saga CLÁSICA. Victory Road no puede repetir
    * ninguno: el doblaje reutiliza nombres entre personajes distintos, y ver a
@@ -437,12 +439,30 @@ async function main() {
     // primeros de cada línea, así que el orden del fichero ES el once titular.
     const list = rawList
       .map((p, i) => ({ p, i }))
-      .sort((a, b) => {
-        const sa = STARS[(a.p.name ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim()] ?? 0
-        const sb = STARS[(b.p.name ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim()] ?? 0
-        return sb - sa || a.i - b.i
-      })
       .map((x) => x.p)
+    // FAMA POR MÉRITOS. El orden de la wiki no es un escalafón (lista antes a
+    // porteros y defensas), así que el peso sale de méritos REALES:
+    //  · lo curado a mano (STARS) manda;
+    //  · el CAPITÁN canónico de la ficha del equipo tiene suelo 4;
+    //  · el resto se rankea por su REPERTORIO (nº de técnicas del moveset):
+    //    el as de un equipo es el que más supertécnicas tiene, no el primero
+    //    de la lista. Era exactamente el fallo de Hokuyou: su estrella salía
+    //    de relleno y las rarezas subidas caían en la retaguardia.
+    const cleanOf = (q) => ((q.name.includes('{{') ? (q.wiki ?? q.name) : q.name) ?? '')
+      .replace(/\s*\([^)]*\)\s*$/, '').trim()
+    const byMoves = [...list].sort((a, b) => ((b.hissatsu ?? []).length - (a.hissatsu ?? []).length))
+    const moveRank = new Map(byMoves.map((q, i) => [q, i]))
+    const ALIUS_ELITE = new Set(['genesis', 'chaos', 'prominence', 'diamond-dust', 'epsilon', 'gemini-storm', 'royal', 'zeus'])
+    const fameOf = (q) => {
+      const curated = STARS[cleanOf(q)]
+      if (curated != null) return curated
+      const r = moveRank.get(q) ?? 99
+      const porRepertorio = r === 0 ? 4 : r <= 2 ? 3 : r <= 5 ? 2 : 1
+      const floor = q.captain ? 4 : ALIUS_ELITE.has(teamId) ? 2 : 1
+      return Math.max(porRepertorio, floor)
+    }
+    // El once titular sale de la fama: los ases empiezan, el relleno espera.
+    list.sort((a, b) => fameOf(b) - fameOf(a))
     let idx = 0
     for (const p of list) {
       if (!p.position || !p.element) continue
@@ -460,7 +480,8 @@ async function main() {
 
       // Victory Road: ni un nombre repetido de la saga clásica.
       if (VR_TEAMS.has(teamId) && classicNames.has(cleanName)) continue
-      const rarity = STARS[cleanName] ?? rarityFor(idx, teamId)
+      const rarity = fameOf(p)
+      if (p.captain) captainByTeam.set(teamId, id)
       const st = statsFor(p.position, rarity, id)
       // CADA UNO CON LAS DE SU ÉPOCA.
       const eraTechs = VR_TEAMS.has(teamId)
@@ -491,6 +512,16 @@ async function main() {
   lines.push("    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],")
   lines.push('  },')
   lines.push(']')
+  lines.push('')
+  lines.push('/**')
+  lines.push(' * CAPITÁN CANÓNICO de cada instituto (del infobox de la wiki): es quien')
+  lines.push(' * lleva su Brazalete de Capitán y el ancla del reparto de rarezas.')
+  lines.push(' */')
+  lines.push('export const TEAM_CAPTAINS: Record<string, string> = {')
+  for (const [t, pid] of captainByTeam) {
+    lines.push(`  ${/^[a-z][a-z0-9]*$/.test(t) ? t : q(t)}: ${q(pid)},`)
+  }
+  lines.push('}')
   lines.push('')
   lines.push('/** Institutos del torneo; el resto de equipos son SOLO fichables. */')
   lines.push("const BRACKET_TEAMS = new Set(['raimon', 'occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'])")

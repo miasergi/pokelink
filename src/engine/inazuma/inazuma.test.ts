@@ -10,7 +10,7 @@ import { actorByUid, advance, chooseOption, playerScore, substitute } from './ma
 import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
-import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
+import { getPlayerBase, PLAYERS, startingSquad, TEAM_CAPTAINS } from '@/data/inazuma/players'
 import { getTeam, PLAYABLE_TEAMS, regionOfTeam, SAGAS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
@@ -25,6 +25,7 @@ import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
   levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
   techLevel, transferValue, upgradeTechnique,
+  rivalArmbandBaseId, rivalRarityMap,
 } from './roster'
 import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
@@ -141,6 +142,19 @@ describe('plantilla', () => {
     // ATAQUE: con varias ofensivas encima, marcas MÁS.
     expect(medir(['toque', 'academia', 'vibracion', 'gegenpressing']).mios, 'las ofensivas no atacan')
       .toBeGreaterThan(base.mios)
+  })
+
+  it('el CAPITÁN canónico rival lleva el brazalete y rareza alta', () => {
+    // El caso Hokuyou: Nikas (su capitán en la wiki) salía de relleno y las
+    // rarezas subidas caían en la retaguardia, porque el peso venía del ORDEN
+    // de la plantilla. Ahora el capitán del infobox manda.
+    expect(TEAM_CAPTAINS.raimon).toBe('mark-evans')
+    expect(TEAM_CAPTAINS['hokuyou-gakuen']).toBe('nikas-himmelstein')
+    expect(rivalArmbandBaseId('hokuyou-gakuen')).toBe('nikas-himmelstein')
+    // Y en el reparto de rarezas del partido, su rareza es LA MÁS ALTA del plan.
+    const map = rivalRarityMap('hokuyou-gakuen', 2)
+    const capRarity = map.get('nikas-himmelstein') ?? 0
+    expect(capRarity).toBe(Math.max(...map.values()))
   })
 
   it('TODO instituto tiene su camiseta (kit), y ninguna copia la del Raimon', () => {

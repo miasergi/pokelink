@@ -1,7 +1,7 @@
 // Plantilla: crear jugadores, escalarlos por nivel, calcular PT y aplicar
 // fatiga y objetos. Todo son funciones PURAS — el store solo las orquesta.
 import type { RNG } from '@/utils/rng'
-import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam, PLAYERS, TEAM_CAPTAINS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { regionOfTeam, type RegionId } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -156,7 +156,11 @@ export function rivalRarityMap(teamId: string, bossIndex: number): Map<string, n
   // así que las rarezas subidas caían siempre en la retaguardia en vez de en
   // los cracks del equipo.
   const sum = (b: PlayerBase) => Object.values(b.stats).reduce((a, v) => a + v, 0)
-  const ranked = [...xi].sort((a, b) => b.fame - a.fame || sum(b) - sum(a))
+  // EL CAPITÁN CANÓNICO encabeza el reparto (a Nikas no se le adelanta un
+  // compañero por ruido de números); después, peso en la serie y calidad.
+  const cap = TEAM_CAPTAINS[teamId]
+  const ranked = [...xi].sort((a, b) =>
+    Number(b.id === cap) - Number(a.id === cap) || b.fame - a.fame || sum(b) - sum(a))
   const out = new Map<string, number>()
   ranked.forEach((b, i) => out.set(b.id, plan[Math.min(i, plan.length - 1)] ?? 1))
   return out
@@ -533,21 +537,23 @@ export function buildRivalTeam(
   needed.forEach((pos, i) => {
     out.push(fillerRival(names[i % names.length], pos, team.element, level, team.power, rng))
   })
-  return withRivalArmband(out.slice(0, 11))
+  return withRivalArmband(out.slice(0, 11), TEAM_CAPTAINS[teamId])
 }
 
 /**
  * El BRAZALETE del rival: su jugador insignia (más peso en la serie y, a
  * igualdad, mejores números) sale con +25 % a todo, como tu capitán.
  */
-function withRivalArmband(xi: RivalPlayer[]): RivalPlayer[] {
+function withRivalArmband(xi: RivalPlayer[], captainBaseId?: string | null): RivalPlayer[] {
   if (!xi.length) return xi
   const sum = (p: RivalPlayer) => Object.values(p.stats).reduce((a, v) => a + v, 0)
   const fameOf = (p: RivalPlayer) => {
     try { return getPlayerBase(p.baseId).fame } catch { return 1 }
   }
-  const cap = xi.reduce((best, p) =>
-    (fameOf(p) > fameOf(best) || (fameOf(p) === fameOf(best) && sum(p) > sum(best)) ? p : best), xi[0])
+  // El capitán canónico si está sobre el campo; si no, el mejor.
+  const cap = (captainBaseId ? xi.find((p) => p.baseId === captainBaseId) : undefined)
+    ?? xi.reduce((best, p) =>
+      (fameOf(p) > fameOf(best) || (fameOf(p) === fameOf(best) && sum(p) > sum(best)) ? p : best), xi[0])
   cap.stats = {
     tiro: Math.round(cap.stats.tiro * ARMBAND_MULT),
     control: Math.round(cap.stats.control * ARMBAND_MULT),
@@ -569,6 +575,10 @@ const ARMBAND_MULT = 1.25
 export function rivalArmbandBaseId(teamId: string): string | null {
   const xi = rivalStartingXI(teamId)
   if (!xi.length) return null
+  // EL CAPITÁN CANÓNICO manda (el que declara la ficha del equipo en la
+  // wiki); sin capitán conocido, el de más peso y mejores números.
+  const cap = TEAM_CAPTAINS[teamId]
+  if (cap && xi.some((b) => b.id === cap)) return cap
   const sum = (b: PlayerBase) => Object.values(b.stats).reduce((a, v) => a + v, 0)
   return xi.reduce((best, b) => (b.fame > best.fame || (b.fame === best.fame && sum(b) > sum(best)) ? b : best), xi[0]).id
 }

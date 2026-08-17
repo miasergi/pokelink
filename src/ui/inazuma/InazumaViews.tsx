@@ -18,7 +18,7 @@ import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
-  rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
+  rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
   SIGNATURE_LEVELS, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
@@ -353,6 +353,8 @@ export function PreviewView() {
                 // multicolor entera).
                 rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
                 level: matchNode.level ?? 10,
+                // El CAPITÁN canónico luce su Brazalete en la previa.
+                itemId: b.id === rivalArmbandBaseId(matchNode.teamId!) ? 'brazalete-capitan' : undefined,
               }))}
               onTap={(c) => {
                 const b = getPlayerBase(c.baseId)

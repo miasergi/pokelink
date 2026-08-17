@@ -252,7 +252,10 @@ async function teamRoster(pages) {
     if (m && m.length >= 8) {
       // Se quedan solo los del juego original: la tabla mezcla varias entregas.
       const names = [...new Set(m.map((x) => x.split('=')[1].trim()).filter(Boolean))]
-      return { page, names }
+      // El CAPITÁN CANÓNICO, declarado en el infobox del equipo: llevará el
+      // Brazalete de Capitán rival y ancla el reparto de rarezas.
+      const capM = wt.match(/\|\s*captain\s*=\s*(?:\*\s*)?\[\[([^\]|]+)/)
+      return { page, names, captain: capM ? capM[1].trim() : null }
     }
   }
   return null
@@ -375,6 +378,15 @@ async function main() {
       const name = (ov.name ?? dub).replace(/^[*#:;\s]+/, '').trim()
       out[teamId].push({
         wiki: page.title,
+        // Capitán canónico: por nombre corto de plantilla o título de página.
+        // El infobox suele dar el nombre COMPLETO («Endou Mamoru») y la
+        // plantilla el corto («Endou»): se compara también por primer token.
+        captain: roster.captain != null && (
+          short === roster.captain
+          || page.title === roster.captain
+          || roster.captain.split(' ')[0] === short
+          || roster.captain.startsWith(short + ' ')
+        ) ? true : undefined,
         name,
         id: slugify(name),
         element: ov.element ?? parseElement(fields(page.wt, 'element')),
