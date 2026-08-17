@@ -219,11 +219,13 @@ body {
   60% { scale: 1.16; }
   100% { scale: 1.06; }
 }
-.fx-bubble-win { animation: tech-win .45s ease-out .9s both; }
+/* OJO: `animation` no se hereda de .animate-tech-pop (la propiedad se pisa),
+   así que el brote inicial va INCLUIDO en cada veredicto. */
+.fx-bubble-win { animation: tech-pop .32s ease-out both, tech-win .45s ease-out .9s both; }
 @keyframes tech-lose {
   to { filter: grayscale(.85); opacity: .4; }
 }
-.fx-bubble-lose { animation: tech-lose .5s ease-in .9s both; }
+.fx-bubble-lose { animation: tech-pop .32s ease-out both, tech-lose .5s ease-in .9s both; }
 
 /* La foto del protagonista respira: zoom lento mientras está en pantalla. */
 @keyframes showcase-zoom {

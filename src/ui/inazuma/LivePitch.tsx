@@ -680,31 +680,37 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           const pos = shownPos.current.get(e.uid)
           if (!pos) return null
           const info = ELEMENT_INFO[t.element]
-          const size = e.big ? 'w-28 h-28' : 'w-16 h-16'
-          // Cerca del borde de arriba (la portería rival) la burbuja saldría
-          // del césped: ahí brota POR DEBAJO del jugador en vez de encima.
-          const above = pos.y > 30
+          const size = e.big ? 'w-36 h-36' : 'w-20 h-20'
+          // La técnica BROTA del jugador: la base del efecto en sus pies y el
+          // motivo alzándose sobre él. Pegado a la portería de arriba no cabe
+          // alzarse: ahí el efecto envuelve al jugador (centrado en él).
+          const rises = pos.y > 26
           return (
             <div
               key={`${techFxRef.current!.key}-${e.uid}`}
-              className="absolute z-[38] pointer-events-none flex flex-col items-center animate-tech-pop"
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                transform: above ? 'translate(-50%, calc(-100% - 14px))' : 'translate(-50%, 12px)',
-              }}
+              className="absolute z-[38] pointer-events-none"
+              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             >
               <div
-                className={`${size} rounded-2xl overflow-hidden border-2 shadow-xl ${e.verdict ? (e.win ? 'fx-bubble-win' : 'fx-bubble-lose') : ''}`}
-                style={{ borderColor: info.color, boxShadow: `0 0 22px ${info.color}88` }}
+                className={`${size} animate-tech-pop ${e.verdict ? (e.win ? 'fx-bubble-win' : 'fx-bubble-lose') : ''}`}
+                style={{
+                  transform: rises ? 'translate(-50%, calc(-100% + 18px))' : 'translate(-50%, -52%)',
+                  filter: `drop-shadow(0 0 10px ${info.color}66)`,
+                }}
               >
-                <TechniqueFX tech={t} />
+                <TechniqueFX tech={t} bare />
               </div>
-              {/* QUIÉN la lanza y QUÉ lanza: sin esto no se entiende la jugada. */}
-              <div className="mt-0.5 flex flex-col items-center rounded-lg overflow-hidden border bg-slate-950/90" style={{ borderColor: `${info.color}88` }}>
-                <span className="max-w-[130px] truncate px-1.5 pt-0.5 text-[9px] font-extrabold text-white leading-tight">{e.name}</span>
+              {/* QUIÉN la lanza y QUÉ lanza, en una placa bajo el jugador. */}
+              <div
+                className="absolute left-0 top-0 flex flex-col items-center rounded-lg overflow-hidden border bg-slate-950/90"
+                style={{
+                  borderColor: `${info.color}88`,
+                  transform: pos.y > 86 ? 'translate(-50%, calc(-100% - 46px))' : 'translate(-50%, 16px)',
+                }}
+              >
+                <span className="max-w-[130px] truncate px-1.5 pt-0.5 text-[9px] font-extrabold text-white leading-tight whitespace-nowrap">{e.name}</span>
                 <span
-                  className="max-w-[130px] truncate px-1.5 pb-0.5 text-[9px] font-extrabold uppercase tracking-wide leading-tight"
+                  className="max-w-[130px] truncate px-1.5 pb-0.5 text-[9px] font-extrabold uppercase tracking-wide leading-tight whitespace-nowrap"
                   style={{ color: info.color }}
                 >
                   {e.techName}

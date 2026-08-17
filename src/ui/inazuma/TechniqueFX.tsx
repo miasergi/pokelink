@@ -492,17 +492,20 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
   )
 }
 
-export default function TechniqueFX({ tech, className = '' }: {
+export default function TechniqueFX({ tech, className = '', bare = false }: {
   tech: Pick<Technique, 'id' | 'name' | 'kind' | 'element' | 'power'>
   className?: string
+  /** EN EL CÉSPED: sin caja, sin fondo oscuro ni recorte — los motivos y las
+      partículas brotan directamente sobre la hierba, con un AURA del elemento
+      como base. La versión con caja queda para escenarios (penaltis). */
+  bare?: boolean
 }) {
   const color = ELEMENT_INFO[tech.element].color
   const n = Math.max(6, Math.min(12, Math.round(tech.power / 12)))
   const motifs = motifsFor(tech)
 
-  return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`} style={{ background: `radial-gradient(circle at 50% 55%, ${color}2e, #020617 78%)` }}>
-      <div className="absolute inset-0 animate-flame-flicker" style={{ background: `radial-gradient(circle at 50% 55%, ${color}22, transparent 60%)` }} />
+  const layers = (
+    <>
       {/* El fondo de su clase (partículas), y encima SUS motivos. */}
       <BaseKind kind={tech.kind} element={tech.element} color={color} n={n} />
       {motifs.length === 0 && tech.kind === 'parada' && (
@@ -515,6 +518,27 @@ export default function TechniqueFX({ tech, className = '' }: {
           <MotifLayer motif={m} color={color} element={tech.element} />
         </div>
       ))}
+    </>
+  )
+
+  if (bare) {
+    return (
+      <div className={`relative w-full h-full ${className}`}>
+        {/* AURA en la hierba: la luz del elemento bajo los pies, en lugar del
+            fondo negro de la versión de escenario. */}
+        <div
+          className="absolute inset-x-[-12%] bottom-[-7%] h-[42%] animate-flame-flicker"
+          style={{ background: `radial-gradient(ellipse at 50% 100%, ${color}66, ${color}22 45%, transparent 72%)` }}
+        />
+        {layers}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`relative w-full h-full overflow-hidden ${className}`} style={{ background: `radial-gradient(circle at 50% 55%, ${color}2e, #020617 78%)` }}>
+      <div className="absolute inset-0 animate-flame-flicker" style={{ background: `radial-gradient(circle at 50% 55%, ${color}22, transparent 60%)` }} />
+      {layers}
     </div>
   )
 }
