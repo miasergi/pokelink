@@ -86,7 +86,13 @@ const NAME_FIX = {}
  * plantilla, y el catálogo acababa con 14 jugadores duplicados que salían en
  * fichajes y ojeadores. Se emite solo el bueno.
  */
-const CLONE_TEAMS = new Set(['wild'])
+const CLONE_TEAMS = new Set([
+  'wild',
+  // «Shuuyou Meito Gakuen» y «Otaku Gakuen» son EL MISMO instituto (la wiki
+  // resuelve las dos páginas a la misma plantilla): 14 clones, entre ellos
+  // los dos Walter Valiant que cantó el playtest.
+  'shuuyou-meito',
+])
 
 /**
  * Equipos de RECLUTAMIENTO (los que el juego arma juntando gente suelta por

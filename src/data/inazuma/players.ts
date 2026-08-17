@@ -531,12 +531,6 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['illusion-ball', 'death-zone', 'koutei-penguin-2gou', 'ice-ground'],
   },
   {
-    id: 'jude-sharp-2', name: 'Jude Sharp', team: 'royal', position: 'MED', element: 'aire', fame: 5,
-    stats: { tiro: 55, control: 104, fisico: 49, defensa: 56, velocidad: 66, aguante: 46 },
-    techniques: ['illusion-ball', 'death-zone'],
-    signature: ['illusion-ball', 'death-zone', 'koutei-penguin-2gou', 'ice-ground'],
-  },
-  {
     id: 'david-samford', name: 'David Samford', team: 'royal', position: 'DEL', element: 'bosque', fame: 4,
     stats: { tiro: 101, control: 69, fisico: 42, defensa: 29, velocidad: 58, aguante: 31 },
     techniques: ['death-zone', 'koutei-penguin-2gou'],
@@ -607,6 +601,12 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 68, control: 52, fisico: 34, defensa: 19, velocidad: 42, aguante: 29 },
     techniques: ['grenade-shot'],
     signature: ['grenade-shot', 'twin-boost', 'illusion-ball', 'killer-slide'],
+  },
+  {
+    id: 'jim-lawrenson', name: 'Jim Lawrenson', team: 'royal', position: 'DEL', element: 'aire', fame: 2,
+    stats: { tiro: 68, control: 55, fisico: 38, defensa: 20, velocidad: 41, aguante: 25 },
+    techniques: ['spiral-shot'],
+    signature: ['spiral-shot', 'hyakuretsu-shot', 'illusion-ball', 'killer-slide'],
   },
   // ============================== ZEUS
   {
@@ -1461,8 +1461,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['fire-tornado', 'inazuma-break', 'bakunetsu-storm', 'honoo-no-kazamidori'],
   },
   {
-    id: 'jude-sharp-3', name: 'Jude Sharp', team: 'inazuma-japan', position: 'MED', element: 'aire', fame: 5,
-    stats: { tiro: 53, control: 98, fisico: 48, defensa: 56, velocidad: 66, aguante: 46 },
+    id: 'jude-sharp-2', name: 'Jude Sharp', team: 'inazuma-japan', position: 'MED', element: 'aire', fame: 5,
+    stats: { tiro: 55, control: 104, fisico: 49, defensa: 56, velocidad: 66, aguante: 46 },
     techniques: ['illusion-ball', 'death-zone'],
     signature: ['illusion-ball', 'death-zone', 'koutei-penguin-2gou', 'ice-ground'],
   },
@@ -2376,91 +2376,6 @@ export const PLAYERS: PlayerBase[] = [
     techniques: ['quick-draw'],
     signature: ['quick-draw', 'cyclone', 'monkey-turn', 'kagome-kagome'],
   },
-  // ============================== SHUUYOU-MEITO
-  {
-    id: 'mark-gambling-2', name: 'Mark Gambling', team: 'shuuyou-meito', position: 'DEL', element: 'aire', fame: 4,
-    stats: { tiro: 97, control: 68, fisico: 49, defensa: 24, velocidad: 60, aguante: 35 },
-    techniques: ['dokonjou-bat', 'dokonjou-club'],
-    signature: ['dokonjou-bat', 'dokonjou-club', 'gorimuchuu', 'blade-attack'],
-  },
-  {
-    id: 'sam-idol-2', name: 'Sam Idol', team: 'shuuyou-meito', position: 'POR', element: 'montana', fame: 3,
-    stats: { tiro: 25, control: 39, fisico: 45, defensa: 87, velocidad: 34, aguante: 48 },
-    techniques: ['goal-zurashi'],
-    signature: ['goal-zurashi', 'toughness-block', 'nekketsu-punch', 'gigant-wall'],
-  },
-  {
-    id: 'grant-eldorado-2', name: 'Grant Eldorado', team: 'shuuyou-meito', position: 'DEL', element: 'fuego', fame: 3,
-    stats: { tiro: 83, control: 58, fisico: 39, defensa: 22, velocidad: 50, aguante: 26 },
-    techniques: ['fire-tornado'],
-    signature: ['fire-tornado', 'spinning-shoot', 'judge-through', 'dragon-crash'],
-  },
-  {
-    id: 'walter-valiant-2', name: 'Walter Valiant', team: 'shuuyou-meito', position: 'MED', element: 'fuego', fame: 2,
-    stats: { tiro: 38, control: 65, fisico: 31, defensa: 35, velocidad: 43, aguante: 30 },
-    techniques: ['zanzou'],
-    signature: ['zanzou', 'illusion-ball', 'dokonjou-bat', 'fake-ball'],
-  },
-  {
-    id: 'spencer-gates-2', name: 'Spencer Gates', team: 'shuuyou-meito', position: 'DEF', element: 'montana', fame: 2,
-    stats: { tiro: 24, control: 37, fisico: 56, defensa: 67, velocidad: 31, aguante: 33 },
-    techniques: ['fake-ball'],
-    signature: ['fake-ball', 'earthquake', 'dokonjou-bat', 'liar-shot'],
-  },
-  {
-    id: 'josh-spear-2', name: 'Josh Spear', team: 'shuuyou-meito', position: 'DEL', element: 'bosque', fame: 2,
-    stats: { tiro: 69, control: 55, fisico: 31, defensa: 18, velocidad: 41, aguante: 24 },
-    techniques: ['gorimuchuu'],
-    signature: ['gorimuchuu', 'onryou', 'kage-nui', 'super-scan-df'],
-  },
-  {
-    id: 'marcus-train-2', name: 'Marcus Train', team: 'shuuyou-meito', position: 'DEF', element: 'fuego', fame: 1,
-    stats: { tiro: 19, control: 33, fisico: 46, defensa: 58, velocidad: 27, aguante: 27 },
-    techniques: ['fake-ball'],
-    signature: ['fake-ball', 'hurricane-arrow', 'dokonjou-bat', 'zigzag-spark'],
-  },
-  {
-    id: 'light-nobel-2', name: 'Light Nobel', team: 'shuuyou-meito', position: 'MED', element: 'bosque', fame: 1,
-    stats: { tiro: 32, control: 52, fisico: 28, defensa: 29, velocidad: 37, aguante: 20 },
-    techniques: ['dash-accel'],
-    signature: ['dash-accel', 'gorimuchuu', 'dokonjou-bat', 'fake-ball'],
-  },
-  {
-    id: 'gaby-farmer-2', name: 'Gaby Farmer', team: 'shuuyou-meito', position: 'DEL', element: 'aire', fame: 1,
-    stats: { tiro: 58, control: 42, fisico: 24, defensa: 20, velocidad: 31, aguante: 24 },
-    techniques: ['freeze-shot'],
-    signature: ['freeze-shot', 'inazuma-otoshi', 'gorimuchuu', 'cyclone'],
-  },
-  {
-    id: 'a-woodbridge-2', name: 'A. Woodbridge', team: 'shuuyou-meito', position: 'MED', element: 'aire', fame: 1,
-    stats: { tiro: 31, control: 58, fisico: 23, defensa: 32, velocidad: 36, aguante: 27 },
-    techniques: ['gorimuchuu'],
-    signature: ['gorimuchuu', 'dokonjou-bat', 'coil-turn', 'hyakuretsu-shot'],
-  },
-  {
-    id: 'gus-gamer-2', name: 'Gus Gamer', team: 'shuuyou-meito', position: 'DEL', element: 'fuego', fame: 1,
-    stats: { tiro: 61, control: 43, fisico: 32, defensa: 18, velocidad: 37, aguante: 20 },
-    techniques: ['dokonjou-bat'],
-    signature: ['dokonjou-bat', 'shine-drive', 'gorimuchuu', 'fake-ball'],
-  },
-  {
-    id: 'theodore-master-2', name: 'Theodore Master', team: 'shuuyou-meito', position: 'DEL', element: 'bosque', fame: 1,
-    stats: { tiro: 64, control: 46, fisico: 27, defensa: 18, velocidad: 33, aguante: 20 },
-    techniques: ['cross-drive'],
-    signature: ['cross-drive', 'dokonjou-bat', 'gorimuchuu', 'revolution-v'],
-  },
-  {
-    id: 'ham-signalman-2', name: 'Ham Signalman', team: 'shuuyou-meito', position: 'MED', element: 'aire', fame: 1,
-    stats: { tiro: 35, control: 52, fisico: 26, defensa: 29, velocidad: 33, aguante: 20 },
-    techniques: ['gorimuchuu'],
-    signature: ['gorimuchuu', 'patriot-shoot', 'coil-turn', 'spinning-cut'],
-  },
-  {
-    id: 'bill-formby-2', name: 'Bill Formby', team: 'shuuyou-meito', position: 'DEF', element: 'montana', fame: 1,
-    stats: { tiro: 23, control: 24, fisico: 50, defensa: 55, velocidad: 23, aguante: 32 },
-    techniques: ['kumo-no-ito'],
-    signature: ['kumo-no-ito', 'doppelganger', 'dual-strike', 'gorimuchuu'],
-  },
   // ============================== HAKUREN
   {
     id: 'joaquine-downtown', name: 'Joaquine Downtown', team: 'hakuren', position: 'DEF', element: 'fuego', fame: 4,
@@ -3028,10 +2943,10 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['fuujin-no-mai', 'judge-through-3', 'tiger-drive', 'gravitation'],
   },
   {
-    id: 'lars-luceafar-2', name: 'Lars Luceafăr', team: 'ogre', position: 'POR', element: 'montana', fame: 2,
-    stats: { tiro: 25, control: 32, fisico: 40, defensa: 76, velocidad: 28, aguante: 40 },
-    techniques: ['shootrap'],
-    signature: ['shootrap', 'mugen-the-hand', 'needle-hammer', 'electrap'],
+    id: 'drachen-gunther', name: 'Drachen Gunther', team: 'ogre', position: 'MED', element: 'fuego', fame: 2,
+    stats: { tiro: 38, control: 65, fisico: 32, defensa: 34, velocidad: 42, aguante: 32 },
+    techniques: ['southern-crosscut'],
+    signature: ['southern-crosscut', 'scissors-bomb', 'abisegeri', 'sigma-zone'],
   },
   {
     id: 'lump-trungus', name: 'Lump Trungus', team: 'ogre', position: 'DEF', element: 'fuego', fame: 1,
@@ -3052,12 +2967,6 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['shinkuuma', 'volcano-cut', 'illusion-ball', 'killer-slide'],
   },
   {
-    id: 'drachen-gunther', name: 'Drachen Gunther', team: 'ogre', position: 'MED', element: 'fuego', fame: 1,
-    stats: { tiro: 32, control: 55, fisico: 27, defensa: 28, velocidad: 35, aguante: 27 },
-    techniques: ['southern-crosscut'],
-    signature: ['southern-crosscut', 'scissors-bomb', 'abisegeri', 'sigma-zone'],
-  },
-  {
     id: 'ichabod-stark', name: 'Ichabod Stark', team: 'ogre', position: 'MED', element: 'montana', fame: 1,
     stats: { tiro: 28, control: 56, fisico: 29, defensa: 30, velocidad: 30, aguante: 20 },
     techniques: ['lightning-accel'],
@@ -3068,18 +2977,6 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 56, control: 40, fisico: 27, defensa: 20, velocidad: 34, aguante: 23 },
     techniques: ['death-spear'],
     signature: ['death-spear', 'heaven-drive', 'angel-ball', 'death-rain'],
-  },
-  {
-    id: 'lump-trungus-2', name: 'Lump Trungus', team: 'ogre', position: 'DEF', element: 'fuego', fame: 1,
-    stats: { tiro: 18, control: 26, fisico: 50, defensa: 56, velocidad: 26, aguante: 26 },
-    techniques: ['iron-wall'],
-    signature: ['iron-wall', 'demon-cut', 'judge-through-3', 'harvest'],
-  },
-  {
-    id: 'bump-trungus-2', name: 'Bump Trungus', team: 'ogre', position: 'DEF', element: 'aire', fame: 1,
-    stats: { tiro: 22, control: 30, fisico: 46, defensa: 52, velocidad: 28, aguante: 30 },
-    techniques: ['iron-wall'],
-    signature: ['iron-wall', 'sigma-zone', 'death-rain', 'judge-through'],
   },
   // ============================== NEO-JAPAN
   {
@@ -3313,22 +3210,22 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['fire-tornado', 'ganymede-proton', 'shippuu-dash', 'ignite-steal'],
   },
   {
-    id: 'grant-cook-3', name: 'Grant Cook', team: 'chaos', position: 'POR', element: 'fuego', fame: 2,
-    stats: { tiro: 22, control: 31, fisico: 44, defensa: 70, velocidad: 31, aguante: 47 },
-    techniques: ['burnout'],
-    signature: ['burnout', 'nekketsu-punch', 'kaenhousha', 'bakuretsu-punch'],
+    id: 'ben-north-2', name: 'Ben North', team: 'chaos', position: 'POR', element: 'montana', fame: 2,
+    stats: { tiro: 24, control: 36, fisico: 40, defensa: 69, velocidad: 31, aguante: 40 },
+    techniques: ['ice-block'],
+    signature: ['ice-block', 'wormhole', 'tornado-catch', 'god-catch'],
   },
   {
-    id: 'bonnie-sparks-3', name: 'Bonnie Sparks', team: 'chaos', position: 'DEF', element: 'bosque', fame: 2,
-    stats: { tiro: 25, control: 36, fisico: 54, defensa: 63, velocidad: 32, aguante: 34 },
-    techniques: ['ignite-steal'],
-    signature: ['ignite-steal', 'zigzag-flame', 'meteor-shower', 'fake-bomber'],
+    id: 'brenda-firequest-2', name: 'Brenda Firequest', team: 'chaos', position: 'MED', element: 'fuego', fame: 2,
+    stats: { tiro: 35, control: 61, fisico: 33, defensa: 37, velocidad: 43, aguante: 29 },
+    techniques: ['southern-crosscut'],
+    signature: ['southern-crosscut', 'prima-donna', 'atomic-flare', 'heat-tackle'],
   },
   {
-    id: 'claire-lesnow-3', name: 'Claire Lesnow', team: 'chaos', position: 'DEF', element: 'aire', fame: 2,
-    stats: { tiro: 22, control: 35, fisico: 55, defensa: 64, velocidad: 33, aguante: 32 },
-    techniques: ['the-tower'],
-    signature: ['the-tower', 'photon-flash', 'northern-impact', 'water-veil'],
+    id: 'sam-bournes-2', name: 'Sam Bournes', team: 'chaos', position: 'MED', element: 'bosque', fame: 2,
+    stats: { tiro: 39, control: 64, fisico: 29, defensa: 34, velocidad: 43, aguante: 33 },
+    techniques: ['illusion-ball'],
+    signature: ['illusion-ball', 'prima-donna', 'atomic-flare', 'ignite-steal'],
   },
   // ============================== WINDIES
   {
@@ -4875,9 +4772,10 @@ const SQUAD_FILL: Record<string, string[]> = {
   genesis: ['alan-downhill', 'albert-denver', 'albert-denver-2'],
   'the-empire': ['a-woodbridge'],
   hakuren: ['a-woodbridge'],
-  'dark-emperors': ['a-woodbridge', 'a-woodbridge-2', 'alain-favreau', 'alan-coe'],
-  'epsilon-kai': ['alex-hawke', 'a-woodbridge', 'a-woodbridge-2', 'alain-favreau'],
+  'dark-emperors': ['a-woodbridge', 'alain-favreau', 'alan-coe', 'alan-master-2'],
+  'epsilon-kai': ['alex-hawke', 'a-woodbridge', 'alain-favreau', 'alan-coe'],
   'rose-griffon': ['a-woodbridge'],
+  ogre: ['a-woodbridge', 'alain-favreau', 'alan-coe'],
   'neo-japan': ['a-woodbridge'],
   nagumohara: ['adamas-quarell'],
   nishinomiya: ['adamas-quarell'],

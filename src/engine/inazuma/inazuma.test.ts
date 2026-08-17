@@ -58,6 +58,23 @@ describe('plantilla', () => {
     }
   })
 
+  it('NADIE está dos veces en el mismo equipo, y los clones de la wiki no entran', () => {
+    // Dos clases de duplicado cazadas en playtest: el capitán FORZADO que se
+    // sumaba al de la plantilla (dos Jude Sharp en el Royal), y equipos cuya
+    // página de la wiki resuelve a la MISMA plantilla que otro (Shuuyou Meito
+    // ≡ Otaku: dos Walter Valiant). Dentro de un equipo, cada nombre UNA vez.
+    for (const teamId of [...new Set(PLAYERS.map((p) => p.team))]) {
+      const names = PLAYERS.filter((p) => p.team === teamId).map((p) => p.name)
+      const dups = names.filter((n, i) => names.indexOf(n) !== i)
+      expect(dups, `duplicados dentro de ${teamId}`).toHaveLength(0)
+    }
+    // Y los institutos clonados no existen en el catálogo.
+    expect(PLAYERS.some((p) => p.team === 'wild')).toBe(false)
+    expect(PLAYERS.some((p) => p.team === 'shuuyou-meito')).toBe(false)
+    // Walter Valiant, el caso concreto: UNA sola vez en todo el catálogo.
+    expect(PLAYERS.filter((p) => p.name === 'Walter Valiant')).toHaveLength(1)
+  })
+
   it('CADA equipo sale con 14 convocados y con portero', () => {
     // Al canon se le quedan equipos con 11 (los Alius) y hasta alguno sin
     // guantes: `SQUAD_FILL` los completa, y ningún instituto puede saltar al

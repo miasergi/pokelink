@@ -172,11 +172,17 @@ export default function BagView() {
               <Icon name="x" className="w-4 h-4" />
             </button>
             {pending.kind === 'estrella' ? (() => {
-              // FICHAJE ESTRELLA: buscador sobre el catálogo entero (los que
-              // ya tienes no salen).
-              const owned = new Set(save.roster.map((p) => p.baseId))
+              // FICHAJE ESTRELLA: buscador sobre el catálogo entero. Se filtra
+              // por NOMBRE (los tuyos no salen NI con otro id) y cada persona
+              // aparece UNA vez aunque esté en varias plantillas del catálogo.
+              const ownedNames = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
               const q = query.trim().toLowerCase()
-              const pool = PLAYERS.filter((b) => !owned.has(b.id))
+              const vistos = new Set<string>()
+              const pool = PLAYERS.filter((b) => {
+                if (b.team === 'libre' || ownedNames.has(b.name) || vistos.has(b.name)) return false
+                vistos.add(b.name)
+                return true
+              })
               const hits = (q ? pool.filter((b) => b.name.toLowerCase().includes(q)) : pool).slice(0, 30)
               return (
                 <>

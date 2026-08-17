@@ -354,10 +354,15 @@ async function main() {
     const roster = await teamRoster(pages)
     if (!roster) { console.log(`x ${teamId}: la wiki no tiene plantilla`); continue }
     out[teamId] = []
+    const seenPages = new Set()
     for (const short of [...(FORCED_MEMBERS[teamId] ?? []), ...roster.names]) {
       if (out[teamId].length >= 14) break
       const page = await resolvePage(short)
       if (!page) { missing.push(`${teamId}/${short}`); continue }
+      // La MISMA persona no entra dos veces en un equipo: el capitán forzado
+      // del Royal (Kidou) se sumaba al Kidou de la plantilla — dos Jude Sharp.
+      if (seenPages.has(page.title)) continue
+      seenPages.add(page.title)
       const dub = field(page.wt, 'name_dub')
       if (!dub) { missing.push(`${teamId}/${short}`); continue }
       // Victory Road: fuera los que vienen de otro juego (los de siempre,

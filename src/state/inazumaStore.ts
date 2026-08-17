@@ -1581,7 +1581,12 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save) return
     const i = save.bag.indexOf('fichaje-estrella')
     if (i < 0) { set({ message: 'No llevas ningún Fichaje estrella.' }); return }
-    if (save.roster.some((p) => p.baseId === baseId)) { set({ message: 'Ya está en tu plantilla.' }); return }
+    // Por NOMBRE, no por id: el catálogo tiene al mismo chaval en varias
+    // plantillas, y con el id a secas podías fichar «al otro» Walter Valiant.
+    const wantedName = getPlayerBase(baseId).name
+    if (save.roster.some((p) => getPlayerBase(p.baseId).name === wantedName)) {
+      set({ message: 'Ya está en tu plantilla.' }); return
+    }
     if (save.roster.length >= ROSTER_MAX) {
       // Plantilla LLENA: se consume el objeto y se abre la decisión de vender.
       const next = { ...save, bag: save.bag.filter((_, k) => k !== i) }

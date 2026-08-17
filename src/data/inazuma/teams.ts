@@ -183,11 +183,6 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'shuuyou-meito', name: 'Instituto Shuuyou Meito', color: '#0891b2', kit: ['#22d3ee', '#164e63'], element: 'aire', power: 0.82, tactic: 'catenaccio',
-    taunt: 'Disciplina, orden y once jugadores. Con eso basta.',
-    lineup: [],
-  },
-  {
     id: 'the-fires', name: 'The Fires', color: '#dc2626', kit: ['#ef4444', '#450a0a'], element: 'fuego', power: 0.86, tactic: 'escuela-tiro',
     taunt: 'Lo que tocamos, arde.',
     lineup: [],
@@ -372,7 +367,7 @@ export const SAGAS: Saga[] = [
     teams: ['raimon', 'occult', 'otaku', 'mikage', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
     playable: ['raimon', 'occult', 'royal'],
     scoutTeams: ['kfc', 'oumihara', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero',
-      'kasamino', 'senbayama', 'shuuyou-meito', 'the-fires', 'the-mountains', 'the-woods'],
+      'kasamino', 'senbayama', 'the-fires', 'the-mountains', 'the-woods'],
   },
   {
     id: 'alius',
@@ -489,7 +484,7 @@ const EXTRA_REGION: Record<string, RegionId> = {
   // IE1: institutos del Football Frontier que no entran en el cuadro.
   kfc: 'ff', oumihara: 'ff', manyuuji: 'ff', yokato: 'ff', windies: 'ff',
   'extra-stars': 'ff', 'kage-no-hero': 'ff', kasamino: 'ff', senbayama: 'ff',
-  'shuuyou-meito': 'ff', 'the-fires': 'ff', 'the-mountains': 'ff', 'the-woods': 'ff',
+ 'the-fires': 'ff', 'the-mountains': 'ff', 'the-woods': 'ff',
   mikage: 'ff',
   // IE2: la temporada del Instituto Alius.
   hakuren: 'alius', 'shin-teikoku': 'alius', 'dark-emperors': 'alius', 'epsilon-kai': 'alius',
