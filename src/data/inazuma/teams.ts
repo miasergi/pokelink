@@ -442,3 +442,49 @@ export const FILLER_NAMES: string[] = [
   'Nico Serra', 'Hugo Lasa', 'Bruno Cid', 'Álex Duna', 'Iker Mora', 'Pau Riera',
   'Diego Sanz', 'Raúl Vidal', 'Adri Cano', 'Saúl Mena', 'Gael Ferrer', 'Unai Roca',
 ]
+
+// ---------------------------------------------------------------------------
+// Regiones (de qué juego es cada instituto)
+// ---------------------------------------------------------------------------
+
+/** Las cuatro épocas del modo, en orden de la saga. */
+export const REGIONS = [
+  { id: 'ff' as const, name: 'IE1 · Football Frontier', desc: 'La primera temporada: institutos de Japón.' },
+  { id: 'alius' as const, name: 'IE2 · Academia Alius', desc: 'La invasión alienígena y los equipos de la caravana.' },
+  { id: 'ffi' as const, name: 'IE3 · Mundial (FFI)', desc: 'Las selecciones del Football Frontier Internacional.' },
+  { id: 'vr' as const, name: 'IEVR · Victory Road', desc: 'La nueva generación, años después.' },
+]
+
+export type RegionId = (typeof REGIONS)[number]['id']
+
+/**
+ * REGIÓN de cada instituto. Se calcula del cuadro de cada saga y se completa a
+ * mano con los equipos que solo salen en el ojeador (que no están en ningún
+ * cuadro pero sí pertenecen a una época).
+ */
+const EXTRA_REGION: Record<string, RegionId> = {
+  // IE1: institutos del Football Frontier que no entran en el cuadro.
+  kfc: 'ff', oumihara: 'ff', manyuuji: 'ff', yokato: 'ff', windies: 'ff',
+  'extra-stars': 'ff', 'kage-no-hero': 'ff', kasamino: 'ff', senbayama: 'ff',
+  'shuuyou-meito': 'ff', 'the-fires': 'ff', 'the-mountains': 'ff', 'the-woods': 'ff',
+  mikage: 'ff',
+  // IE2: la temporada del Instituto Alius.
+  hakuren: 'alius', 'shin-teikoku': 'alius', 'dark-emperors': 'alius', 'epsilon-kai': 'alius',
+  // IE3: el Mundial.
+  'the-kingdom': 'ffi', 'rose-griffon': 'ffi', brockenborg: 'ffi', ogre: 'ffi',
+  'neo-japan': 'ffi', gaia: 'ffi',
+  // IEVR: la nueva generación.
+  'ouja-raimon': 'vr', 'ijin-meibundou': 'vr',
+}
+
+const REGION_BY_TEAM = (() => {
+  const m = new Map<string, RegionId>()
+  for (const s of SAGAS) for (const t of s.teams) if (!m.has(t)) m.set(t, s.id as RegionId)
+  for (const [t, r] of Object.entries(EXTRA_REGION)) if (!m.has(t)) m.set(t, r)
+  return m
+})()
+
+/** ¿De qué época es este instituto? El Raimon es de la primera, por defecto. */
+export function regionOfTeam(teamId: string): RegionId {
+  return REGION_BY_TEAM.get(teamId) ?? 'ff'
+}

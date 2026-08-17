@@ -244,7 +244,16 @@ const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
  *  2. La tabla curada, que garantiza las técnicas de los combos.
  *  3. Relleno generado por clase y elemento si con lo real no llega a dos.
  */
-function signatureFor(all, name, position, element, rarity, hissatsu = []) {
+/**
+ * @param all      Catálogo COMPLETO: de aquí sale lo CANÓNICO (lo que el
+ *                 jugador usa de verdad en el juego), pase lo que pase con la
+ *                 época — los chavales de Victory Road heredan un montón de
+ *                 técnicas clásicas y quitárselas los dejaba con relleno.
+ * @param fillPool Subconjunto de SU época: solo para el relleno inventado, que
+ *                 es donde sí importa no mezclar (a Mark Evans no le cuelga una
+ *                 técnica del futuro porque le falte un hueco).
+ */
+function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all) {
   const kind = KIND[position] ?? 'regate'
   const byId = new Map(all.map((t) => [t.id, t]))
   // Puesto que ocupa cada técnica en SU moveset: es el orden en que las
@@ -307,7 +316,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = []) {
 
   const picks = []
   wanted.forEach((k, i) => {
-    const pool = all
+    const pool = fillPool
       .filter((t) => t.kind === k && t.element === element && !merged.includes(t.id) && !picks.includes(t.id))
       .sort((a, b) => a.power - b.power)
     if (!pool.length) return
@@ -448,8 +457,8 @@ async function main() {
         ? allTechs.filter((t) => t.era === 'vr')
         : allTechs.filter((t) => t.era !== 'vr')
       const signature = signatureFor(
+        allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [],
         eraTechs.length >= 20 ? eraTechs : allTechs,
-        cleanName, p.position, p.element, rarity, p.hissatsu ?? [],
       )
       const techs = techsFor(signature, rarity)
       lines.push('  {')

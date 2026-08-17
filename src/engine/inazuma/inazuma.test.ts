@@ -11,6 +11,10 @@ import { actorTechnique } from './duel'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { FORMATIONS } from '@/data/inazuma/formations'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
+// La caché del crawler: es la fuente de qué técnicas son SUYAS de verdad.
+import rosterCacheRaw from '../../../scripts/.cache/inazuma-roster.json'
+
+const rosterCache = rosterCacheRaw as Record<string, { name: string; wiki?: string; hissatsu?: string[] }[]>
 import { getTeam, PLAYABLE_TEAMS, SAGAS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
@@ -70,6 +74,11 @@ describe('plantilla', () => {
     }
   })
 
+  // Slug igual que el del generador, para casar los nombres del moveset con
+  // los ids del catálogo.
+  const slugTech = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
   it('Victory Road es OTRA generación: ni jugadores repetidos ni técnicas cruzadas', () => {
     const VR = new Set(['nagumohara', 'ouja-raimon', 'hokuyou-gakuen', 'ai-gakuen', 'houreikan',
       'ijin-meibundou', 'keizen-arashiyama', 'nishinomiya', 'senjutsu-no-teikoku',
@@ -82,14 +91,33 @@ describe('plantilla', () => {
     const repes = vrPlayers.filter((p) => classicNames.has(p.name)).map((p) => p.name)
     expect(repes, `veteranos colados en Victory Road: ${repes.join(', ')}`).toHaveLength(0)
 
-    // Y cada época con SUS técnicas: a los clásicos no les cuelga una de VR…
+    // EL FUTURO NO SE FILTRA AL PASADO: ningún clásico lleva una técnica de VR.
     const clasicosConVR = PLAYERS.filter((p) => !VR.has(p.team))
       .filter((p) => (p.signature ?? []).some((id) => getTechnique(id)?.era === 'vr'))
     expect(clasicosConVR.map((p) => p.name), 'un clásico con técnica del futuro').toHaveLength(0)
-    // …ni a los nuevos una de los 2000.
-    const nuevosConClasica = vrPlayers
-      .filter((p) => (p.signature ?? []).some((id) => getTechnique(id) && getTechnique(id)!.era !== 'vr'))
-    expect(nuevosConClasica.map((p) => p.name), 'un jugador de VR con técnica clásica').toHaveLength(0)
+
+    // Al revés SÍ vale, pero solo si es SUYA: los chavales de Victory Road
+    // heredan un montón de técnicas clásicas en sus movesets del juego. Lo que
+    // no puede pasar es que el RELLENO inventado les cuelgue una de los 2000.
+    const canonPorNombre = new Map<string, Set<string>>()
+    for (const list of Object.values(rosterCache)) {
+      for (const p of list) {
+        // Mismo recorte que el generador: la wiki añade sufijos de
+        // desambiguación («Martino (Victory Road)») y sin quitarlos el nombre
+        // no casa con el que se emite.
+        // Y algunas fichas dejan la plantilla `{{PAGENAME}}` sin resolver: ahí
+        // el nombre bueno es el título de la página (igual que en el emisor).
+        const bruto = p.name.includes('{{') ? (p.wiki ?? p.name) : p.name
+        const limpio = bruto.replace(/\s*\([^)]*\)\s*$/, '').trim()
+        canonPorNombre.set(limpio, new Set((p.hissatsu ?? []).map(slugTech)))
+      }
+    }
+    const rellenoFueraDeEpoca = vrPlayers.filter((p) => {
+      const suyas = canonPorNombre.get(p.name) ?? new Set<string>()
+      return (p.signature ?? []).some((id) => !suyas.has(id) && getTechnique(id)?.era !== 'vr')
+    })
+    expect(rellenoFueraDeEpoca.map((p) => p.name), 'relleno de otra época en Victory Road')
+      .toHaveLength(0)
   })
 
   it('las FILOSOFÍAS cambian el partido de verdad, no son una chapa', () => {
