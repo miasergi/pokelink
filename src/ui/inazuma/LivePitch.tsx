@@ -200,22 +200,33 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const techFxRef = useRef<{
     key: number
     until: number
-    entries: { uid: string; techName: string; chance?: number; big: boolean; win: boolean }[]
+    entries: { uid: string; name: string; techName: string; chance?: number; big: boolean; win: boolean; verdict: boolean }[]
   } | null>(null)
   const techFxSeen = useRef(0)
   {
     const last = feed[feed.length - 1]
     if (feed.length !== techFxSeen.current) {
       techFxSeen.current = feed.length
+      const nm = (uid: string) => (actorByUid(match, uid)?.name ?? '').split(' ')[0]
       if (last?.kind === 'duel' && (last.technique || last.counter)) {
+        // En el duelo de campo el desenlace se ve (ganador brilla, perdedor se
+        // apaga); en el disparo NO — el veredicto lo da la parada o el gol.
+        const verdict = last.step !== 'definicion' && !last.intercept
         const entries = []
-        if (last.technique) entries.push({ uid: last.attackerUid, techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success })
-        if (last.counter) entries.push({ uid: last.defenderUid, techName: last.counter, big: !last.technique, win: !last.success })
+        if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success, verdict })
+        if (last.counter) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
         techFxRef.current = { key: feed.length, until: nowMs + 2400, entries }
       } else if (last?.kind === 'save' && last.technique) {
-        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries: [{ uid: last.keeperUid, techName: last.technique, big: true, win: true }] }
+        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
       }
     }
+  }
+  // FOCO DE JUGADA: mientras hay FX de técnica, los protagonistas mandan y el
+  // resto de jugadores se atenúa — el ojo va directo a la jugada.
+  const fxActive = techFxRef.current !== null && nowMs < techFxRef.current.until
+  const focusUids = new Set<string>()
+  if (fxActive) {
+    for (const e of techFxRef.current!.entries) focusUids.add(e.uid)
   }
 
   // LA CHISPA del duelo de campo: al revelarse un regate/corte, un fogonazo
@@ -643,7 +654,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                   <LiveDot key={a.uid} actor={a}
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={mineBg} crest={myCrest}
-                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
+                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid} />
                 )
               })}
               {theirActors.map((a) => {
@@ -652,7 +664,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                   <LiveDot key={a.uid} actor={a}
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={theirBg} crest={theirCrest}
-                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
+                    carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
+                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid} />
                 )
               })}
             </>
@@ -682,17 +695,21 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               }}
             >
               <div
-                className={`${size} rounded-2xl overflow-hidden border-2 shadow-xl`}
+                className={`${size} rounded-2xl overflow-hidden border-2 shadow-xl ${e.verdict ? (e.win ? 'fx-bubble-win' : 'fx-bubble-lose') : ''}`}
                 style={{ borderColor: info.color, boxShadow: `0 0 22px ${info.color}88` }}
               >
                 <TechniqueFX tech={t} />
               </div>
-              <div
-                className="mt-0.5 max-w-[130px] truncate text-center text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-950/90 border"
-                style={{ color: info.color, borderColor: `${info.color}88` }}
-              >
-                {e.techName}
-                {e.chance != null && <span className="ml-1 text-amber-300">{Math.round(e.chance * 100)}%</span>}
+              {/* QUIÉN la lanza y QUÉ lanza: sin esto no se entiende la jugada. */}
+              <div className="mt-0.5 flex flex-col items-center rounded-lg overflow-hidden border bg-slate-950/90" style={{ borderColor: `${info.color}88` }}>
+                <span className="max-w-[130px] truncate px-1.5 pt-0.5 text-[9px] font-extrabold text-white leading-tight">{e.name}</span>
+                <span
+                  className="max-w-[130px] truncate px-1.5 pb-0.5 text-[9px] font-extrabold uppercase tracking-wide leading-tight"
+                  style={{ color: info.color }}
+                >
+                  {e.techName}
+                  {e.chance != null && <span className="ml-1 text-amber-300">{Math.round(e.chance * 100)}%</span>}
+                </span>
               </div>
             </div>
           )
@@ -813,7 +830,7 @@ function ShotBall({ from, to, color, landed }: {
  *    izquierda VERDE = aguante (se vacían de arriba abajo);
  *  - debajo, su elemento y su nombre.
  */
-function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: {
+function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, dim }: {
   actor: Actor
   spot: Spot
   teamColor: string
@@ -823,6 +840,8 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: 
   marker?: boolean
   /** Ajuste: nombre bajo cada jugador (apagado por defecto). */
   showNames?: boolean
+  /** FOCO DE JUGADA: los que no pintan nada en el lance se atenúan. */
+  dim?: boolean
 }) {
   const info = ELEMENT_INFO[actor.element]
   const active = carrier || marker
@@ -842,7 +861,9 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: 
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        transition: 'left 80ms linear, top 80ms linear',
+        opacity: dim ? 0.4 : 1,
+        filter: dim ? 'grayscale(.6)' : undefined,
+        transition: 'left 80ms linear, top 80ms linear, opacity .3s ease, filter .3s ease',
       }}
     >
       <div className="flex flex-col items-center">

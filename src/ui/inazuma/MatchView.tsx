@@ -135,19 +135,29 @@ export default function MatchView() {
       setTimeout(() => setShotFlight((f) => (f && f.key === key ? { ...f, landed: true } : f)), 2400)
     } else if (last.kind === 'save') {
       // La parada: el FX del portero sale anclado a él en el césped; el balón
-      // deja de verse en la portería en cuanto la parada «cuenta».
+      // deja de verse en la portería en cuanto la parada «cuenta». Y se CANTA
+      // — sin el rótulo no quedaba claro si aquello había entrado o no.
       setTimeout(() => setShotFlight(null), 900)
+      const keeperMine = last.side === mine
+      const first = last.keeper.split(' ')[0].toUpperCase()
+      setTimeout(() => setFlash({
+        key: feed.length,
+        text: `¡PARADA DE ${first}!`,
+        color: keeperMine ? '#34d399' : '#f87171',
+      }), 700)
     } else if (last.kind === 'duel') {
       // Duelo de campo (regate contra bloqueo). CON supertécnica, el FX brota
       // sobre cada jugador en el propio césped (LivePitch); SIN técnica, un
       // flash y la CHISPA del choque. El partido no se tapa nunca.
+      const winnerMine = (last.side === mine) === last.success
+      const winnerFirst = (last.success ? last.attacker : last.defender).split(' ')[0].toUpperCase()
+      const label = last.success ? `¡REGATE DE ${winnerFirst}!` : `¡CORTE DE ${winnerFirst}!`
       if (!last.technique && !last.counter) {
-        const winnerMine = (last.side === mine) === last.success
-        setFlash({
-          key: feed.length,
-          text: last.success ? '¡REGATE!' : '¡CORTE!',
-          color: winnerMine ? '#34d399' : '#f87171',
-        })
+        setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' })
+      } else {
+        // Con técnica, el rótulo espera a que la burbuja brote y se vea quién
+        // gana (el perdedor se apaga a la vez que sale esto).
+        setTimeout(() => setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' }), 1000)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
