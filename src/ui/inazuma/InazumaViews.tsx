@@ -18,7 +18,7 @@ import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
-  rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
+  realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
   SIGNATURE_LEVELS, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
@@ -563,7 +563,7 @@ function MatchupHint({ teamElement, lineup }: { teamElement: keyof typeof ELEMEN
 export function SquadView() {
   const {
     save, toggleStarter, goTo, equip, useConsumable, release,
-    pendingTarget, applyToPlayer, cancelTarget, swapPlayers, placeAt, toggleTactic,
+    pendingTarget, applyToPlayer, cancelTarget, swapPlayers, placeAt, armTactic,
   } = useInazuma()
   const [detail, setDetail] = useState<string | null>(null)
   const [tab, setTab] = useState<'campo' | 'lista'>('campo')
@@ -612,28 +612,28 @@ export function SquadView() {
 
         {err && <div className="text-[11px] text-rose-300">{err}</div>}
 
-        {/* FILOSOFÍAS del equipo: aquí se configura cuáles salen al campo.
-            Ganar un instituto te da una nueva directamente (sin menú); apagar
-            y encender es cosa tuya, entre partidos. */}
+        {/* FILOSOFÍAS: aquí se ARMA la que llevas al partido. La armada se
+            ENCIENDE durante el juego con la barra de Ruptura (compite con la
+            Supervibración por la misma barra). */}
         {!!(save.tactics ?? []).length && (
           <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-2.5">
             <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
-              Filosofías · toca para activar o descansar
+              Filosofías · toca una para ARMARLA
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(save.tactics ?? []).map((id) => {
                 const t = getTactic(id)
                 if (!t) return null
-                const active = (save.activeTactics ?? save.tactics ?? []).includes(id)
+                const armed = (save.armedTactic ?? save.tactics?.[0]) === id
                 return (
                   <button
                     key={id}
-                    onClick={() => toggleTactic(id)}
+                    onClick={() => armTactic(id)}
                     title={t.desc}
                     className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide transition active:scale-95 ${
-                      active ? '' : 'opacity-40 grayscale'
+                      armed ? 'ring-2 ring-offset-1 ring-offset-slate-900' : 'opacity-45 grayscale'
                     }`}
-                    style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color }}
+                    style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color, ...(armed ? { boxShadow: `0 0 12px ${t.color}66` } : {}) }}
                   >
                     <Icon name={t.icon} className="w-3 h-3" />
                     {t.name}
@@ -642,8 +642,9 @@ export function SquadView() {
               })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-              Las encendidas cambian cómo se resuelven tus partidos. Mantén pulsada
-              una para leer qué hace.
+              La ARMADA se enciende en pleno partido gastando la barra de Ruptura
+              (o guardas la barra para la Supervibración: tú eliges el momento).
+              Mantén pulsada una para leer qué hace.
             </p>
           </div>
         )}
@@ -993,9 +994,14 @@ function PlayerDetail({
                             {t.name}
                             {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
                           </span>
-                          {/* Potencia y coste EFECTIVOS (Mejoras aplicadas). */}
+                          {/* Potencia y coste EFECTIVOS (Mejoras aplicadas)…
+                              y la REAL en verde: lo que ESTE jugador genera
+                              con ella (sus stats × la técnica). */}
                           <span className="text-[10px] text-slate-500">
                             {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
+                          </span>
+                          <span className="text-[10px] font-extrabold text-emerald-300">
+                            ⚔ {realTechniquePower(player, t)}
                           </span>
                         </div>
                       </div>
@@ -1025,9 +1031,13 @@ function PlayerDetail({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <TechIcons tech={t} className="w-3.5 h-3.5" />
                           <span className="font-bold text-[12px] text-slate-300">{t.name}</span>
-                          {/* Potencia Y COSTE: lo que pedirá cuando despierte. */}
+                          {/* Potencia Y COSTE: lo que pedirá cuando despierte,
+                              y la REAL que tendría hoy en sus pies. */}
                           <span className="text-[10px] text-slate-500">
                             {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
+                          </span>
+                          <span className="text-[10px] font-extrabold text-emerald-300/80">
+                            ⚔ {realTechniquePower(player, t)}
                           </span>
                         </div>
                         {/* Qué le falta EXACTAMENTE para despertarla. */}

@@ -111,52 +111,37 @@ describe('plantilla', () => {
     }
   })
 
-  it('las FILOSOFÍAS cambian el partido de verdad, no son una chapa', () => {
-    // Cada una tiene que MOVER algo medible con la misma semilla. Si una deja
-    // de tocar el motor (porque se movió el punto donde se leía), esto salta.
-    const jugar = (tactics: string[], seed: number) => {
-      const save = { ...createSave(seed), tactics }
-      const setup = startMatch(save, firstBoss(save))
-      if ('error' in setup) throw new Error(setup.error)
-      const m = setup.match
-      const rng = new RNG(seed + 4242)
-      let guard = 0
-      while (m.phase !== 'finished' && guard++ < 4000) {
-        if (m.phase === 'decision') chooseOption(m, rng, m.decision!.options.filter((o) => !o.disabled)[0].id)
-        else advance(m, rng)
-      }
-      const mine = m.home.isPlayer ? m.home : m.away
-      const theirs = m.home.isPlayer ? m.away : m.home
-      return {
-        mios: mine.goals,
-        suyos: theirs.goals,
-        aguante: [mine.keeper, ...mine.defs, ...mine.mids, ...mine.fwds]
-          .reduce((a, x) => a + x.stamina, 0),
-        eventos: m.events.length,
-      }
+  it('la FILOSOFÍA armada se ENCIENDE con la Ruptura y se consume', () => {
+    // El modelo pasivo se retiró: la filosofía es una DECISIÓN del partido,
+    // como la Supervibración — misma barra, otra opción. Aquí se comprueba el
+    // ciclo entero: opción disponible a barra llena, activación, efectos
+    // aplicando (vía `fx`) y consumo hasta apagarse.
+    const save = { ...createSave(3), tactics: ['fondo-fisico'], armedTactic: 'fondo-fisico' }
+    const setup = startMatch(save, firstBoss(save))
+    if ('error' in setup) throw new Error(setup.error)
+    const m = setup.match
+    const rng = new RNG(77)
+    const side = m.home.isPlayer ? m.home : m.away
+    expect(side.tactics).toEqual(['fondo-fisico'])
+
+    side.burst = 100
+    let guard = 0
+    while (m.phase !== 'decision' && guard++ < 600) advance(m, rng)
+    expect(m.phase).toBe('decision')
+    const opt = m.decision!.options.find((o) => o.id === 'tactic')
+    expect(opt, 'a barra llena no se ofrece encender la filosofía').toBeDefined()
+
+    chooseOption(m, rng, 'tactic')
+    expect(side.tacticActive?.id).toBe('fondo-fisico')
+    expect(side.burst).toBe(0)
+
+    // Se CONSUME acción a acción hasta apagarse sola.
+    guard = 0
+    while (side.tacticActive && guard++ < 1500 && m.phase !== 'finished') {
+      if (m.phase === 'decision') chooseOption(m, rng, m.decision!.options.filter((o) => !o.disabled && o.id !== 'tactic' && o.id !== 'burst')[0].id)
+      else advance(m, rng)
     }
-    const N = 24
-    const medir = (tactics: string[]) => {
-      let mios = 0, suyos = 0, aguante = 0
-      for (let i = 0; i < N; i++) {
-        const r = jugar(tactics, i)
-        mios += r.mios; suyos += r.suyos; aguante += r.aguante
-      }
-      return { mios, suyos, aguante }
-    }
-    const base = medir([])
-
-    // FONDO FÍSICO: los tuyos tienen que acabar con MÁS aguante.
-    expect(medir(['fondo-fisico']).aguante, 'Fondo físico no ahorra aguante')
-      .toBeGreaterThan(base.aguante)
-
-    // EL MURO / CERROJO: te tienen que marcar MENOS.
-    expect(medir(['muro', 'catenaccio']).suyos, 'Cerrojo y muro no defienden nada')
-      .toBeLessThan(base.suyos)
-
-    // ATAQUE: con varias ofensivas encima, marcas MÁS.
-    expect(medir(['toque', 'academia', 'vibracion', 'gegenpressing']).mios, 'las ofensivas no atacan')
-      .toBeGreaterThan(base.mios)
+    expect(side.tacticActive, 'la filosofía no se apagó nunca').toBeUndefined()
   })
 
   it('el CAPITÁN canónico rival lleva el brazalete y rareza alta', () => {

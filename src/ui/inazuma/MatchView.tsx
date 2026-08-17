@@ -42,6 +42,13 @@ export default function MatchView() {
   const [gol, setGol] = useState<{ scorer: string; mine: boolean; key: number; teamId?: string } | null>(null)
   // FLASH de duelo de campo (regate/corte): informa SIN parar el juego.
   const [flash, setFlash] = useState<{ key: number; text: string; color: string } | null>(null)
+  // CINEMÁTICA de filosofía encendida: fogonazo con su icono y su nombre.
+  const [tacticFx, setTacticFx] = useState<{ key: number; id: string; name: string; mine: boolean } | null>(null)
+  useEffect(() => {
+    if (!tacticFx) return
+    const t = setTimeout(() => setTacticFx(null), 1700)
+    return () => clearTimeout(t)
+  }, [tacticFx])
   useEffect(() => {
     if (!flash) return
     const t = setTimeout(() => setFlash(null), 1350)
@@ -107,6 +114,9 @@ export default function MatchView() {
           1900,
         )
       }
+    } else if (last.kind === 'tactic') {
+      // Filosofía ENCENDIDA: su cinemática de activación.
+      setTacticFx({ key: feed.length, id: last.tactic, name: last.name, mine: last.side === mine })
     } else if (last.kind === 'duel' && last.intercept) {
       // EL CRUCE de un defensa en la trayectoria del disparo. Tiene su propia
       // cinemática (el balón va HASTA ÉL y ahí lanza su bloqueo); antes se
@@ -323,6 +333,34 @@ export default function MatchView() {
               flowing={!(match.phase === 'decision' && caughtUp && !frozen) && stage === null && gol === null
                 && !halftimeBreak && !halftimeSubsSummary}
             />
+            {/* FILOSOFÍA ENCENDIDA: el fogonazo de activación. */}
+            {tacticFx && (() => {
+              const t = getTactic(tacticFx.id)
+              if (!t) return null
+              return (
+                <div key={tacticFx.key} className="absolute inset-0 z-[45] grid place-items-center pointer-events-none">
+                  <div className="absolute inset-0 animate-inazuma-flash" style={{ background: `radial-gradient(circle, ${t.color}55, transparent 70%)` }} />
+                  <div className="animate-cutin flex flex-col items-center gap-2">
+                    <span
+                      className="grid place-items-center w-20 h-20 rounded-3xl border-4 animate-flame-flicker"
+                      style={{ borderColor: t.color, background: `${t.color}22`, boxShadow: `0 0 40px ${t.color}aa` }}
+                    >
+                      <Icon name={t.icon} className="w-11 h-11" style={{ color: t.color }} />
+                    </span>
+                    <span
+                      className="px-4 py-1 rounded-2xl bg-slate-950/90 border-2 text-xl font-black uppercase tracking-wider"
+                      style={{ color: t.color, borderColor: t.color, textShadow: `0 0 16px ${t.color}` }}
+                    >
+                      ¡{t.name}!
+                    </span>
+                    <span className="text-[10px] uppercase tracking-widest text-slate-300">
+                      {tacticFx.mine ? 'filosofía encendida' : 'el rival la enciende'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
             {flash && (
               <div key={flash.key} className="absolute inset-x-0 top-[38%] z-30 flex justify-center pointer-events-none">
@@ -495,8 +533,9 @@ function TacticsSheet({ mine, theirs, mineName, theirName, onClose }: {
         </button>
         <div className="text-center font-extrabold text-lg mb-1">Filosofías en juego</div>
         <p className="text-[11px] text-slate-400 text-center mb-3 leading-snug">
-          No son un bonus de números: cambian CÓMO se resuelve el partido. Las
-          tuyas se acumulan toda la partida.
+          Se ENCIENDEN con la barra de Ruptura llena (o gastas la barra en la
+          Supervibración: tú eliges) y cambian CÓMO se resuelve el partido
+          durante unas acciones. La armada se elige en el vestuario.
         </p>
         {bloque(mine, mineName, true)}
         {bloque(theirs, theirName, false)}
@@ -524,11 +563,16 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
   // La Ruptura sube al GANAR un duelo: si la barra se moviera durante la
   // animación, contaría el desenlace antes de tiempo. Congelada mientras haya
   // escenario o celebración en pantalla.
-  const burstRef = useRef({ mine: 0, theirs: 0, mineTurns: 0, theirsTurns: 0 })
+  const burstRef = useRef<{
+    mine: number; theirs: number; mineTurns: number; theirsTurns: number
+    mineTactic: { id: string; turns: number } | null
+    theirsTactic: { id: string; turns: number } | null
+  }>({ mine: 0, theirs: 0, mineTurns: 0, theirsTurns: 0, mineTactic: null, theirsTactic: null })
   if (!frozen) {
     burstRef.current = {
       mine: mine.burst, theirs: theirs.burst,
       mineTurns: mine.burstTurns, theirsTurns: theirs.burstTurns,
+      mineTactic: mine.tacticActive ?? null, theirsTactic: theirs.tacticActive ?? null,
     }
   }
   const burst = burstRef.current
@@ -632,17 +676,22 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
       {/* Barras de Ruptura. Con la Supervibración activa, el rótulo del centro
           cuenta las acciones gratis que quedan: antes había que adivinarlo. */}
       <div className="mt-1.5 flex items-center gap-2">
-        <BurstBar value={burst.mine} turns={burst.mineTurns} color="#f59e0b" />
+        <BurstBar value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} color="#f59e0b" />
         <span className={`text-[9px] uppercase tracking-widest shrink-0 ${
-          burst.mineTurns > 0 || burst.theirsTurns > 0 ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
+          burst.mineTurns > 0 || burst.theirsTurns > 0 || burst.mineTactic || burst.theirsTactic
+            ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
         }`}>
-          {burst.mineTurns > 0
-            ? `¡Supervibración! quedan ${burst.mineTurns}`
-            : burst.theirsTurns > 0
-              ? `Rival vibrando · ${burst.theirsTurns}`
-              : 'Ruptura'}
+          {burst.mineTactic
+            ? `🔥 ${getTactic(burst.mineTactic.id)?.name ?? 'Filosofía'} · ${burst.mineTactic.turns}`
+            : burst.mineTurns > 0
+              ? `¡Supervibración! quedan ${burst.mineTurns}`
+              : burst.theirsTactic
+                ? `Rival: ${getTactic(burst.theirsTactic.id)?.name ?? 'filosofía'} · ${burst.theirsTactic.turns}`
+                : burst.theirsTurns > 0
+                  ? `Rival vibrando · ${burst.theirsTurns}`
+                  : 'Ruptura'}
         </span>
-        <BurstBar value={burst.theirs} turns={burst.theirsTurns} color="#64748b" flip />
+        <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
       </div>
     </div>
   )
@@ -661,13 +710,28 @@ function TeamBadge({ name, color, teamId, right }: { name: string; color: string
   )
 }
 
-function BurstBar({ value, turns, color, flip }: { value: number; turns: number; color: string; flip?: boolean }) {
+function BurstBar({ value, turns, tactic, color, flip }: {
+  value: number
+  turns: number
+  /** Filosofía ENCENDIDA: la barra arde mientras se consume. */
+  tactic?: { id: string; turns: number } | null
+  color: string
+  flip?: boolean
+}) {
   const active = turns > 0
+  const fire = !!tactic
+  // Ardiendo, la barra se VACÍA con los usos que quedan: se ve consumirse.
+  const width = fire ? (tactic!.turns / 7) * 100 : active ? 100 : value
   return (
     <div className={`flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden ${flip ? 'rotate-180' : ''}`}>
       <div
-        className={`h-full rounded-full transition-all ${active ? 'animate-pulse' : ''}`}
-        style={{ width: `${active ? 100 : value}%`, background: active ? '#fbbf24' : color }}
+        className={`h-full rounded-full transition-all ${active || fire ? 'animate-flame-flicker' : ''}`}
+        style={{
+          width: `${width}%`,
+          background: fire
+            ? 'linear-gradient(90deg, #f97316, #ef4444, #fbbf24)'
+            : active ? '#fbbf24' : color,
+        }}
       />
     </div>
   )

@@ -26,12 +26,13 @@ const SECTIONS: Section[] = [
     title: 'Filosofías de equipo',
     body: (
       <>
-        Al ganar un instituto eliges UNA de tres filosofías, y la llevas <B>para el
-        resto de la partida</B> (se acumulan). No dan números: cambian cómo se
-        resuelve el partido — más contraataques, bloqueos más duros, supertécnicas
-        más baratas… Las ves como chapas bajo el marcador (tócalas para releerlas), y
-        el <B>rival también juega con la suya</B>: cada instituto tiene su forma
-        canónica de jugar.
+        Cada instituto ganado te da una filosofía nueva, y en el <B>vestuario</B>
+        eliges cuál llevas ARMADA. En el partido, con la barra de Ruptura llena,
+        puedes <B>encenderla</B> (o gastar la barra en la Supervibración: tú
+        eliges): durante unas acciones cambia cómo se resuelve el juego — más
+        contraataques, bloqueos más duros, supertécnicas más baratas… La barra
+        <B>arde</B> mientras se consume. El <B>rival también enciende la suya</B>:
+        cada instituto tiene su forma canónica de jugar.
       </>
     ),
   },

@@ -26,7 +26,7 @@ import {
 import { advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
-import { TACTICS } from '@/data/inazuma/tactics'
+import { getTactic, TACTICS } from '@/data/inazuma/tactics'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarityMap, transferValue, upgradeTechnique,
@@ -126,6 +126,7 @@ function holdFor(e: MatchEvent): number {
       // cuenta de quién contra quién. Ahora respira y la CHISPA del césped
       // tiene su momento.
       return 1500
+    case 'tactic': return 1800
     case 'burst':
     case 'stage': return 1100
     case 'kickoff':
@@ -146,6 +147,7 @@ function soundFor(e: MatchEvent): void {
       else if (e.technique || e.counter) play('supertecnica')
       else play('hit')
       break
+    case 'tactic':
     case 'burst': play('supertecnica'); break
     case 'kickoff':
     case 'halftime':
@@ -382,8 +384,8 @@ interface InazumaState {
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
-  /** Activa/desactiva una filosofía ganada (vestuario). */
-  toggleTactic: (id: string) => void
+  /** ARMA una filosofía ganada: la que podrás encender en el partido. */
+  armTactic: (id: string) => void
   /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
   useFichajeEstrella: (baseId: string) => void
   /** Convierte técnicas sueltas de partidas viejas en Manuales avanzados. */
@@ -965,8 +967,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       if (pool.length) {
         const won = pool[getRng(next).int(0, pool.length - 1)]
         next.tactics = [...(next.tactics ?? []), won.id]
-        // Si había configuración explícita, la nueva entra activada.
-        if (next.activeTactics) next.activeTactics = [...next.activeTactics, won.id]
+        // Sin nada armado, la nueva se arma sola: lista para encender.
+        if (!next.armedTactic) next.armedTactic = won.id
         tacticMsg = ` · Nueva filosofía: ${won.name}`
       }
     }
@@ -1566,15 +1568,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, get().phase)
   },
 
-  toggleTactic: (id) => {
+  armTactic: (id) => {
     const { save } = get()
     if (!save || !(save.tactics ?? []).includes(id)) return
-    const active = save.activeTactics ?? save.tactics ?? []
-    const next = {
-      ...save,
-      activeTactics: active.includes(id) ? active.filter((x) => x !== id) : [...active, id],
-    }
-    set({ save: next })
+    const next = { ...save, armedTactic: id }
+    set({ save: next, message: `Filosofía armada: ${getTactic(id)?.name ?? id}.` })
     void persist(next, get().phase)
   },
 

@@ -208,6 +208,7 @@ export type MatchEvent =
   | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }
+  | { kind: 'tactic'; minute: number; side: Side; tactic: string; name: string; text: string }
   | { kind: 'exhausted'; minute: number; player: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
   | { kind: 'stage'; minute: number; stage: MatchStage; text: string }
@@ -305,8 +306,14 @@ export interface Actor {
 
 export interface MatchSide {
   name: string
-  /** Filosofías activas de ESTE equipo (solo las tuyas: el rival no lleva). */
+  /** Filosofías del equipo (la tuya ARMADA; la canónica del rival). */
   tactics?: string[]
+  /**
+   * FILOSOFÍA ACTIVADA con la barra de Ruptura: sus efectos aplican mientras
+   * queden acciones. Es la alternativa a la Supervibración — la barra se
+   * gasta en una de las dos.
+   */
+  tacticActive?: { id: string; turns: number }
   color: string
   element: Element
   /** true en el lado que controla el usuario. */
@@ -600,6 +607,12 @@ export interface InazumaSave {
    * interrumpe con un menú.
    */
   activeTactics?: string[]
+  /**
+   * La filosofía ARMADA: la que puedes ACTIVAR en el partido con la barra de
+   * Ruptura (compite con la Supervibración por la misma barra). Se elige en
+   * el vestuario entre las ganadas.
+   */
+  armedTactic?: string
   /** Randomizador de la partida (ver `RandomFlags`). */
   random?: RandomFlags
   /** Ids de casilla ya jugadas. */

@@ -11,7 +11,7 @@ import { getFormation } from '@/data/inazuma/formations'
 import {
   SQUAD_SIZE, TECHNIQUE_SLOTS,
   type PlayerInstance, type PlayerBase, type Position, type RivalPlayer,
-  type Stats, type Element, type ChainStep,
+  type Stats, type Element, type ChainStep, type Technique,
 } from './types'
 
 let uidSeq = 0
@@ -749,6 +749,23 @@ export function techniquePower(p: PlayerInstance | undefined, tech: { id: string
   if (!p) return tech.power
   const base = chainStepPower(p.baseId, tech.id, tech.power)
   return Math.round(base * (1 + techLevel(p, tech.id) * TECH_LEVEL_BONUS))
+}
+
+/**
+ * POTENCIA REAL de una técnica EN LOS PIES de un jugador concreto: su
+ * atributo relevante (escalado por nivel y rareza) × el multiplicador de la
+ * técnica (con Mejoras y suelo de cadena). Es el número que decide duelos:
+ * el Tornado de Fuego de un Axel Legendario al 50 no es el de un Axel Normal
+ * al 5, y la ficha tiene que contarlo.
+ */
+export function realTechniquePower(p: PlayerInstance, tech: Technique): number {
+  const s = effectiveStats(p)
+  const stat = tech.kind === 'tiro' ? s.tiro
+    : tech.kind === 'parada' ? s.defensa
+      : tech.kind === 'regate' ? s.control * 0.6 + s.fisico * 0.4
+        : s.defensa * 0.7 + s.fisico * 0.3
+  // Mismo 1.5 que TECH_IMPACT en el motor de duelo.
+  return Math.round(stat * (1 + (techniquePower(p, tech) / 100) * 1.5))
 }
 
 /** ¿Se le puede aplicar una Mejora a esta técnica? */

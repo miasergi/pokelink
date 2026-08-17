@@ -13,12 +13,13 @@ import { Button, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { signatureNext } from '@/engine/inazuma/game'
 import {
-  canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, reachableChain, techLevel,
+  canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, reachableChain, realTechniquePower, techLevel, techniqueCostFor,
 } from '@/engine/inazuma/roster'
 import { getTechnique } from '@/data/inazuma/techniques'
+import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import { Pic, rarityBorder, rarityChipStyle, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, Pic, rarityBorder, rarityChipStyle, TechIcons, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import type { PlayerInstance } from '@/engine/inazuma/types'
 
 export default function FirmaView() {
@@ -165,7 +166,22 @@ export default function FirmaView() {
                         <TechIcons tech={t} className="w-3 h-3" />
                         {t.name}
                       </span>
-                      <span className="block text-[10px] text-slate-400">V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}</span>
+                      {/* CÓMO QUEDARÍA: potencia real y coste, antes → después.
+                          Se decide sobre números, no a ciegas. */}
+                      {(() => {
+                        const up = { ...p, techLevels: { ...(p.techLevels ?? {}), [id]: techLevel(p, id) + 1 } }
+                        return (
+                          <span className="block text-[10px] text-slate-400">
+                            V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}
+                            {' · '}
+                            <span className="text-emerald-300 font-bold">
+                              ⚔ {realTechniquePower(p, t)} → {realTechniquePower(up, t)}
+                            </span>
+                            {' · '}
+                            {techniqueCostFor(p, t)} → {techniqueCostFor(up, t)} PT
+                          </span>
+                        )
+                      })()}
                     </span>
                     <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
                   </button>
@@ -222,6 +238,13 @@ function FirmaRow({ player, next, upgradeIds, onPick }: {
             <span className="text-[9px] font-extrabold uppercase tracking-widest shrink-0" style={{ color: rarityBorder(tier) }}>
               {RARITY_LABEL[tier]}
             </span>
+            {/* Elemento y nivel A LA VISTA: se decide con datos, no de memoria. */}
+            <Icon
+              name={ELEMENT_ICON[base.element]}
+              className="w-3 h-3 shrink-0"
+              style={{ color: ELEMENT_INFO[base.element].color }}
+            />
+            <span className="text-[10px] text-slate-400 shrink-0">Nv.{player.level}</span>
           </div>
           {/* La cadena, paso a paso: qué tiene, qué toca, qué está lejos. */}
           <div className="mt-1 flex items-center gap-1 flex-wrap">

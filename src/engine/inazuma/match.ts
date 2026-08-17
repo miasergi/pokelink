@@ -16,6 +16,7 @@ import { RNG } from '@/utils/rng'
 import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier, tacticEffects } from './roster'
+import { getTactic } from '@/data/inazuma/tactics'
 import type { TacticEffect } from '@/data/inazuma/tactics'
 import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
 import type {
@@ -32,6 +33,11 @@ const BURST_ON_SAVE = 20
 const BURST_ON_CONCEDE = 18
 /** Acciones que dura la Supervibración una vez activada. */
 export const BURST_DURATION = 3
+/**
+ * Acciones que dura una FILOSOFÍA activada. Más larga que la Supervibración:
+ * sus efectos son más sutiles que un ×1.4 a todo.
+ */
+export const TACTIC_DURATION = 7
 /** Aguante que cuesta disputar un duelo (solo se persiste el de tu plantilla). */
 // Tercera subida (10/2 → 12/3): «da la sensación de que se cansan muy poco»
 // con 10/2 — el descanso y los cambios tienen que pedirse solos.
@@ -107,9 +113,14 @@ function allActors(side: MatchSide): Actor[] {
   return [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
 }
 
-/** Filosofías de un lado, ya sumadas. El rival no lleva: son tuyas. */
+/**
+ * Efectos de la filosofía de un lado — SOLO mientras está ACTIVADA con la
+ * barra de Ruptura. La identidad pasiva se retiró: se pidió que la filosofía
+ * fuera una decisión del partido, como la Supervibración, no un pasivo
+ * invisible.
+ */
 function fx(side: MatchSide): TacticEffect {
-  return tacticEffects(side.tactics)
+  return tacticEffects(side.tacticActive && side.tacticActive.turns > 0 ? [side.tacticActive.id] : [])
 }
 
 function toDuelist(
@@ -356,16 +367,31 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   // la activa en el acto (tú la tuya, desde el panel). Sin esto el rival
   // acumulaba Ruptura y no la usaba jamás.
   const rivalTeam = sideOf(m, otherSide(mine))
-  if (rivalTeam.burst >= 100 && rivalTeam.burstTurns === 0) {
-    rivalTeam.burstTurns = BURST_DURATION
-    rivalTeam.burst = 0
-    // Solo a `out`: `commit` ya vuelca los eventos del latido en `m.events`.
-    out.push({
-      kind: 'burst',
-      minute: m.minute,
-      side: otherSide(mine),
-      text: `¡${rivalTeam.name} entra en SUPERVIBRACIÓN! Sus próximas ${BURST_DURATION} acciones son gratis.`,
-    })
+  if (rivalTeam.burst >= 100 && rivalTeam.burstTurns === 0 && !rivalTeam.tacticActive) {
+    const rTactic = rivalTeam.tactics?.[0] ? getTactic(rivalTeam.tactics[0]) : undefined
+    if (rTactic && rng.chance(0.5)) {
+      // Su FILOSOFÍA canónica, encendida con la barra: identidad en juego.
+      rivalTeam.tacticActive = { id: rTactic.id, turns: TACTIC_DURATION }
+      rivalTeam.burst = 0
+      out.push({
+        kind: 'tactic',
+        minute: m.minute,
+        side: otherSide(mine),
+        tactic: rTactic.id,
+        name: rTactic.name,
+        text: `¡${rivalTeam.name} enciende su filosofía: ${rTactic.name.toUpperCase()}!`,
+      })
+    } else {
+      rivalTeam.burstTurns = BURST_DURATION
+      rivalTeam.burst = 0
+      // Solo a `out`: `commit` ya vuelca los eventos del latido en `m.events`.
+      out.push({
+        kind: 'burst',
+        minute: m.minute,
+        side: otherSide(mine),
+        text: `¡${rivalTeam.name} entra en SUPERVIBRACIÓN! Sus próximas ${BURST_DURATION} acciones son gratis.`,
+      })
+    }
   }
 
   // En modo COMPLETO todas las acciones pasan por ti; en dinámico (y en auto,
@@ -428,6 +454,10 @@ function executeDuel(
   defender.stamina = Math.max(0, defender.stamina - STAMINA_PER_DUEL * (fx(defSide).staminaDrain ?? 1))
   if (atkBurst) atkSide.burstTurns -= 1
   if (defBurst) defSide.burstTurns -= 1
+  // La filosofía encendida también se consume acción a acción.
+  for (const sd of [atkSide, defSide]) {
+    if (sd.tacticActive && --sd.tacticActive.turns <= 0) sd.tacticActive = undefined
+  }
 
   const atkDuelist = toDuelist(attacker, atkTech, atkBurst, chain.sprint)
   // FILOSOFÍAS: el que ataca empuja con las suyas, el que defiende corta con
@@ -844,6 +874,22 @@ function buildDecision(
     })
   }
 
+  // 5c) TU FILOSOFÍA, si la barra está llena: la alternativa táctica a la
+  //     Supervibración — misma barra, decisión distinta.
+  if (mySide.burst >= 100 && mySide.burstTurns === 0 && !mySide.tacticActive && mySide.tactics?.[0]) {
+    const t = getTactic(mySide.tactics[0])
+    if (t) {
+      options.push({
+        id: 'tactic',
+        label: `¡${t.name.toUpperCase()}!`,
+        detail: `Filosofía · ${TACTIC_DURATION} acciones encendida`,
+        odds: 3,
+        chance: 1,
+        cost: 0,
+      })
+    }
+  }
+
   // 5b) Supervibración, si la barra está llena.
   if (mySide.burst >= 100 && mySide.burstTurns === 0) {
     options.push({
@@ -1034,6 +1080,26 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
       minute: m.minute,
       side: d.mode === 'ataque' ? chain.side : otherSide(chain.side),
       text: `¡${actor.name} aprieta los dientes y esprinta!`,
+    }]
+    m.decision = null
+    m.phase = 'playing'
+    m.events.push(...out)
+    resolveStep(m, rng, [])
+    return out
+  }
+
+  if (optionId === 'tactic') {
+    const t = mySide.tactics?.[0] ? getTactic(mySide.tactics[0]) : undefined
+    if (!t) return []
+    mySide.tacticActive = { id: t.id, turns: TACTIC_DURATION }
+    mySide.burst = 0
+    const out: MatchEvent[] = [{
+      kind: 'tactic',
+      minute: m.minute,
+      side: d.mode === 'ataque' ? chain.side : otherSide(chain.side),
+      tactic: t.id,
+      name: t.name,
+      text: `¡${mySide.name} enciende su filosofía: ${t.name.toUpperCase()}!`,
     }]
     m.decision = null
     m.phase = 'playing'

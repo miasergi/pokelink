@@ -14,7 +14,7 @@ import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { signatureNext } from '@/engine/inazuma/game'
-import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, techLevel } from '@/engine/inazuma/roster'
+import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, realTechniquePower, techLevel, techniqueCostFor } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
 import { getPlayerBase, PLAYERS, TEAM_NAMES } from '@/data/inazuma/players'
@@ -249,9 +249,22 @@ export default function BagView() {
                           <TechniqueBadge tech={t} size={36} holder={p} />
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13px] font-bold" style={{ color: info.color }}>{t.name}</span>
-                            <span className="block text-[10px] text-slate-400">
-                              {KIND_LABEL[t.kind]} · V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}
-                            </span>
+                            {/* CÓMO QUEDARÍA: potencia real y coste antes →
+                                después. Se mejora con datos, no a ciegas. */}
+                            {(() => {
+                              const up = { ...p, techLevels: { ...(p.techLevels ?? {}), [id]: techLevel(p, id) + 1 } }
+                              return (
+                                <span className="block text-[10px] text-slate-400">
+                                  {KIND_LABEL[t.kind]} · V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}
+                                  {' · '}
+                                  <span className="text-emerald-300 font-bold">
+                                    ⚔ {realTechniquePower(p, t)} → {realTechniquePower(up, t)}
+                                  </span>
+                                  {' · '}
+                                  {techniqueCostFor(p, t)} → {techniqueCostFor(up, t)} PT
+                                </span>
+                              )
+                            })()}
                           </span>
                           <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
                         </button>
