@@ -64,7 +64,7 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
   return out
 }
 
-export default function LivePitch({ match, feed, current, myCrest, theirCrest, flight }: {
+export default function LivePitch({ match, feed, current, myCrest, theirCrest, flight, flowing }: {
   match: MatchState
   feed: MatchEvent[]
   /**
@@ -73,6 +73,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
    * la cinemática del tiro entre la supertécnica y la parada.
    */
   flight?: { key: number; element?: Element; mine: boolean; landed?: boolean; toUid?: string } | null
+  /**
+   * true cuando el partido CORRE (ni decisión ni cinemática en pantalla). Es
+   * lo que mantiene vivo el césped entre jugada y jugada: sin esto, el
+   * emparejamiento pegajoso de las esperas del cronómetro congelaba la
+   * circulación y «pasaban los minutos sin moverse nada».
+   */
+  flowing?: boolean
   /** Emparejamiento en pantalla (decisión o cinemática), si lo hay. */
   current?: { attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null
   /** Escudos: van de FONDO en la ficha de cada jugador (en vez del color). */
@@ -222,7 +229,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // Sin esto el campo se quedaba congelado entre evento y evento y el partido
   // parecía ir por turnos.
   const supportList = [...supportUids]
-  const circulateTo = !current && supportList.length
+  const circulateTo = flowing && supportList.length
     ? (() => {
       const slot = Math.floor(hold / 1.1) % (supportList.length + 1)
       return slot === 0 ? null : supportList[slot - 1]
@@ -230,6 +237,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     : null
   const ballHolderUid = circulateTo ?? carrierUid
 
+  const ballCarrierRef = carrierUid ? actorByUid(match, carrierUid) ?? null : null
   const clampX = (x: number) => Math.max(4, Math.min(96, x))
   const clampY = (y: number) => Math.max(7, Math.min(93, y))
 
@@ -256,10 +264,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
     if (a.uid === carrierUid) {
-      // El del balón, en el punto del eslabón, con un AMAGO por latido (el
-      // regateador no se queda clavado). Los porteros no abandonan el área.
+      // El del balón CONDUCE desde donde estaba hacia el punto del eslabón:
+      // a mitad de camino de su ancla, no plantado en la zona. Antes se le
+      // colocaba directamente en `ballX` y al cambiar el portador el nuevo
+      // cruzaba el campo entero de un tirón — el «teletransporte».
       if (a.position === 'POR') return base
-      return { x: clampX(ballX), y: base.y * 0.6 + 20 }
+      return {
+        x: clampX(base.x + (ballX - base.x) * (0.45 + 0.3 * progress)),
+        y: clampY(base.y + (base.y * 0.6 + 20 - base.y) * 0.7),
+      }
     }
     if (a.uid === markerUid) {
       // Su marcador le sale al paso: entre el balón y SU portería, y le va
@@ -267,7 +280,19 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       // persecución en vez de dos fichas pegadas desde el primer fotograma).
       if (a.position === 'POR') return base
       const gap = 11 - 5 * progress
-      return { x: clampX(ballX + (isMine ? -gap : gap)), y: base.y * 0.6 + 20 }
+      // Persigue el punto REAL del portador (la misma cuenta de arriba), no
+      // la zona abstracta: si no, el balón y su marcador iban a sitios
+      // distintos y no se entendía a quién marcaba.
+      const cSpot = (() => {
+        const c = ballCarrierRef?.uid === carrierUid ? ballCarrierRef : null
+        if (!c) return { x: ballX, y: 50 }
+        const cBase = (myActors.some((x) => x.uid === c.uid) ? myAnchor : theirAnchor).get(c.uid) ?? { x: 50, y: 50 }
+        return {
+          x: cBase.x + (ballX - cBase.x) * (0.45 + 0.3 * progress),
+          y: cBase.y + (cBase.y * 0.6 + 20 - cBase.y) * 0.7,
+        }
+      })()
+      return { x: clampX(cSpot.x + (isMine ? -gap : gap)), y: clampY(cSpot.y) }
     }
     // El portero apenas se pasea por su área.
     if (a.position === 'POR') {
@@ -531,7 +556,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: 
   const dist = Math.hypot(spot.x - prev.current.x, spot.y - prev.current.y)
   prev.current = spot
   // ~28 ms por punto porcentual recorrido, con suelo y techo.
-  const travel = Math.max(240, Math.min(1400, dist * 28))
+  const travel = Math.max(240, Math.min(900, dist * 26))
 
   return (
     <div

@@ -143,6 +143,18 @@ describe('plantilla', () => {
       .toBeGreaterThan(base.mios)
   })
 
+  it('TODO instituto tiene su camiseta (kit), y ninguna copia la del Raimon', () => {
+    // Jugando con Nagumohara salían los colores del Raimon: su kit inventado
+    // era clavado al suyo, y encima 8 equipos seguían sin kit (caían al color
+    // plano). Todos con camiseta, y ninguna igual a la del Raimon salvo la
+    // del propio Raimon.
+    const sinKit = TEAMS.filter((t) => t.id !== 'libre' && !t.kit)
+    expect(sinKit.map((t) => t.id)).toHaveLength(0)
+    const raimon = getTeam('raimon').kit!.join('|')
+    const clones = TEAMS.filter((t) => t.id !== 'raimon' && t.kit && t.kit.join('|') === raimon)
+    expect(clones.map((t) => t.id)).toHaveLength(0)
+  })
+
   it('TODA cadena tiene sus 4 pasos (nadie se queda a medias)', () => {
     // 44 jugadores de Victory Road salían con cadenas de 1-3 pasos: el relleno
     // estaba limitado al pool de técnicas de su época, corto en algunos cruces

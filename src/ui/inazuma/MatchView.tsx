@@ -253,6 +253,9 @@ export default function MatchView() {
               myCrest={teamDisplay(save ?? {}).crestId}
               theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
               flight={shotFlight}
+              // El césped sigue VIVO mientras el partido corre: ni decisión
+              // ni cinemática en pantalla.
+              flowing={match.phase !== 'decision' && stage === null && gol === null}
             />
             {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
             {flash && (

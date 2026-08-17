@@ -45,7 +45,7 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'mikage', name: 'Instituto Brain', color: '#14b8a6', element: 'bosque', power: 0.84,
+    id: 'mikage', name: 'Instituto Brain', color: '#14b8a6', kit: ['#5eead4', '#115e59'], element: 'bosque', power: 0.84,
     taunt: 'Vuestras jugadas están calculadas antes de que las penséis.',
     lineup: [],
   },
@@ -80,12 +80,12 @@ export const TEAMS: TeamBase[] = [
   // Alius. Misma curva de `power` que el cuadro clásico (0.72 → 1.15).
   // ------------------------------------------------------------------
   {
-    id: 'yokato', name: 'Instituto Yokato', color: '#0284c7', element: 'aire', power: 0.72,
+    id: 'yokato', name: 'Instituto Yokato', color: '#0284c7', kit: ['#93c5fd', '#1e40af'], element: 'aire', power: 0.72,
     taunt: 'La caravana pasa por aquí… y aquí se queda.',
     lineup: [],
   },
   {
-    id: 'oumihara', name: 'Instituto Oumihara', color: '#0d9488', element: 'bosque', power: 0.78,
+    id: 'oumihara', name: 'Instituto Oumihara', color: '#0d9488', kit: ['#e0f2fe', '#075985'], element: 'bosque', power: 0.78,
     taunt: 'El mar nos enseñó a no rendirnos nunca.',
     lineup: [],
   },
@@ -130,27 +130,27 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
-    id: 'big-waves', name: 'Big Waves', color: '#0891b2', element: 'bosque', power: 0.72,
+    id: 'big-waves', name: 'Big Waves', color: '#0891b2', kit: ['#fbbf24', '#166534'], element: 'bosque', power: 0.72,
     taunt: 'Surfead nuestra ola… si podéis.',
     lineup: [],
   },
   {
-    id: 'desert-lion', name: 'Desert Lion', color: '#d97706', element: 'montana', power: 0.78,
+    id: 'desert-lion', name: 'Desert Lion', color: '#d97706', kit: ['#fda4af', '#881337'], element: 'montana', power: 0.78,
     taunt: 'El desierto no perdona a los débiles.',
     lineup: [],
   },
   {
-    id: 'knights-of-queen', name: 'Knights of Queen', color: '#4338ca', element: 'aire', power: 0.86,
+    id: 'knights-of-queen', name: 'Knights of Queen', color: '#4338ca', kit: ['#f8fafc', '#b91c1c'], element: 'aire', power: 0.86,
     taunt: 'Por la reina y por la corona.',
     lineup: [],
   },
   {
-    id: 'fire-dragon', name: 'Fire Dragon', color: '#dc2626', element: 'fuego', power: 0.94,
+    id: 'fire-dragon', name: 'Fire Dragon', color: '#dc2626', kit: ['#ef4444', '#1e3a8a'], element: 'fuego', power: 0.94,
     taunt: 'El dragón escupe fuego. Vosotros, excusas.',
     lineup: [],
   },
   {
-    id: 'the-empire', name: 'The Empire', color: '#16a34a', element: 'bosque', power: 1.0,
+    id: 'the-empire', name: 'The Empire', color: '#16a34a', kit: ['#bae6fd', '#0284c7'], element: 'bosque', power: 1.0,
     taunt: 'El imperio del fútbol no cede su trono.',
     lineup: [],
   },
@@ -266,7 +266,7 @@ export const TEAMS: TeamBase[] = [
   // queremos la misma plantilla dos veces con otra cara.
   // -------------------------------------------------------------------------
   {
-    id: 'nagumohara', name: 'Instituto Nagumohara', color: '#f59e0b', kit: ['#fbbf24', '#1e3a8a'], element: 'aire', power: 0.78,
+    id: 'nagumohara', name: 'Instituto Nagumohara', color: '#0d9488', kit: ['#f0fdfa', '#0d9488'], element: 'aire', power: 0.78,
     taunt: 'Aquí se juega por gusto. Y por eso ganamos.',
     lineup: [],
   },

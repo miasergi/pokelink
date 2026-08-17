@@ -761,9 +761,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!clockTimer) {
       clockTimer = setInterval(() => {
         const st = get()
-        if (!st.match || st.match.phase === 'finished') { stopClock(); return }
-        // Parado en cinemáticas, en el descanso y mientras decides.
-        if (!st.playing || st.uiBusy || st.halftimeBreak) return
+        if (!st.match) { stopClock(); return }
+        // OJO: el motor va por delante de lo contado. Si el gol del 88 era la
+        // última jugada, el motor ya está en «finished» ANTES de que el pitido
+        // final se haya revelado — y apagar el reloj aquí dejaba ese evento
+        // esperando a un cronómetro muerto: partido colgado en el 88.
+        if (st.match.phase === 'finished' && !revealQueue.length) { stopClock(); return }
+        // Parado en cinemáticas y en el descanso. Y con la cola VACÍA, solo
+        // corre si se está jugando — pero si queda algo por contar, el reloj
+        // sigue hasta contarlo (los revelados nunca dependieron de `playing`).
+        if (st.uiBusy || st.halftimeBreak) return
+        if (!st.playing && !revealQueue.length) return
         const rate = clockRate(st.speed)
         const cap = st.match.stage === 'reglamentario' ? 90 : 120
         // El reloj nunca adelanta a la jugada que aún está por contarse: si el
