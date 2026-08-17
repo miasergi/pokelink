@@ -24,6 +24,11 @@ function flameOf(el: Element | undefined): string {
   return el ? ELEMENT_INFO[el].color : '#e2e8f0'
 }
 
+/** Velocidad del balón en el rondo (% de campo por segundo). */
+const RONDO_BALL_SPEED = 34
+/** El toque de control al recibir (s): recibir, mirar, soltar. */
+const RONDO_CONTROL_S = 0.4
+
 /**
  * Cuánto dura el AVANCE continuo de una jugada (ms). Es el tiempo en el que el
  * balón recorre su zona y el bloque acompaña, antes de quedarse esperando al
@@ -100,7 +105,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // movimiento es continuo y va SIEMPRE en la dirección que cuenta la jugada.
   const [now, setNow] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setNow((n) => n + 1), 70)
+    const t = setInterval(() => setNow((n) => n + 1), 50)
     return () => clearInterval(t)
   }, [])
 
@@ -161,7 +166,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // los delanteros, un pase cada ~1.3 s, y vuelta a empezar desde atrás.
   // Todo determinista, sin ruido: cada pase es a un compañero concreto.
   let buildup = false
-  if (flowing && holdSec > 0.5) {
+  // La posición EXACTA del balón durante el rondo, interpolada a cada frame.
+  let rondoBall: Spot | null = null
+  if (flowing && holdSec > 0.2) {
     // ¿De quién es el balón AHORA? Del último evento que lo diga.
     let possession: 'home' | 'away' | null = null
     for (let i = feed.length - 1; i >= 0; i--) {
@@ -173,17 +180,45 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     }
     if (possession) {
       const posSide = sideOf(match, possession)
-      // Defensas → medios → delanteros: la salida de balón de manual. El
-      // bucle vuelve a la defensa: reciclar hacia atrás también es fútbol.
+      // Defensas → medios → delanteros y vuelta: la salida de balón de manual
+      // (reciclar hacia atrás también es fútbol).
       const order = [...posSide.defs, ...posSide.mids, ...posSide.fwds]
-      if (order.length) {
-        const holder = order[Math.floor(holdSec / 1.3) % order.length]
+      if (order.length >= 2) {
         buildup = true
         atkSide = possession
         step = 'construccion'
-        carrierUid = holder.uid
         // Sin marcador: el duelo aún no ha llegado — esto es el viaje.
         markerUid = null
+
+        // EL BALÓN NUNCA SE PARA. La posesión es una CADENA CONTINUA de
+        // pases: cada tramo dura exactamente lo que el balón tarda en
+        // recorrerlo a velocidad constante, más un toque de control al
+        // recibir. En cada instante (cada frame) se sabe en qué tramo va y en
+        // qué punto del vuelo está — nada de «cada 1.3 s salta al siguiente».
+        const posMine = possession === mine
+        const anchorMap = posMine ? myAnchor : theirAnchor
+        const spotAt = (a: Actor) => anchorMap.get(a.uid) ?? { x: 50, y: 50 }
+        const legs: { from: Actor; to: Actor; flight: number; total: number }[] = []
+        let cycle = 0
+        for (let i = 0; i < order.length; i++) {
+          const from = order[i]
+          const to = order[(i + 1) % order.length]
+          const A = spotAt(from)
+          const B = spotAt(to)
+          const flight = Math.max(0.25, Math.hypot(B.x - A.x, B.y - A.y) / RONDO_BALL_SPEED)
+          legs.push({ from, to, flight, total: flight + RONDO_CONTROL_S })
+          cycle += flight + RONDO_CONTROL_S
+        }
+        let t = holdSec % cycle
+        let leg = legs[0]
+        for (const l of legs) { if (t < l.total) { leg = l; break } t -= l.total }
+        const A = spotAt(leg.from)
+        const B = spotAt(leg.to)
+        const k = Math.min(1, t / leg.flight)
+        rondoBall = { x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k }
+        // Mientras vuela, el balón «es» del que lo soltó; al llegar, del que
+        // lo recibe (que ya está dando el paso para controlarlo).
+        carrierUid = k >= 1 ? leg.to.uid : leg.from.uid
       }
     }
   }
@@ -199,10 +234,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const zoneTo = step != null ? zone + ZONE_RUN : 50
   const rawBallX = zoneFrom + (zoneTo - zoneFrom) * progress
   let ballX = step == null ? 50 : iAttack ? rawBallX : 100 - rawBallX
-  if (buildup && carrierUid) {
-    // Rondo: el balón viaja de jugador en jugador, no por zonas abstractas.
-    const a = (atkSide === mine ? myAnchor : theirAnchor).get(carrierUid)
-    if (a) ballX = a.x
+  if (rondoBall) {
+    // Rondo: el balón está donde está — todo lo demás bascula siguiéndolo.
+    ballX = rondoBall.x
   }
 
   // LECTURA DE PARTIDO (de lo revelado): marcador y minuto. De aquí sale el
@@ -278,7 +312,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const carrierAnchor = ballHolderUid
     ? (myAnchor.get(ballHolderUid) ?? theirAnchor.get(ballHolderUid))
     : undefined
-  const ballLane = carrierAnchor ? carrierAnchor.y * 0.6 + 20 : 50
+  const ballLane = rondoBall ? rondoBall.y : carrierAnchor ? carrierAnchor.y * 0.6 + 20 : 50
 
   // CAMBIO DE CAMPO tras el descanso, como en los partidos de verdad: toda la
   // geometría se calcula igual y se ESPEJA solo al pintar (jugadores, balón y
@@ -379,9 +413,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
     : null
-  const ball = carrierSpot
-    ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
-    : { x: 50, y: 50 }
+  const ball = rondoBall
+    ?? (carrierSpot
+      ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
+      : { x: 50, y: 50 })
 
   // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
   const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
@@ -485,8 +520,16 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           />
         ) : (
           <div
-            className="absolute z-30 w-4 h-4 -ml-2 -mt-2 transition-all duration-700 ease-out pointer-events-none"
-            style={{ left: `${mx(ball.x)}%`, top: `${my(ball.y)}%` }}
+            className="absolute z-30 w-4 h-4 -ml-2 -mt-2 pointer-events-none"
+            style={{
+              left: `${mx(ball.x)}%`,
+              top: `${my(ball.y)}%`,
+              // Rondo: el punto viene interpolado por frame — suavizado corto
+              // y lineal. Jugada contada: el vuelo de pase de siempre.
+              transition: rondoBall
+                ? 'left 90ms linear, top 90ms linear'
+                : 'left 700ms cubic-bezier(0.16, 1, 0.3, 1), top 700ms cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
           >
             <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
           </div>
