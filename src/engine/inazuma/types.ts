@@ -543,6 +543,18 @@ export type InazumaPhase =
 /** Dificultad de la partida: cuánto nivel extra llevan TODOS los rivales. */
 export type Difficulty = 'normal' | 'dificil' | 'leyenda'
 
+/**
+ * RANDOMIZADOR. Cada bandera desordena UNA cosa, para que se pueda subir el
+ * caos poco a poco en vez de tener un botón de «todo loco». Calcado en espíritu
+ * al del modo Pokémon (`RandomFlags` de `src/engine/run/types.ts`).
+ */
+export interface RandomFlags {
+  /** Las plantillas RIVALES se sortean del pool en vez de ser las canónicas. */
+  plantillas?: boolean
+  /** El cuadro del torneo mezcla institutos de CUALQUIER época elegida. */
+  cuadro?: boolean
+}
+
 export interface InazumaSave {
   seed: number
   rngState: number
@@ -570,6 +582,14 @@ export interface InazumaSave {
    * partido (ver `src/data/inazuma/tactics.ts`).
    */
   tactics?: string[]
+  /**
+   * ÉPOCAS de las que sale gente en esta partida (ojeador, recompensas y
+   * fichajes). Vacío o ausente = solo la de tu saga. Multiselección: se puede
+   * jugar el Football Frontier con fichajes del Mundial y de Victory Road.
+   */
+  pools?: ('ff' | 'alius' | 'ffi' | 'vr')[]
+  /** Randomizador de la partida (ver `RandomFlags`). */
+  random?: RandomFlags
   /** Ids de casilla ya jugadas. */
   cleared: string[]
   roster: PlayerInstance[]

@@ -7,7 +7,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, type SagaId } from '@/data/inazuma/teams'
+import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, type RegionId, type SagaId } from '@/data/inazuma/teams'
 import { loadMeta } from '@/persistence/db'
 import type { PlayerStats } from '@/engine/inazuma/types'
 
@@ -300,6 +300,9 @@ export function TeamSelectView() {
   const [saga, setSaga] = useState<SagaId>('ff')
   const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
   const [randomSquad, setRandomSquad] = useState(false)
+  // De qué juegos sale la gente y qué se desordena.
+  const [pools, setPools] = useState<RegionId[]>([])
+  const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean }>({})
   // Identidad del equipo del bombo: nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
   const [customCrest, setCustomCrest] = useState<string | null>(null)
@@ -312,6 +315,8 @@ export function TeamSelectView() {
       // Sin nombre escrito, el equipo se llama como el escudo elegido.
       customName: randomSquad ? (customName.trim() || getTeam(crest).name) : undefined,
       customCrest: randomSquad ? crest : undefined,
+      pools,
+      random,
     })
   }
   const sagaInfo = getSaga(saga)
@@ -341,11 +346,68 @@ export function TeamSelectView() {
                     : 'border-slate-700 bg-slate-800/60 text-slate-400'
                 }`}
               >
-                {s.id === 'ff' ? 'Football Frontier' : s.id === 'alius' ? 'Academia Alius' : 'FF Internacional'}
+                {s.id === 'ff' ? 'Football Frontier'
+                  : s.id === 'alius' ? 'Academia Alius'
+                    : s.id === 'ffi' ? 'FF Internacional' : 'Victory Road'}
               </button>
             ))}
           </div>
           <p className="text-[10px] text-slate-500 mt-1">{sagaInfo.desc}</p>
+        </div>
+
+        {/* DE QUÉ JUEGOS SALE LA GENTE. Multiselección: puedes jugar el
+            Football Frontier fichando gente del Mundial y de Victory Road.
+            Sin marcar nada, cada saga trae la suya. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
+            Jugadores de estos juegos
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {REGIONS.map((r) => {
+              const on = pools.includes(r.id)
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => setPools(on ? pools.filter((x) => x !== r.id) : [...pools, r.id])}
+                  className={`rounded-xl border py-1.5 px-2 text-[11px] font-bold leading-tight text-left transition active:scale-95 ${
+                    on ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-200'
+                      : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                  }`}
+                >
+                  {r.name}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1">
+            {pools.length
+              ? 'El ojeador, los fichajes y las recompensas solo traerán gente de lo marcado.'
+              : 'Sin marcar nada: cada saga trae a los suyos, como siempre.'}
+          </p>
+        </div>
+
+        {/* RANDOMIZADOR: caos a la carta, bandera a bandera. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Randomizador</div>
+          <div className="flex flex-col gap-1.5">
+            {([
+              { k: 'plantillas' as const, t: 'Plantillas rivales al azar', d: 'Cada instituto sale con un once sorteado. Su escudo y su dificultad no cambian: no sabes con quién juega.' },
+              { k: 'cuadro' as const, t: 'Cuadro mezclado', d: 'Los institutos del torneo salen de cualquiera de los juegos marcados arriba, ordenados por dificultad.' },
+            ]).map(({ k, t, d }) => (
+              <button
+                key={k}
+                onClick={() => setRandom({ ...random, [k]: !random[k] })}
+                className={`rounded-xl border px-2.5 py-2 text-left transition active:scale-[0.99] ${
+                  random[k] ? 'border-fuchsia-500/70 bg-fuchsia-500/15' : 'border-slate-700 bg-slate-800/60'
+                }`}
+              >
+                <span className={`block text-[12px] font-bold ${random[k] ? 'text-fuchsia-200' : 'text-slate-300'}`}>
+                  {t}
+                </span>
+                <span className="block text-[10px] text-slate-500 leading-snug">{d}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Modalidades: dificultad y plantilla del bombo. */}

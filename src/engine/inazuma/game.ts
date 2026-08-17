@@ -3,7 +3,7 @@
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
 import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getTeam } from '@/data/inazuma/teams'
+import { type RegionId, getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
@@ -17,6 +17,7 @@ import { buildScoutOffer } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
+  type RandomFlags,
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
@@ -49,6 +50,10 @@ export interface NewRunOptions {
   /** Nombre y escudo del equipo del bombo (a gusto del entrenador). */
   customName?: string
   customCrest?: string
+  /** Épocas de las que puede salir gente (vacío = la de tu saga). */
+  pools?: RegionId[]
+  /** Randomizador: qué se desordena en esta partida. */
+  random?: RandomFlags
 }
 
 /** Nivel EXTRA de todos los rivales según la dificultad elegida. */
@@ -77,7 +82,10 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const formation = formationFor(teamId)
   const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
   const roster = squadIds.map((id, i) => createPlayer(id, START_LEVEL, { captain: i === 0 }))
-  const map = generateMap(rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga)
+  const map = generateMap(
+    rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga,
+    opts.random?.cuadro ? (opts.pools?.length ? opts.pools : undefined) ?? [] : undefined,
+  )
   // El once de salida es el CANÓNICO (los 11 primeros de la convocatoria son
   // los titulares de la formación); si se dejara elegir a `autoLineup` entre
   // los 14, el ruido de stats podía mandar al banquillo a titulares de la
@@ -89,6 +97,9 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     difficulty,
     saga: opts.saga ?? 'ff',
     randomSquad: opts.randomSquad || undefined,
+    // Las épocas del pool: si no se elige nada, la de la saga que juegas.
+    pools: opts.pools?.length ? opts.pools : undefined,
+    random: opts.random && Object.values(opts.random).some(Boolean) ? opts.random : undefined,
     customName: opts.randomSquad ? (opts.customName?.trim() || 'FC Bombo') : undefined,
     customCrest: opts.randomSquad ? opts.customCrest : undefined,
     rngState: rng.getState(),
@@ -209,6 +220,8 @@ export function startMatch(
   const rivals = buildRivalTeam(teamId, node.level ?? 10, rng, rivalRarity(bossIdx), {
     rarityMap: rivalRarityMap(teamId, bossIdx),
     elite: true,
+    // Randomizador de PLANTILLAS: el instituto sale con once sorteado.
+    shuffleFrom: save.random?.plantillas ? (save.pools ?? [save.saga ?? 'ff']) : undefined,
   })
 
   const mineTeam = getTeam(save.teamId ?? 'raimon')

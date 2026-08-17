@@ -3,6 +3,7 @@
 import type { RNG } from '@/utils/rng'
 import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
+import { regionOfTeam, type RegionId } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getTactic, type TacticEffect } from '@/data/inazuma/tactics'
 import { getTeam, getSaga, FILLER_NAMES } from '@/data/inazuma/teams'
@@ -483,9 +484,23 @@ export function rivalStartingXI(teamId: string): PlayerBase[] {
  */
 export function buildRivalTeam(
   teamId: string, level: number, rng: RNG, rarity = 2,
-  opts: { rarityMap?: Map<string, number>; elite?: boolean } = {},
+  opts: { rarityMap?: Map<string, number>; elite?: boolean; shuffleFrom?: RegionId[] } = {},
 ): RivalPlayer[] {
   const team = getTeam(teamId)
+  // RANDOMIZADOR de plantillas: el instituto sale con once sorteado de las
+  // épocas elegidas en vez de con el suyo canónico. Su ESCUDO y su dificultad
+  // no cambian — sigue siendo el Zeus, pero no sabes con quién juega.
+  if (opts.shuffleFrom) {
+    const eras = new Set(opts.shuffleFrom)
+    const pool = PLAYERS.filter((p) => !eras.size || eras.has(regionOfTeam(p.team)))
+    const byPos = (pos: Position, n: number) =>
+      rng.shuffle(pool.filter((p) => p.position === pos)).slice(0, n)
+    const xi = [...byPos('POR', 1), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 2)]
+    if (xi.length >= 11) {
+      return xi.slice(0, 11).map((b) =>
+        toRival(b, level, team.power, opts.rarityMap?.get(b.id) ?? rarity, opts.elite ?? false))
+    }
+  }
   // Su once sale de su plantilla REAL (14 jugadores por instituto) y se arma
   // POR LÍNEAS, igual que el tuyo. Cogerlos «los 11 primeros de la lista» era
   // asimétrico (a ellos les tocaban siempre los mejores y a ti no) y además

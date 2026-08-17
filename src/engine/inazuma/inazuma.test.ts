@@ -15,7 +15,7 @@ import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
 import rosterCacheRaw from '../../../scripts/.cache/inazuma-roster.json'
 
 const rosterCache = rosterCacheRaw as Record<string, { name: string; wiki?: string; hissatsu?: string[] }[]>
-import { getTeam, PLAYABLE_TEAMS, SAGAS, TEAMS } from '@/data/inazuma/teams'
+import { getTeam, PLAYABLE_TEAMS, regionOfTeam, SAGAS, TEAMS } from '@/data/inazuma/teams'
 import {
   advanceLayer, applyConsumable, applyEventEffect, applyMatchResult, applyPachangaResult,
   autoTraining, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnBlocker,
@@ -201,6 +201,41 @@ describe('plantilla', () => {
     // La casilla de primera ronda va por nivel 8: el premio NO puede salir a 8.
     const nodeLevel = 8
     expect(Math.max(nodeLevel, signingLevel(save))).toBe(signingLevel(save))
+  })
+
+  it('el CONFIGURADOR manda: épocas elegidas y randomizador', () => {
+    // POOLS: marcando solo Victory Road, el ojeador no puede traer un clásico.
+    const soloVR = { ...createSave(3), pools: ['vr' as const] }
+    const ofertaVR = availableSignings(soloVR)
+    expect(ofertaVR.length, 'sin nadie de Victory Road').toBeGreaterThan(50)
+    expect(ofertaVR.every((p) => regionOfTeam(p.team) === 'vr'), 'se coló alguien de otra época').toBe(true)
+    // Y con dos épocas marcadas, entran las dos y nadie más.
+    const dos = { ...createSave(3), pools: ['ff' as const, 'ffi' as const] }
+    const regiones = new Set(availableSignings(dos).map((p) => regionOfTeam(p.team)))
+    expect([...regiones].sort()).toEqual(['ff', 'ffi'])
+    // Sin elegir nada, vale todo el catálogo (como siempre).
+    expect(new Set(availableSignings(createSave(3)).map((p) => regionOfTeam(p.team))).size)
+      .toBeGreaterThan(2)
+
+    // RANDOMIZADOR DE CUADRO: los institutos ya no son los de la saga.
+    const normal = createSave(9, 'raimon')
+    const mezclado = createSave(9, 'raimon', { random: { cuadro: true } })
+    const equipos = (sv: typeof normal) => Object.values(sv.map.nodes)
+      .filter((n) => n.teamId).map((n) => n.teamId!).sort().join(',')
+    expect(equipos(mezclado), 'el cuadro mezclado salió igual que el normal')
+      .not.toBe(equipos(normal))
+
+    // RANDOMIZADOR DE PLANTILLAS: el rival no saca su once canónico.
+    const canon = startMatch(createSave(9, 'raimon'), firstBoss(createSave(9, 'raimon')))
+    const loco0 = createSave(9, 'raimon', { random: { plantillas: true } })
+    const loco = startMatch(loco0, firstBoss(loco0))
+    if ('error' in canon || 'error' in loco) throw new Error('no arrancó')
+    const once = (m: typeof canon extends { match: infer M } ? M : never) => {
+      const away = m.home.isPlayer ? m.away : m.home
+      return [away.keeper, ...away.defs, ...away.mids, ...away.fwds].map((a) => a.baseId).sort().join(',')
+    }
+    expect(once(loco.match), 'la plantilla rival salió igual que la canónica')
+      .not.toBe(once(canon.match))
   })
 
   it('el ojeador NUNCA ofrece a alguien que ya tienes (ni con otro id)', () => {

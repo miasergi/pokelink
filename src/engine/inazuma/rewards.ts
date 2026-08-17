@@ -4,6 +4,7 @@
 import type { RNG } from '@/utils/rng'
 import { ITEMS } from '@/data/inazuma/items'
 import { TACTICS } from '@/data/inazuma/tactics'
+import { regionOfTeam } from '@/data/inazuma/teams'
 import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
@@ -69,7 +70,13 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
   // varias plantillas (y con nombres alternativos), y filtrando solo por id te
   // ofrecían «otra vez» a alguien que ya estaba en tu vestuario.
   const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
-  const pool = PLAYERS.filter((p) => !owned.has(p.name))
+  // ÉPOCAS ELEGIDAS: si has configurado la run para jugar solo con gente de
+  // IE1 y de Victory Road, el ojeador no te ofrece a nadie más. Sin elegir
+  // nada, vale todo el catálogo (que es como funcionaba antes).
+  const eras = new Set(save.pools ?? [])
+  const pool = PLAYERS
+    .filter((p) => !owned.has(p.name))
+    .filter((p) => !eras.size || eras.has(regionOfTeam(p.team)))
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])

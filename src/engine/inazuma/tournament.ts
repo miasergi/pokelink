@@ -15,7 +15,7 @@
 // cuadro de torneo, no un mapa. Se cambió por petición explícita del usuario
 // para que se pareciese al roguelike Pokémon.
 import type { RNG } from '@/utils/rng'
-import { BRACKET, buildBracket, getTeam, ROUND_NAMES } from '@/data/inazuma/teams'
+import { BRACKET, buildBracket, getTeam, ROUND_NAMES, type RegionId } from '@/data/inazuma/teams'
 import { lootPool } from '@/data/inazuma/items'
 import { EVENTS } from '@/data/inazuma/events'
 import { TECHNIQUES } from '@/data/inazuma/techniques'
@@ -99,8 +99,12 @@ function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
   return pool[pool.length - 1]?.kind ?? 'pachanga'
 }
 
-export function generateMap(rng: RNG, playerTeamId = 'raimon', levelBonus = 0, sagaId?: string): InazumaMap {
-  const bracket = buildBracket(playerTeamId, sagaId)
+export function generateMap(
+  rng: RNG, playerTeamId = 'raimon', levelBonus = 0, sagaId?: string,
+  /** Randomizador de CUADRO: épocas de las que salen los institutos. */
+  shuffleEras?: RegionId[],
+): InazumaMap {
+  const bracket = buildBracket(playerTeamId, sagaId, shuffleEras ? { eras: shuffleEras, rng } : undefined)
   const layers: string[][] = []
   const nodes: Record<string, TournamentNode> = {}
   let layerIdx = 0

@@ -422,8 +422,31 @@ export const PLAYABLE_TEAMS = SAGAS[0].playable
  * ordenados de menos a más fuertes. Así, elegir equipo no solo cambia tu
  * plantilla — también mete en el cuadro al que has descartado.
  */
-export function buildBracket(playerTeamId: string, sagaId?: string): { teamId: string; name: string }[] {
+export function buildBracket(
+  playerTeamId: string,
+  sagaId?: string,
+  /** RANDOMIZADOR de cuadro: institutos de estas épocas, no los de la saga. */
+  shuffleFrom?: { eras: RegionId[]; rng: { int: (a: number, b: number) => number } },
+): { teamId: string; name: string }[] {
   const saga = getSaga(sagaId)
+  if (shuffleFrom) {
+    // El cuadro se sortea entre TODOS los institutos de las épocas elegidas,
+    // ordenados luego por dificultad: la escalada se mantiene, pero no sabes
+    // a quién te vas a encontrar.
+    const eras = new Set(shuffleFrom.eras)
+    const pool = TEAMS.filter((t) => t.id !== playerTeamId && t.id !== 'libre'
+      && (!eras.size || eras.has(regionOfTeam(t.id))))
+    const picked: TeamBase[] = []
+    const rest = pool.slice()
+    while (picked.length < ROUND_NAMES.length && rest.length) {
+      picked.push(...rest.splice(shuffleFrom.rng.int(0, rest.length - 1), 1))
+    }
+    if (picked.length === ROUND_NAMES.length) {
+      return picked
+        .sort((a, b) => a.power - b.power)
+        .map((t, i) => ({ teamId: t.id, name: ROUND_NAMES[i] }))
+    }
+  }
   const rivals = TEAMS
     .filter((t) => saga.teams.includes(t.id) && t.id !== playerTeamId)
     .sort((a, b) => a.power - b.power)
