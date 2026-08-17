@@ -69,6 +69,20 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
   return out
 }
 
+/**
+ * LA LEY DE VELOCIDAD MÁXIMA. Cada ficha y el balón tienen una posición
+ * MOSTRADA que persigue a su objetivo a velocidad limitada, tick a tick.
+ * Con esto los teletransportes y los barridos son IMPOSIBLES por
+ * construcción: da igual qué discontinuidad ocurra (cambio de posesión,
+ * cambio de campo al descanso, volver a la pestaña, jugada nueva) — nada en
+ * el campo puede moverse más rápido que su tope. Es lo que hace un motor de
+ * juego de verdad, en vez de confiar en transiciones CSS con duraciones
+ * calculadas (que era la fuente inagotable de «lagazos»).
+ */
+const PLAYER_SPEED = 13 // % de campo por segundo (trote normal)
+const ACTIVE_SPEED = 20 // el portador y su marcador (carrera)
+const BALL_PURSUIT_SPEED = 38 // el balón: por encima del pie, por debajo del rayo
+
 export default function LivePitch({ match, feed, current, myCrest, theirCrest, flight, flowing }: {
   match: MatchState
   feed: MatchEvent[]
@@ -108,6 +122,25 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     const t = setInterval(() => setNow((n) => n + 1), 50)
     return () => clearInterval(t)
   }, [])
+
+  // Posiciones MOSTRADAS (perseguidor). El dt se capa a 120 ms: si la pestaña
+  // estuvo dormida, al volver nadie se teletransporta — caminan a su sitio.
+  const shownPos = useRef(new Map<string, Spot>())
+  const lastTickAt = useRef(Date.now())
+  const nowMs = Date.now()
+  const dt = Math.min(0.12, Math.max(0, (nowMs - lastTickAt.current) / 1000))
+  lastTickAt.current = nowMs
+  const pursue = (key: string, target: Spot, speed: number): Spot => {
+    const cur = shownPos.current.get(key)
+    if (!cur) { shownPos.current.set(key, target); return target }
+    const dx = target.x - cur.x
+    const dy = target.y - cur.y
+    const d = Math.hypot(dx, dy)
+    const step = speed * dt
+    const next = d <= step || d === 0 ? target : { x: cur.x + (dx / d) * step, y: cur.y + (dy / d) * step }
+    shownPos.current.set(key, next)
+    return next
+  }
 
   // El último DUELO revelado manda sobre dónde está el balón; si DESPUÉS hay
   // un PASE revelado, el balón vuela a los pies del receptor (sin cinemática:
@@ -418,16 +451,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
       : { x: 50, y: 50 })
 
-  // VELOCIDAD CONSTANTE, SIN LAGAZOS: el suavizado del balón dura lo que
-  // dicta la DISTANCIA al nuevo punto (~26 ms por % de campo, la misma
-  // velocidad que las carreras). Con duración fija, cualquier discontinuidad
-  // (cambio de posesión, re-siembra del rondo, cambio de campo, volver a la
-  // pestaña) barría media pista en 90 ms — el «lagazo».
-  const ballPx = { x: mx(ball.x), y: my(ball.y) }
-  const prevBallPx = useRef(ballPx)
-  const ballJump = Math.hypot(ballPx.x - prevBallPx.current.x, ballPx.y - prevBallPx.current.y)
-  prevBallPx.current = ballPx
-  const ballMs = Math.max(60, Math.min(900, ballJump * 26))
+  // El balón también obedece la ley: persigue su objetivo a tope constante.
+  const ballPx = pursue('ball', { x: mx(ball.x), y: my(ball.y) }, BALL_PURSUIT_SPEED)
 
   // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
   const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
@@ -499,14 +524,18 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               {myActors.map((a) => {
                 const s = spotOf(a, true)
                 return (
-                  <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={mineBg} crest={myCrest}
+                  <LiveDot key={a.uid} actor={a}
+                    spot={pursue(a.uid, { x: mx(s.x), y: my(s.y) }, a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
+                    teamColor={mineBg} crest={myCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
               })}
               {theirActors.map((a) => {
                 const s = spotOf(a, false)
                 return (
-                  <LiveDot key={a.uid} actor={a} spot={{ x: mx(s.x), y: my(s.y) }} teamColor={theirBg} crest={theirCrest}
+                  <LiveDot key={a.uid} actor={a}
+                    spot={pursue(a.uid, { x: mx(s.x), y: my(s.y) }, a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
+                    teamColor={theirBg} crest={theirCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
               })}
@@ -535,9 +564,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             style={{
               left: `${ballPx.x}%`,
               top: `${ballPx.y}%`,
-              // Lineal y proporcional a la distancia: el balón viaja SIEMPRE
-              // a la misma velocidad, dé un toque corto o un pelotazo.
-              transition: `left ${ballMs}ms linear, top ${ballMs}ms linear`,
+              // El perseguidor ya garantiza la velocidad: esto solo alisa
+              // los pasos del tick de 50 ms.
+              transition: 'left 80ms linear, top 80ms linear',
             }}
           >
             <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
@@ -629,31 +658,17 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: 
   const ptDeg = Math.max(0, Math.min(1, actor.pt / Math.max(1, actor.ptMax))) * 180
   const aguDeg = Math.max(0, Math.min(1, actor.stamina / 100)) * 180
   const gauge = `conic-gradient(#38bdf8 0deg ${ptDeg}deg, rgba(2,6,23,.55) ${ptDeg}deg 180deg, rgba(2,6,23,.55) 180deg ${360 - aguDeg}deg, #22c55e ${360 - aguDeg}deg 360deg)`
-  // Retardo mínimo por jugador (hash del uid) SOLO para que la línea no
-  // arranque como un bloque de plástico. Nada de deriva perpetua: cada
-  // desplazamiento responde a la jugada, no a una animación de adorno.
-  let h = 0
-  for (const ch of actor.uid) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-
-  // UNA CARRERA LARGA TARDA MÁS QUE UN AJUSTE DE DOS METROS. Con una duración
-  // fija, cambiar de papel (pasar de dar apoyo a llevar el balón) cruzaba el
-  // campo en el mismo medio segundo que un reajuste mínimo, y eso es lo que se
-  // veía como teletransporte. Aquí la duración sale de la DISTANCIA real.
-  const prev = useRef(spot)
-  const dist = Math.hypot(spot.x - prev.current.x, spot.y - prev.current.y)
-  prev.current = spot
-  // ~28 ms por punto porcentual recorrido, con suelo y techo.
-  const travel = Math.max(240, Math.min(900, dist * 26))
-
+  // La VELOCIDAD ya la garantiza el perseguidor de LivePitch (tope por tick):
+  // aquí solo se alisan los pasos del tick de 50 ms. Nada de duraciones
+  // calculadas ni retardos — eran la fuente de los tirones.
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2 transition-all ease-in-out"
+      className="absolute -translate-x-1/2 -translate-y-1/2"
       style={{
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        transitionDuration: `${active ? Math.max(200, travel * 0.75) : travel}ms`,
-        transitionDelay: active ? '0ms' : `${(h % 4) * 25}ms`,
+        transition: 'left 80ms linear, top 80ms linear',
       }}
     >
       <div className="flex flex-col items-center">
