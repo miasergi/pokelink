@@ -192,11 +192,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
 
   // Reloj del RONDO: anclado al evento que DEFINE la posesión (robo, parada,
   // gol, saque). La cadena solo se reinicia cuando el balón cambia de manos
-  // de verdad — nunca por una línea de narración.
-  const rondoAnchor = useRef({ idx: -2, t: nowMs })
-  const rondoSecFor = (idx: number): number => {
-    if (rondoAnchor.current.idx !== idx) rondoAnchor.current = { idx, t: nowMs }
-    return Math.max(0, (nowMs - rondoAnchor.current.t) / 1000)
+  // de verdad — y SIEMPRE arranca DESDE DONDE ESTÁ EL BALÓN en ese instante:
+  // cualquier otra cosa era un giro fantasma en mitad del vuelo.
+  const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
+  const rondoAnchor = useRef({ idx: -2, t: nowMs, from: { x: 50, y: 50 } })
+  const rondoStateFor = (idx: number): { sec: number; from: Spot } => {
+    if (rondoAnchor.current.idx !== idx) {
+      rondoAnchor.current = { idx, t: nowMs, from: { ...lastBallLogical.current } }
+    }
+    return { sec: Math.max(0, (nowMs - rondoAnchor.current.t) / 1000), from: rondoAnchor.current.from }
   }
 
   // EL RONDO: la capa que faltaba para que esto sea una SIMULACIÓN y no un
@@ -260,33 +264,45 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const posMine = possession === mine
         const anchorMap = posMine ? myAnchor : theirAnchor
         const spotAt = (a: Actor) => anchorMap.get(a.uid) ?? { x: 50, y: 50 }
-        const legs: { from: Actor | 'centro'; to: Actor; flight: number; total: number }[] = []
-        let cycle = 0
-        const addLeg = (from: Actor | 'centro', to: Actor) => {
-          const A = from === 'centro' ? { x: 50, y: 50 } : spotAt(from)
-          const B = spotAt(to)
-          const flight = Math.max(0.25, Math.hypot(B.x - A.x, B.y - A.y) / RONDO_BALL_SPEED)
-          legs.push({ from, to, flight, total: flight + RONDO_CONTROL_S })
-          cycle += flight + RONDO_CONTROL_S
+        const st = rondoStateFor(possIdx)
+        // TRAMO DE ENTRADA (fuera del bucle): el balón viaja desde donde ESTÁ
+        // (o desde el círculo central en los saques) hasta el primer eslabón.
+        const entryFrom = fromCenter ? { x: 50, y: 50 } : st.from
+        const first = spotAt(order[0])
+        const entryFlight = Math.max(0.25, Math.hypot(first.x - entryFrom.x, first.y - entryFrom.y) / RONDO_BALL_SPEED)
+        const entry = entryFlight + RONDO_CONTROL_S
+
+        if (st.sec < entry) {
+          const k = Math.min(1, st.sec / entryFlight)
+          rondoBall = {
+            x: entryFrom.x + (first.x - entryFrom.x) * k,
+            y: entryFrom.y + (first.y - entryFrom.y) * k,
+          }
+          carrierUid = order[0].uid
+        } else {
+          // EL BUCLE: pases entre jugadores, sin puntos fantasma dentro.
+          const legs: { from: Actor; to: Actor; flight: number; total: number }[] = []
+          let cycle = 0
+          for (let i = 0; i < order.length; i++) {
+            const from = order[i]
+            const to = order[(i + 1) % order.length]
+            const A = spotAt(from)
+            const B = spotAt(to)
+            const flight = Math.max(0.25, Math.hypot(B.x - A.x, B.y - A.y) / RONDO_BALL_SPEED)
+            legs.push({ from, to, flight, total: flight + RONDO_CONTROL_S })
+            cycle += flight + RONDO_CONTROL_S
+          }
+          let t = (st.sec - entry) % cycle
+          let leg = legs[0]
+          for (const l of legs) { if (t < l.total) { leg = l; break } t -= l.total }
+          const A = spotAt(leg.from)
+          const B = spotAt(leg.to)
+          const k = Math.min(1, t / leg.flight)
+          rondoBall = { x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k }
+          // Mientras vuela, el balón «es» del que lo soltó; al llegar, del
+          // que lo recibe (que ya está dando el paso para controlarlo).
+          carrierUid = k >= 1 ? leg.to.uid : leg.from.uid
         }
-        // El PRIMER tramo cuenta el arranque de la posesión: del círculo
-        // central en los saques, y del primero de la cadena (el portero tras
-        // una parada) en el resto. Después, la cadena en orden y en bucle.
-        if (fromCenter) addLeg('centro', order[0])
-        for (let i = 0; i < order.length; i++) {
-          addLeg(order[i], order[(i + 1) % order.length])
-        }
-        const rondoSec = rondoSecFor(possIdx)
-        let t = rondoSec % cycle
-        let leg = legs[0]
-        for (const l of legs) { if (t < l.total) { leg = l; break } t -= l.total }
-        const A = leg.from === 'centro' ? { x: 50, y: 50 } : spotAt(leg.from)
-        const B = spotAt(leg.to)
-        const k = Math.min(1, t / leg.flight)
-        rondoBall = { x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k }
-        // Mientras vuela, el balón «es» del que lo soltó; al llegar, del que
-        // lo recibe (que ya está dando el paso para controlarlo).
-        carrierUid = k >= 1 || leg.from === 'centro' ? leg.to.uid : leg.from.uid
       }
     }
   }
@@ -488,6 +504,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
 
   // El balón también obedece la ley: persigue su objetivo a tope constante.
   const ballPx = pursue('ball', { x: mx(ball.x), y: my(ball.y) }, BALL_PURSUIT_SPEED)
+  // Y se recuerda su posición MOSTRADA (deshecho el espejo): es el punto de
+  // partida de la siguiente cadena del rondo — todo viaje del balón empieza
+  // exactamente donde el balón SE VE, no donde «debería» estar.
+  lastBallLogical.current = { x: mx(ballPx.x), y: my(ballPx.y) }
 
   // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
   const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
