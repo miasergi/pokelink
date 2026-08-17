@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
-import { Crest, KindIcon, Pic } from '@/ui/inazuma/Glyphs'
+import { Crest, KindIcon, Pic, SvgBall } from '@/ui/inazuma/Glyphs'
 import { useInazuma } from '@/state/inazumaStore'
 import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -188,7 +188,7 @@ export default function PachangaView() {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-white/80">
               {pending.mine ? `${pending.shooter.name} avanza…` : `${pending.shooter.name} se planta delante…`}
             </div>
-            <Pic name="ball" className="absolute right-10 top-1/2 -translate-y-1/2 w-5 h-5" />
+            <SvgBall className="absolute right-10 top-1/2 -translate-y-1/2 w-5 h-5" />
           </div>
         </div>
       )}
@@ -284,7 +284,7 @@ export default function PachangaView() {
           <div className="mb-2 flex items-center gap-2">
             <Mugshot actor={pending.shooter} name={pending.shooter.name} />
             <div className="text-center px-1">
-              <Pic name="ball" className="w-4 h-4 mx-auto opacity-70" />
+              <SvgBall className="w-4 h-4 mx-auto opacity-70" />
               <div className="text-[9px] text-slate-500 whitespace-nowrap">
                 {pending.mine ? 'tiras' : 'paras'}
               </div>

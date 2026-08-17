@@ -536,8 +536,8 @@ function InspectCard({ block }: { block: CompareBlock }) {
                 <TechIcons tech={t} className="w-2.5 h-2.5" />
                 {t.name} <span className="opacity-60">{t.power} pot. · {t.cost} PT</span>
                 {/* POTENCIA REAL también en los rivales: sus stats × técnica. */}
-                <span className="font-extrabold text-emerald-300">
-                  ⚔ {(() => {
+                <span className="inline-flex items-center gap-0.5 font-extrabold text-emerald-300">
+                  <Icon name="swords" className="w-2.5 h-2.5" /> {(() => {
                     const st = block.stats
                     const stat = t.kind === 'tiro' ? st.tiro
                       : t.kind === 'parada' ? st.defensa
@@ -1011,8 +1011,8 @@ function PlayerDetail({
                           <span className="text-[10px] text-slate-500">
                             {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
                           </span>
-                          <span className="text-[10px] font-extrabold text-emerald-300">
-                            ⚔ {realTechniquePower(player, t)}
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-emerald-300">
+                            <Icon name="swords" className="w-2.5 h-2.5" /> {realTechniquePower(player, t)}
                           </span>
                         </div>
                       </div>
@@ -1047,8 +1047,8 @@ function PlayerDetail({
                           <span className="text-[10px] text-slate-500">
                             {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
                           </span>
-                          <span className="text-[10px] font-extrabold text-emerald-300/80">
-                            ⚔ {realTechniquePower(player, t)}
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-emerald-300/80">
+                            <Icon name="swords" className="w-2.5 h-2.5" /> {realTechniquePower(player, t)}
                           </span>
                         </div>
                         {/* Qué le falta EXACTAMENTE para despertarla. */}

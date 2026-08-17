@@ -13,7 +13,7 @@
 // El elemento pinta color y partículas; la potencia, la intensidad.
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import { SvgBall } from '@/ui/inazuma/Glyphs'
 import type { Element, Technique, TechniqueKind } from '@/engine/inazuma/types'
 
 type Motif =
@@ -45,6 +45,44 @@ const CURATED: Record<string, Motif[]> = {
   'shadow-ray': ['bruma', 'rayo'],
   'oni-kick': ['demonio', 'puno'],
   'space-penguin': ['pinguino', 'meteoro'],
+  // Segunda tanda de curación: los huecos y los fallos de deducción del
+  // top-120 de técnicas más vistas en juego.
+  'the-ikaros': ['alas', 'sacro'],
+  gorimuchuu: ['demonio', 'bruma'],
+  'southern-crosscut': ['tajo', 'meteoro'],
+  'dokonjou-bat': ['puno'],
+  'shine-drive': ['rayo'],
+  'aurora-dribble': ['ventisca', 'sacro'],
+  'super-armadillo': ['tornado', 'puno'],
+  'kangaroo-kick': ['puno'],
+  'shoot-pocket': ['mano'],
+  'run-ball-run': ['espejismo'],
+  'super-elastico': ['espejismo'],
+  'paladin-strike': ['tajo', 'sacro'],
+  'judge-through': ['sacro', 'espejismo'],
+  'judge-through-3': ['sacro', 'espejismo'],
+  'dynamite-shoot': ['meteoro'],
+  'triangle-z': ['espejismo', 'rayo'],
+  'niagara-falls': ['ola'],
+  'kung-fu-attack': ['puno'],
+  'cross-drive': ['tajo'],
+  'tsuchi-daruma': ['muralla'],
+  'makiwari-chop': ['tajo', 'puno'],
+  'fuusen-gum': ['muralla'],
+  'freeze-shot': ['ventisca'],
+  'rocket-kobushi': ['puno', 'meteoro'],
+  'drill-smasher': ['puno', 'tornado'],
+  'honoo-no-kazamidori': ['alas', 'tornado'],
+  'northern-impact': ['ventisca', 'meteoro'],
+  'killer-fields': ['muralla', 'rayo'],
+  'death-zone': ['bruma', 'meteoro'],
+  'frozen-steal': ['ventisca', 'espejismo'],
+  'sabaki-no-tettsui': ['sacro', 'puno'],
+  'zigzag-spark': ['rayo', 'espejismo'],
+  'ryuusei-blade': ['meteoro', 'tajo'],
+  'gaia-break': ['puno', 'muralla'],
+  'atomic-flare': ['tornado', 'meteoro'],
+  'mogura-feint': ['muralla', 'espejismo'],
 }
 
 /**
@@ -368,7 +406,7 @@ function Espejismo({ color }: { color: string }) {
     <div className="absolute inset-0 grid place-items-center">
       {[0, 1, 2].map((i) => (
         <span key={i} className="absolute fx-dash" style={{ top: `${34 + i * 12}%`, left: '8%', width: '84%', animationDelay: `-${i * 0.33}s` }}>
-          <Pic name="ball" className="w-9 h-9" alt="" />
+          <SvgBall className="w-9 h-9" />
         </span>
       ))}
       <span className="absolute inset-0" style={{ background: `linear-gradient(90deg, transparent, ${color}18, transparent)` }} />
@@ -413,7 +451,7 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
     return (
       <div className="absolute inset-0 grid place-items-center">
         <div className="relative">
-          <Pic name="ball" className="w-12 h-12 fx-charge drop-shadow-lg" />
+          <SvgBall className="w-12 h-12 fx-charge drop-shadow-lg" />
           {parts.map((i) => (
             <span key={i} className="absolute left-1/2 top-1/2 fx-orbit" style={{ ['--fx-r' as string]: `${40 + (i % 3) * 13}px`, ['--fx-t' as string]: `${0.9 + (i % 4) * 0.18}s`, animationDelay: `-${(i / n) * 1.1}s` }}>
               <Particle element={element} color={color} size={9 + (i % 3) * 4} />

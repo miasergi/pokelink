@@ -3,7 +3,7 @@
 // pantalla el juego NO avanza (el partido lo garantiza la cola de revelado;
 // la pachanga esconde el panel de decisión hasta que termina).
 import { useEffect } from 'react'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import { SvgBall } from '@/ui/inazuma/Glyphs'
 
 export const GOAL_OVERLAY_MS = 2400
 
@@ -43,7 +43,7 @@ export default function GoalOverlay({ scorer, mine, teamId, onDone }: {
             </g>
           </svg>
           {/* el balón entra creciendo hacia la escuadra */}
-          <Pic name="ball" className="absolute left-1/2 top-1/2 w-12 h-12 -ml-6 -mt-6 animate-ball-pierce drop-shadow-lg" />
+          <SvgBall className="absolute left-1/2 top-1/2 w-12 h-12 -ml-6 -mt-6 animate-ball-pierce drop-shadow-lg" />
           {/* el escudo del que marca, asomado a la esquina */}
           {teamId && (
             <img

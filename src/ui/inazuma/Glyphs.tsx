@@ -88,6 +88,33 @@ export function rarityChipStyle(tier: number, innerBg: string): React.CSSPropert
 
 
 /**
+ * BALÓN SVG PROPIO: esfera con sombreado y panales pentagonales. Sustituye al
+ * PNG de Twemoji en todo lo que se ve durante el partido — nada de emojis.
+ */
+export function SvgBall({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} aria-hidden>
+      <defs>
+        <radialGradient id="svgball-sh" cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="55%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#94a3b8" />
+        </radialGradient>
+      </defs>
+      <circle cx="20" cy="20" r="18.5" fill="url(#svgball-sh)" stroke="#334155" strokeWidth="1.6" />
+      <polygon points="20,12.5 27,17.5 24.4,25.5 15.6,25.5 13,17.5" fill="#1e293b" />
+      <g stroke="#1e293b" strokeWidth="1.6" fill="none" strokeLinecap="round">
+        <path d="M20 12.5 L20 4.5" />
+        <path d="M27 17.5 L34.5 14.5" />
+        <path d="M13 17.5 L5.5 14.5" />
+        <path d="M24.4 25.5 L29 33" />
+        <path d="M15.6 25.5 L11 33" />
+      </g>
+    </svg>
+  )
+}
+
+/**
  * IMAGEN de un concepto del modo (PNG de Twemoji, bajadas por
  * `scripts/fetch-inazuma-icons.mjs`). Se usan imágenes y no SVG monocromo en
  * las casillas, los balones, los objetos y las situaciones: mismo dibujo en

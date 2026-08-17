@@ -26,6 +26,10 @@ const S = (path: JSX.Element, fill = false): SvgIcon => ({ path, fill })
 const SVGS: Record<string, SvgIcon> = {
   sparkle: S(<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z M18.5 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />, true),
   star: S(<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" />, true),
+  // Inazuma: glifos propios (nada de emojis ni caracteres de texto).
+  swords: S(<><path d="M4 4l7 7M4 4v3M4 4h3M20 4l-7 7M20 4v3M20 4h-3M7 13l-3 3 4 4 3-3M17 13l3 3-4 4-3-3M9 19l6-6" /></>),
+  flame: S(<path d="M12 3c1 3-2 4.5-2 7a4 4 0 0 0 8 0c0-1.5-.6-2.6-1.4-3.6C16 8.6 15 9.5 15 11c0-3-1-5.5-3-8ZM8.5 12.5C7.5 13.8 7 15 7 16.2 7 19 9.2 21 12 21s5-2 5-4.8" />, false),
+  spark: S(<path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2ZM19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z" />, true),
   bolt: S(<path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" />, true),
   lock: S(<><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></>),
   unlock: S(<><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V8a4 4 0 0 1 7.5-2" /></>),

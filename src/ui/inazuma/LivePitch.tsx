@@ -13,7 +13,8 @@ import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/matc
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
-import { Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
+import Icon from '@/ui/components/Icon'
+import { rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, Element, MatchEvent, MatchState } from '@/engine/inazuma/types'
@@ -642,12 +643,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full animate-clash-pop"
               style={{ background: `radial-gradient(circle, #ffffffd9, ${spark.current.mine ? '#34d399' : '#f87171'}66 55%, transparent 72%)` }}
             />
-            <span
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-black"
-              style={{ color: spark.current.mine ? '#34d399' : '#f87171', textShadow: '0 0 8px rgba(0,0,0,.8)' }}
-            >
-              ✦
-            </span>
+            <Icon
+              name="spark"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 drop-shadow"
+              style={{ color: spark.current.mine ? '#34d399' : '#f87171' }}
+            />
           </div>
         )}
 
@@ -676,7 +676,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               transition: 'left 80ms linear, top 80ms linear',
             }}
           >
-            <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
+            <SvgBall className="w-4 h-4 drop-shadow animate-ball-bob" />
           </div>
         )}
       </div>
@@ -734,7 +734,7 @@ function ShotBall({ from, to, color, landed }: {
           background: `linear-gradient(${up ? 'to bottom' : 'to top'}, ${color}dd, transparent)`,
         }}
       />
-      <Pic name="ball" className="relative w-4 h-4 drop-shadow" />
+      <SvgBall className="relative w-4 h-4 drop-shadow" />
     </div>
   )
 }

@@ -16,7 +16,7 @@ import LivePitch from '@/ui/inazuma/LivePitch'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
-import { Crest, KindIcon, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
+import { Crest, KindIcon, rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { getTactic } from '@/data/inazuma/tactics'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
@@ -682,7 +682,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
             ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
         }`}>
           {burst.mineTactic
-            ? `🔥 ${getTactic(burst.mineTactic.id)?.name ?? 'Filosofía'} · ${burst.mineTactic.turns}`
+            ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Filosofía'} · ${burst.mineTactic.turns}`}</>
             : burst.mineTurns > 0
               ? `¡Supervibración! quedan ${burst.mineTurns}`
               : burst.theirsTactic
@@ -776,7 +776,7 @@ function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
         }`}>
           <div className="text-[10px] tabular-nums text-slate-400">{event.minute}′</div>
           <div className="font-extrabold text-sm">
-            <Pic name="ball" className="w-4 h-4 inline-block mr-1 align-[-3px]" />
+            <SvgBall className="w-4 h-4 inline-block mr-1 align-[-3px]" />
             ¡GOL de {event.scorer}!{event.technique ? ` (${event.technique})` : ''}
           </div>
           <div className="text-xs text-slate-300 tabular-nums">{event.score[0]} – {event.score[1]}</div>
@@ -1183,7 +1183,7 @@ function ScorerCard({ match, uid, minute, assistUid, mine, mvp }: {
       </div>
       {minute != null && (
         <span className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-extrabold tabular-nums text-slate-300">
-          <Pic name="ball" className="w-3 h-3" />{minute}′
+          <SvgBall className="w-3 h-3" />{minute}′
         </span>
       )}
       {mvp && <Icon name="star" className="w-4 h-4 shrink-0 text-amber-300" />}

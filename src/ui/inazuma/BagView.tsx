@@ -263,8 +263,8 @@ export default function BagView() {
                                 <span className="block text-[10px] text-slate-400">
                                   {KIND_LABEL[t.kind]} · V{techLevel(p, id) + 1} → V{techLevel(p, id) + 2}
                                   {' · '}
-                                  <span className="text-emerald-300 font-bold">
-                                    ⚔ {realTechniquePower(p, t)} → {realTechniquePower(up, t)}
+                                  <span className="inline-flex items-center gap-0.5 text-emerald-300 font-bold">
+                                    <Icon name="swords" className="w-2.5 h-2.5" /> {realTechniquePower(p, t)} → {realTechniquePower(up, t)}
                                   </span>
                                   {' · '}
                                   {techniqueCostFor(p, t)} → {techniqueCostFor(up, t)} PT
