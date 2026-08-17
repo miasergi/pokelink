@@ -13,8 +13,9 @@ import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
-import { Crest, ELEMENT_ICON, rarityBorder, TechIcons, techniqueImage } from '@/ui/inazuma/Glyphs'
+import { Crest, rarityBorder, TechIcons } from '@/ui/inazuma/Glyphs'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import TechniqueFX from '@/ui/inazuma/TechniqueFX'
 import type { Element, Technique } from '@/engine/inazuma/types'
 
 
@@ -341,12 +342,10 @@ function Showcase({ side, tech, crest, fallbackAction, color, stamp, versus }: {
       >
         <div className="relative w-full h-full rounded-[1.15rem] overflow-hidden bg-slate-950">
           {tech ? (
-            <ImgFallback
-              src={techniqueImage(tech.id)}
-              alt={tech.name}
-              className="w-full h-full object-cover animate-showcase-zoom"
-              fallback={<Icon name={ELEMENT_ICON[tech.element]} className="w-1/2 h-1/2 m-auto mt-[25%]" style={{ color: glow }} />}
-            />
+            // ANIMACIÓN NUESTRA en vez de la imagen estática de la wiki: el
+            // arquetipo procedural de su clase, con las partículas y el color
+            // de su elemento y la intensidad de su potencia.
+            <TechniqueFX kind={tech.kind} element={tech.element} power={tech.power} />
           ) : (
             <div className="w-full h-full grid place-items-center animate-showcase-zoom"
               style={{ background: `radial-gradient(circle at 50% 45%, ${glow}33, #020617 75%)` }}>

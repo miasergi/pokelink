@@ -433,6 +433,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const mx = (x: number) => (secondHalf ? 100 - x : x)
   const my = (y: number) => (secondHalf ? 100 - y : y)
 
+  // CAMPO EN VERTICAL: tu portería ABAJO, la rival ARRIBA (tras el descanso,
+  // al revés). La geometría lógica no cambia — x sigue siendo el avance hacia
+  // la portería rival y `y` la banda — solo cambia cómo se proyecta:
+  //   pantalla.izquierda = banda · pantalla.arriba = 100 − avance.
+  const toScreen = (p: Spot): Spot => ({ x: my(p.y), y: 100 - mx(p.x) })
+  const fromScreen = (p: Spot): Spot => ({ x: mx(100 - p.y), y: my(p.x) })
+
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
@@ -528,11 +535,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       : { x: 50, y: 50 })
 
   // El balón también obedece la ley: persigue su objetivo a tope constante.
-  const ballPx = pursue('ball', { x: mx(ball.x), y: my(ball.y) }, BALL_PURSUIT_SPEED)
+  const ballPx = pursue('ball', toScreen(ball), BALL_PURSUIT_SPEED)
   // Y se recuerda su posición MOSTRADA (deshecho el espejo): es el punto de
   // partida de la siguiente cadena del rondo — todo viaje del balón empieza
   // exactamente donde el balón SE VE, no donde «debería» estar.
-  lastBallLogical.current = { x: mx(ballPx.x), y: my(ballPx.y) }
+  lastBallLogical.current = fromScreen(ballPx)
 
   // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
   const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
@@ -540,7 +547,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     ? (() => {
       const isMine = myActors.some((a) => a.uid === blocker.uid)
       const sp = spotOf(blocker, isMine)
-      return { x: mx(sp.x), y: my(sp.y) }
+      return toScreen(sp)
     })()
     : null
 
@@ -550,16 +557,17 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     <div className="relative flex-1 min-h-0 mx-2 my-1.5">
       <div
         className="absolute inset-0 rounded-2xl border border-emerald-900/70 overflow-hidden"
-        style={{ background: 'repeating-linear-gradient(90deg, #14532d 0 9%, #166534 9% 18%)' }}
+        style={{ background: 'repeating-linear-gradient(0deg, #14532d 0 9%, #166534 9% 18%)' }}
       >
-        {/* líneas del campo */}
+        {/* líneas del campo (VERTICAL: porterías arriba y abajo) */}
         <div className="absolute inset-2 border-2 border-white/20 rounded-sm" />
-        <div className="absolute left-1/2 top-2 bottom-2 w-px bg-white/20" />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/20 w-[18%] aspect-square" />
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 border-2 border-l-0 border-white/20 w-[13%] h-[44%]" />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 border-2 border-r-0 border-white/20 w-[13%] h-[44%]" />
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: secondHalf ? away.color : home.color }} />
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-[22%]" style={{ background: secondHalf ? home.color : away.color }} />
+        <div className="absolute top-1/2 left-2 right-2 h-px bg-white/20" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/20 w-[26%] aspect-square" />
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 border-2 border-t-0 border-white/20 h-[13%] w-[44%]" />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 border-2 border-b-0 border-white/20 h-[13%] w-[44%]" />
+        {/* ARRIBA la portería que atacas; ABAJO la tuya (giradas al descanso). */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1.5 w-[22%]" style={{ background: secondHalf ? home.color : away.color }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-1.5 w-[22%]" style={{ background: secondHalf ? away.color : home.color }} />
 
         {/* rótulo de zona */}
         <div className={`absolute top-1 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-950/60 ${
@@ -605,7 +613,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                 const s = spotOf(a, true)
                 return (
                   <LiveDot key={a.uid} actor={a}
-                    spot={pursue(a.uid, { x: mx(s.x), y: my(s.y) }, a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
+                    spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={mineBg} crest={myCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
@@ -614,7 +622,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                 const s = spotOf(a, false)
                 return (
                   <LiveDot key={a.uid} actor={a}
-                    spot={pursue(a.uid, { x: mx(s.x), y: my(s.y) }, a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
+                    spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={theirBg} crest={theirCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames} />
                 )
@@ -628,7 +636,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           <div
             key={spark.current.key}
             className="absolute z-[26] pointer-events-none"
-            style={{ left: `${mx(spark.current.at.x)}%`, top: `${my(spark.current.at.y)}%` }}
+            style={{ left: `${toScreen(spark.current.at).x}%`, top: `${toScreen(spark.current.at).y}%` }}
           >
             <span
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full animate-clash-pop"
@@ -648,12 +656,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         {flight ? (
           <ShotBall
             key={flight.key}
-            from={{ x: mx(ball.x), y: my(ball.y) }}
+            from={toScreen(ball)}
             // Si alguien se cruza, el balón se PARA EN ÉL; si no, va a la
             // portería contraria. Así se entiende de dónde sale el bloqueo.
-            to={blockerSpot ?? { x: mx(flight.mine ? 95 : 5), y: 50 }}
+            to={blockerSpot ?? toScreen({ x: flight.mine ? 95 : 5, y: 50 })}
             color={flameOf(flight.element)}
-            mine={secondHalf ? !flight.mine : flight.mine}
             // Ya llegó: se queda EN LA PORTERÍA mientras se resuelve la
             // parada. Antes volvía a los pies del que había disparado.
             landed={flight.landed}
@@ -686,15 +693,16 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
  * tamaño del propio balón (16 px), así que el «viaje» eran cuatro píxeles y
  * parecía que la pelota se quedaba quieta con su color encima.
  */
-function ShotBall({ from, to, color, mine, landed }: {
+function ShotBall({ from, to, color, landed }: {
   from: Spot
   to: Spot
   color: string
-  /** Dirección del disparo: coloca la estela por detrás del balón. */
-  mine: boolean
   /** El balón YA llegó: se queda en la portería y las llamas se apagan. */
   landed?: boolean
 }) {
+  // La estela va SIEMPRE por detrás del sentido del vuelo (campo vertical:
+  // sube o baja; con desvíos, la que toque).
+  const up = to.y <= from.y
   // Primer fotograma en el ORIGEN y, al siguiente, al destino: así la
   // transición de CSS tiene de dónde salir (si se monta ya en el destino no
   // hay animación que valga).
@@ -718,12 +726,12 @@ function ShotBall({ from, to, color, mine, landed }: {
         className={`absolute -inset-3 rounded-full blur-[6px] transition-opacity duration-500 ${landed ? 'opacity-0' : 'animate-flame-flicker'}`}
         style={{ background: `radial-gradient(circle, ${color}dd, ${color}55 55%, transparent 75%)` }}
       />
-      {/* La estela va SIEMPRE por detrás, según hacia dónde se dispara. */}
+      {/* La estela, por detrás del sentido del vuelo. */}
       <span
-        className={`absolute top-1/2 -translate-y-1/2 h-3 w-14 blur-[4px] transition-opacity duration-500 ${landed ? 'opacity-0' : ''}`}
+        className={`absolute left-1/2 -translate-x-1/2 w-3 h-14 blur-[4px] transition-opacity duration-500 ${landed ? 'opacity-0' : ''}`}
         style={{
-          [mine ? 'right' : 'left']: '55%',
-          background: `linear-gradient(${mine ? 'to left' : 'to right'}, ${color}dd, transparent)`,
+          [up ? 'top' : 'bottom']: '55%',
+          background: `linear-gradient(${up ? 'to bottom' : 'to top'}, ${color}dd, transparent)`,
         }}
       />
       <Pic name="ball" className="relative w-4 h-4 drop-shadow" />

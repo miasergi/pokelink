@@ -535,6 +535,17 @@ function InspectCard({ block }: { block: CompareBlock }) {
               >
                 <TechIcons tech={t} className="w-2.5 h-2.5" />
                 {t.name} <span className="opacity-60">{t.power} pot. · {t.cost} PT</span>
+                {/* POTENCIA REAL también en los rivales: sus stats × técnica. */}
+                <span className="font-extrabold text-emerald-300">
+                  ⚔ {(() => {
+                    const st = block.stats
+                    const stat = t.kind === 'tiro' ? st.tiro
+                      : t.kind === 'parada' ? st.defensa
+                        : t.kind === 'regate' ? st.control * 0.6 + st.fisico * 0.4
+                          : st.defensa * 0.7 + st.fisico * 0.3
+                    return Math.round(stat * (1 + (t.power / 100) * 1.5))
+                  })()}
+                </span>
               </span>
             )
           })}

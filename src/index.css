@@ -225,6 +225,43 @@ body {
 }
 .animate-flame-flicker { animation: flame-flicker .32s ease-in-out infinite; }
 
+/* ---- ANIMACIONES PROCEDURALES de supertecnica (TechniqueFX) ----
+   Particulas orbitando, muros que se levantan, estelas de regate y ondas de
+   parada: el anime de andar por casa que sustituye a la imagen estatica. */
+@keyframes fx-orbit {
+  from { transform: rotate(0deg) translateX(var(--fx-r, 52px)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--fx-r, 52px)) rotate(-360deg); }
+}
+.fx-orbit { animation: fx-orbit var(--fx-t, 1.1s) linear infinite; }
+@keyframes fx-charge {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.16); filter: brightness(1.35); }
+}
+.fx-charge { animation: fx-charge .8s ease-in-out infinite; }
+@keyframes fx-rise {
+  from { transform: translateY(78%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fx-rise { animation: fx-rise .7s cubic-bezier(.2, .9, .3, 1) forwards; }
+@keyframes fx-dash {
+  0% { transform: translateX(-130%); opacity: 0; }
+  15% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(130%); opacity: 0; }
+}
+.fx-dash { animation: fx-dash 1.05s ease-in-out infinite; }
+@keyframes fx-ring {
+  from { transform: scale(.2); opacity: .95; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+.fx-ring { animation: fx-ring 1.15s ease-out infinite; }
+@keyframes fx-float-up {
+  0% { transform: translateY(35%) scale(.7); opacity: 0; }
+  30% { opacity: .95; }
+  100% { transform: translateY(-70%) scale(1.1); opacity: 0; }
+}
+.fx-float-up { animation: fx-float-up 1.5s linear infinite; }
+
 /* Barra de suspense del tiro: se llena en un segundo largo. */
 @keyframes suspense-fill {
   from { width: 0%; }
