@@ -258,7 +258,70 @@ export const TEAMS: TeamBase[] = [
     taunt: 'El planeta entero juega de nuestra parte.',
     lineup: [],
   },
+  // -------------------------------------------------------------------------
+  // IEVR (Victory Road) · el Football Frontier de la nueva generación
+  //
+  // Caras NUEVAS: de estos institutos solo entra gente que DEBUTA en Victory
+  // Road. Los de IE1-IE3 que reaparecen de mayores se quedan fuera — no
+  // queremos la misma plantilla dos veces con otra cara.
+  // -------------------------------------------------------------------------
+  {
+    id: 'nagumohara', name: 'Instituto Nagumohara', color: '#f59e0b', kit: ['#fbbf24', '#1e3a8a'], element: 'aire', power: 0.78,
+    taunt: 'Aquí se juega por gusto. Y por eso ganamos.',
+    lineup: [],
+  },
+  {
+    id: 'ouja-raimon', name: 'Raimon Soberano', color: '#dc2626', kit: ['#f87171', '#1d4ed8'], element: 'montana', power: 1.05,
+    taunt: 'El nombre pesa. Nosotros lo llevamos bien.',
+    lineup: [],
+  },
+  {
+    id: 'hokuyou-gakuen', name: 'Instituto Hokuyou', color: '#0ea5e9', kit: ['#7dd3fc', '#0c4a6e'], element: 'aire', power: 0.82,
+    taunt: 'Del norte se viene con el viento de cara aprendido.',
+    lineup: [],
+  },
+  {
+    id: 'ai-gakuen', name: 'Instituto AI', color: '#22d3ee', kit: ['#a5f3fc', '#155e75'], element: 'bosque', power: 0.94,
+    taunt: 'Vuestro partido ya está calculado. Jugadlo si queréis.',
+    lineup: [],
+  },
+  {
+    id: 'houreikan', name: 'Houreikan', color: '#b91c1c', kit: ['#fca5a5', '#7f1d1d'], element: 'fuego', power: 0.9,
+    taunt: 'Disciplina antes que talento. Siempre.',
+    lineup: [],
+  },
+  {
+    id: 'ijin-meibundou', name: 'Ijin Meibundou', color: '#a16207', kit: ['#fcd34d', '#451a03'], element: 'montana', power: 0.98,
+    taunt: 'Los grandes nombres de la historia juegan de nuestra parte.',
+    lineup: [],
+  },
+  {
+    id: 'keizen-arashiyama', name: 'Keizen Arashiyama', color: '#16a34a', kit: ['#86efac', '#14532d'], element: 'bosque', power: 0.86,
+    taunt: 'La tormenta de la montaña no avisa.',
+    lineup: [],
+  },
+  {
+    id: 'nishinomiya', name: 'Instituto Nishinomiya', color: '#8b5cf6', kit: ['#c4b5fd', '#4c1d95'], element: 'aire', power: 0.88,
+    taunt: 'Venimos a jugar bonito. Y a ganar.',
+    lineup: [],
+  },
+  {
+    id: 'senjutsu-no-teikoku', name: 'Imperio de la Estrategia', color: '#4338ca', kit: ['#a5b4fc', '#1e1b4b'], element: 'bosque', power: 1.08,
+    taunt: 'No improvisamos. Nunca hemos improvisado.',
+    lineup: [],
+  },
+  {
+    id: 'toufuu-ikokukan', name: 'Toufuu Ikokukan', color: '#e11d48', kit: ['#fda4af', '#881337'], element: 'fuego', power: 1.0,
+    taunt: 'Fútbol de otras tierras. No lo habéis visto nunca.',
+    lineup: [],
+  },
+  {
+    id: 'hakuren-vr', name: 'Hakuren (nueva generación)', color: '#38bdf8', kit: ['#e0f2fe', '#0369a1'], element: 'aire', power: 0.92,
+    taunt: 'La nieve sigue aquí. Los de antes ya no.',
+    lineup: [],
+  },
 ]
+
 export const TEAM_BY_ID = new Map(TEAMS.map((t) => [t.id, t]))
 
 /**
@@ -291,7 +354,7 @@ export const ROUND_NAMES = [
  * roguelike. Los equipos que no están en `teams` nunca entran en su cuadro.
  */
 export interface Saga {
-  id: 'ff' | 'alius' | 'ffi'
+  id: 'ff' | 'alius' | 'ffi' | 'vr'
   name: string
   desc: string
   /** Los NUEVE equipos del torneo (jugables incluidos). */
@@ -328,6 +391,16 @@ export const SAGAS: Saga[] = [
     playable: ['inazuma-japan', 'orpheus', 'unicorn'],
     scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero',
       'the-kingdom', 'rose-griffon', 'brockenborg', 'ogre', 'neo-japan', 'gaia'],
+  },
+  {
+    id: 'vr',
+    name: 'Victory Road',
+    desc: 'La nueva generación: el Football Frontier años después, con caras que no habías visto.',
+    teams: ['nagumohara', 'hokuyou-gakuen', 'keizen-arashiyama', 'nishinomiya', 'houreikan', 'hakuren-vr', 'ai-gakuen', 'toufuu-ikokukan', 'senjutsu-no-teikoku'],
+    playable: ['nagumohara', 'ouja-raimon', 'hokuyou-gakuen'],
+    // El ojeador de esta región mueve SOLO gente de Victory Road: es otra
+    // época y mezclarla con los clásicos rompería la idea.
+    scoutTeams: ['ouja-raimon', 'ijin-meibundou'],
   },
 ]
 

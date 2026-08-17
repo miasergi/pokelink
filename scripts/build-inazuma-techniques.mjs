@@ -466,7 +466,12 @@ async function fetchTechnique(title) {
   // y el Mundial. Con solo IE1-IE2, las selecciones de la FFI (Fire Dragon,
   // The Kingdom, Ogre…) se quedaban sin sus técnicas de verdad.
   const debut = longField(wt, 'debut_game')
-  if (!/\{\{Media\|games\|IE([23])?\}\}/.test(debut)) return null
+  const clasica = /\{\{Media\|games\|IE([23])?\}\}/.test(debut)
+  // VICTORY ROAD es otra ÉPOCA: sus técnicas entran, pero marcadas, para que
+  // el relleno de cadenas no le cuelgue una técnica de VR a Mark Evans (ni al
+  // revés). Ver `ERA` en el emisor de jugadores.
+  const vr = /\{\{Media\|games\|VR/i.test(debut)
+  if (!clasica && !vr) return null
   const name = dubName(wt, title)
 
   // Algunas técnicas son de dos clases (`type` y `type2`). Se queda la
@@ -491,7 +496,7 @@ async function fetchTechnique(title) {
     if (k !== '-1' && pages[k]?.thumbnail?.source) thumb = pages[k].thumbnail.source
   }
 
-  return { title, name, type, element, power, tp, thumb }
+  return { title, name, type, element, power, tp, thumb, era: clasica ? 'clasica' : 'vr' }
 }
 
 /**
@@ -643,10 +648,20 @@ async function emit(found) {
     try {
       const res = await fetch(t.thumb, { headers: { 'User-Agent': UA } })
       if (!res.ok) throw new Error(String(res.status))
+      // La wiki cuela de vez en cuando el ORIGINAL en vez de la miniatura (un
+      // GIF animado de 7 MB, por ejemplo). Eso reventaba el build al no caber
+      // en el precache del service worker, y sobre todo es un ladrillo para
+      // quien juega: si pesa demasiado, mejor sin imagen (cae al icono de su
+      // elemento).
+      const bytes = Buffer.from(await res.arrayBuffer())
+      if (bytes.byteLength > 1_200_000) {
+        console.log(`  ✗ imagen de ${t.name}: ${Math.round(bytes.byteLength / 1024)} KB, demasiado pesada`)
+        continue
+      }
       // El nombre del fichero es el ID (que sale del TÍTULO de la wiki), no el
       // nombre traducido: si no, la ficha buscaba `tornado-de-fuego.png` y la
       // imagen estaba guardada como `fire-tornado.png`.
-      await writeFile(join(OUT_IMG, `${slug(t.title)}.png`), Buffer.from(await res.arrayBuffer()))
+      await writeFile(join(OUT_IMG, `${slug(t.title)}.png`), bytes)
       imgs++
     } catch (err) {
       console.log(`  ✗ imagen de ${t.name}: ${err.message}`)
@@ -685,7 +700,10 @@ async function emit(found) {
     const id = slug(t.title)
     const name = ES[t.name] ?? ES[t.title] ?? t.name
     const desc = DESC[t.name] ?? DESC[t.title] ?? GENERIC[t.type][t.element]
-    lines.push(`  { id: '${id}', name: ${JSON.stringify(name)}, kind: '${t.type}', element: '${t.element}', power: ${t.power}, cost: ${t.cost}, desc: ${JSON.stringify(desc)} },`)
+    // `era: 'vr'` solo en las de Victory Road: las clásicas se quedan sin el
+    // campo, que son la inmensa mayoría.
+    const era = t.era === 'vr' ? ", era: 'vr'" : ''
+    lines.push(`  { id: '${id}', name: ${JSON.stringify(name)}, kind: '${t.type}', element: '${t.element}', power: ${t.power}, cost: ${t.cost}${era}, desc: ${JSON.stringify(desc)} },`)
   }
   lines.push(']')
   lines.push('')

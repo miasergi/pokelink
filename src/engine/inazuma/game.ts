@@ -45,7 +45,7 @@ const REST_PT_FRACTION = 0.35
 export interface NewRunOptions {
   difficulty?: Difficulty
   randomSquad?: boolean
-  saga?: 'ff' | 'alius' | 'ffi'
+  saga?: 'ff' | 'alius' | 'ffi' | 'vr'
   /** Nombre y escudo del equipo del bombo (a gusto del entrenador). */
   customName?: string
   customCrest?: string

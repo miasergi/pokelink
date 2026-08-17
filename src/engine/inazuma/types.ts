@@ -59,6 +59,13 @@ export interface Technique {
   evolvesTo?: string
   /** Nivel mínimo del jugador para poder aprenderla en un draft. */
   minLevel?: number
+  /**
+   * ÉPOCA. Ausente = saga clásica (IE1-IE3). `'vr'` = Victory Road, que pasa
+   * en el futuro: sus técnicas solo se reparten entre jugadores de esa región,
+   * para que el relleno de cadenas no le cuelgue una técnica de VR a Mark
+   * Evans (ni una de los 2000 a los chavales nuevos).
+   */
+  era?: 'vr'
 }
 
 /** Ficha inmutable de un jugador (la «especie», por analogía con Pokémon). */
@@ -544,7 +551,7 @@ export interface InazumaSave {
   /** Dificultad elegida al empezar (ausente en partidas viejas = normal). */
   difficulty?: Difficulty
   /** Saga (región) de la partida: 'ff' clásica, 'alius' (IE2), 'ffi' (IE3). */
-  saga?: 'ff' | 'alius' | 'ffi'
+  saga?: 'ff' | 'alius' | 'ffi' | 'vr'
   /** true si la plantilla inicial salió del bombo (modo aleatorio). */
   randomSquad?: boolean
   /** Nombre y escudo elegidos para el equipo del bombo. */

@@ -85,7 +85,34 @@ const TEAMS = {
   ogre: ['Ogre'],
   'neo-japan': ['Neo Japan'],
   gaia: ['Gaia (team)', 'Gaia'],
+  // --- IEVR (Victory Road): los institutos del Football Frontier nuevo ---
+  //     OJO: de estos equipos solo se emiten los personajes que DEBUTAN en
+  //     Victory Road (ver `VR_ONLY`). Los de IE1-IE3 que reaparecen de
+  //     mayores se descartan: no queremos la plantilla repetida con otra cara.
+  nagumohara: ['Nagumohara'],
+  'ouja-raimon': ['Ouja Raimon'],
+  'hokuyou-gakuen': ['Hokuyou Gakuen'],
+  'ai-gakuen': ['AI Gakuen'],
+  houreikan: ['Houreikan'],
+  'ijin-meibundou': ['Ijin Meibundou'],
+  'keizen-arashiyama': ['Keizen Arashiyama'],
+  nishinomiya: ['Nishinomiya'],
+  'senjutsu-no-teikoku': ['Senjutsu no Teikoku'],
+  'toufuu-ikokukan': ['Toufuu Ikokukan'],
+  'hakuren-vr': ['Hakuren (Victory Road)'],
 }
+
+/**
+ * Equipos de VICTORY ROAD: de ellos SOLO se emite gente que debuta en ese
+ * juego. Victory Road pasa en el futuro y reaparecen muchos personajes de
+ * IE1-IE3 ya mayores; meterlos sería tener la misma plantilla dos veces con
+ * otra cara, así que se filtran por su `debut_game`.
+ */
+const VR_ONLY = new Set([
+  'nagumohara', 'ouja-raimon', 'hokuyou-gakuen', 'ai-gakuen', 'houreikan',
+  'ijin-meibundou', 'keizen-arashiyama', 'nishinomiya', 'senjutsu-no-teikoku',
+  'toufuu-ikokukan', 'hakuren-vr',
+])
 
 /** Los cuatro elementos, como los escribe la wiki en inglés. */
 const ELEMENT = {
@@ -312,6 +339,8 @@ async function main() {
     try { out = JSON.parse(await (await import('node:fs/promises')).readFile(OUT, 'utf8')) } catch { /* vacío */ }
   }
   const missing = []
+  /** Veteranos de IE1-IE3 descartados de los equipos de Victory Road. */
+  const skippedVeterans = []
 
   for (const [teamId, pages] of Object.entries(TEAMS)) {
     if (only && !only.has(teamId)) continue
@@ -324,6 +353,19 @@ async function main() {
       if (!page) { missing.push(`${teamId}/${short}`); continue }
       const dub = field(page.wt, 'name_dub')
       if (!dub) { missing.push(`${teamId}/${short}`); continue }
+      // Victory Road: fuera los que vienen de otro juego (los de siempre,
+      // crecidos). Solo entra quien DEBUTA aquí.
+      if (VR_ONLY.has(teamId)) {
+        // Solo se descarta a quien DECLARE otro juego. Que no haya campo de
+        // debut NO es motivo: media plantilla del Kaiou Gakuen (los piratas)
+        // son personajes originales de Victory Road sin esa ficha rellena, y
+        // el filtro se los llevaba por delante.
+        const debut = page.wt.match(/debut_game[\s\S]{0,160}/i)?.[0] ?? ''
+        const otroJuego = /\{\{Media\|games\|(IE|IE2|IE3|GO|CS|GAL|ARES|ORION)\}\}/i.test(debut)
+        if (otroJuego && !/\{\{Media\|games\|VR/i.test(debut)) {
+          skippedVeterans.push(`${teamId}/${dub}`); continue
+        }
+      }
       const ov = OVERRIDES[short] ?? {}
       // Los nombres vienen a veces con marcas de lista del wikitext («*Axel Blaze»).
       const name = (ov.name ?? dub).replace(/^[*#:;\s]+/, '').trim()
@@ -355,6 +397,9 @@ async function main() {
   console.log(`  con elemento: ${all.filter((p) => p.element).length}`)
   console.log(`  con posicion: ${all.filter((p) => p.position).length}`)
   if (missing.length) console.log(`Sin ficha (${missing.length}): ${missing.slice(0, 20).join(', ')}`)
+  if (skippedVeterans.length) {
+    console.log(`Veteranos de IE1-IE3 descartados de Victory Road (${skippedVeterans.length}): ${skippedVeterans.slice(0, 25).join(', ')}`)
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

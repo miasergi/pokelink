@@ -70,6 +70,28 @@ describe('plantilla', () => {
     }
   })
 
+  it('Victory Road es OTRA generación: ni jugadores repetidos ni técnicas cruzadas', () => {
+    const VR = new Set(['nagumohara', 'ouja-raimon', 'hokuyou-gakuen', 'ai-gakuen', 'houreikan',
+      'ijin-meibundou', 'keizen-arashiyama', 'nishinomiya', 'senjutsu-no-teikoku',
+      'toufuu-ikokukan', 'hakuren-vr'])
+    const vrPlayers = PLAYERS.filter((p) => VR.has(p.team))
+    const classicNames = new Set(PLAYERS.filter((p) => !VR.has(p.team)).map((p) => p.name))
+    expect(vrPlayers.length, 'no hay plantillas de Victory Road').toBeGreaterThan(100)
+
+    // NADIE de la saga clásica reaparece de mayor en Victory Road.
+    const repes = vrPlayers.filter((p) => classicNames.has(p.name)).map((p) => p.name)
+    expect(repes, `veteranos colados en Victory Road: ${repes.join(', ')}`).toHaveLength(0)
+
+    // Y cada época con SUS técnicas: a los clásicos no les cuelga una de VR…
+    const clasicosConVR = PLAYERS.filter((p) => !VR.has(p.team))
+      .filter((p) => (p.signature ?? []).some((id) => getTechnique(id)?.era === 'vr'))
+    expect(clasicosConVR.map((p) => p.name), 'un clásico con técnica del futuro').toHaveLength(0)
+    // …ni a los nuevos una de los 2000.
+    const nuevosConClasica = vrPlayers
+      .filter((p) => (p.signature ?? []).some((id) => getTechnique(id) && getTechnique(id)!.era !== 'vr'))
+    expect(nuevosConClasica.map((p) => p.name), 'un jugador de VR con técnica clásica').toHaveLength(0)
+  })
+
   it('las FILOSOFÍAS cambian el partido de verdad, no son una chapa', () => {
     // Cada una tiene que MOVER algo medible con la misma semilla. Si una deja
     // de tocar el motor (porque se movió el punto donde se leía), esto salta.

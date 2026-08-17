@@ -42,9 +42,13 @@ const KIND = { POR: 'parada', DEF: 'bloqueo', MED: 'regate', DEL: 'tiro' }
 async function readTechniques() {
   const src = await readFile(join(ROOT, 'src', 'data', 'inazuma', 'techniques.ts'), 'utf8')
   const out = []
-  const re = /\{ id: '([^']+)', name: "[^"]*", kind: '([^']+)', element: '([^']+)', power: (\d+)/g
+  // Se lee también la ÉPOCA (`era: 'vr'`), que decide a quién se le puede
+  // repartir cada técnica.
+  const re = /\{ id: '([^']+)', name: "[^"]*", kind: '([^']+)', element: '([^']+)', power: (\d+), cost: \d+(, era: '([a-z]+)')?/g
   let m
-  while ((m = re.exec(src))) out.push({ id: m[1], kind: m[2], element: m[3], power: Number(m[4]) })
+  while ((m = re.exec(src))) {
+    out.push({ id: m[1], kind: m[2], element: m[3], power: Number(m[4]), era: m[6] })
+  }
   return out
 }
 
@@ -90,6 +94,17 @@ const CLONE_TEAMS = new Set(['wild'])
  * de la historia: si no, Mac Robingo salía como jugador de The Fires y su
  * Brasil se quedaba con el `-2`.
  */
+/**
+ * Equipos de VICTORY ROAD: otra época. Sus jugadores rellenan cadena con
+ * técnicas de VR, y los clásicos NUNCA con las de VR — si no, a Mark Evans le
+ * salía una técnica del futuro y a los chavales nuevos una de los 2000.
+ */
+const VR_TEAMS = new Set([
+  'nagumohara', 'ouja-raimon', 'hokuyou-gakuen', 'ai-gakuen', 'houreikan',
+  'ijin-meibundou', 'keizen-arashiyama', 'nishinomiya', 'senjutsu-no-teikoku',
+  'toufuu-ikokukan', 'hakuren-vr',
+])
+
 const LOW_PRIORITY_TEAMS = new Set([
   'the-fires', 'the-mountains', 'the-woods', 'windies', 'extra-stars', 'kage-no-hero', 'chaos',
 ])
@@ -375,8 +390,20 @@ async function main() {
   const seenIds = new Set()
   /** Todo lo emitido, por equipo: de aquí sale el relleno de convocatorias. */
   const emitted = {}
+  /**
+   * Nombres ya emitidos por la saga CLÁSICA. Victory Road no puede repetir
+   * ninguno: el doblaje reutiliza nombres entre personajes distintos, y ver a
+   * «Thierry Reyes» en dos equipos de dos épocas es exactamente lo que no
+   * queremos. Los equipos clásicos se emiten antes, así que para cuando toca
+   * VR esta lista ya está completa.
+   */
+  const classicNames = new Set()
   const ordered = Object.entries(data)
-    .sort((a, b) => Number(LOW_PRIORITY_TEAMS.has(a[0])) - Number(LOW_PRIORITY_TEAMS.has(b[0])))
+    .sort((a, b) =>
+      // Clásicos primero, Victory Road después (para poder descartar nombres
+      // repetidos), y los equipos de relleno al final de cada bloque.
+      (Number(VR_TEAMS.has(a[0])) - Number(VR_TEAMS.has(b[0])))
+      || (Number(LOW_PRIORITY_TEAMS.has(a[0])) - Number(LOW_PRIORITY_TEAMS.has(b[0]))))
   for (const [teamId, rawList0] of ordered) {
     if (CLONE_TEAMS.has(teamId)) continue
     // Se completan las fichas cojas ANTES de nada: si no, el filtro de abajo
@@ -412,9 +439,18 @@ async function main() {
       while (seenIds.has(id)) id = `${baseId}-${n++}`
       seenIds.add(id)
 
+      // Victory Road: ni un nombre repetido de la saga clásica.
+      if (VR_TEAMS.has(teamId) && classicNames.has(cleanName)) continue
       const rarity = STARS[cleanName] ?? rarityFor(idx, teamId)
       const st = statsFor(p.position, rarity, id)
-      const signature = signatureFor(allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [])
+      // CADA UNO CON LAS DE SU ÉPOCA.
+      const eraTechs = VR_TEAMS.has(teamId)
+        ? allTechs.filter((t) => t.era === 'vr')
+        : allTechs.filter((t) => t.era !== 'vr')
+      const signature = signatureFor(
+        eraTechs.length >= 20 ? eraTechs : allTechs,
+        cleanName, p.position, p.element, rarity, p.hissatsu ?? [],
+      )
       const techs = techsFor(signature, rarity)
       lines.push('  {')
       lines.push(`    id: ${q(id)}, name: ${q(cleanName)}, team: ${q(teamId)}, position: ${q(p.position)}, element: ${q(p.element)}, fame: ${rarity},`)
@@ -423,6 +459,7 @@ async function main() {
       if (signature.length) lines.push(`    signature: [${signature.map(q).join(', ')}],`)
       lines.push('  },')
       ;(emitted[teamId] ??= []).push({ id, position: p.position, rarity })
+      if (!VR_TEAMS.has(teamId)) classicNames.add(cleanName)
       idx++
     }
   }
@@ -514,7 +551,12 @@ async function main() {
     // Donantes: los hermanos de saga si los hay; si no, cualquiera MENOS el
     // Raimon (su gente es la tuya, no relleno de otros) — y siempre por la
     // cola de la rareza: el que se presta es un suplente, no una estrella.
-    const pool = (DONORS[teamId] ?? Object.keys(emitted).filter((t) => t !== teamId && t !== 'raimon' && t !== 'libre'))
+    // El préstamo respeta la ÉPOCA: un instituto de Victory Road se completa
+    // con gente de Victory Road, nunca con un clásico (que además saldría
+    // repetido, porque ese chaval ya existe en su equipo de los 2000).
+    const mismaEra = (t) => VR_TEAMS.has(t) === VR_TEAMS.has(teamId)
+    const pool = (DONORS[teamId] ?? Object.keys(emitted)
+      .filter((t) => t !== teamId && t !== 'raimon' && t !== 'libre' && mismaEra(t)))
       .flatMap((t) => emitted[t] ?? [])
       .sort((a, b) => a.rarity - b.rarity || a.id.localeCompare(b.id))
     const take = []

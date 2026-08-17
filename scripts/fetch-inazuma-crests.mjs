@@ -84,6 +84,18 @@ const WIKI_NAME = {
   ogre: ['Ogre'],
   'neo-japan': ['Neo Japan'],
   gaia: ['Gaia (team)', 'Gaia'],
+  // IEVR (Victory Road): el Football Frontier de la nueva generación.
+  nagumohara: ['Nagumohara'],
+  'ouja-raimon': ['Ouja Raimon'],
+  'hokuyou-gakuen': ['Hokuyou Gakuen'],
+  'ai-gakuen': ['AI Gakuen'],
+  houreikan: ['Houreikan'],
+  'ijin-meibundou': ['Ijin Meibundou'],
+  'keizen-arashiyama': ['Keizen Arashiyama'],
+  nishinomiya: ['Nishinomiya'],
+  'senjutsu-no-teikoku': ['Senjutsu no Teikoku'],
+  'toufuu-ikokukan': ['Toufuu Ikokukan'],
+  'hakuren-vr': ['Hakuren (Victory Road)', 'Hakuren'],
 }
 
 async function api(params) {
