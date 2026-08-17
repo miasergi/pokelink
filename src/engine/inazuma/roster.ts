@@ -4,12 +4,13 @@ import type { RNG } from '@/utils/rng'
 import { getPlayerBase, playersOfTeam, PLAYERS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique } from '@/data/inazuma/techniques'
+import { getTactic, type TacticEffect } from '@/data/inazuma/tactics'
 import { getTeam, getSaga, FILLER_NAMES } from '@/data/inazuma/teams'
 import { getFormation } from '@/data/inazuma/formations'
 import {
   SQUAD_SIZE, TECHNIQUE_SLOTS,
   type PlayerInstance, type PlayerBase, type Position, type RivalPlayer,
-  type Stats, type Element,
+  type Stats, type Element, type ChainStep,
 } from './types'
 
 let uidSeq = 0
@@ -706,4 +707,45 @@ export function signablePool(beatenTeams: string[], ownTeam?: string, sagaId?: s
 /** Precio de traspaso, para la tienda y el resumen del fichaje. */
 export function transferValue(base: PlayerBase, level: number): number {
   return Math.round((300 + base.fame * 450) * (1 + level * 0.03))
+}
+
+// ---------------------------------------------------------------------------
+// Filosofías de equipo
+// ---------------------------------------------------------------------------
+
+/**
+ * Suma los efectos de TODAS las filosofías activas en un solo objeto, para que
+ * el motor consulte una vez y no vaya preguntando por ids sueltos. Los
+ * multiplicadores se multiplican entre sí y las probabilidades se suman: dos
+ * filosofías que empujan lo mismo se notan de verdad.
+ */
+export function tacticEffects(ids: string[] | undefined): TacticEffect {
+  const out: TacticEffect = {}
+  if (!ids?.length) return out
+  const mulStep = (
+    a: Partial<Record<ChainStep, number>> | undefined,
+    b: Partial<Record<ChainStep, number>> | undefined,
+  ) => {
+    if (!b) return a
+    const r = { ...(a ?? {}) } as Partial<Record<ChainStep, number>>
+    for (const k of Object.keys(b) as ChainStep[]) r[k] = (r[k] ?? 1) * (b[k] ?? 1)
+    return r
+  }
+  for (const id of ids) {
+    const e = getTactic(id)?.effect
+    if (!e) continue
+    out.attackBias = mulStep(out.attackBias, e.attackBias)
+    out.defendBias = mulStep(out.defendBias, e.defendBias)
+    out.counterChance = (out.counterChance ?? 0) + (e.counterChance ?? 0)
+    out.reclaimChance = (out.reclaimChance ?? 0) + (e.reclaimChance ?? 0)
+    out.staminaDrain = (out.staminaDrain ?? 1) * (e.staminaDrain ?? 1)
+    out.burstGain = (out.burstGain ?? 1) * (e.burstGain ?? 1)
+    out.longShotRelief = (out.longShotRelief ?? 1) * (e.longShotRelief ?? 1)
+    out.ptCost = (out.ptCost ?? 1) * (e.ptCost ?? 1)
+    out.elementEdge = (out.elementEdge ?? 0) + (e.elementEdge ?? 0)
+    out.momentumStep = (out.momentumStep ?? 0) + (e.momentumStep ?? 0)
+    out.comebackBoost = (out.comebackBoost ?? 0) + (e.comebackBoost ?? 0)
+    out.freePassing = out.freePassing || e.freePassing
+  }
+  return out
 }

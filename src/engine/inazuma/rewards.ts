@@ -3,6 +3,7 @@
 // que el usuario señale a quién entrenar o a quién equipar).
 import type { RNG } from '@/utils/rng'
 import { ITEMS } from '@/data/inazuma/items'
+import { TACTICS } from '@/data/inazuma/tactics'
 import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
@@ -95,6 +96,29 @@ function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): Draft
     playerId: pick.id,
     level,
   }
+}
+
+/**
+ * LAS TRES FILOSOFÍAS que se ofrecen tras ganar un instituto. Es LA elección
+ * de identidad de la partida: no da números, cambia cómo se juega. Nunca se
+ * repite una que ya tengas.
+ */
+export function buildTacticOffer(save: InazumaSave, rng: RNG): DraftOption[] {
+  const owned = new Set(save.tactics ?? [])
+  const pool = TACTICS.filter((t) => !owned.has(t.id))
+  if (!pool.length) return []
+  const picked: typeof pool = []
+  const rest = pool.slice()
+  for (let i = 0; i < 3 && rest.length; i++) {
+    picked.push(...rest.splice(rng.int(0, rest.length - 1), 1))
+  }
+  return picked.map((t) => ({
+    kind: 'tactica' as const,
+    id: `tactica-${t.id}`,
+    title: t.name,
+    desc: t.desc,
+    tacticId: t.id,
+  }))
 }
 
 /** Lo que cobra el ojeador por su agenda (el Fichaje estrella). */

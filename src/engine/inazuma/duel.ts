@@ -116,12 +116,15 @@ function power(base: number, d: Duelist): number {
  * para que la UI pueda enseñar las estrellas de cada opción ANTES de tirar
  * (sin gastar RNG, que rompería el determinismo del partido).
  */
-export function duelChance(step: ChainStep, atk: Duelist, def: Duelist, momentum = 0): { chance: number; effectiveness: number; attackerPower: number; defenderPower: number } {
+export function duelChance(step: ChainStep, atk: Duelist, def: Duelist, momentum = 0, elementEdge = 0): { chance: number; effectiveness: number; attackerPower: number; defenderPower: number } {
   // El elemento se compara SIEMPRE entre las técnicas si las hay; si alguien va
   // "a cuerpo" se usa su elemento personal.
   const atkEl = atk.technique?.element ?? atk.element
   const defEl = def.technique?.element ?? def.element
-  const effectiveness = elementMultiplier(atkEl, defEl)
+  // FŪRINKAZAN: una filosofía puede hacer que las ventajas de elemento pesen
+  // más (y las desventajas duelan más). Se estira la distancia respecto a 1.
+  const raw0 = elementMultiplier(atkEl, defEl)
+  const effectiveness = elementEdge ? 1 + (raw0 - 1) * (1 + elementEdge * 5) : raw0
 
   const attackerPower = power(attackStat(step, atk.stats), atk) * effectiveness * (1 + momentum)
   const defenderPower = power(defendStat(step, def.stats), def)
@@ -136,8 +139,8 @@ export function duelChance(step: ChainStep, atk: Duelist, def: Duelist, momentum
   return { chance, effectiveness, attackerPower, defenderPower }
 }
 
-export function resolveDuel(step: ChainStep, atk: Duelist, def: Duelist, rng: RNG, momentum = 0): DuelResult {
-  const info = duelChance(step, atk, def, momentum)
+export function resolveDuel(step: ChainStep, atk: Duelist, def: Duelist, rng: RNG, momentum = 0, elementEdge = 0): DuelResult {
+  const info = duelChance(step, atk, def, momentum, elementEdge)
   return { ...info, success: rng.next() < info.chance }
 }
 

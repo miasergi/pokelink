@@ -292,6 +292,8 @@ export interface Actor {
 
 export interface MatchSide {
   name: string
+  /** Filosofías activas de ESTE equipo (solo las tuyas: el rival no lleva). */
+  tactics?: string[]
   color: string
   element: Element
   /** true en el lado que controla el usuario. */
@@ -494,6 +496,8 @@ export type DraftOption =
   | { kind: 'tecnica'; id: string; title: string; desc: string; techniqueId: string; toBag?: boolean }
   | { kind: 'dinero'; id: string; title: string; desc: string; amount: number }
   | { kind: 'descanso'; id: string; title: string; desc: string }
+  /** FILOSOFÍA de equipo: la recompensa que define la identidad de la partida. */
+  | { kind: 'tactica'; id: string; title: string; desc: string; tacticId: string }
 
 // ---------------------------------------------------------------------------
 // Objetos
@@ -553,6 +557,12 @@ export interface InazumaSave {
   /** Casilla en la que estás. `null` al empezar = puedes entrar por cualquiera
    *  de la primera capa. Define a dónde puedes ir (ver `next`). */
   currentNodeId: string | null
+  /**
+   * FILOSOFÍAS del equipo, acumuladas durante la partida. Son lo que hace que
+   * dos runs se sientan distintas: no dan números, cambian cómo se resuelve el
+   * partido (ver `src/data/inazuma/tactics.ts`).
+   */
+  tactics?: string[]
   /** Ids de casilla ya jugadas. */
   cleared: string[]
   roster: PlayerInstance[]

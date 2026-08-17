@@ -17,6 +17,7 @@ import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
 import { Crest, KindIcon, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
+import { getTactic } from '@/data/inazuma/tactics'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
@@ -435,6 +436,28 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
       </div>
+      {/* LAS FILOSOFÍAS con las que sale tu equipo: la identidad de la partida,
+          a la vista durante todo el partido. */}
+      {!!(mine.tactics ?? []).length && (
+        <div className="mt-1.5 flex items-center justify-center gap-1 flex-wrap">
+          {(mine.tactics ?? []).map((id) => {
+            const t = getTactic(id)
+            if (!t) return null
+            return (
+              <span
+                key={id}
+                title={t.desc}
+                className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide"
+                style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color }}
+              >
+                <Icon name={t.icon} className="w-2.5 h-2.5" />
+                {t.name}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
       {/* La tanda tiene su propio marcador, también sacado de lo revelado. */}
       {stage !== 'reglamentario' && (
         <div className="mt-1 text-center text-[10px] font-bold uppercase tracking-widest text-amber-300">

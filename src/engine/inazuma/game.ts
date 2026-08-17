@@ -214,6 +214,9 @@ export function startMatch(
   const mineTeam = getTeam(save.teamId ?? 'raimon')
   const home = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
+  // Tus FILOSOFÍAS viajan contigo al campo. El rival no lleva: son la señal de
+  // identidad de TU partida.
+  home.tactics = save.tactics ?? []
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
 
   // El RIVAL también viaja con BANQUILLO (los suplentes de su plantilla real,

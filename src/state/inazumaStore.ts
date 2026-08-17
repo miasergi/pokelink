@@ -25,7 +25,7 @@ import {
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
-import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
+import { availableSignings, buildScoutOffer, buildTacticOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarityMap, transferValue, upgradeTechnique,
@@ -924,9 +924,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
     }
 
+    // FILOSOFÍA DE EQUIPO: ganar un instituto abre LA elección de identidad de
+    // la partida — tres, y te quedas una. Es lo que hace que dos runs se
+    // sientan distintas, así que va después del resto del botín.
+    const tacticOffer = result === 'win' && (matchNode.kind === 'jefe' || matchNode.kind === 'final')
+      ? buildTacticOffer(next, getRng(next))
+      : []
+
     set({
       save: next,
-      phase: 'map',
+      phase: tacticOffer.length && !pendingSigning ? 'draft' : 'map',
+      draft: tacticOffer.length && !pendingSigning ? tacticOffer : [],
+      draftPicks: tacticOffer.length && !pendingSigning ? 1 : 0,
+      draftFromMatch: true,
       match: null,
       matchNode: null,
       revealPlayer: reveal,
@@ -934,7 +944,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
         + (prize ? ` · ${prize.name}` : '') + recruitMsg,
     })
-    void persist(next, 'map')
+    void persist(next, tacticOffer.length && !pendingSigning ? 'draft' : 'map')
   },
 
   resolveSigningSell: () => {
@@ -997,6 +1007,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (opt.kind === 'tecnica') {
       const next = { ...save, bag: [...save.bag, 'manual-avanzado'] }
       closeDraft(set, next, draft, draftPicks, optionId, 'Manual avanzado a la mochila.')
+      return
+    }
+    if (opt.kind === 'tactica') {
+      const nextSave = { ...save, tactics: [...(save.tactics ?? []), opt.tacticId] }
+      closeDraft(set, nextSave, draft, draftPicks, optionId, `Vuestro equipo adopta: ${opt.title}.`)
       return
     }
     if (opt.kind === 'entrenamiento') {

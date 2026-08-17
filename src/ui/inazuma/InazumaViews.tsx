@@ -27,6 +27,7 @@ import type { Element as InazumaElement } from '@/engine/inazuma/types'
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
+import { getTactic } from '@/data/inazuma/tactics'
 import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
@@ -1226,7 +1227,9 @@ export function DraftView() {
           </div>
         )}
         <div className="text-[11px] uppercase tracking-widest text-slate-500">
-          Elige tu recompensa{draftPicks > 1 ? ` · te quedan ${draftPicks}` : ''}
+          {draft.some((o) => o.kind === 'tactica')
+            ? 'La filosofía del equipo · elige una para el resto de la partida'
+            : `Elige tu recompensa${draftPicks > 1 ? ` · te quedan ${draftPicks}` : ''}`}
         </div>
         {draft.map((o) => (
           <Card key={o.id} className="p-3" onClick={() => pickDraft(o.id)}>
@@ -1239,6 +1242,20 @@ export function DraftView() {
                     fallback={<Icon name="jersey" className="w-6 h-6 text-slate-400" />}
                   />
                 </div>
+              ) : o.kind === 'tactica' ? (
+                <span
+                  className="grid place-items-center w-11 h-11 shrink-0 rounded-xl border-2"
+                  style={{
+                    borderColor: getTactic(o.tacticId)?.color ?? '#64748b',
+                    background: `${getTactic(o.tacticId)?.color ?? '#64748b'}22`,
+                  }}
+                >
+                  <Icon
+                    name={getTactic(o.tacticId)?.icon ?? 'bolt'}
+                    className="w-6 h-6"
+                    style={{ color: getTactic(o.tacticId)?.color }}
+                  />
+                </span>
               ) : o.kind === 'objeto' ? (
                 <ItemIcon itemId={o.itemId} className="w-9 h-9 shrink-0" />
               ) : o.kind === 'tecnica' && getTechnique(o.techniqueId) ? (

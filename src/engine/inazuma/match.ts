@@ -15,7 +15,8 @@
 import { RNG } from '@/utils/rng'
 import { actorTechnique, duelChance, oddsStars, pickAiTechnique, resolveDuel, type Duelist } from './duel'
 import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
-import { fatigueMultiplier } from './roster'
+import { fatigueMultiplier, tacticEffects } from './roster'
+import type { TacticEffect } from '@/data/inazuma/tactics'
 import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
 import type {
   Actor, ChainStep, Decision, DecisionMode, DecisionOption, Element, MatchEvent, MatchSide,
@@ -104,6 +105,11 @@ function allActors(side: MatchSide): Actor[] {
   return [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
 }
 
+/** Filosofías de un lado, ya sumadas. El rival no lleva: son tuyas. */
+function fx(side: MatchSide): TacticEffect {
+  return tacticEffects(side.tactics)
+}
+
 function toDuelist(
   a: Actor, tech: Technique | undefined, burst: boolean,
   sprint?: { uid: string },
@@ -120,10 +126,11 @@ function toDuelist(
 }
 
 /** Técnicas conocidas de una clase concreta que el actor puede pagar. */
-function affordable(a: Actor, kind: Technique['kind'], free: boolean): Technique[] {
+function affordable(a: Actor, kind: Technique['kind'], free: boolean, side?: MatchSide): Technique[] {
   return a.techniques
     .map((id) => actorTechnique(a, id))
-    .filter((t): t is Technique => !!t && t.kind === kind && (free || t.cost <= a.pt))
+    .filter((t): t is Technique => !!t && t.kind === kind
+      && (free || (side ? costFor(side, t) : t.cost) <= a.pt))
 }
 
 /** Clase de técnica que toca en cada eslabón, atacando y defendiendo. */
@@ -413,27 +420,36 @@ function executeDuel(
   const atkBurst = atkSide.burstTurns > 0
   const defBurst = defSide.burstTurns > 0
 
-  spend(attacker, atkTech, atkBurst)
-  spend(defender, defTech, defBurst)
-  attacker.stamina = Math.max(0, attacker.stamina - STAMINA_PER_DUEL)
-  defender.stamina = Math.max(0, defender.stamina - STAMINA_PER_DUEL)
+  spend(attacker, atkTech, atkBurst, atkSide)
+  spend(defender, defTech, defBurst, defSide)
+  attacker.stamina = Math.max(0, attacker.stamina - STAMINA_PER_DUEL * (fx(atkSide).staminaDrain ?? 1))
+  defender.stamina = Math.max(0, defender.stamina - STAMINA_PER_DUEL * (fx(defSide).staminaDrain ?? 1))
   if (atkBurst) atkSide.burstTurns -= 1
   if (defBurst) defSide.burstTurns -= 1
 
   const atkDuelist = toDuelist(attacker, atkTech, atkBurst, chain.sprint)
+  // FILOSOFÍAS: el que ataca empuja con las suyas, el que defiende corta con
+  // las suyas. Es el único sitio donde tocan la potencia del duelo.
+  const atkFx = fx(atkSide)
+  const defFx = fx(defSide)
+  atkDuelist.boost = (atkDuelist.boost ?? 1) * (atkFx.attackBias?.[step] ?? 1)
+  // REMONTADA: yendo por debajo en el marcador, los tuyos aprietan.
+  if (atkFx.comebackBoost && atkSide.goals < defSide.goals) {
+    atkDuelist.boost = (atkDuelist.boost ?? 1) * (1 + atkFx.comebackBoost)
+  }
   // El tiro lejano paga la distancia AQUÍ, con el mismo factor con el que se
   // calcularon las estrellas de la opción: lo que se enseña es lo que se tira.
   if (chain.longShot && step === 'definicion') {
     // Distancia + lo que le hayan comido los defensas por el camino.
-    atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS * (chain.longShotPower ?? 1)
+    const alivio = Math.min(1 / LONG_SHOT_MALUS, fx(atkSide).longShotRelief ?? 1)
+    atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS * alivio * (chain.longShotPower ?? 1)
   }
-  const r = resolveDuel(
-    step,
-    atkDuelist,
-    toDuelist(defender, defTech, defBurst, chain.sprint),
-    rng,
-    chain.momentum,
-  )
+  const defDuelist = toDuelist(defender, defTech, defBurst, chain.sprint)
+  defDuelist.boost = (defDuelist.boost ?? 1) * (defFx.defendBias?.[step] ?? 1)
+  if (defFx.comebackBoost && defSide.goals < atkSide.goals) {
+    defDuelist.boost = (defDuelist.boost ?? 1) * (1 + defFx.comebackBoost)
+  }
+  const r = resolveDuel(step, atkDuelist, defDuelist, rng, chain.momentum, atkFx.elementEdge)
   // El sprint es de UN duelo: se paga aquí y se apaga aquí.
   if (chain.sprint) {
     const sprinter = [attacker, defender].find((x) => x.uid === chain.sprint!.uid)
@@ -482,7 +498,7 @@ function executeDuel(
 
   if (r.success) {
     addBurst(atkSide, BURST_ON_DUEL)
-    chain.momentum += 0.08
+    chain.momentum += 0.08 + (atkFx.momentumStep ?? 0)
     if (step === 'definicion') {
       scoreGoal(m, out, attacker, atkTech)
       return
@@ -586,6 +602,20 @@ function executeDuel(
     // Escueto A PROPÓSITO: la línea del duelo que acaba de salir ya cuenta QUIÉN
     // ha robado el balón («Bruno Cid le roba la cartera a Sam Kincaid»). Antes
     // esta repetía el nombre del defensor y la jugada se narraba dos veces.
+    // PRESIÓN TRAS PÉRDIDA (filosofía): el balón se pierde… y se recupera en
+    // el sitio. No es un +% escondido: la jugada CONTINÚA siendo tuya.
+    const atkFx2 = fx(atkSide)
+    if (atkFx2.reclaimChance && rng.chance(atkFx2.reclaimChance)) {
+      out.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡${atkSide.name} no deja respirar! Roba de vuelta al instante y sigue la jugada.`,
+      })
+      chain.defenderUid = defenderFor(step, defSide, rng).uid
+      exhaustionCheck(m, out, attacker)
+      return
+    }
     out.push({
       kind: 'turnover',
       minute: m.minute,
@@ -594,7 +624,7 @@ function executeDuel(
     })
     // ¡CONTRAATAQUE! El robo pilla al rival vendido: el que roba lanza una
     // posesión que EMPIEZA en tres cuartos.
-    if (rng.chance(0.16)) {
+    if (rng.chance(0.16 + (fx(defSide).counterChance ?? 0))) {
       const runner = attackerFor('penetracion', defSide, rng)
       out.push({
         kind: 'possession',
@@ -629,12 +659,22 @@ function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Techni
   m.chain = null
 }
 
-function spend(a: Actor, t: Technique | undefined, free: boolean): void {
-  if (t && !free) a.pt = Math.max(0, a.pt - t.cost)
+/**
+ * Lo que cuesta de verdad una técnica para un lado, con su ACADEMIA TÉCNICA
+ * aplicada. Todo lo que mira PT (gastar, `affordable` y el precio del botón)
+ * pasa por aquí: si no, la filosofía se vería en la chapa y no en el campo.
+ */
+function costFor(side: MatchSide, t: Technique): number {
+  return Math.max(1, Math.round(t.cost * (tacticEffects(side.tactics).ptCost ?? 1)))
+}
+
+function spend(a: Actor, t: Technique | undefined, free: boolean, side?: MatchSide): void {
+  if (t && !free) a.pt = Math.max(0, a.pt - (side ? costFor(side, t) : t.cost))
 }
 
 function addBurst(s: MatchSide, amount: number): void {
-  s.burst = Math.min(100, s.burst + amount)
+  // VIBRACIÓN COLECTIVA (filosofía): la barra sube más rápido.
+  s.burst = Math.min(100, s.burst + amount * (tacticEffects(s.tactics).burstGain ?? 1))
 }
 
 function exhaustionCheck(m: MatchState, out: MatchEvent[], a: Actor): void {
@@ -703,13 +743,13 @@ function buildDecision(
 
   // 2) Cada supertécnica conocida de la clase que toca (con sus Mejoras: V2…).
   for (const t of actor.techniques.map((id) => actorTechnique(actor, id)).filter((t): t is Technique => !!t && t.kind === kind)) {
-    const cost = free ? 0 : t.cost
+    const cost = free ? 0 : costFor(mySide, t)
     // `t.name` ya viene con la versión de la Mejora («… V2»): la pone
     // `actorTechnique`, así que el botón y la cinemática dicen lo mismo.
     const opt = buildOption(m, step, mode, attacker, defender, momentum, {
       id: `tech:${t.id}`, label: t.name, tech: t, cost,
     })
-    if (!free && t.cost > actor.pt) opt.disabled = `Necesitas ${t.cost} PT`
+    if (!free && cost > actor.pt) opt.disabled = `Necesitas ${cost} PT`
     options.push(opt)
   }
 
@@ -726,7 +766,7 @@ function buildDecision(
       const opt = buildOption(m, step, mode, attacker, defender, momentum, {
         id: `combo:${combo.techniqueId}`, label: `${t.name} (${combo.label})`, tech: t, cost,
       })
-      if (!free && t.cost > actor.pt) opt.disabled = `Necesitas ${t.cost} PT`
+      if (!free && cost > actor.pt) opt.disabled = `Necesitas ${cost} PT`
       options.push(opt)
     }
   }
@@ -736,7 +776,7 @@ function buildDecision(
   //    recibe cuenta contra el defensor, no el del que llevaba el balón.
   //    Un solo pase por posesión (ver `chooseOption`): sin el tope, pasarse
   //    la pelota en bucle sería gratis.
-  if (mode === 'ataque' && !m.chain?.passed) {
+  if (mode === 'ataque' && (!m.chain?.passed || fx(atkSide).freePassing)) {
     for (const mate of passCandidates(atkSide, attacker, rival.element)) {
       options.push(buildOption(
         m, step, mode, mate, defender, momentum,
@@ -774,7 +814,9 @@ function buildDecision(
       label: t ? `Tiro lejano · ${t.name}` : 'Tiro lejano',
       tech: t, cost,
       // Distancia + el mordisco medio que se lleva la defensa al rozarlo.
-      powerScale: LONG_SHOT_MALUS * (1 - 0.3 * (1 - pPass) / 2),
+      powerScale: LONG_SHOT_MALUS
+        * Math.min(1 / LONG_SHOT_MALUS, fx(atkSide).longShotRelief ?? 1)
+        * (1 - 0.3 * (1 - pPass) / 2),
     })
     // El % del botón es el del DISPARO, igual que en todas las demás opciones
     // (cada duelo enseña el suyo). El riesgo de que te lo bloqueen va aparte,
@@ -925,7 +967,7 @@ function interceptLongShot(
     shotTech?.element ?? shooter.element,
     'definicion',
   )
-  spend(blocker, blockTech, defSide.burstTurns > 0)
+  spend(blocker, blockTech, defSide.burstTurns > 0, defSide)
   blocker.stamina = Math.max(0, blocker.stamina - STAMINA_PER_DUEL)
 
   const atk = toDuelist(shooter, shotTech, m.chain ? sideOf(m, m.chain.side).burstTurns > 0 : false)
