@@ -334,25 +334,39 @@ export function TeamSelectView() {
         {/* LA SAGA: la «región» del roguelike. Cambia el cuadro entero, los
             equipos jugables y el pool de fichajes. */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Saga</div>
-          <div className="flex gap-1.5">
-            {SAGAS.map((s) => (
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Juego</div>
+          {/* LAS CUATRO CARÁTULAS. Se elige de un vistazo, como en la estantería:
+              la portada dice mucho más que «Academia Alius». */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {SAGAS.map((sg) => (
               <button
-                key={s.id}
-                onClick={() => setSaga(s.id)}
-                className={`flex-1 rounded-xl border py-1.5 px-1 text-[11px] font-bold leading-tight transition active:scale-95 ${
-                  saga === s.id
-                    ? 'border-sky-500/70 bg-sky-500/15 text-sky-200'
-                    : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                key={sg.id}
+                onClick={() => setSaga(sg.id)}
+                className={`rounded-xl border overflow-hidden transition active:scale-95 ${
+                  saga === sg.id
+                    ? 'border-sky-400 ring-2 ring-sky-400/50'
+                    : 'border-slate-700 opacity-65'
                 }`}
               >
-                {s.id === 'ff' ? 'Football Frontier'
-                  : s.id === 'alius' ? 'Academia Alius'
-                    : s.id === 'ffi' ? 'FF Internacional' : 'Victory Road'}
+                <ImgFallback
+                  src={`${import.meta.env.BASE_URL}inazuma/sagas/${sg.id}.png`}
+                  alt={sg.name}
+                  className="w-full aspect-[3/4] object-cover"
+                  fallback={
+                    <span className="grid place-items-center w-full aspect-[3/4] bg-slate-900 text-[9px] font-bold text-slate-400 px-1 text-center">
+                      {sg.name}
+                    </span>
+                  }
+                />
+                <span className={`block text-[9px] font-bold leading-tight py-1 px-0.5 ${
+                  saga === sg.id ? 'text-sky-200 bg-sky-500/15' : 'text-slate-400'
+                }`}>
+                  {sg.name}
+                </span>
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-slate-500 mt-1">{sagaInfo.desc}</p>
+          <p className="text-[10px] text-slate-500 mt-1.5">{sagaInfo.desc}</p>
         </div>
 
         {/* DE QUÉ JUEGOS SALE LA GENTE. Multiselección: puedes jugar el

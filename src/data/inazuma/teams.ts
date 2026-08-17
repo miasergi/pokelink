@@ -367,7 +367,7 @@ export interface Saga {
 export const SAGAS: Saga[] = [
   {
     id: 'ff',
-    name: 'Football Frontier',
+    name: 'Inazuma Eleven',
     desc: 'La primera temporada: el torneo nacional de institutos.',
     teams: ['raimon', 'occult', 'otaku', 'mikage', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
     playable: ['raimon', 'occult', 'royal'],
@@ -376,7 +376,7 @@ export const SAGAS: Saga[] = [
   },
   {
     id: 'alius',
-    name: 'Academia Alius',
+    name: 'Inazuma Eleven 2',
     desc: 'La segunda temporada: la caravana Raimon contra los equipos alienígenas.',
     teams: ['raimon', 'yokato', 'oumihara', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis'],
     playable: ['raimon', 'genesis'],
@@ -385,7 +385,7 @@ export const SAGAS: Saga[] = [
   },
   {
     id: 'ffi',
-    name: 'Football Frontier Internacional',
+    name: 'Inazuma Eleven 3',
     desc: 'La tercera temporada: las selecciones del mundial juvenil.',
     teams: ['inazuma-japan', 'big-waves', 'desert-lion', 'knights-of-queen', 'fire-dragon', 'the-empire', 'unicorn', 'orpheus', 'little-gigant'],
     playable: ['inazuma-japan', 'orpheus', 'unicorn'],
@@ -394,7 +394,7 @@ export const SAGAS: Saga[] = [
   },
   {
     id: 'vr',
-    name: 'Victory Road',
+    name: 'Inazuma Eleven VR',
     desc: 'La nueva generación: el Football Frontier años después, con caras que no habías visto.',
     teams: ['nagumohara', 'hokuyou-gakuen', 'keizen-arashiyama', 'nishinomiya', 'houreikan', 'hakuren-vr', 'ai-gakuen', 'toufuu-ikokukan', 'senjutsu-no-teikoku'],
     playable: ['nagumohara', 'ouja-raimon', 'hokuyou-gakuen'],
