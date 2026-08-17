@@ -33,14 +33,16 @@ const BURST_ON_CONCEDE = 18
 /** Acciones que dura la Supervibración una vez activada. */
 export const BURST_DURATION = 3
 /** Aguante que cuesta disputar un duelo (solo se persiste el de tu plantilla). */
+// Tercera subida (10/2 → 12/3): «da la sensación de que se cansan muy poco»
+// con 10/2 — el descanso y los cambios tienen que pedirse solos.
 // Segunda subida (7 → 10, y 1 → 2 por posesión): con 7/1 un titular acababa
 // el partido rondando 60 de aguante y la fatiga apenas asomaba — «parece que
 // apenas baja, ni el mío ni el del rival». Con 10/2 el que disputa 3-4 duelos
 // entra en penalización clara en la segunda parte y el cambio del descanso
 // vale lo que cuesta.
-const STAMINA_PER_DUEL = 10
+const STAMINA_PER_DUEL = 12
 /** Desgaste por posesión para TODOS los que están sobre el campo. */
-const STAMINA_PER_PLAY = 2
+const STAMINA_PER_PLAY = 3
 
 export interface MatchConfig {
   seed: number

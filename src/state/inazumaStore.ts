@@ -334,6 +334,12 @@ interface InazumaState {
   halftimeBreak: boolean
   /** Reanuda la segunda parte tras el panel del descanso. */
   resumeSecondHalf: () => void
+  /**
+   * CAMBIOS DEL DESCANSO, para enseñarlos EN PANTALLA antes de reanudar (los
+   * tuyos y los del rival). El botón de «¡Segunda parte!» los despeja.
+   */
+  halftimeSubsSummary: string[] | null
+  clearHalftimeSubsSummary: () => void
   /** Consumible sobre un jugador DEL PARTIDO, en el descanso. */
   halftimeUseItem: (itemId: string, actorUid: string) => void
   /** Cambio en el descanso: sale `outUid` del campo, entra `benchUid`. */
@@ -393,6 +399,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   message: null,
   itemFx: null,
   halftimeBreak: false,
+  halftimeSubsSummary: null,
   revealPlayer: null,
   clock: 0,
 
@@ -1113,6 +1120,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   resumeSecondHalf: () => {
     const { match } = get()
+    let summary: string[] | null = null
     if (match) {
       // ANUNCIO de los cambios hechos en el descanso (los tuyos) y los del
       // RIVAL, que también tiene banquillo y derecho a 3 cambios: entran a la
@@ -1128,13 +1136,24 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       if (evs.length) {
         match.events.push(...evs)
         revealQueue.push(...evs)
+        // Y A LA VISTA: el panel con los cambios de los dos equipos, ANTES de
+        // que ruede el balón. La narración sola pasaba desapercibida.
+        summary = evs.map((e) => (e.kind === 'possession' ? e.text : ''))
+          .filter(Boolean)
       }
       halftimeSubNotes = []
       set({ match: { ...match } })
     }
-    set({ halftimeBreak: false, playing: true })
+    // Con cambios que enseñar, la segunda parte espera al botón del panel.
+    set({ halftimeBreak: false, playing: !summary, halftimeSubsSummary: summary })
     stopTicker()
     ticker = setTimeout(() => get().tick(), 250)
+  },
+
+  clearHalftimeSubsSummary: () => {
+    set({ halftimeSubsSummary: null, playing: true })
+    stopTicker()
+    ticker = setTimeout(() => get().tick(), 150)
   },
 
   halftimeUseItem: (itemId, actorUid) => {

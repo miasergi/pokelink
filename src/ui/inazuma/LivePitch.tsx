@@ -190,6 +190,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // corría 2.6 veces más lenta de lo diseñado.
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
+  // Reloj del RONDO: anclado al último evento revelado. Así cada parada, robo
+  // o gol reinicia la cadena de pases desde su primer eslabón.
+  const rondoAnchor = useRef({ len: -1, t: nowMs })
+  if (rondoAnchor.current.len !== feed.length) {
+    rondoAnchor.current = { len: feed.length, t: nowMs }
+  }
+  const rondoSec = Math.max(0, (nowMs - rondoAnchor.current.t) / 1000)
+
   // EL RONDO: la capa que faltaba para que esto sea una SIMULACIÓN y no un
   // juego por turnos. El motor genera ~16 jugadas por partido, así que entre
   // una y otra pasan varios minutos en los que NO HAY nada que contar — y el
@@ -201,21 +209,31 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   let buildup = false
   // La posición EXACTA del balón durante el rondo, interpolada a cada frame.
   let rondoBall: Spot | null = null
-  if (flowing && holdSec > 0.2) {
+  // Sin jugada viva en pantalla, el rondo entra YA (al saque inicial no hay
+  // nada que asentar y el campo se quedaba muerto del minuto 1 al 6).
+  if (flowing && (holdSec > 0.2 || shown == null)) {
     // ¿De quién es el balón AHORA? Del último evento que lo diga.
     let possession: 'home' | 'away' | null = null
+    // Tras parada o gol, el balón LO TIENE EL PORTERO: el rondo empieza en
+    // sus guantes, no en el círculo central.
+    let fromKeeper = false
     for (let i = feed.length - 1; i >= 0; i--) {
       const e = feed[i]
       if (e.kind === 'turnover') { possession = e.side; break }
+      if (e.kind === 'save') { possession = e.side; fromKeeper = true; break }
       if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); break }
-      if (e.kind === 'goal') { possession = otherSide(e.side); break } // saca el que encajó
+      if (e.kind === 'goal') { possession = otherSide(e.side); fromKeeper = true; break } // saca el que encajó
       if (e.kind === 'possession') { possession = e.side; break }
+      if (e.kind === 'kickoff') { possession = 'home'; break }
+      if (e.kind === 'halftime') { possession = 'away'; break }
     }
     if (possession) {
       const posSide = sideOf(match, possession)
       // Defensas → medios → delanteros y vuelta: la salida de balón de manual
       // (reciclar hacia atrás también es fútbol).
-      const order = [...posSide.defs, ...posSide.mids, ...posSide.fwds]
+      const order = fromKeeper
+        ? [posSide.keeper, ...posSide.defs, ...posSide.mids, ...posSide.fwds]
+        : [...posSide.defs, ...posSide.mids, ...posSide.fwds]
       if (order.length >= 2) {
         buildup = true
         atkSide = possession
@@ -242,7 +260,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           legs.push({ from, to, flight, total: flight + RONDO_CONTROL_S })
           cycle += flight + RONDO_CONTROL_S
         }
-        let t = holdSec % cycle
+        let t = rondoSec % cycle
         let leg = legs[0]
         for (const l of legs) { if (t < l.total) { leg = l; break } t -= l.total }
         const A = spotAt(leg.from)

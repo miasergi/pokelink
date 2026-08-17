@@ -26,6 +26,7 @@ import type { Actor, ChainStep, Element, MatchEvent, MatchState, Technique } fro
 export default function MatchView() {
   const {
     match, feed, playing, speed, autoPlay, save, matchNode, clock,
+    halftimeSubsSummary, clearHalftimeSubsSummary,
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
   } = useInazuma()
   const simMatch = useSettings((s) => s.inazumaSimMatch)
@@ -42,7 +43,7 @@ export default function MatchView() {
   const [flash, setFlash] = useState<{ key: number; text: string; color: string } | null>(null)
   useEffect(() => {
     if (!flash) return
-    const t = setTimeout(() => setFlash(null), 950)
+    const t = setTimeout(() => setFlash(null), 1350)
     return () => clearTimeout(t)
   }, [flash])
   const clearGol = useCallback(() => setGol(null), [])
@@ -205,6 +206,26 @@ export default function MatchView() {
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
       <DuelStage stage={stage} onDone={clearStage} onFlight={onFlight} />
+
+      {/* CAMBIOS DEL DESCANSO, a la vista ANTES de reanudar: los tuyos y los
+          del rival. La narración sola pasaba desapercibida. */}
+      {halftimeSubsSummary && (
+        <div className="absolute inset-0 z-[75] bg-black/75 backdrop-blur-sm grid place-items-center p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 animate-pop-in">
+            <div className="text-center text-[10px] uppercase tracking-widest text-slate-500">Descanso</div>
+            <div className="text-center font-extrabold text-lg mb-3">Cambios de la segunda parte</div>
+            <div className="flex flex-col gap-1.5 mb-4">
+              {halftimeSubsSummary.map((t, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-2.5 py-1.5">
+                  <Icon name="jersey" className="w-4 h-4 shrink-0 text-emerald-300" />
+                  <span className="text-[12px] leading-snug">{t}</span>
+                </div>
+              ))}
+            </div>
+            <Button variant="primary" full onClick={clearHalftimeSubsSummary}>¡Segunda parte!</Button>
+          </div>
+        </div>
+      )}
       <HalftimePanel />
       <Scoreboard
         match={match}

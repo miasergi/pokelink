@@ -87,13 +87,13 @@ function kitOf(crest: string | undefined): [string, string] | undefined {
  */
 const TL = {
   pase: { end: 1200 },
-  regate: { end: 2400 },
-  tiro: { flight: 1900, keeper: 3300, outcome: 4700, endGoal: 4850, endSave: 6300 },
+  regate: { end: 3000 },
+  tiro: { flight: 2350, keeper: 3850, outcome: 5350, endGoal: 5500, endSave: 7000 },
   // El CRUCE de un defensa: el balón viaja hasta él (el escenario se aparta y
   // se ve por el césped), lanza su bloqueo y se resuelve. NO lleva la foto del
   // tirador: esa ya se vio, y repetirla era lo que hacía que el disparo
   // pareciera contarse dos veces.
-  bloqueo: { block: 1200, outcome: 2500, end: 3700 },
+  bloqueo: { block: 1400, outcome: 2900, end: 4200 },
 } as const
 
 export default function DuelStage({ stage, onDone, onFlight }: {
