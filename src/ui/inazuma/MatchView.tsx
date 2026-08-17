@@ -253,9 +253,13 @@ export default function MatchView() {
               myCrest={teamDisplay(save ?? {}).crestId}
               theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
               flight={shotFlight}
-              // El césped sigue VIVO mientras el partido corre: ni decisión
-              // ni cinemática en pantalla.
-              flowing={match.phase !== 'decision' && stage === null && gol === null}
+              // El césped sigue VIVO mientras el partido corre. OJO: lo que
+              // congela es el PANEL de decisión EN PANTALLA, no la fase del
+              // motor — el motor entra en «decision» nada más generar la
+              // siguiente jugada, o sea AL PRINCIPIO de la espera de varios
+              // minutos… y con la condición vieja el rondo no corría nunca en
+              // modo dinámico (por eso «seguía igual»).
+              flowing={!(match.phase === 'decision' && caughtUp && !frozen) && stage === null && gol === null}
             />
             {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
             {flash && (

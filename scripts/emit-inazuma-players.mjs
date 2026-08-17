@@ -128,6 +128,7 @@ const LOW_PRIORITY_TEAMS = new Set([
  */
 const STARS = {
   // --- Capitanes y cracks de los equipos añadidos (IE1/IE2/IE3) ---
+  'Harper Evans': 5, // el protagonista de Victory Road
   'Mac Robingo': 5, // capitán de Brasil
   'Edgar Partinus': 5, // capitán de Knights of Queen
   'Carlos Lagarto': 4,

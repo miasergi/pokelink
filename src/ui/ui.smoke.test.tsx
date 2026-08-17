@@ -247,6 +247,44 @@ describe('render de pantallas (smoke)', () => {
       useInazuma.setState({ playing: false, uiBusy: false })
     }
 
+    // EL RONDO corre aunque el MOTOR ya esté en «decision»: el motor entra en
+    // esa fase nada más generar la siguiente jugada — AL PRINCIPIO de la
+    // espera — y lo que congela el campo es el PANEL en pantalla, no la fase.
+    // La condición vieja apagaba el rondo en modo dinámico y el césped se
+    // quedaba quieto minutos enteros.
+    {
+      const live = startMatch(save, node)
+      if ('error' in live) throw new Error(live.error)
+      const rng3 = new RNG(31)
+      for (let i = 0; i < 200 && !(live.match.phase === 'decision' && live.match.events.some((e) => e.kind === 'duel')); i++) {
+        if (live.match.phase === 'decision') chooseOption(live.match, rng3, live.match.decision!.options[0].id)
+        else advance(live.match, rng3)
+      }
+      expect(live.match.phase).toBe('decision')
+      // Feed SIN el último evento: el panel aún no puede mostrarse.
+      useInazuma.setState({
+        match: live.match,
+        feed: live.match.events.slice(0, live.match.events.length - 1),
+        phase: 'match',
+        playing: false,
+      })
+      vi.useFakeTimers()
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      const root = createRoot(host)
+      act(() => { root.render(createElement(InazumaScreen)) })
+      const spots = () => [...host.querySelectorAll<HTMLElement>('[style*="left"]')]
+        .map((e) => `${e.style.left},${e.style.top}`).join('|')
+      act(() => { vi.advanceTimersByTime(4000) })
+      const a = spots()
+      act(() => { vi.advanceTimersByTime(4000) })
+      const b = spots()
+      act(() => { root.unmount() })
+      host.remove()
+      vi.useRealTimers()
+      expect(a, 'el rondo no corre con el motor en decision').not.toBe(b)
+    }
+
     // EL PARTIDO NO VA POR TURNOS: sin que llegue ni un evento nuevo, el
     // césped se mueve solo (la jugada avanza y luego el balón circula). Si
     // esto se rompe, el campo vuelve a quedarse congelado entre eventos —
