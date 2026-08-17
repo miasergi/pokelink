@@ -119,12 +119,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
 
   // Con pase posterior al duelo (y sin decisión/cinemática encima), el balón
   // lo tiene el RECEPTOR en el mismo eslabón.
-  const carrierUid = !current && passTo ? passTo : shown?.attackerUid ?? null
-  const markerUid = shown?.defenderUid ?? null
-  const step: ChainStep | null = shown?.step ?? null
-  const atkSide = shown?.side ?? null
-  const iAttack = atkSide === mine
-
+  const rawCarrierUid = !current && passTo ? passTo : shown?.attackerUid ?? null
+  const rawMarkerUid = shown?.defenderUid ?? null
+  let carrierUid = rawCarrierUid
+  let markerUid: string | null = rawMarkerUid
+  let step: ChainStep | null = shown?.step ?? null
+  let atkSide = shown?.side ?? null
   const myAnchor = anchors(home.keeper, home.defs, home.mids, home.fwds, true)
   const theirAnchor = anchors(away.keeper, away.defs, away.mids, away.fwds, false)
 
@@ -135,7 +135,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // el número de eventos: si se reinicia con cada línea de narración, el
   // bloque pega un tirón hacia atrás cada dos por tres — eso era buena parte
   // de los «movimientos antinaturales».
-  const playKey = `${atkSide ?? '-'}|${step ?? '-'}|${carrierUid ?? '-'}|${markerUid ?? '-'}`
+  const playKey = `${shown?.side ?? '-'}|${shown?.step ?? '-'}|${rawCarrierUid ?? '-'}|${rawMarkerUid ?? '-'}`
   const startedAt = useRef({ key: '', t: 0 })
   if (startedAt.current.key !== playKey) {
     startedAt.current = { key: playKey, t: Date.now() }
@@ -147,11 +147,47 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const ease = (t: number) => 1 - (1 - t) * (1 - t)
   const phase = elapsed / PHASE_MS
   const progress = ease(Math.max(0, Math.min(1, phase)))
-  // Y CUANDO LA JUGADA YA HA AVANZADO no se congela todo: el equipo MANTIENE
-  // la posesión mientras busca el hueco. `hold` es el tiempo que llevamos
-  // esperando al siguiente evento (o a que decidas), y de él sale la
-  // circulación del balón — que es lo que mantiene vivo el campo.
-  const hold = Math.max(0, phase - 1)
+  // Tiempo (EN SEGUNDOS) que llevamos esperando al siguiente evento. Antes
+  // iba en unidades de PHASE_MS por un despiste y toda la vida entre jugadas
+  // corría 2.6 veces más lenta de lo diseñado.
+  const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
+
+  // EL RONDO: la capa que faltaba para que esto sea una SIMULACIÓN y no un
+  // juego por turnos. El motor genera ~16 jugadas por partido, así que entre
+  // una y otra pasan varios minutos en los que NO HAY nada que contar — y el
+  // campo se quedaba en foto («un ordenador decide que hay jugada en el 7»).
+  // Ahora, en cuanto la jugada contada termina, el equipo con el balón LO
+  // MUEVE de verdad: sale desde la defensa, pasa por los medios y sube hasta
+  // los delanteros, un pase cada ~1.3 s, y vuelta a empezar desde atrás.
+  // Todo determinista, sin ruido: cada pase es a un compañero concreto.
+  let buildup = false
+  if (flowing && holdSec > 0.5) {
+    // ¿De quién es el balón AHORA? Del último evento que lo diga.
+    let possession: 'home' | 'away' | null = null
+    for (let i = feed.length - 1; i >= 0; i--) {
+      const e = feed[i]
+      if (e.kind === 'turnover') { possession = e.side; break }
+      if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); break }
+      if (e.kind === 'goal') { possession = otherSide(e.side); break } // saca el que encajó
+      if (e.kind === 'possession') { possession = e.side; break }
+    }
+    if (possession) {
+      const posSide = sideOf(match, possession)
+      // Defensas → medios → delanteros: la salida de balón de manual. El
+      // bucle vuelve a la defensa: reciclar hacia atrás también es fútbol.
+      const order = [...posSide.defs, ...posSide.mids, ...posSide.fwds]
+      if (order.length) {
+        const holder = order[Math.floor(holdSec / 1.3) % order.length]
+        buildup = true
+        atkSide = possession
+        step = 'construccion'
+        carrierUid = holder.uid
+        // Sin marcador: el duelo aún no ha llegado — esto es el viaje.
+        markerUid = null
+      }
+    }
+  }
+  const iAttack = atkSide === mine
 
   // El balón AVANZA dentro de su zona mientras dura la jugada (y retrocede un
   // pelín al empezar, que es como se gana un metro antes de atacar).
@@ -162,7 +198,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const zoneFrom = step != null ? zone - ZONE_RUN : 50
   const zoneTo = step != null ? zone + ZONE_RUN : 50
   const rawBallX = zoneFrom + (zoneTo - zoneFrom) * progress
-  const ballX = step == null ? 50 : iAttack ? rawBallX : 100 - rawBallX
+  let ballX = step == null ? 50 : iAttack ? rawBallX : 100 - rawBallX
+  if (buildup && carrierUid) {
+    // Rondo: el balón viaja de jugador en jugador, no por zonas abstractas.
+    const a = (atkSide === mine ? myAnchor : theirAnchor).get(carrierUid)
+    if (a) ballX = a.x
+  }
 
   // LECTURA DE PARTIDO (de lo revelado): marcador y minuto. De aquí sale el
   // ÁNIMO táctico de cada equipo en el tramo final.
@@ -186,7 +227,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // PRESIÓN TRAS PÉRDIDA: si lo último contado es un robo, el equipo que
   // acaba de perder el balón se ECHA ENCIMA un latido (gegenpressing).
   const lastEv = feed[feed.length - 1]
-  const pressSide = lastEv?.kind === 'turnover' ? lastEv.side : null
+  const pressSide = !buildup && lastEv?.kind === 'turnover' ? lastEv.side : null
 
   // VUELCO POR LÍNEAS: el equipo que ataca EMPUJA (más cuanto más arriba
   // juega) y el que defiende REPLIEGA hacia su portería, cada línea en
@@ -206,7 +247,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     // El bloque ACOMPAÑA a la jugada: arranca a media subida y termina de
     // meterse según avanza el balón. Antes el empuje era un valor fijo por
     // evento y todo el equipo daba un salto seco al revelarse cada duelo.
-    return push * dir * deep * (0.55 + 0.45 * progress)
+    return push * dir * deep * (0.55 + 0.45 * progress) * (buildup ? 0.55 : 1)
   }
 
   // APOYOS CON PROPÓSITO: los compañeros del portador más cercanos al balón
@@ -224,18 +265,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       .forEach((x) => supportUids.add(x.a.uid))
   }
 
-  // CIRCULACIÓN: el balón va rotando entre el que lo lleva y sus apoyos, un
-  // toque cada ~1.1 s, mientras no haya cinemática ni decisión en pantalla.
-  // Sin esto el campo se quedaba congelado entre evento y evento y el partido
-  // parecía ir por turnos.
-  const supportList = [...supportUids]
-  const circulateTo = flowing && supportList.length
-    ? (() => {
-      const slot = Math.floor(hold / 1.1) % (supportList.length + 1)
-      return slot === 0 ? null : supportList[slot - 1]
-    })()
-    : null
-  const ballHolderUid = circulateTo ?? carrierUid
+  const ballHolderUid = carrierUid
 
   const ballCarrierRef = carrierUid ? actorByUid(match, carrierUid) ?? null : null
   const clampX = (x: number) => Math.max(4, Math.min(96, x))
@@ -264,11 +294,16 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
     if (a.uid === carrierUid) {
+      if (a.position === 'POR') return base
+      // En el RONDO cada uno recibe EN SU SITIO (un paso al frente): así los
+      // pases se ven volar entre posiciones reales y nadie corretea.
+      if (buildup) {
+        return { x: clampX(base.x + (isMine ? 2 : -2)), y: base.y }
+      }
       // El del balón CONDUCE desde donde estaba hacia el punto del eslabón:
       // a mitad de camino de su ancla, no plantado en la zona. Antes se le
       // colocaba directamente en `ballX` y al cambiar el portador el nuevo
       // cruzaba el campo entero de un tirón — el «teletransporte».
-      if (a.position === 'POR') return base
       return {
         x: clampX(base.x + (ballX - base.x) * (0.45 + 0.3 * progress)),
         y: clampY(base.y + (base.y * 0.6 + 20 - base.y) * 0.7),
