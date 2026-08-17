@@ -345,7 +345,7 @@ function Showcase({ side, tech, crest, fallbackAction, color, stamp, versus }: {
             // ANIMACIÓN NUESTRA en vez de la imagen estática de la wiki: el
             // arquetipo procedural de su clase, con las partículas y el color
             // de su elemento y la intensidad de su potencia.
-            <TechniqueFX kind={tech.kind} element={tech.element} power={tech.power} />
+            <TechniqueFX tech={tech} />
           ) : (
             <div className="w-full h-full grid place-items-center animate-showcase-zoom"
               style={{ background: `radial-gradient(circle at 50% 45%, ${glow}33, #020617 75%)` }}>

@@ -262,6 +262,54 @@ body {
 }
 .fx-float-up { animation: fx-float-up 1.5s linear infinite; }
 
+/* Motivos de TechniqueFX v2: entradas y gestos de cada figura. */
+@keyframes fx-loom {
+  0% { transform: translateY(14%) scale(.82); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.fx-loom { animation: fx-loom .8s cubic-bezier(.2, .9, .3, 1) forwards; }
+@keyframes fx-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.fx-sway { animation: fx-sway 1.6s ease-in-out infinite; }
+@keyframes fx-flap {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(10deg); }
+}
+.fx-flap { animation: fx-flap .7s ease-in-out infinite; }
+@keyframes fx-slash {
+  0% { transform: translateX(-120%) rotate(-24deg); opacity: 0; }
+  12% { opacity: 1; }
+  55% { opacity: 1; }
+  100% { transform: translateX(120%) rotate(-24deg); opacity: 0; }
+}
+.fx-slash { animation: fx-slash 1s ease-in infinite; }
+@keyframes fx-undulate {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-9%) scaleY(1.06); }
+}
+.fx-undulate { animation: fx-undulate 1.5s ease-in-out infinite; }
+@keyframes fx-punch {
+  0%, 100% { transform: translateY(6%) scale(.92); }
+  40% { transform: translateY(-6%) scale(1.08); }
+  55% { transform: translateY(-4%) scale(1.04); }
+}
+.fx-punch { animation: fx-punch .9s ease-out infinite; }
+@keyframes fx-march {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-7%) rotate(4deg); }
+}
+.fx-march { animation: fx-march .55s ease-in-out infinite; }
+@keyframes fx-crackle {
+  0%, 100% { opacity: .95; }
+  20% { opacity: .25; }
+  45% { opacity: 1; }
+  70% { opacity: .4; }
+}
+.fx-crackle { animation: fx-crackle .5s steps(2) infinite; }
+
 /* Barra de suspense del tiro: se llena en un segundo largo. */
 @keyframes suspense-fill {
   from { width: 0%; }
