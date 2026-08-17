@@ -3842,14 +3842,8 @@ export const PLAYERS: PlayerBase[] = [
   },
   // ============================== NAGUMOHARA
   {
-    id: 'harper-evans', name: 'Harper Evans', team: 'nagumohara', position: 'DEL', element: 'montana', fame: 5,
-    stats: { tiro: 117, control: 82, fisico: 56, defensa: 29, velocidad: 61, aguante: 38 },
-    techniques: ['hitotsu', 'scissors-bomb'],
-    signature: ['hitotsu', 'scissors-bomb', 'jouheki-kyohei-warborg', 'super-megaton-head'],
-  },
-  {
-    id: 'alix-la-fontaine', name: 'Alix La Fontaine', team: 'nagumohara', position: 'POR', element: 'aire', fame: 4,
-    stats: { tiro: 33, control: 44, fisico: 55, defensa: 101, velocidad: 41, aguante: 59 },
+    id: 'alix-la-fontaine', name: 'Alix La Fontaine', team: 'nagumohara', position: 'POR', element: 'aire', fame: 5,
+    stats: { tiro: 37, control: 49, fisico: 63, defensa: 114, velocidad: 46, aguante: 68 },
     techniques: ['hyouketsu-no-mai', 'kogarashi'],
     signature: ['hyouketsu-no-mai', 'kogarashi', 'holy-zone', 'majin-the-wave'],
   },
@@ -3860,9 +3854,9 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['security-shot', 'dash-storm', 'guruguru-shoot', 'murakumo-trap'],
   },
   {
-    id: 'cedric-freud', name: 'Cedric Freud', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 3,
-    stats: { tiro: 43, control: 78, fisico: 36, defensa: 43, velocidad: 48, aguante: 37 },
-    techniques: ['bunshin-feint'],
+    id: 'cedric-freud', name: 'Cedric Freud', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 4,
+    stats: { tiro: 50, control: 90, fisico: 42, defensa: 50, velocidad: 56, aguante: 42 },
+    techniques: ['bunshin-feint', 'entertainer'],
     signature: ['bunshin-feint', 'entertainer', 'strike-samba', 'block-circus'],
   },
   {
@@ -3896,8 +3890,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['phantom-shoot', 'ayakashi-dribble', 'tsuchi-daruma', 'mogura-feint'],
   },
   {
-    id: 'tai-richter', name: 'Tai Richter', team: 'nagumohara', position: 'MED', element: 'aire', fame: 2,
-    stats: { tiro: 32, control: 70, fisico: 35, defensa: 37, velocidad: 42, aguante: 25 },
+    id: 'tai-richter', name: 'Tai Richter', team: 'nagumohara', position: 'MED', element: 'aire', fame: 3,
+    stats: { tiro: 39, control: 82, fisico: 41, defensa: 44, velocidad: 50, aguante: 30 },
     techniques: ['gravitation'],
     signature: ['gravitation', 'no-escape', 'niagara-falls', 'shunrai'],
   },
@@ -3914,15 +3908,27 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['dash-accel', 'hokkyoku-guma-2gou', 'jouheki-kyohei-warborg', 'jigoku-guruma'],
   },
   {
-    id: 'dario-highton', name: 'Dario Highton', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 1,
-    stats: { tiro: 31, control: 55, fisico: 25, defensa: 28, velocidad: 39, aguante: 24 },
+    id: 'dario-highton', name: 'Dario Highton', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 2,
+    stats: { tiro: 37, control: 66, fisico: 30, defensa: 34, velocidad: 46, aguante: 29 },
     techniques: ['the-mountain'],
     signature: ['the-mountain', 'sigma-zone', 'the-wall', 'ayakashi-dribble'],
   },
+  {
+    id: 'amelia-rainwalker', name: 'Amelia Rainwalker', team: 'nagumohara', position: 'DEF', element: 'aire', fame: 1,
+    stats: { tiro: 23, control: 32, fisico: 47, defensa: 59, velocidad: 24, aguante: 30 },
+    techniques: ['gravitation'],
+    signature: ['gravitation', 'the-tower', 'divine-arrow', 'aurora-dribble'],
+  },
   // ============================== OUJA-RAIMON
   {
-    id: 'zander-warmington', name: 'Zander Warmington', team: 'ouja-raimon', position: 'POR', element: 'fuego', fame: 5,
-    stats: { tiro: 37, control: 46, fisico: 63, defensa: 112, velocidad: 51, aguante: 68 },
+    id: 'harper-evans', name: 'Harper Evans', team: 'ouja-raimon', position: 'DEL', element: 'montana', fame: 5,
+    stats: { tiro: 117, control: 82, fisico: 56, defensa: 29, velocidad: 61, aguante: 38 },
+    techniques: ['hitotsu', 'scissors-bomb'],
+    signature: ['hitotsu', 'scissors-bomb', 'jouheki-kyohei-warborg', 'super-megaton-head'],
+  },
+  {
+    id: 'zander-warmington', name: 'Zander Warmington', team: 'ouja-raimon', position: 'POR', element: 'fuego', fame: 4,
+    stats: { tiro: 33, control: 40, fisico: 55, defensa: 98, velocidad: 45, aguante: 59 },
     techniques: ['nekketsu-punch', 'bakuretsu-punch'],
     signature: ['nekketsu-punch', 'bakuretsu-punch', 'million-hands', 'tsuumande-goran'],
   },
@@ -3933,9 +3939,9 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['kage-nui', 'demon-cut', 'ultra-moon', 'killer-fields'],
   },
   {
-    id: 'clement-mariner', name: 'Clement Mariner', team: 'ouja-raimon', position: 'DEF', element: 'aire', fame: 4,
-    stats: { tiro: 33, control: 42, fisico: 79, defensa: 93, velocidad: 42, aguante: 50 },
-    techniques: ['go-to-heaven', 'tsunami-boost'],
+    id: 'clement-mariner', name: 'Clement Mariner', team: 'ouja-raimon', position: 'DEF', element: 'aire', fame: 3,
+    stats: { tiro: 29, control: 36, fisico: 68, defensa: 81, velocidad: 37, aguante: 44 },
+    techniques: ['go-to-heaven'],
     signature: ['go-to-heaven', 'tsunami-boost', 'air-ride', 'megalodon'],
   },
   {
@@ -3969,8 +3975,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['senpuujin', 'perfect-tower', 'niagara-falls', 'shunrai'],
   },
   {
-    id: 'talon-lewis', name: 'Talon Lewis', team: 'ouja-raimon', position: 'DEL', element: 'fuego', fame: 3,
-    stats: { tiro: 90, control: 60, fisico: 41, defensa: 23, velocidad: 45, aguante: 29 },
+    id: 'talon-lewis', name: 'Talon Lewis', team: 'ouja-raimon', position: 'DEL', element: 'fuego', fame: 2,
+    stats: { tiro: 76, control: 50, fisico: 34, defensa: 19, velocidad: 38, aguante: 24 },
     techniques: ['honoo-no-kazamidori'],
     signature: ['honoo-no-kazamidori', 'tsuutenkaku-shoot', 'judge-through-3', 'the-ikaros'],
   },
@@ -3987,8 +3993,8 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['the-tower', 'double-cyclone', 'butterfly-dream', 'angel-ball'],
   },
   {
-    id: 'milan-mcgrath', name: 'Milan McGrath', team: 'ouja-raimon', position: 'DEF', element: 'aire', fame: 2,
-    stats: { tiro: 24, control: 37, fisico: 60, defensa: 66, velocidad: 31, aguante: 36 },
+    id: 'milan-mcgrath', name: 'Milan McGrath', team: 'ouja-raimon', position: 'DEF', element: 'aire', fame: 1,
+    stats: { tiro: 20, control: 32, fisico: 50, defensa: 55, velocidad: 26, aguante: 30 },
     techniques: ['profile-zone'],
     signature: ['profile-zone', 'perfect-tower', 'maboroshi-dribble', 'coil-turn'],
   },
@@ -3997,12 +4003,6 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 28, control: 58, fisico: 26, defensa: 28, velocidad: 35, aguante: 28 },
     techniques: ['aurora-dribble'],
     signature: ['aurora-dribble', 'killer-fields', 'double-grenade', 'shinkuuma'],
-  },
-  {
-    id: 'matilda-shadebough', name: 'Matilda Shadebough', team: 'ouja-raimon', position: 'POR', element: 'montana', fame: 1,
-    stats: { tiro: 19, control: 24, fisico: 38, defensa: 59, velocidad: 30, aguante: 34 },
-    techniques: ['gravity-desert'],
-    signature: ['gravity-desert', 'diamond-punch', 'okan-the-hand', 'god-catch-ft'],
   },
   // ============================== HOKUYOU-GAKUEN
   {

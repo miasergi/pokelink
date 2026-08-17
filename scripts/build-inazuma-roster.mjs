@@ -165,9 +165,9 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 const FORCED_MEMBERS = {
   royal: ['Kidou'],
   // El PROTAGONISTA de Victory Road: su ficha de la wiki lo deja en un
-  // «unnamed youth team» y la plantilla de Nagumohara no lo lista, así que el
-  // crawler lo perdía. Su equipo en el juego es Nagumohara.
-  nagumohara: ['Endou Haru'],
+  // «unnamed youth team» sin plantilla que rastrear, así que el crawler lo
+  // perdía. Va al Raimon de IEVR (Ouja Raimon), que es donde le toca.
+  'ouja-raimon': ['Endou Haru'],
 }
 
 /**

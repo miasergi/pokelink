@@ -418,6 +418,17 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
       : { x: 50, y: 50 })
 
+  // VELOCIDAD CONSTANTE, SIN LAGAZOS: el suavizado del balón dura lo que
+  // dicta la DISTANCIA al nuevo punto (~26 ms por % de campo, la misma
+  // velocidad que las carreras). Con duración fija, cualquier discontinuidad
+  // (cambio de posesión, re-siembra del rondo, cambio de campo, volver a la
+  // pestaña) barría media pista en 90 ms — el «lagazo».
+  const ballPx = { x: mx(ball.x), y: my(ball.y) }
+  const prevBallPx = useRef(ballPx)
+  const ballJump = Math.hypot(ballPx.x - prevBallPx.current.x, ballPx.y - prevBallPx.current.y)
+  prevBallPx.current = ballPx
+  const ballMs = Math.max(60, Math.min(900, ballJump * 26))
+
   // El que se cruza en la trayectoria (si lo hay): el balón muere en sus pies.
   const blocker = flight?.toUid ? actorByUid(match, flight.toUid) : null
   const blockerSpot = blocker
@@ -522,13 +533,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           <div
             className="absolute z-30 w-4 h-4 -ml-2 -mt-2 pointer-events-none"
             style={{
-              left: `${mx(ball.x)}%`,
-              top: `${my(ball.y)}%`,
-              // Rondo: el punto viene interpolado por frame — suavizado corto
-              // y lineal. Jugada contada: el vuelo de pase de siempre.
-              transition: rondoBall
-                ? 'left 90ms linear, top 90ms linear'
-                : 'left 700ms cubic-bezier(0.16, 1, 0.3, 1), top 700ms cubic-bezier(0.16, 1, 0.3, 1)',
+              left: `${ballPx.x}%`,
+              top: `${ballPx.y}%`,
+              // Lineal y proporcional a la distancia: el balón viaja SIEMPRE
+              // a la misma velocidad, dé un toque corto o un pelotazo.
+              transition: `left ${ballMs}ms linear, top ${ballMs}ms linear`,
             }}
           >
             <Pic name="ball" className="w-4 h-4 drop-shadow animate-ball-bob" />
