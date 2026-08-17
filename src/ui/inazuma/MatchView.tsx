@@ -26,7 +26,7 @@ import type { Actor, ChainStep, Element, MatchEvent, MatchState, Technique } fro
 export default function MatchView() {
   const {
     match, feed, playing, speed, autoPlay, save, matchNode, clock,
-    halftimeSubsSummary, clearHalftimeSubsSummary,
+    halftimeSubsSummary, clearHalftimeSubsSummary, halftimeBreak,
     setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
   } = useInazuma()
   const simMatch = useSettings((s) => s.inazumaSimMatch)
@@ -215,10 +215,47 @@ export default function MatchView() {
             <div className="text-center text-[10px] uppercase tracking-widest text-slate-500">Descanso</div>
             <div className="text-center font-extrabold text-lg mb-3">Cambios de la segunda parte</div>
             <div className="flex flex-col gap-1.5 mb-4">
-              {halftimeSubsSummary.map((t, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-2.5 py-1.5">
-                  <Icon name="jersey" className="w-4 h-4 shrink-0 text-emerald-300" />
-                  <span className="text-[12px] leading-snug">{t}</span>
+              {halftimeSubsSummary.map((c, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 ${
+                    c.mine ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-rose-500/40 bg-rose-500/5'
+                  }`}
+                >
+                  {/* ENTRA: retrato con su rareza, nombre y nivel. */}
+                  <div
+                    className="relative w-11 h-11 shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
+                    style={{ borderColor: (c.inRarity ?? 1) === 4 ? 'transparent' : rarityBorder(c.inRarity ?? 1) }}
+                  >
+                    <ImgFallback
+                      src={c.inBaseId ? portraitUrl(c.inBaseId) : ''}
+                      className="w-full h-full object-cover object-top"
+                      alt={c.inName}
+                      fallback={<span className="text-[10px] font-extrabold">{c.inName.slice(0, 2).toUpperCase()}</span>}
+                    />
+                    {(c.inRarity ?? 1) === 4 && <span className="mc-ring rounded-full" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] uppercase tracking-widest font-extrabold text-emerald-300">Entra</div>
+                    <div className="text-[13px] font-bold truncate">
+                      {c.inName}
+                      {c.inLevel != null && <span className="ml-1 text-[10px] text-slate-400">Nv.{c.inLevel}</span>}
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">{c.teamName}</div>
+                  </div>
+                  {/* SALE: retrato apagado. */}
+                  <div className="text-right">
+                    <div className="text-[9px] uppercase tracking-widest font-extrabold text-rose-300/90">Sale</div>
+                    <div className="text-[11px] text-slate-400 truncate max-w-[88px]">{c.outName}</div>
+                  </div>
+                  <div className="relative w-8 h-8 shrink-0 rounded-full overflow-hidden border border-slate-700 grid place-items-center bg-slate-900 opacity-60 grayscale">
+                    <ImgFallback
+                      src={c.outBaseId ? portraitUrl(c.outBaseId) : ''}
+                      className="w-full h-full object-cover object-top"
+                      alt={c.outName}
+                      fallback={<span className="text-[9px] font-extrabold">{c.outName.slice(0, 2).toUpperCase()}</span>}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -280,7 +317,10 @@ export default function MatchView() {
               // siguiente jugada, o sea AL PRINCIPIO de la espera de varios
               // minutos… y con la condición vieja el rondo no corría nunca en
               // modo dinámico (por eso «seguía igual»).
-              flowing={!(match.phase === 'decision' && caughtUp && !frozen) && stage === null && gol === null}
+              // …y tampoco durante el DESCANSO ni con el panel de cambios:
+              // el balón no rueda mientras los equipos están en el vestuario.
+              flowing={!(match.phase === 'decision' && caughtUp && !frozen) && stage === null && gol === null
+                && !halftimeBreak && !halftimeSubsSummary}
             />
             {/* FLASH del duelo de campo: grande, breve y sin parar nada. */}
             {flash && (

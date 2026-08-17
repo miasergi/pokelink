@@ -151,7 +151,12 @@ export function rivalRarityPlan(bossIndex: number): number[] {
 export function rivalRarityMap(teamId: string, bossIndex: number): Map<string, number> {
   const xi = rivalStartingXI(teamId)
   const plan = rivalRarityPlan(bossIndex)
-  const ranked = [...xi].sort((a, b) => b.fame - a.fame)
+  // CANON: el peso en la serie manda y, A IGUALDAD, los mejores números.
+  // Antes el empate lo resolvía el orden de plantilla (portero, defensas…),
+  // así que las rarezas subidas caían siempre en la retaguardia en vez de en
+  // los cracks del equipo.
+  const sum = (b: PlayerBase) => Object.values(b.stats).reduce((a, v) => a + v, 0)
+  const ranked = [...xi].sort((a, b) => b.fame - a.fame || sum(b) - sum(a))
   const out = new Map<string, number>()
   ranked.forEach((b, i) => out.set(b.id, plan[Math.min(i, plan.length - 1)] ?? 1))
   return out
@@ -497,8 +502,17 @@ export function buildRivalTeam(
       rng.shuffle(pool.filter((p) => p.position === pos)).slice(0, n)
     const xi = [...byPos('POR', 1), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 2)]
     if (xi.length >= 11) {
-      return xi.slice(0, 11).map((b) =>
-        toRival(b, level, team.power, opts.rarityMap?.get(b.id) ?? rarity, opts.elite ?? false))
+      const drawn = xi.slice(0, 11)
+      // El plan de rarezas del instituto se reparte entre LOS MEJORES del
+      // once sorteado (peso en la serie y, a igualdad, números).
+      const planValues = opts.rarityMap
+        ? [...opts.rarityMap.values()].sort((a, b) => b - a)
+        : null
+      const sum = (b: PlayerBase) => Object.values(b.stats).reduce((a, v) => a + v, 0)
+      const ranked = [...drawn].sort((a, b) => b.fame - a.fame || sum(b) - sum(a))
+      const rarityOfDrawn = new Map(ranked.map((b, i) => [b.id, planValues?.[Math.min(i, planValues.length - 1)] ?? rarity]))
+      return withRivalArmband(drawn.map((b) =>
+        toRival(b, level, team.power, rarityOfDrawn.get(b.id) ?? rarity, opts.elite ?? false)))
     }
   }
   // Su once sale de su plantilla REAL (14 jugadores por instituto) y se arma
@@ -519,7 +533,44 @@ export function buildRivalTeam(
   needed.forEach((pos, i) => {
     out.push(fillerRival(names[i % names.length], pos, team.element, level, team.power, rng))
   })
-  return out.slice(0, 11)
+  return withRivalArmband(out.slice(0, 11))
+}
+
+/**
+ * El BRAZALETE del rival: su jugador insignia (más peso en la serie y, a
+ * igualdad, mejores números) sale con +25 % a todo, como tu capitán.
+ */
+function withRivalArmband(xi: RivalPlayer[]): RivalPlayer[] {
+  if (!xi.length) return xi
+  const sum = (p: RivalPlayer) => Object.values(p.stats).reduce((a, v) => a + v, 0)
+  const fameOf = (p: RivalPlayer) => {
+    try { return getPlayerBase(p.baseId).fame } catch { return 1 }
+  }
+  const cap = xi.reduce((best, p) =>
+    (fameOf(p) > fameOf(best) || (fameOf(p) === fameOf(best) && sum(p) > sum(best)) ? p : best), xi[0])
+  cap.stats = {
+    tiro: Math.round(cap.stats.tiro * ARMBAND_MULT),
+    control: Math.round(cap.stats.control * ARMBAND_MULT),
+    fisico: Math.round(cap.stats.fisico * ARMBAND_MULT),
+    defensa: Math.round(cap.stats.defensa * ARMBAND_MULT),
+    velocidad: Math.round(cap.stats.velocidad * ARMBAND_MULT),
+    aguante: Math.round(cap.stats.aguante * ARMBAND_MULT),
+  }
+  return xi
+}
+
+/** Multiplicador del Brazalete de Capitán (+25 % a todo). */
+const ARMBAND_MULT = 1.25
+
+/**
+ * El JUGADOR INSIGNIA de una plantilla rival: el de más peso en la serie y, a
+ * igualdad, el de mejores números. Es quien lleva su Brazalete de Capitán.
+ */
+export function rivalArmbandBaseId(teamId: string): string | null {
+  const xi = rivalStartingXI(teamId)
+  if (!xi.length) return null
+  const sum = (b: PlayerBase) => Object.values(b.stats).reduce((a, v) => a + v, 0)
+  return xi.reduce((best, b) => (b.fame > best.fame || (b.fame === best.fame && sum(b) > sum(best)) ? b : best), xi[0]).id
 }
 
 /**

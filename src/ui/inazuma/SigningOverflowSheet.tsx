@@ -67,11 +67,6 @@ export default function SigningOverflowSheet() {
             const b = getPlayerBase(p.baseId)
             const fee = transferValue(b, p.level)
             const medals = Math.max(1, Math.min(MAX_RARITY, rarityOf(p)))
-            if (p.captain) {
-              return (
-                <PlayerRow key={p.uid} player={p} dimmed right={<span className="text-[9px] text-slate-500">capitán</span>} />
-              )
-            }
             return (
               <PlayerRow
                 key={p.uid}

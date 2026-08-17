@@ -1072,7 +1072,7 @@ function PlayerDetail({
         <div className="mt-2 flex gap-2">
           {/* Vender pide CONFIRMACIÓN: es irreversible. Se ve QUÉ te llevas:
               el importe y la Medalla de talento. */}
-          {!player.captain && !blocked && !confirmSale && (
+          {!blocked && !confirmSale && (
             <Button variant="danger" full onClick={() => setConfirmSale(true)}>
               <span className="inline-flex items-center justify-center gap-1.5">
                 Vender · {fee.toLocaleString('es-ES')} ₽ + {rarityOf(player)}×

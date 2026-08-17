@@ -23,7 +23,7 @@ import {
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
+import { advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, buildTacticOffer, signingLevel } from '@/engine/inazuma/rewards'
 import {
@@ -162,7 +162,11 @@ function getRng(save: InazumaSave): RNG {
 }
 
 /** Cambios hechos en el descanso, para anunciarlos al reanudar. */
-let halftimeSubNotes: { inName: string; outName: string }[] = []
+let halftimeSubNotes: {
+  inName: string; outName: string
+  inBaseId?: string; outBaseId?: string
+  inRarity?: number; inLevel?: number
+}[] = []
 
 /** Fase de ENTRADA pedida desde fuera (el menú principal): p. ej. 'album'. */
 let pendingEntry: InazumaPhase | null = null
@@ -336,9 +340,15 @@ interface InazumaState {
   resumeSecondHalf: () => void
   /**
    * CAMBIOS DEL DESCANSO, para enseñarlos EN PANTALLA antes de reanudar (los
-   * tuyos y los del rival). El botón de «¡Segunda parte!» los despeja.
+   * tuyos y los del rival), con retrato, rareza y nivel. El botón de
+   * «¡Segunda parte!» los despeja.
    */
-  halftimeSubsSummary: string[] | null
+  halftimeSubsSummary: {
+    teamName: string
+    mine: boolean
+    inName: string; inBaseId?: string; inRarity?: number; inLevel?: number
+    outName: string; outBaseId?: string
+  }[] | null
   clearHalftimeSubsSummary: () => void
   /** Consumible sobre un jugador DEL PARTIDO, en el descanso. */
   halftimeUseItem: (itemId: string, actorUid: string) => void
@@ -986,8 +996,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save || !pendingSigning) return
     const out = save.roster.find((p) => p.uid === uid)
     if (!out) return
-    if (out.captain) { set({ message: 'El capitán no se traspasa.' }); return }
     const outBase = getPlayerBase(out.baseId)
+    const outKept = out.item ? [out.item] : []
     const fee = transferValue(outBase, out.level)
     const medals = Math.max(1, Math.min(MAX_RARITY, rarityOf(out)))
     const nuevo = createPlayer(pendingSigning.baseId, pendingSigning.level, { rarity: pendingSigning.rarity })
@@ -997,7 +1007,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // El nuevo hereda el HUECO del vendido si era titular.
       lineup: save.lineup.map((u) => (u === uid ? nuevo.uid : u)),
       coins: save.coins + fee,
-      bag: [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')],
+      bag: [...save.bag, ...outKept, ...Array.from({ length: medals }, () => 'medalla-rareza')],
     }
     void persistInazumaMeta({ signed: [pendingSigning.baseId] })
     play('levelup')
@@ -1120,7 +1130,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
 
   resumeSecondHalf: () => {
     const { match } = get()
-    let summary: string[] | null = null
+    let summary: InazumaState['halftimeSubsSummary'] = null
     if (match) {
       // ANUNCIO de los cambios hechos en el descanso (los tuyos) y los del
       // RIVAL, que también tiene banquillo y derecho a 3 cambios: entran a la
@@ -1132,14 +1142,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         side: playerSide(match),
         text: `Cambio en ${mySide.name}: entra ${n.inName} por ${n.outName}.`,
       }))
-      evs.push(...rivalHalftimeSubs(match))
+      const rival = rivalHalftimeSubs(match)
+      evs.push(...rival.events)
       if (evs.length) {
         match.events.push(...evs)
         revealQueue.push(...evs)
-        // Y A LA VISTA: el panel con los cambios de los dos equipos, ANTES de
-        // que ruede el balón. La narración sola pasaba desapercibida.
-        summary = evs.map((e) => (e.kind === 'possession' ? e.text : ''))
-          .filter(Boolean)
+        // Y A LA VISTA: el panel con los cambios de los dos equipos (retrato,
+        // rareza y nivel), ANTES de que ruede el balón.
+        const rivalSide = sideOf(match, otherSide(playerSide(match)))
+        summary = [
+          ...halftimeSubNotes.map((n) => ({ teamName: mySide.name, mine: true, ...n })),
+          ...rival.subs.map((n) => ({ teamName: rivalSide.name, mine: false, ...n })),
+        ]
       }
       halftimeSubNotes = []
       set({ match: { ...match } })
@@ -1201,8 +1215,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const err = substitute(match, outUid, incoming)
     if (err) { set({ message: err }); return }
     play('select')
-    // Se apunta para ANUNCIARLO al arrancar la segunda parte.
-    halftimeSubNotes.push({ inName: incoming.name, outName: out.name })
+    // Se apunta para ANUNCIARLO al arrancar la segunda parte (con retrato,
+    // rareza y nivel: el panel de cambios lo pinta en condiciones).
+    const benchP = save.roster.find((p) => p.uid === benchUid)
+    halftimeSubNotes.push({
+      inName: incoming.name,
+      outName: out.name,
+      inBaseId: incoming.baseId,
+      outBaseId: out.baseId,
+      inRarity: incoming.rarity,
+      inLevel: benchP?.level,
+    })
     set({
       match: { ...match },
       message: `${incoming.name} entra por ${out.name}. Quedan ${match.subsLeft} cambios.`,
@@ -1319,7 +1342,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save || matchNode?.kind !== 'trade') return
     const out = save.roster.find((p) => p.uid === uid)
     if (!out) return
-    if (out.captain) { set({ message: 'El capitán no se cambia.' }); return }
 
     const r = getRng(save)
     const pool = availableSignings(save)
@@ -1328,10 +1350,13 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const level = out.level + 3
     // Mismo NIVEL DE RAREZA que el que se marcha: el cambio es lateral.
     const nuevo = createPlayer(incoming.id, level, { rarity: rarityOf(out) })
+    // Lo equipado del que se marcha vuelve a la mochila (el brazalete es único).
+    const tradeKept = out.item ? [out.item] : []
 
     const next: InazumaSave = {
       ...save,
       roster: [...save.roster.filter((p) => p.uid !== uid), nuevo],
+      bag: [...save.bag, ...tradeKept],
       // El nuevo hereda el HUECO del que se va: el once no se descoloca.
       lineup: save.lineup.map((u) => (u === uid ? nuevo.uid : u)),
       cleared: save.cleared.slice(),
@@ -1473,10 +1498,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const inXi = save.lineup.includes(uid)
     const player = save.roster.find((p) => p.uid === uid)
     if (!player) return
-    if (inXi && player.captain) {
-      set({ message: 'El capitán no sale del once.' })
-      return
-    }
     if (!inXi && save.lineup.length >= SQUAD_SIZE) {
       set({ message: 'El once ya está completo. Saca a alguien primero.' })
       return
@@ -1660,7 +1681,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save) return
     const p = save.roster.find((x) => x.uid === uid)
     if (!p) return
-    if (p.captain) { set({ message: 'El capitán no se traspasa.' }); return }
     // Con 11 justos, traspasar deja el once incompleto y la partida muerta:
     // no habría forma de alinear y todo partido daría error.
     if (save.roster.length <= SQUAD_SIZE) {
@@ -1669,6 +1689,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     const roster = save.roster.filter((x) => x.uid !== uid)
     const lineup = save.lineup.filter((u) => u !== uid)
+    // Lo que llevara EQUIPADO vuelve a la mochila: con el Brazalete de
+    // Capitán (único en el torneo) perderlo sería irreversible.
+    const keptItems = p.item ? [p.item] : []
     // Traspasar PAGA: antes solo borraba al jugador, que es todo coste y ningún
     // motivo para hacerlo.
     const fee = transferValue(getPlayerBase(p.baseId), p.level)
@@ -1679,7 +1702,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       ...save,
       roster,
       coins: save.coins + fee,
-      bag: [...save.bag, ...Array.from({ length: medals }, () => 'medalla-rareza')],
+      bag: [...save.bag, ...keptItems, ...Array.from({ length: medals }, () => 'medalla-rareza')],
       lineup: lineup.length ? lineup : autoLineup(roster, save.formation),
     }
     set({

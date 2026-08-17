@@ -9,6 +9,7 @@ import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
   levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
   rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
+  overall,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
@@ -81,7 +82,14 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const difficulty = opts.difficulty ?? 'normal'
   const formation = formationFor(teamId)
   const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
-  const roster = squadIds.map((id, i) => createPlayer(id, START_LEVEL, { captain: i === 0 }))
+  const roster = squadIds.map((id) => createPlayer(id, START_LEVEL))
+  // EL BRAZALETE DE CAPITÁN: único en todo el torneo, se entrega al empezar.
+  // +25 % a todo, y quien lo lleva ES el capitán (se puede reequipar: la
+  // figura del capitán intocable se retiró). En el bombo se lo lleva el mejor.
+  const capIdx = opts.randomSquad
+    ? roster.reduce((bi, p, i, arr) => (overall(p) > overall(arr[bi]) ? i : bi), 0)
+    : 0
+  roster[capIdx] = { ...roster[capIdx], item: 'brazalete-capitan' }
   const map = generateMap(
     rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga,
     opts.random?.cuadro ? (opts.pools?.length ? opts.pools : undefined) ?? [] : undefined,

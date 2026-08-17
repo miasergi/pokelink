@@ -21,7 +21,9 @@ export const ITEMS: InazumaItem[] = [
   { id: 'guantes-portero', name: 'Guantes del Guardameta', kind: 'equipo', desc: '+28 % Defensa. Cosidos para un portero.', price: 1800, stat: 'defensa', amount: 28 },
   { id: 'botas-doradas', name: 'Botas Doradas', kind: 'equipo', desc: '+30 % Tiro. Las lleva el pichichi, y se nota.', price: 2600, stat: 'tiro', amount: 30 },
   { id: 'cinta-cabeza', name: 'Cinta del Capitán', kind: 'equipo', desc: '+26 % Control. La cinta naranja de toda la vida.', price: 2200, stat: 'control', amount: 26 },
-  { id: 'brazalete-capitan', name: 'Brazalete de Capitán', kind: 'equipo', desc: '+10 % a TODO. Solo hay uno en el torneo.', price: 4200, stat: 'tiro', amount: 10 },
+  // ÚNICO: se entrega al empezar la partida (a tu capitán) y no se vende ni
+  // aparece en el botín. Los rivales llevan el suyo en su jugador insignia.
+  { id: 'brazalete-capitan', name: 'Brazalete de Capitán', kind: 'equipo', desc: '+25 % a TODAS las estadísticas. Solo hay uno: el que lo lleva ES el capitán.', price: 9999, stat: 'tiro', amount: 25 },
 
   // --- RAROS: caros, potentes y de aparición escasa en las casillas de objeto.
   { id: 'botas-inazuma', name: 'Botas Inazuma', kind: 'raro', desc: '+40 % Velocidad. Dicen que dejan surco en la hierba.', price: 5200, stat: 'velocidad', amount: 40 },
@@ -82,7 +84,8 @@ export function stockFor(kind: 'tienda' | 'rairai', progress = 7): InazumaItem[]
   // Techo de precio: arranca en 900 ₽ y sube ~800 por eliminatoria superada.
   // Los raros nunca se venden: esos solo salen en las casillas de objeto.
   const ceiling = 900 + progress * 850
-  const stock = pool.filter((i) => i.kind !== 'raro' && i.price <= ceiling)
+  // El Brazalete de Capitán es ÚNICO (se entrega al empezar): jamás se vende.
+  const stock = pool.filter((i) => i.kind !== 'raro' && i.price <= ceiling && i.id !== 'brazalete-capitan')
   // El FICHAJE ESTRELLA se expone desde mitad de torneo aunque su precio
   // supere el techo (para eso se ahorra): con el techo a secas solo aparecía
   // en la última tienda y nadie llegó a verlo en una run entera.
@@ -98,7 +101,7 @@ export function lootPool(progress: number): InazumaItem[] {
   // El Fichaje estrella cuenta como RARO a efectos de botín: encontrárselo en
   // la primera ronda regalaría el mejor jugador del catálogo de salida.
   const rare = ITEMS.filter((i) => i.kind === 'raro' || i.id === 'fichaje-estrella')
-  const normal = ITEMS.filter((i) => (i.kind === 'equipo' || i.kind === 'consumible' || i.kind === 'manual') && i.id !== 'fichaje-estrella')
+  const normal = ITEMS.filter((i) => (i.kind === 'equipo' || i.kind === 'consumible' || i.kind === 'manual') && i.id !== 'fichaje-estrella' && i.id !== 'brazalete-capitan')
   // Los raros solo aparecen de la mitad del cuadro en adelante.
   return progress >= 3 ? [...normal, ...rare] : normal
 }

@@ -134,7 +134,7 @@ export function PlayerCard({
           </div>
           <div className="text-[10px] text-slate-400 mb-1">
             Nv. {player.level}
-            {player.captain && <span className="ml-1 text-amber-300">· capitán</span>}
+            {player.item === 'brazalete-capitan' && <span className="ml-1 text-amber-300">· capitán</span>}
           </div>
           <Meter value={player.pt} max={max} color="#38bdf8" label="PT" />
           <div className="mt-0.5">

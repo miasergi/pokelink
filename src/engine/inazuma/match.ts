@@ -1306,11 +1306,16 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
  * Cambios del RIVAL en el descanso: su banquillo entra por los más fundidos
  * (hasta 3, priorizando el mismo puesto). Devuelve los anuncios.
  */
-export function rivalHalftimeSubs(m: MatchState): MatchEvent[] {
+export function rivalHalftimeSubs(m: MatchState): {
+  events: MatchEvent[]
+  /** Datos para el PANEL de cambios: retrato y rareza de cada uno. */
+  subs: { inName: string; outName: string; inBaseId?: string; outBaseId?: string; inRarity?: number }[]
+} {
   const rivalSide = otherSide(playerSide(m))
   const side = sideOf(m, rivalSide)
   const bench = (side.bench ?? []).slice()
-  if (!bench.length) return []
+  const subsInfo: { inName: string; outName: string; inBaseId?: string; outBaseId?: string; inRarity?: number }[] = []
+  if (!bench.length) return { events: [], subs: [] }
   const out: MatchEvent[] = []
   const lines: Actor[][] = [side.defs, side.mids, side.fwds]
   const tired = lines.flat()
@@ -1331,6 +1336,13 @@ export function rivalHalftimeSubs(m: MatchState): MatchEvent[] {
       }
     }
     subs++
+    subsInfo.push({
+      inName: inc.name,
+      outName: outP.name,
+      inBaseId: inc.baseId,
+      outBaseId: outP.baseId,
+      inRarity: inc.rarity,
+    })
     out.push({
       kind: 'possession',
       minute: m.minute,
@@ -1339,7 +1351,7 @@ export function rivalHalftimeSubs(m: MatchState): MatchEvent[] {
     })
   }
   side.bench = bench
-  return out
+  return { events: out, subs: subsInfo }
 }
 
 /**

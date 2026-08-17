@@ -1360,8 +1360,10 @@ describe('coherencia', () => {
     const save = createSave(5)
     for (const item of ITEMS) {
       if (item.kind === 'equipo' || item.kind === 'raro') {
-        // Equipado, algún atributo tiene que subir DE VERDAD.
-        const p = save.roster[0]
+        // Equipado, algún atributo tiene que subir DE VERDAD. Sobre un
+        // jugador SIN nada puesto: el primero de la plantilla lleva ahora el
+        // Brazalete de Capitán de serie, y comparar contra él salía al revés.
+        const p = { ...save.roster[0], item: undefined }
         const before = effectiveStats(p)
         const after = effectiveStats({ ...p, item: item.id })
         const sube = (Object.keys(after) as (keyof typeof after)[]).some((k) => after[k] > before[k])

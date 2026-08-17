@@ -190,13 +190,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // corría 2.6 veces más lenta de lo diseñado.
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
-  // Reloj del RONDO: anclado al último evento revelado. Así cada parada, robo
-  // o gol reinicia la cadena de pases desde su primer eslabón.
-  const rondoAnchor = useRef({ len: -1, t: nowMs })
-  if (rondoAnchor.current.len !== feed.length) {
-    rondoAnchor.current = { len: feed.length, t: nowMs }
+  // Reloj del RONDO: anclado al evento que DEFINE la posesión (robo, parada,
+  // gol, saque). La cadena solo se reinicia cuando el balón cambia de manos
+  // de verdad — nunca por una línea de narración.
+  const rondoAnchor = useRef({ idx: -2, t: nowMs })
+  const rondoSecFor = (idx: number): number => {
+    if (rondoAnchor.current.idx !== idx) rondoAnchor.current = { idx, t: nowMs }
+    return Math.max(0, (nowMs - rondoAnchor.current.t) / 1000)
   }
-  const rondoSec = Math.max(0, (nowMs - rondoAnchor.current.t) / 1000)
 
   // EL RONDO: la capa que faltaba para que esto sea una SIMULACIÓN y no un
   // juego por turnos. El motor genera ~16 jugadas por partido, así que entre
@@ -217,23 +218,33 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     // Tras parada o gol, el balón LO TIENE EL PORTERO: el rondo empieza en
     // sus guantes, no en el círculo central.
     let fromKeeper = false
+    let fromCenter = false
+    // Índice del evento que DEFINE la posesión: es el ancla del rondo. Si el
+    // ancla fuera «cualquier evento nuevo» (como antes), cada línea de
+    // narración re-sembraba la cadena a mitad de vuelo y el balón CAMBIABA DE
+    // DIRECCIÓN sin que nadie lo tocara.
+    let possIdx = -1
     for (let i = feed.length - 1; i >= 0; i--) {
       const e = feed[i]
-      if (e.kind === 'turnover') { possession = e.side; break }
-      if (e.kind === 'save') { possession = e.side; fromKeeper = true; break }
-      if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); break }
-      if (e.kind === 'goal') { possession = otherSide(e.side); fromKeeper = true; break } // saca el que encajó
-      if (e.kind === 'possession') { possession = e.side; break }
-      if (e.kind === 'kickoff') { possession = 'home'; break }
-      if (e.kind === 'halftime') { possession = 'away'; break }
+      if (e.kind === 'turnover') { possession = e.side; possIdx = i; break }
+      if (e.kind === 'save') { possession = e.side; fromKeeper = true; possIdx = i; break }
+      if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); possIdx = i; break }
+      if (e.kind === 'goal') { possession = otherSide(e.side); fromCenter = true; possIdx = i; break } // saca de centro el que encajó
+      if (e.kind === 'possession') { possession = e.side; possIdx = i; break }
+      if (e.kind === 'kickoff') { possession = 'home'; fromCenter = true; possIdx = i; break }
+      if (e.kind === 'halftime') { possession = 'away'; fromCenter = true; possIdx = i; break }
     }
     if (possession) {
       const posSide = sideOf(match, possession)
       // Defensas → medios → delanteros y vuelta: la salida de balón de manual
       // (reciclar hacia atrás también es fútbol).
-      const order = fromKeeper
-        ? [posSide.keeper, ...posSide.defs, ...posSide.mids, ...posSide.fwds]
-        : [...posSide.defs, ...posSide.mids, ...posSide.fwds]
+      // Saque de centro: el delantero toca atrás desde el círculo y la salida
+      // sigue por los medios. Parada: empieza en los guantes del portero.
+      const order = fromCenter
+        ? [...posSide.fwds, ...posSide.mids, ...posSide.defs]
+        : fromKeeper
+          ? [posSide.keeper, ...posSide.defs, ...posSide.mids, ...posSide.fwds]
+          : [...posSide.defs, ...posSide.mids, ...posSide.fwds]
       if (order.length >= 2) {
         buildup = true
         atkSide = possession
@@ -249,27 +260,33 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const posMine = possession === mine
         const anchorMap = posMine ? myAnchor : theirAnchor
         const spotAt = (a: Actor) => anchorMap.get(a.uid) ?? { x: 50, y: 50 }
-        const legs: { from: Actor; to: Actor; flight: number; total: number }[] = []
+        const legs: { from: Actor | 'centro'; to: Actor; flight: number; total: number }[] = []
         let cycle = 0
-        for (let i = 0; i < order.length; i++) {
-          const from = order[i]
-          const to = order[(i + 1) % order.length]
-          const A = spotAt(from)
+        const addLeg = (from: Actor | 'centro', to: Actor) => {
+          const A = from === 'centro' ? { x: 50, y: 50 } : spotAt(from)
           const B = spotAt(to)
           const flight = Math.max(0.25, Math.hypot(B.x - A.x, B.y - A.y) / RONDO_BALL_SPEED)
           legs.push({ from, to, flight, total: flight + RONDO_CONTROL_S })
           cycle += flight + RONDO_CONTROL_S
         }
+        // El PRIMER tramo cuenta el arranque de la posesión: del círculo
+        // central en los saques, y del primero de la cadena (el portero tras
+        // una parada) en el resto. Después, la cadena en orden y en bucle.
+        if (fromCenter) addLeg('centro', order[0])
+        for (let i = 0; i < order.length; i++) {
+          addLeg(order[i], order[(i + 1) % order.length])
+        }
+        const rondoSec = rondoSecFor(possIdx)
         let t = rondoSec % cycle
         let leg = legs[0]
         for (const l of legs) { if (t < l.total) { leg = l; break } t -= l.total }
-        const A = spotAt(leg.from)
+        const A = leg.from === 'centro' ? { x: 50, y: 50 } : spotAt(leg.from)
         const B = spotAt(leg.to)
         const k = Math.min(1, t / leg.flight)
         rondoBall = { x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k }
         // Mientras vuela, el balón «es» del que lo soltó; al llegar, del que
         // lo recibe (que ya está dando el paso para controlarlo).
-        carrierUid = k >= 1 ? leg.to.uid : leg.from.uid
+        carrierUid = k >= 1 || leg.from === 'centro' ? leg.to.uid : leg.from.uid
       }
     }
   }
