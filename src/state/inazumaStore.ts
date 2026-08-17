@@ -25,7 +25,8 @@ import {
 } from '@/engine/inazuma/game'
 import { advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
-import { availableSignings, buildScoutOffer, buildTacticOffer, signingLevel } from '@/engine/inazuma/rewards'
+import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
+import { TACTICS } from '@/data/inazuma/tactics'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarityMap, transferValue, upgradeTechnique,
@@ -121,7 +122,10 @@ function holdFor(e: MatchEvent): number {
       // sería el spoiler) y la celebración del evento de gol toma el relevo.
       if (e.step === 'definicion' && e.success) return 2600
       if (e.step === 'definicion' || e.technique || e.counter) return 3700
-      return 500
+      // Duelo de campo a pelo: antes 500 ms — pasaba sin que te dieras ni
+      // cuenta de quién contra quién. Ahora respira y la CHISPA del césped
+      // tiene su momento.
+      return 1500
     case 'burst':
     case 'stage': return 1100
     case 'kickoff':
@@ -378,6 +382,8 @@ interface InazumaState {
   toggleStarter: (uid: string) => void
   equip: (uid: string, itemId: string | undefined) => void
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
+  /** Activa/desactiva una filosofía ganada (vestuario). */
+  toggleTactic: (id: string) => void
   /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
   useFichajeEstrella: (baseId: string) => void
   /** Convierte técnicas sueltas de partidas viejas en Manuales avanzados. */
@@ -949,27 +955,33 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
     }
 
-    // FILOSOFÍA DE EQUIPO: ganar un instituto abre LA elección de identidad de
-    // la partida — tres, y te quedas una. Es lo que hace que dos runs se
-    // sientan distintas, así que va después del resto del botín.
-    const tacticOffer = result === 'win' && (matchNode.kind === 'jefe' || matchNode.kind === 'final')
-      ? buildTacticOffer(next, getRng(next))
-      : []
+    // FILOSOFÍA DE EQUIPO: ganar un instituto TE LA DA directamente (el menú
+    // de elección rompía el ritmo tras cada partido — se pidió quitarlo). En
+    // el VESTUARIO se configura cuáles salen al campo.
+    let tacticMsg = ''
+    if (result === 'win' && (matchNode.kind === 'jefe' || matchNode.kind === 'final')) {
+      const owned = new Set(next.tactics ?? [])
+      const pool = TACTICS.filter((t) => !owned.has(t.id))
+      if (pool.length) {
+        const won = pool[getRng(next).int(0, pool.length - 1)]
+        next.tactics = [...(next.tactics ?? []), won.id]
+        // Si había configuración explícita, la nueva entra activada.
+        if (next.activeTactics) next.activeTactics = [...next.activeTactics, won.id]
+        tacticMsg = ` · Nueva filosofía: ${won.name}`
+      }
+    }
 
     set({
       save: next,
-      phase: tacticOffer.length && !pendingSigning ? 'draft' : 'map',
-      draft: tacticOffer.length && !pendingSigning ? tacticOffer : [],
-      draftPicks: tacticOffer.length && !pendingSigning ? 1 : 0,
-      draftFromMatch: true,
+      phase: 'map',
       match: null,
       matchNode: null,
       revealPlayer: reveal,
       pendingSigning,
       message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
-        + (prize ? ` · ${prize.name}` : '') + recruitMsg,
+        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg,
     })
-    void persist(next, tacticOffer.length && !pendingSigning ? 'draft' : 'map')
+    void persist(next, 'map')
   },
 
   resolveSigningSell: () => {
@@ -1551,6 +1563,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
 
     set({ save: next, itemFx: fx ?? get().itemFx })
+    void persist(next, get().phase)
+  },
+
+  toggleTactic: (id) => {
+    const { save } = get()
+    if (!save || !(save.tactics ?? []).includes(id)) return
+    const active = save.activeTactics ?? save.tactics ?? []
+    const next = {
+      ...save,
+      activeTactics: active.includes(id) ? active.filter((x) => x !== id) : [...active, id],
+    }
+    set({ save: next })
     void persist(next, get().phase)
   },
 

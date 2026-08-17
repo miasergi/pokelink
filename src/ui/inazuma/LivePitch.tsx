@@ -13,8 +13,7 @@ import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/matc
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
-import Icon from '@/ui/components/Icon'
-import { ELEMENT_ICON, Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
+import { Pic, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import type { Actor, ChainStep, Element, MatchEvent, MatchState } from '@/engine/inazuma/types'
@@ -190,11 +189,25 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // corría 2.6 veces más lenta de lo diseñado.
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
+  const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
+  // LA CHISPA del duelo de campo: al revelarse un regate/corte, un fogonazo
+  // EN EL PUNTO donde está el balón. Sin ella, esos duelos pasaban sin que se
+  // viera dónde ni entre quiénes.
+  const spark = useRef<{ key: number; at: Spot; mine: boolean; until: number } | null>(null)
+  const sparkSeen = useRef(0)
+  {
+    const last = feed[feed.length - 1]
+    if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
+      sparkSeen.current = feed.length
+      const winnerMine = (last.side === mine) === last.success
+      spark.current = { key: feed.length, at: { ...lastBallLogical.current }, mine: winnerMine, until: nowMs + 1000 }
+    }
+  }
+
   // Reloj del RONDO: anclado al evento que DEFINE la posesión (robo, parada,
   // gol, saque). La cadena solo se reinicia cuando el balón cambia de manos
   // de verdad — y SIEMPRE arranca DESDE DONDE ESTÁ EL BALÓN en ese instante:
   // cualquier otra cosa era un giro fantasma en mitad del vuelo.
-  const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
   const rondoAnchor = useRef({ idx: -2, t: nowMs, from: { x: 50, y: 50 } })
   const rondoStateFor = (idx: number): { sec: number; from: Spot } => {
     if (rondoAnchor.current.idx !== idx) {
@@ -244,11 +257,23 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       // (reciclar hacia atrás también es fútbol).
       // Saque de centro: el delantero toca atrás desde el círculo y la salida
       // sigue por los medios. Parada: empieza en los guantes del portero.
+      // Y POR LAS BANDAS: dentro de cada línea se ordena por banda alternando
+      // el sentido (defensa por la izquierda, medios hacia la derecha,
+      // delanteros de vuelta): el balón ZIGZAGUEA por el ancho del campo en
+      // vez de subir siempre por el pasillo central.
+      const posMineSide = possession === mine
+      const anchorsOf = posMineSide ? myAnchor : theirAnchor
+      const laneOf = (a: Actor) => anchorsOf.get(a.uid)?.y ?? 50
+      const porBandas = (line: Actor[], invertir: boolean) =>
+        [...line].sort((a, b) => (invertir ? laneOf(b) - laneOf(a) : laneOf(a) - laneOf(b)))
+      const defsW = porBandas(posSide.defs, false)
+      const midsW = porBandas(posSide.mids, true)
+      const fwdsW = porBandas(posSide.fwds, false)
       const order = fromCenter
-        ? [...posSide.fwds, ...posSide.mids, ...posSide.defs]
+        ? [...fwdsW, ...midsW, ...defsW]
         : fromKeeper
-          ? [posSide.keeper, ...posSide.defs, ...posSide.mids, ...posSide.fwds]
-          : [...posSide.defs, ...posSide.mids, ...posSide.fwds]
+          ? [posSide.keeper, ...defsW, ...midsW, ...fwdsW]
+          : [...defsW, ...midsW, ...fwdsW]
       if (order.length >= 2) {
         buildup = true
         atkSide = possession
@@ -598,6 +623,26 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           )
         })()}
 
+        {/* LA CHISPA del duelo de campo: fogonazo en el punto del choque. */}
+        {spark.current && nowMs < spark.current.until && (
+          <div
+            key={spark.current.key}
+            className="absolute z-[26] pointer-events-none"
+            style={{ left: `${mx(spark.current.at.x)}%`, top: `${my(spark.current.at.y)}%` }}
+          >
+            <span
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full animate-clash-pop"
+              style={{ background: `radial-gradient(circle, #ffffffd9, ${spark.current.mine ? '#34d399' : '#f87171'}66 55%, transparent 72%)` }}
+            />
+            <span
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-black"
+              style={{ color: spark.current.mine ? '#34d399' : '#f87171', textShadow: '0 0 8px rgba(0,0,0,.8)' }}
+            >
+              ✦
+            </span>
+          </div>
+        )}
+
         {/* EL BALÓN, con su propia transición: los pases se ven volar. Y si
             hay DISPARO en vuelo, sale ardiendo hacia la portería rival. */}
         {flight ? (
@@ -757,15 +802,16 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames }: 
           {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
       </div>
-      {/* Elemento siempre; el NOMBRE solo si lo pides en Ajustes (por defecto
-          no: con 22 fichas los nombres tapan la jugada). Los protagonistas del
-          lance lo llevan igualmente — ahí sí importa quién es. */}
-      <span className={`mt-0.5 inline-flex items-center gap-0.5 max-w-[62px] rounded px-1 leading-tight ${
-        active ? 'bg-black/75 text-white text-[8px] font-bold' : 'bg-black/50 text-white/85 text-[7px] font-bold'
-      }`}>
-        <Icon name={ELEMENT_ICON[actor.element]} className={active ? 'w-2.5 h-2.5 shrink-0' : 'w-2 h-2 shrink-0'} style={{ color: info.color }} />
-        {(showNames || active) && <span className="truncate">{actor.name.split(' ')[0]}</span>}
-      </span>
+      {/* SOLO el nombre, y solo si lo pides en Ajustes (o eres protagonista
+          del lance). El icono de elemento se quitó: era ruido — el color ya
+          vive en el anillo y en las fichas, y así el partido se LEE mejor. */}
+      {(showNames || active) && (
+        <span className={`mt-0.5 inline-flex items-center max-w-[62px] rounded px-1 leading-tight ${
+          active ? 'bg-black/75 text-white text-[8px] font-bold' : 'bg-black/50 text-white/85 text-[7px] font-bold'
+        }`}>
+          <span className="truncate">{actor.name.split(' ')[0]}</span>
+        </span>
+      )}
       </div>
     </div>
   )

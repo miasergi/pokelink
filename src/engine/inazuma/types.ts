@@ -594,6 +594,12 @@ export interface InazumaSave {
    * jugar el Football Frontier con fichajes del Mundial y de Victory Road.
    */
   pools?: ('ff' | 'alius' | 'ffi' | 'vr')[]
+  /**
+   * FILOSOFÍAS ACTIVAS: subconjunto de `tactics` que sale al campo. Ausente =
+   * todas las ganadas. Se configura en el vestuario — ganar una nueva ya no
+   * interrumpe con un menú.
+   */
+  activeTactics?: string[]
   /** Randomizador de la partida (ver `RandomFlags`). */
   random?: RandomFlags
   /** Ids de casilla ya jugadas. */

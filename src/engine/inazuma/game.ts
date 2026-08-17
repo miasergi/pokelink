@@ -237,7 +237,9 @@ export function startMatch(
     lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
   // Tus FILOSOFÍAS viajan contigo al campo. El rival no lleva: son la señal de
   // identidad de TU partida.
-  home.tactics = save.tactics ?? []
+  // Al campo salen las ACTIVAS (configurables en el vestuario); sin
+  // configurar, todas las ganadas.
+  home.tactics = save.activeTactics ?? save.tactics ?? []
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
   // El RIVAL también juega con identidad: su filosofía canónica de instituto.
   away.tactics = team.tactic ? [team.tactic] : []

@@ -5,6 +5,7 @@
 // de vuelta el id de la opción elegida. Mismo reparto de responsabilidades que
 // `BattleScreen` en el roguelike Pokémon.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -366,7 +367,7 @@ export default function MatchView() {
           contar, y el panel (con su jugada y su rival) los destripaba.
           El panel va POR ENCIMA del césped (overlay): antes entraba en el
           flujo y el campo se agrandaba/achicaba con cada decisión. */}
-      {match.phase === 'decision' && match.decision && caughtUp && !frozen ? (
+      {match.phase === 'decision' && match.decision && caughtUp && !frozen && !autoPlay ? (
         <div className="absolute inset-x-0 bottom-0 z-40 max-h-[62svh] overflow-y-auto rounded-t-2xl shadow-[0_-12px_30px_rgba(0,0,0,.5)]">
           <DecisionPanel decision={match.decision} match={match} onPick={decide} />
         </div>
@@ -480,18 +481,29 @@ function TacticsSheet({ mine, theirs, mineName, theirName, onClose }: {
       </div>
     </div>
   )
-  return (
-    <div className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[80svh] overflow-y-auto animate-pop-in" onClick={(e) => e.stopPropagation()}>
-        <div className="text-center font-extrabold mb-1">Filosofías en juego</div>
-        <p className="text-[10px] text-slate-500 text-center mb-3 leading-snug">
-          No son un bonus de números: cambian CÓMO se resuelve el partido, y las
-          tuyas se acumulan toda la partida (una nueva por instituto ganado).
+  // POR PORTAL: la cabecera del marcador tiene blur y stacking propio, y la
+  // hoja se quedaba atrapada dentro — ilegible, tapando el marcador y sin
+  // manera fiable de cerrarla.
+  return createPortal(
+    <div className="fixed inset-0 z-[95] bg-black/80 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
+      <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[80svh] overflow-y-auto animate-pop-in" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 z-10 grid place-items-center w-8 h-8 rounded-lg border border-slate-700 bg-slate-800/70 text-slate-300 active:scale-95"
+        >
+          <Icon name="x" className="w-4.5 h-4.5" />
+        </button>
+        <div className="text-center font-extrabold text-lg mb-1">Filosofías en juego</div>
+        <p className="text-[11px] text-slate-400 text-center mb-3 leading-snug">
+          No son un bonus de números: cambian CÓMO se resuelve el partido. Las
+          tuyas se acumulan toda la partida.
         </p>
         {bloque(mine, mineName, true)}
         {bloque(theirs, theirName, false)}
+        <Button variant="primary" full onClick={onClose}>Cerrar</Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

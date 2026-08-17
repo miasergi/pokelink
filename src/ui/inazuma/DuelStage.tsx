@@ -227,6 +227,7 @@ export default function DuelStage({ stage, onDone, onFlight }: {
           crest={star.crest}
           fallbackAction={star.action}
           color={kindBanner.color}
+          versus={shown.kind === 'regate' ? (shown.attackerWins ? shown.defender : shown.attacker) : undefined}
           stamp={!shooting ? {
             text: shown.attackerWins ? '¡SE ESCAPA!' : '¡BALÓN ROBADO!',
             color: resultColor,
@@ -314,7 +315,7 @@ function GoalNet({ className }: { className?: string }) {
  * de lo que lanza INTEGRADO dentro de la propia imagen (banda inferior) y, si
  * el duelo ya se resuelve aquí, el sello del desenlace.
  */
-function Showcase({ side, tech, crest, fallbackAction, color, stamp }: {
+function Showcase({ side, tech, crest, fallbackAction, color, stamp, versus }: {
   side: StageSide
   tech?: Technique
   crest?: string
@@ -322,6 +323,8 @@ function Showcase({ side, tech, crest, fallbackAction, color, stamp }: {
   fallbackAction: string
   color: string
   stamp?: { text: string; color: string; crest?: string }
+  /** CONTRA QUIÉN fue el duelo: sin esto no se entendía el lance. */
+  versus?: StageSide
 }) {
   const info = tech ? ELEMENT_INFO[tech.element] : null
   const glow = info?.color ?? color
@@ -389,6 +392,20 @@ function Showcase({ side, tech, crest, fallbackAction, color, stamp }: {
           </span>
         </div>
       </div>
+      {versus && (
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/85 border border-white/20">
+          <span className="text-[10px] uppercase tracking-widest text-slate-400">contra</span>
+          <span className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-600 bg-slate-900 grid place-items-center">
+            <ImgFallback
+              src={versus.baseId ? portraitUrl(versus.baseId) : ''}
+              alt={versus.name}
+              className="w-full h-full object-cover object-top"
+              fallback={<span className="text-[8px] font-extrabold text-white">{versus.name.slice(0, 2).toUpperCase()}</span>}
+            />
+          </span>
+          <span className="text-[12px] font-bold text-white">{versus.name}</span>
+        </div>
+      )}
       {stamp && (
         <div
           className="px-5 py-1.5 rounded-2xl border-4 bg-slate-950/90 text-2xl font-black uppercase tracking-wider animate-goal flex items-center gap-2"
