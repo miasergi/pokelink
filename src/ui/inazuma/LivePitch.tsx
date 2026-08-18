@@ -285,6 +285,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   let buildup = false
   // La posición EXACTA del balón durante el rondo, interpolada a cada frame.
   let rondoBall: Spot | null = null
+  // RECEPCIÓN AL PIE y DESMARQUES: quién va a recibir el pase (y cuánto le
+  // queda al balón en el aire), y desde qué línea sale el pase — el fútbol
+  // sin balón de los otros nueve se decide con esto.
+  let rondoRecvUid: string | null = null
+  let rondoRecvK = 0
+  let rondoFromPos: string | null = null
   // Sin jugada viva en pantalla, el rondo entra YA (al saque inicial no hay
   // nada que asentar y el campo se quedaba muerto del minuto 1 al 6).
   if (flowing && (holdSec > 0.2 || shown == null)) {
@@ -327,11 +333,20 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       const defsW = porBandas(posSide.defs, false)
       const midsW = porBandas(posSide.mids, true)
       const fwdsW = porBandas(posSide.fwds, false)
-      const order = fromCenter
-        ? [...fwdsW, ...midsW, ...defsW]
+      // IDA Y VUELTA: defensas → medios → delanteros → y RECICLAJE por los
+      // medios de vuelta. Antes el ciclo cerraba con un pelotazo del último
+      // delantero al primer defensa cruzando todo el campo — el pase «al
+      // centro con muchísimos jugadores» que no entendía nadie.
+      const vuelta = [...midsW].reverse()
+      const seqRaw = fromCenter
+        ? [...fwdsW.slice(0, 1), ...vuelta, ...defsW, ...midsW, ...fwdsW, ...vuelta]
         : fromKeeper
-          ? [posSide.keeper, ...defsW, ...midsW, ...fwdsW]
-          : [...defsW, ...midsW, ...fwdsW]
+          ? [posSide.keeper, ...defsW, ...midsW, ...fwdsW, ...vuelta]
+          : [...defsW, ...midsW, ...fwdsW, ...vuelta]
+      // Sin pases de un jugador a sí mismo (líneas de un solo hombre).
+      const order: Actor[] = []
+      for (const a of seqRaw) if (order.length === 0 || order[order.length - 1].uid !== a.uid) order.push(a)
+      if (order.length > 1 && order[0].uid === order[order.length - 1].uid) order.pop()
       if (order.length >= 2) {
         buildup = true
         atkSide = possession
@@ -346,7 +361,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         // qué punto del vuelo está — nada de «cada 1.3 s salta al siguiente».
         const posMine = possession === mine
         const anchorMap = posMine ? myAnchor : theirAnchor
-        const spotAt = (a: Actor) => anchorMap.get(a.uid) ?? { x: 50, y: 50 }
+        // El punto de cada eslabón es DONDE SE PINTA al que recibe (su paso
+        // al frente incluido): antes el balón volaba al ancla «teórica» y el
+        // jugador estaba dibujado en otro sitio — «se la pasan sin tocarla».
+        const spotAt = (a: Actor) => {
+          const b = anchorMap.get(a.uid) ?? { x: 50, y: 50 }
+          if (a.position === 'POR') return b
+          return { x: Math.max(4, Math.min(96, b.x + (posMine ? 2 : -2))), y: b.y }
+        }
         const st = rondoStateFor(possIdx)
         // TRAMO DE ENTRADA (fuera del bucle): el balón viaja desde donde ESTÁ
         // (o desde el círculo central en los saques) hasta el primer eslabón.
@@ -362,6 +384,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             y: entryFrom.y + (first.y - entryFrom.y) * k,
           }
           carrierUid = order[0].uid
+          rondoRecvUid = order[0].uid
+          rondoRecvK = k
         } else {
           // EL BUCLE: pases entre jugadores, sin puntos fantasma dentro.
           const legs: { from: Actor; to: Actor; flight: number; total: number }[] = []
@@ -385,6 +409,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           // Mientras vuela, el balón «es» del que lo soltó; al llegar, del
           // que lo recibe (que ya está dando el paso para controlarlo).
           carrierUid = k >= 1 ? leg.to.uid : leg.from.uid
+          rondoFromPos = leg.from.position
+          if (k < 1) { rondoRecvUid = leg.to.uid; rondoRecvK = k }
         }
       }
     }
@@ -481,6 +507,23 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     : undefined
   const ballLane = rondoBall ? rondoBall.y : carrierAnchor ? carrierAnchor.y * 0.6 + 20 : 50
 
+  // PRESIÓN EN EL RONDO: el defensor más cercano al balón SALE a presionar al
+  // portador — nada de mirar de lejos pivotando. Al circular el balón, el que
+  // presiona VA CAMBIANDO: la presión rota como en un rondo de verdad, y el
+  // hueco que deja a su espalda es de quien lo sepa atacar.
+  let presserUid: string | null = null
+  if (buildup && atkSide != null) {
+    const defIsMine = atkSide !== mine
+    const defAnchorMap = defIsMine ? myAnchor : theirAnchor
+    let best = Infinity
+    for (const a of defIsMine ? myActors : theirActors) {
+      if (a.position === 'POR') continue
+      const an = defAnchorMap.get(a.uid) ?? { x: 50, y: 50 }
+      const d = Math.hypot(an.x - ballX, an.y - ballLane)
+      if (d < best) { best = d; presserUid = a.uid }
+    }
+  }
+
   // CAMBIO DE CAMPO tras el descanso, como en los partidos de verdad: toda la
   // geometría se calcula igual y se ESPEJA solo al pintar (jugadores, balón y
   // porterías) cuando el descanso ya se contó.
@@ -516,6 +559,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         x: clampX(base.x + (ballX - base.x) * (0.45 + 0.3 * progress)),
         y: clampY(base.y + (base.y * 0.6 + 20 - base.y) * 0.7),
       }
+    }
+    // RECEPCIÓN AL PIE: el que va a recibir SALE al encuentro del pase y
+    // llega justo cuando llega el balón — se acabó recibir sin tocarla.
+    if (buildup && a.uid === rondoRecvUid && a.position !== 'POR') {
+      const tx = clampX(base.x + (isMine ? 2 : -2))
+      const k = Math.min(1, rondoRecvK * 1.15)
+      return { x: clampX(base.x + (tx - base.x) * k), y: clampY(base.y) }
     }
     if (a.uid === markerUid) {
       // Su marcador le sale al paso: entre el balón y SU portería, y le va
@@ -553,6 +603,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         y: clampY(base.y + (ty - base.y) * (0.45 + 0.55 * progress)),
       }
     }
+    // EL PRESIONADOR del rondo: sale de su sitio hacia el portador, tapando
+    // el lado de su propia portería. Los duelos que se ven venir.
+    if (buildup && a.uid === presserUid) {
+      const gx = ballX + (isMine ? -5 : 5)
+      return {
+        x: clampX(base.x + (gx - base.x) * 0.6),
+        y: clampY(base.y + (ballLane - base.y) * 0.6),
+      }
+    }
     // GEGENPRESSING: el equipo que acaba de perder el balón se echa encima
     // del punto de pérdida durante un latido — presión tras pérdida.
     if (pressSide != null && ((pressSide === mine) === isMine)) {
@@ -573,8 +632,19 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     // BASCULACIÓN: el bloque se desliza hacia el carril del balón. El que
     // defiende bascula MÁS (hay que taparle el camino) que el que ataca.
     const slide = atkSide == null ? 0 : (ballLane - base.y) * (isAtkTeam ? 0.12 : 0.26)
+    // DESMARQUES: el fútbol sin balón. Con la bola en los medios, los
+    // delanteros ROMPEN al espacio; con la bola atrás, bajan a mostrarse;
+    // cuando la tienen los delanteros, los medios LLEGAN por detrás. Todo
+    // atado a dónde está el balón — movimiento con porqué, nada de onduleo.
+    let desmarque = 0
+    if (buildup && isAtkTeam && rondoFromPos) {
+      const dir = isMine ? 1 : -1
+      if (a.position === 'DEL') desmarque = (rondoFromPos === 'MED' ? 5 : rondoFromPos === 'DEF' ? -2.5 : 0) * dir
+      else if (a.position === 'MED') desmarque = (rondoFromPos === 'DEL' ? 3.5 : rondoFromPos === 'POR' ? -2 : 0) * dir
+      else if (a.position === 'DEF') desmarque = (rondoFromPos === 'POR' ? 2 : 0) * dir
+    }
     return {
-      x: clampX(base.x + rowPush(a, isMine)),
+      x: clampX(base.x + rowPush(a, isMine) + desmarque),
       y: clampY(base.y + wing + slide),
     }
   }
