@@ -134,10 +134,19 @@ export default function MatchView() {
       // EL CÉSPED (LivePitch) y el balón sale ardiendo hacia la portería. La
       // parada o el gol llegan como siguiente evento, también sobre el césped.
       const key = feed.length
-      // La técnica CARGA (se materializa en el césped) antes de que el balón
-      // salga; el vuelo dura lo suyo y el portero NO responde hasta que llega.
-      setTimeout(() => setShotFlight((fl) => (fl?.key === key ? fl : { key, element: last.element, mine: last.side === mine })), Math.round(1600 * f))
-      setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(3300 * f))
+      const prev = feed[feed.length - 2]
+      const grazed = prev?.kind === 'duel' && prev.intercept === true && prev.success
+      if (grazed) {
+        // El tiro ROZÓ al que se cruzó: el balón CONTINÚA desde el bloqueador
+        // hacia la portería, sin volver a cargar desde el tirador.
+        setShotFlight({ key, element: last.element, mine: last.side === mine })
+        setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(1400 * f))
+      } else {
+        // La técnica CARGA (se materializa en el césped) antes de que el balón
+        // salga; el vuelo dura lo suyo y el portero NO responde hasta que llega.
+        setTimeout(() => setShotFlight((fl) => (fl?.key === key ? fl : { key, element: last.element, mine: last.side === mine })), Math.round(1600 * f))
+        setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(3300 * f))
+      }
     } else if (last.kind === 'save') {
       // La parada: el FX del portero sale anclado a él en el césped; el balón
       // deja de verse en la portería en cuanto la parada «cuenta». Y se CANTA

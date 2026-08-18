@@ -217,7 +217,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     if (feed.length !== techFxSeen.current) {
       techFxSeen.current = feed.length
       const nm = (uid: string) => (actorByUid(match, uid)?.name ?? '').split(' ')[0]
-      if (last?.kind === 'duel' && (last.technique || last.counter)) {
+      // Tras un cruce SUPERADO (tiro lejano que pasa rozando), el duelo con
+      // el portero es la CONTINUACIÓN del mismo disparo: nada de volver a
+      // materializar la técnica del tirador.
+      const prev = feed[feed.length - 2]
+      const grazedPrev = prev?.kind === 'duel' && prev.intercept === true && prev.success
+      if (last?.kind === 'duel' && (last.technique || last.counter) && !grazedPrev) {
         // En el duelo de campo el desenlace se ve (ganador brilla, perdedor se
         // apaga); en el disparo NO — el veredicto lo da la parada o el gol.
         const verdict = last.step !== 'definicion' && !last.intercept
@@ -293,7 +298,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   let rondoFromPos: string | null = null
   // Sin jugada viva en pantalla, el rondo entra YA (al saque inicial no hay
   // nada que asentar y el campo se quedaba muerto del minuto 1 al 6).
-  if (flowing && (holdSec > 0.2 || shown == null)) {
+  if (flowing && !fxActive && !flight && (holdSec > 0.2 || shown == null)) {
     // ¿De quién es el balón AHORA? Del último evento que lo diga.
     let possession: 'home' | 'away' | null = null
     // Tras parada o gol, el balón LO TIENE EL PORTERO: el rondo empieza en
@@ -637,15 +642,26 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     // cuando la tienen los delanteros, los medios LLEGAN por detrás. Todo
     // atado a dónde está el balón — movimiento con porqué, nada de onduleo.
     let desmarque = 0
+    let desmarqueY = 0
     if (buildup && isAtkTeam && rondoFromPos) {
       const dir = isMine ? 1 : -1
-      if (a.position === 'DEL') desmarque = (rondoFromPos === 'MED' ? 5 : rondoFromPos === 'DEF' ? -2.5 : 0) * dir
-      else if (a.position === 'MED') desmarque = (rondoFromPos === 'DEL' ? 3.5 : rondoFromPos === 'POR' ? -2 : 0) * dir
-      else if (a.position === 'DEF') desmarque = (rondoFromPos === 'POR' ? 2 : 0) * dir
+      if (a.position === 'DEL') {
+        // Con la bola en los medios, el delantero ROMPE en diagonal hacia el
+        // carril del balón (ataca el hueco que deja el que sale a presionar).
+        if (rondoFromPos === 'MED') { desmarque = 7 * dir; desmarqueY = (ballLane - base.y) * 0.22 }
+        else if (rondoFromPos === 'DEF') desmarque = -3 * dir
+      } else if (a.position === 'MED') {
+        desmarque = (rondoFromPos === 'DEL' ? 5 : rondoFromPos === 'POR' ? -2 : 0) * dir
+      } else if (a.position === 'DEF') {
+        if (rondoFromPos === 'POR') desmarque = 2 * dir
+        // El LATERAL se incorpora por su banda cuando el balón circula por
+        // los medios: doblan por fuera, como los carrileros de verdad.
+        else if (rondoFromPos === 'MED' && (base.y <= 32 || base.y >= 68)) desmarque = 4.5 * dir
+      }
     }
     return {
       x: clampX(base.x + rowPush(a, isMine) + desmarque),
-      y: clampY(base.y + wing + slide),
+      y: clampY(base.y + wing + slide + desmarqueY),
     }
   }
 
@@ -657,10 +673,17 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const carrierSpot = ballCarrier
     ? spotOf(ballCarrier, myActors.some((a) => a.uid === ballCarrier.uid))
     : null
-  const ball = rondoBall
+  let ball = rondoBall
     ?? (carrierSpot
       ? { x: carrierSpot.x + (iAttack ? 2.5 : -2.5), y: carrierSpot.y + 5 }
       : { x: 50, y: 50 })
+  // Mientras una técnica está en pantalla sin jugada escenificada (la parada
+  // del portero, p. ej.), el balón se queda EN LOS PIES del protagonista —
+  // el rondo espera a que el momento termine.
+  if (fxActive && !rondoBall && !carrierSpot && techFxRef.current!.entries.length) {
+    const star = actorByUid(match, techFxRef.current!.entries[0].uid)
+    if (star) ball = spotOf(star, myActors.some((a) => a.uid === star.uid))
+  }
 
   // El balón también obedece la ley: persigue su objetivo a tope constante.
   const ballPx = pursue('ball', toScreen(ball), BALL_PURSUIT_SPEED)
