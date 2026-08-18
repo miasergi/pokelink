@@ -14,7 +14,7 @@ import { dailyChallenge } from '@/engine/run/daily'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
-import { loadCyber, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
 import { setInazumaEntry } from '@/state/inazumaStore'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { layerName } from '@/engine/inazuma/tournament'
@@ -26,50 +26,54 @@ function localDateStr(ms: number): string {
 }
 
 /**
- * Tarjeta de JUEGO del hub. La pantalla de inicio tiene dos niveles a
- * propósito: arriba los juegos (que son experiencias independientes, cada una
- * con su propia partida guardada) y abajo los menús. Antes era una pila de seis
- * botones donde convivían «Liga Pokémon» y «Ajustes» como si fueran lo mismo, y
- * no escalaba: cada modo nuevo alargaba la lista.
+ * PORTADA de un juego en el hub, estilo consola: arte a sangre, el logo
+ * encima, el estado de tu partida y UN solo botón. Un toque = jugar. Los
+ * accesos secundarios van en chips debajo — nada de pilas de botones.
  */
-function GameCard({
-  title, subtitle, accent, icon, badge, locked, onClick, wide,
-}: {
-  title: string
-  subtitle: string
-  accent: string
-  icon: React.ReactNode
-  /** Texto del estado (p. ej. «Continuar · Kanto»). Resalta la tarjeta. */
-  badge?: string | null
-  locked?: boolean
-  onClick: () => void
-  wide?: boolean
+function CoverCard({ art, logo, alt, color, kicker, status, cta, onPlay }: {
+  art: string
+  logo: string
+  alt: string
+  color: string
+  kicker: string
+  status: string
+  cta: string
+  onPlay: () => void
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl border p-3 text-left transition active:scale-[0.97] ${
-        wide ? 'col-span-2' : ''
-      } ${badge ? 'border-emerald-500/50' : 'border-slate-700/70'} ${locked ? 'opacity-60' : ''}`}
-      style={{ background: `linear-gradient(140deg, ${accent}2e, rgba(15,23,42,0.85) 62%)` }}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPlay}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlay() }}
+      className="relative w-full overflow-hidden rounded-3xl border cursor-pointer select-none transition active:scale-[0.985]"
+      style={{ borderColor: `${color}55`, boxShadow: `0 20px 44px -20px ${color}88` }}
     >
-      <div className="flex items-start gap-2">
-        <span className="shrink-0">{icon}</span>
-        {locked && <Icon name="lock" className="w-3.5 h-3.5 text-slate-400 ml-auto shrink-0" />}
-      </div>
-      <div className="mt-1.5 font-extrabold text-[13px] leading-tight">{title}</div>
-      <div className="text-[10px] text-slate-400 leading-snug">{subtitle}</div>
-      {badge && (
-        <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold text-emerald-200">
-          <Icon name="play" className="w-2.5 h-2.5" /> {badge}
+      <img src={art} alt="" aria-hidden draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+      {/* Velo: legibilidad abajo, el arte respira arriba, y un aliento del
+          color del juego en el borde superior. */}
+      <div className="absolute inset-0" style={{ background: `linear-gradient(to top, rgba(2,6,23,.95) 6%, rgba(2,6,23,.55) 46%, rgba(2,6,23,.12) 78%, ${color}26 100%)` }} />
+      <div className="relative h-44 p-4 flex flex-col justify-between">
+        <img src={logo} alt={alt} draggable={false} className="h-12 self-start object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,.85)]" />
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[9px] uppercase tracking-[0.22em] font-extrabold" style={{ color }}>{kicker}</div>
+            <div className="text-[12px] font-bold text-slate-100 truncate">{status}</div>
+          </div>
+          <span
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black uppercase tracking-wide text-slate-950"
+            style={{ background: color, boxShadow: `0 6px 18px -4px ${color}` }}
+          >
+            <Icon name="play" className="w-3.5 h-3.5" /> {cta}
+          </span>
         </div>
-      )}
-    </button>
+      </div>
+    </div>
   )
 }
 
-/** Botón pequeño de la barra de menús (Pokédex, Récords, Ajustes…). */
-function MenuButton({ icon, label, onClick, locked }: {
+/** Acceso secundario bajo cada portada (Pokédex, Liga, Álbum…). */
+function Chip({ icon, label, onClick, locked }: {
   icon: React.ReactNode
   label: string
   onClick: () => void
@@ -78,15 +82,11 @@ function MenuButton({ icon, label, onClick, locked }: {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 rounded-xl border border-slate-700/70 bg-slate-800/60 py-2 transition active:scale-95 ${
-        locked ? 'opacity-60' : ''
-      }`}
+      className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-700/70 bg-slate-900/85 px-3 py-1.5 text-[11px] font-bold text-slate-300 transition active:scale-95 ${locked ? 'opacity-60' : ''}`}
     >
-      <span className="relative">
-        {icon}
-        {locked && <Icon name="lock" className="w-2.5 h-2.5 text-slate-400 absolute -right-1.5 -top-1" />}
-      </span>
-      <span className="text-[9px] text-slate-400 leading-none">{label}</span>
+      {icon}
+      {label}
+      {locked && <Icon name="lock" className="w-3 h-3 text-slate-500" />}
     </button>
   )
 }
@@ -103,13 +103,9 @@ export default function HomeScreen() {
   // Estado de los otros dos juegos, para que su tarjeta diga si hay partida
   // empezada sin tener que entrar a mirar.
   const [inazumaRound, setInazumaRound] = useState<string | null>(null)
-  const [hasCyber, setHasCyber] = useState(false)
   const today = dailyChallenge().date
-  // Portada en DOS niveles: eliges universo y dentro está todo lo suyo.
-  const [section, setSection] = useState<null | 'pokemon' | 'inazuma'>(null)
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
-    void loadCyber().then((s) => setHasCyber(!!s))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
   // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
@@ -126,130 +122,66 @@ export default function HomeScreen() {
     ))))
   }, [dailyOpen, today])
   return (
-    // `justify-center`, no `justify-between`: al pasar la cabecera a `shrink-0`
-    // para el hub, el `between` separaba logo y tarjetas a los dos extremos y
-    // en pantallas altas quedaba medio móvil de vacío en medio.
-    <div className="flex flex-col flex-1 items-center justify-center p-6 safe-top safe-bottom relative overflow-y-auto no-scrollbar">
-      {/* Botón de nube / cuenta (arriba, centrado) */}
-      <button
-        onClick={() => setAccount(true)}
-        className={`absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-bold active:scale-95 transition max-w-[80%] ${cloudUser ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-slate-800/80 text-slate-300'}`}
-        aria-label="Cuenta en la nube"
-      >
-        <Icon name="cloud" className="w-4 h-4 shrink-0" /> <span className="truncate">{cloudUser ? cloudUser.email : 'Iniciar sesión'}</span>
-      </button>
-
-      <div className="flex flex-col items-center gap-1 mt-9 shrink-0">
-        <img src={`${import.meta.env.BASE_URL}pokerogue.png`} alt="Pokémon Roguelike" className="w-44 max-w-[60%] object-contain animate-float drop-shadow-xl" draggable={false} />
-        {pet != null && <Sprite speciesId={pet} className="w-12 h-12 object-contain -mt-1" />}
+    <div className="flex flex-col flex-1 p-5 safe-top safe-bottom relative overflow-y-auto no-scrollbar">
+      {/* Cabecera compacta: la marca a la izquierda, tu cuenta a la derecha. */}
+      <div className="flex items-center justify-between gap-2 shrink-0 mb-4 mt-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] uppercase tracking-[0.3em] font-extrabold text-slate-400">Sala de juegos</span>
+          {pet != null && <Sprite speciesId={pet} className="w-8 h-8 object-contain" />}
+        </div>
+        <button
+          onClick={() => setAccount(true)}
+          className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold active:scale-95 transition max-w-[48%] ${cloudUser ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-slate-800/80 text-slate-300'}`}
+          aria-label="Cuenta en la nube"
+        >
+          <Icon name="cloud" className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{cloudUser ? cloudUser.email : 'Iniciar sesión'}</span>
+        </button>
       </div>
 
-      <div className="w-full flex flex-col gap-2.5 max-w-sm mt-3">
-        {section === null && (
-          <>
-            {/* Los LOGOS de cada universo como puerta de entrada. */}
-            <button
-              onClick={() => setSection('pokemon')}
-              className="relative col-span-2 rounded-2xl border border-red-500/40 py-5 grid place-items-center active:scale-[0.98] transition"
-              style={{ background: 'linear-gradient(140deg, #ef44442e, rgba(15,23,42,0.85) 62%)' }}
-            >
-              <img src={`${import.meta.env.BASE_URL}pokerogue.png`} alt="Pokémon" className="h-16 object-contain drop-shadow-xl" draggable={false} />
-              {hasSavedRun && <span className="absolute bottom-1.5 right-2 text-[9px] font-bold text-emerald-300">Run en curso</span>}
-            </button>
-            <button
-              onClick={() => setSection('inazuma')}
-              className="relative col-span-2 rounded-2xl border border-amber-500/40 py-5 grid place-items-center active:scale-[0.98] transition"
-              style={{ background: 'linear-gradient(140deg, #f59e0b2e, rgba(15,23,42,0.85) 62%)' }}
-            >
-              <img src={`${import.meta.env.BASE_URL}inazuma/logo.png`} alt="Inazuma Eleven" className="h-16 object-contain drop-shadow-xl" draggable={false} />
-              {inazumaRound && <span className="absolute bottom-1.5 right-2 text-[9px] font-bold text-emerald-300">{inazumaRound}</span>}
-            </button>
-            <div className="grid grid-cols-3 gap-2 mt-0.5">
-              <MenuButton icon={<Icon name="achievement" className="w-5 h-5" />} label="Logros" onClick={() => navigate('achievements')} />
-              <MenuButton icon={<Icon name="wrench" className="w-5 h-5" />} label="Ajustes" onClick={() => navigate('settings')} />
-              <MenuButton icon={<Icon name="scroll" className="w-5 h-5" />} label="Novedades" onClick={() => setNewsOpen(true)} />
-            </div>
-          </>
-        )}
-
-        {section !== null && (
-          <button onClick={() => setSection(null)} className="flex items-center gap-1.5 text-[12px] text-slate-400 active:scale-95">
-            ← Volver
-          </button>
-        )}
-
-        {section === 'pokemon' && <>
-        {/* --- SECCIÓN POKÉMON: todo lo del universo Pokémon, junto. --- */}
-        <div className="text-[10px] uppercase tracking-widest text-red-400/80 px-0.5">Pokémon</div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <GameCard
-            title="PokéRogue"
-            subtitle="Roguelike autobattler por las 9 regiones"
-            accent="#ef4444"
-            icon={<Icon name="pokeball" className="w-7 h-7 text-red-400" />}
-            badge={hasSavedRun ? 'Continuar' : null}
-            onClick={() => (hasSavedRun ? void resumeRun() : navigate('genSelect'))}
-          />
-          <GameCard
-            title="Modo Historia"
-            subtitle="La conspiración de Mistery Island, en 6 capítulos"
-            accent="#a855f7"
-            icon={<SonoroWave className="w-7 h-7 text-fuchsia-300" />}
-            locked={!cloudUser}
-            onClick={() => { if (cloudUser) navigate('story'); else setStoryLocked(true) }}
-          />
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          <MenuButton
-            icon={<Icon name="liga" className="w-5 h-5" />}
-            label="Liga"
-            locked={totalWins === 0}
-            onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }}
-          />
-          <MenuButton icon={<Icon name="dailycal" className="w-5 h-5" />} label="Reto diario" onClick={() => setDailyOpen(true)} />
-          <MenuButton icon={<Icon name="pokedex" className="w-5 h-5" />} label="Pokédex" onClick={() => navigate('pokedex')} />
-          <MenuButton icon={<Icon name="records" className="w-5 h-5" />} label="Récords" onClick={() => navigate('records')} />
+      <div className="w-full max-w-sm mx-auto flex flex-col gap-2.5 my-auto">
+        {/* ---- POKÉMON ---- */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}regions/gen1.webp`}
+          logo={`${import.meta.env.BASE_URL}pokerogue.png`}
+          alt="PokéRogue"
+          color="#f87171"
+          kicker="Roguelike autobattler"
+          status={hasSavedRun ? 'Run en curso' : 'Nueva aventura por las 9 regiones'}
+          cta={hasSavedRun ? 'Continuar' : 'Jugar'}
+          onPlay={() => (hasSavedRun ? void resumeRun() : navigate('genSelect'))}
+        />
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <Chip icon={<SonoroWave className="w-3.5 h-3.5 text-fuchsia-300" />} label="Historia" locked={!cloudUser} onClick={() => { if (cloudUser) navigate('story'); else setStoryLocked(true) }} />
+          <Chip icon={<Icon name="liga" className="w-3.5 h-3.5 text-amber-300" />} label="Liga" locked={totalWins === 0} onClick={() => { if (totalWins > 0) { if (hasSavedLeague) void resumeLeague(); else navigate('leagueSetup') } else setLeagueLocked(true) }} />
+          <Chip icon={<Icon name="dailycal" className="w-3.5 h-3.5 text-fuchsia-300" />} label="Reto diario" onClick={() => setDailyOpen(true)} />
+          <Chip icon={<Icon name="pokedex" className="w-3.5 h-3.5 text-red-300" />} label="Pokédex" onClick={() => navigate('pokedex')} />
+          <Chip icon={<Icon name="records" className="w-3.5 h-3.5 text-sky-300" />} label="Récords" onClick={() => navigate('records')} />
+          <Chip icon={<Icon name="dice" className="w-3.5 h-3.5 text-cyan-300" />} label="Cyber" onClick={() => navigate('cyber')} />
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
-          <MenuButton icon={<span className="text-xl leading-none">🕹️</span>} label={hasCyber ? 'Cyber ·' : 'Cyber'} onClick={() => navigate('cyber')} />
-        </div>
-        </>}
-
-        {section === 'inazuma' && <>
-        {/* --- SECCIÓN INAZUMA ELEVEN --- */}
-        <div className="text-[10px] uppercase tracking-widest text-amber-400/80 px-0.5 mt-1">Inazuma Eleven</div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <GameCard
-            title="Inazuma Rogue"
-            subtitle="Roguelite de fútbol: gana el Football Frontier"
-            accent="#f59e0b"
-            icon={<span className="text-2xl leading-none">⚽</span>}
-            badge={inazumaRound}
-            onClick={() => navigate('inazuma')}
-          />
-          <div className="grid grid-rows-2 gap-2">
-            <MenuButton
-              icon={<Icon name="album" className="w-5 h-5 text-amber-300" />}
-              label="Álbum de cromos"
-              onClick={() => { setInazumaEntry('album'); navigate('inazuma') }}
-            />
-            <MenuButton
-              icon={<Icon name="gear" className="w-5 h-5" />}
-              label="Opciones"
-              onClick={() => { setInazumaEntry('title'); navigate('inazuma') }}
-            />
-          </div>
+        {/* ---- INAZUMA ELEVEN ---- */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}inazuma/sagas/ff.png`}
+          logo={`${import.meta.env.BASE_URL}inazuma/logo.png`}
+          alt="Inazuma Eleven"
+          color="#fbbf24"
+          kicker="Roguelite de fútbol"
+          status={inazumaRound ? inazumaRound.replace('Continuar · ', '') : 'Nuevo asalto al Football Frontier'}
+          cta={inazumaRound ? 'Continuar' : 'Jugar'}
+          onPlay={() => navigate('inazuma')}
+        />
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <Chip icon={<Icon name="album" className="w-3.5 h-3.5 text-amber-300" />} label="Álbum de cromos" onClick={() => { setInazumaEntry('album'); navigate('inazuma') }} />
+          <Chip icon={<Icon name="gear" className="w-3.5 h-3.5 text-slate-400" />} label="Opciones" onClick={() => { setInazumaEntry('title'); navigate('inazuma') }} />
         </div>
 
-        </>}
-
-        <button
-          onClick={() => setNewsOpen(true)}
-          className="mx-auto flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 active:scale-95 transition"
-        >
-          <Icon name="scroll" className="w-3.5 h-3.5" /> Novedades · <span className="text-slate-600">{APP_VERSION}</span>
-        </button>
+        {/* ---- Menú transversal, discreto. ---- */}
+        <div className="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+          <Chip icon={<Icon name="achievement" className="w-3.5 h-3.5 text-amber-300" />} label="Logros" onClick={() => navigate('achievements')} />
+          <Chip icon={<Icon name="wrench" className="w-3.5 h-3.5 text-slate-400" />} label="Ajustes" onClick={() => navigate('settings')} />
+          <Chip icon={<Icon name="scroll" className="w-3.5 h-3.5 text-slate-400" />} label={`Novedades · ${APP_VERSION}`} onClick={() => setNewsOpen(true)} />
+        </div>
       </div>
 
       {account && <AccountModal onClose={() => setAccount(false)} />}

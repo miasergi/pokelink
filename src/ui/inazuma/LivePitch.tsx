@@ -27,9 +27,9 @@ function flameOf(el: Element | undefined): string {
 }
 
 /** Velocidad del balón en el rondo (% de campo por segundo). */
-const RONDO_BALL_SPEED = 34
+const RONDO_BALL_SPEED = 29
 /** El toque de control al recibir (s): recibir, mirar, soltar. */
-const RONDO_CONTROL_S = 0.4
+const RONDO_CONTROL_S = 0.55
 
 /**
  * Cuánto dura el AVANCE continuo de una jugada (ms). Es el tiempo en el que el
@@ -227,7 +227,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         // apaga); en el disparo NO — el veredicto lo da la parada o el gol.
         const verdict = last.step !== 'definicion' && !last.intercept
         const entries = []
-        if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success, verdict })
+        if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, big: true, win: last.success, verdict })
         // OJO: en el DISPARO el `counter` es la técnica del PORTERO, y esa se
         // enseña cuando el balón LLEGA (el evento de parada) — pintarla aquí
         // hacía la parada DOS veces: una antes del chut y otra después. En el
@@ -329,11 +329,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     // narración re-sembraba la cadena a mitad de vuelo y el balón CAMBIABA DE
     // DIRECCIÓN sin que nadie lo tocara.
     let possIdx = -1
+    // El GANADOR del último duelo: si la posesión viene de ganar un regate o
+    // un corte, la circulación arranca de sus pies y va HACIA ADELANTE.
+    let winnerUid: string | null = null
     for (let i = feed.length - 1; i >= 0; i--) {
       const e = feed[i]
       if (e.kind === 'turnover') { possession = e.side; possIdx = i; break }
       if (e.kind === 'save') { possession = e.side; fromKeeper = true; possIdx = i; break }
-      if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); possIdx = i; break }
+      if (e.kind === 'duel') { possession = e.success ? e.side : otherSide(e.side); winnerUid = e.success ? e.attackerUid : e.defenderUid; possIdx = i; break }
       if (e.kind === 'goal') { possession = otherSide(e.side); fromCenter = true; possIdx = i; break } // saca de centro el que encajó
       if (e.kind === 'possession') { possession = e.side; possIdx = i; break }
       if (e.kind === 'kickoff') { possession = 'home'; fromCenter = true; possIdx = i; break }
@@ -366,13 +369,28 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       // línea de medios con un balón directo al delantero de BANDA (que sale
       // a buscarlo) — la circulación no siempre es de manual.
       const filtrado = defsW.length > 0 && fwdsW.length > 0 && possIdx % 2 === 1
-      const seqRaw = fromCenter
+      let seqRaw = fromCenter
         ? [...fwdsW.slice(0, 1), ...vuelta, ...defsW, ...midsW, ...fwdsW, ...vuelta]
         : fromKeeper
           ? [posSide.keeper, ...defsW, ...midsW, ...fwdsW, ...vuelta]
           : filtrado
             ? [...defsW, fwdsW[0], ...midsW, ...fwdsW, ...vuelta]
             : [...defsW, ...midsW, ...fwdsW, ...vuelta]
+      // POSESIÓN GANADA EN UN DUELO: la jugada sigue DESDE EL GANADOR y hacia
+      // su ataque — nada de ganar el regate y pasarla atrás. El defensa que
+      // roba abre a los medios; el medio que gana busca a los delanteros; el
+      // delantero que regatea combina con el otro punta.
+      const wA = winnerUid ? [...posSide.defs, ...posSide.mids, ...posSide.fwds].find((a) => a.uid === winnerUid) : undefined
+      if (wA) {
+        const sinW = (line: Actor[]) => line.filter((a) => a.uid !== wA.uid)
+        const dW = sinW(defsW)
+        const mW = sinW(midsW)
+        const fW = sinW(fwdsW)
+        const vW = [...mW].reverse()
+        seqRaw = wA.position === 'DEF'
+          ? [wA, ...mW, ...fW, ...vW, ...dW, ...mW, ...fW, ...vW]
+          : [wA, ...fW, ...vW, ...dW, ...mW, ...fW, ...vW]
+      }
       // Sin pases de un jugador a sí mismo (líneas de un solo hombre).
       const order: Actor[] = []
       for (const a of seqRaw) if (order.length === 0 || order[order.length - 1].uid !== a.uid) order.push(a)
@@ -901,6 +919,29 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             />
           </div>
         )}
+
+        {/* ¿ENTRA? El porcentaje real del disparo, enseñado en el MOMENTO DE
+            LA VERDAD: mientras el balón vuela y el portero intenta pararlo —
+            no antes, que con el tirador no significaba nada. */}
+        {flight && !flight.toUid && (() => {
+          let chance: number | null = null
+          for (let i = feed.length - 1; i >= 0 && i >= feed.length - 4; i--) {
+            const e = feed[i]
+            if (e.kind === 'duel' && e.step === 'definicion' && typeof e.chance === 'number') { chance = e.chance; break }
+          }
+          if (chance == null) return null
+          const p = toScreen({ x: flight.mine ? 88 : 12, y: 24 })
+          return (
+            <div
+              className="absolute z-[39] pointer-events-none -translate-x-1/2 -translate-y-1/2 animate-tech-pop"
+              style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            >
+              <span className="px-2 py-0.5 rounded-full border border-amber-400/70 bg-slate-950/90 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                ¿Entra? {Math.round(chance * 100)}%
+              </span>
+            </div>
+          )
+        })()}
 
         {/* EL BALÓN, con su propia transición: los pases se ven volar. Y si
             hay DISPARO en vuelo, sale ardiendo hacia la portería rival. */}

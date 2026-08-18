@@ -207,7 +207,9 @@ function stopClock() {
 
 /** Minutos que avanza el reloj por segundo real, según el ajuste de ritmo. */
 function clockRate(speed: number): number {
-  return speed >= 1000 ? 1 : speed >= 400 ? 2 : 4
+  // El x1 va A FUEGO LENTO (0.7 min por segundo): se pidió expresamente que
+  // el ritmo base fuera pausado — «me siento en un x2».
+  return speed >= 1000 ? 0.7 : speed >= 400 ? 2 : 4
 }
 
 /** Fases desde las que es seguro guardar (fuera de un partido). */
@@ -838,7 +840,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
       // El multiplicador de velocidad acelera el trámite, pero los momentos
       // gordos conservan un mínimo: a ×4 el gol y la parada SIGUEN viéndose.
-      const factor = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
+      const factor = speed >= 1000 ? 1.25 : speed >= 400 ? 0.6 : 0.42
       const important = e.kind === 'goal' || e.kind === 'save' || e.kind === 'penalty'
       const hold = Math.max(Math.round(holdFor(e) * factor), important ? 1100 : 320)
       set({ match: { ...match }, feed: [...get().feed, e] })
