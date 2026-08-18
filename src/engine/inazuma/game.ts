@@ -3,7 +3,7 @@
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
 import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { type RegionId, getTeam } from '@/data/inazuma/teams'
+import { type RegionId, getTeam, regionOfTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
@@ -14,7 +14,7 @@ import {
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
-import { buildScoutOffer } from './rewards'
+import { buildScoutOffer, uniqueByName } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
@@ -70,9 +70,14 @@ export const DIFFICULTY_LEVEL_BONUS: Record<Difficulty, number> = {
  * El más raro capitanea. Es el modo «random» de un roguelike: cada partida,
  * un vestuario que no has entrenado nunca.
  */
-function randomSquadIds(rng: RNG): string[] {
+function randomSquadIds(rng: RNG, eras?: RegionId[]): string[] {
+  // COLAPSADO por nombre (los clones multi-equipo salían el triple) y
+  // respetando las ÉPOCAS elegidas en el configurador — antes el bombo
+  // ignoraba los pools y sorteaba sobre todo el catálogo.
+  const eraSet = new Set(eras ?? [])
+  const pool = uniqueByName(PLAYERS.filter((p) => !eraSet.size || eraSet.has(regionOfTeam(p.team))))
   const byPos = (pos: PlayerBase['position'], n: number) =>
-    rng.shuffle(PLAYERS.filter((p) => p.position === pos).map((p) => p.id)).slice(0, n)
+    rng.shuffle(pool.filter((p) => p.position === pos).map((p) => p.id)).slice(0, n)
   const picks = [...byPos('POR', 2), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 4)]
   return picks.sort((a, b) => getPlayerBase(b).fame - getPlayerBase(a).fame)
 }
@@ -81,7 +86,7 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const rng = new RNG(seed)
   const difficulty = opts.difficulty ?? 'normal'
   const formation = formationFor(teamId)
-  const squadIds = opts.randomSquad ? randomSquadIds(rng) : startingSquad(teamId, formation)
+  const squadIds = opts.randomSquad ? randomSquadIds(rng, opts.pools) : startingSquad(teamId, formation)
   const roster = squadIds.map((id) => createPlayer(id, START_LEVEL))
   // EL BRAZALETE DE CAPITÁN: único en todo el torneo, se entrega al empezar.
   // +25 % a todo, y quien lo lleva ES el capitán (se puede reequipar: la

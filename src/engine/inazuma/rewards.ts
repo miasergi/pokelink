@@ -65,6 +65,21 @@ export function learnableByRoster(save: InazumaSave) {
  * los que ya tienes. El peso del personaje en la serie (`fame`) sigue mandando
  * en QUIÉN sale más a menudo según lo avanzado que vayas.
  */
+/**
+ * El catálogo trae al MISMO chaval en varias plantillas (los suplentes
+ * clásicos rellenan muchos institutos). Para sorteos y ofertas se colapsa por
+ * NOMBRE quedándose su mejor versión — sin esto, quien aparece en 6 equipos
+ * salía 6 veces más que nadie («siempre me tocan los mismos»).
+ */
+export function uniqueByName(pool: PlayerBase[]): PlayerBase[] {
+  const best = new Map<string, PlayerBase>()
+  for (const p of pool) {
+    const cur = best.get(p.name)
+    if (!cur || p.fame > cur.fame) best.set(p.name, p)
+  }
+  return [...best.values()]
+}
+
 export function availableSignings(save: InazumaSave): PlayerBase[] {
   // Se descarta por NOMBRE, no por id: el catálogo tiene al mismo chaval en
   // varias plantillas (y con nombres alternativos), y filtrando solo por id te
@@ -80,8 +95,9 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])
-  const fresh = pool.filter((p) => !seen.has(p.id))
-  return fresh.length >= 6 ? fresh : pool
+  const uniq = uniqueByName(pool)
+  const fresh = uniq.filter((p) => !seen.has(p.id))
+  return fresh.length >= 6 ? fresh : uniq
 }
 
 function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {

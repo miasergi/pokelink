@@ -450,8 +450,24 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
   if (kind === 'tiro') {
     return (
       <div className="absolute inset-0 grid place-items-center">
+        {/* La ENERGÍA SE REÚNE: líneas de carga que convergen en el balón
+            desde todos los ángulos, más el anillo de onda y el fogonazo del
+            núcleo — la carga se siente antes del disparo. */}
+        {parts.map((i) => (
+          <span
+            key={`l${i}`}
+            className="absolute left-1/2 top-1/2 fx-converge h-[3px] w-10 rounded-full"
+            style={{
+              ['--fx-a' as string]: `${(i * 360) / n}deg`,
+              background: `linear-gradient(to left, ${color}, transparent)`,
+              animationDelay: `-${(i / n) * 0.9}s`,
+            }}
+          />
+        ))}
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 fx-ring" style={{ borderColor: `${color}aa` }} />
         <div className="relative">
-          <SvgBall className="w-12 h-12 fx-charge drop-shadow-lg" />
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full blur-md animate-flame-flicker" style={{ background: `radial-gradient(circle, ${color}d0, transparent 70%)` }} />
+          <SvgBall className="relative w-12 h-12 fx-charge drop-shadow-lg" />
           {parts.map((i) => (
             <span key={i} className="absolute left-1/2 top-1/2 fx-orbit" style={{ ['--fx-r' as string]: `${40 + (i % 3) * 13}px`, ['--fx-t' as string]: `${0.9 + (i % 4) * 0.18}s`, animationDelay: `-${(i / n) * 1.1}s` }}>
               <Particle element={element} color={color} size={9 + (i % 3) * 4} />
@@ -464,9 +480,20 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
   if (kind === 'regate') {
     return (
       <div className="absolute inset-0">
+        {/* SOMBRAS del regate: el balón deja copias que se desvanecen por un
+            zigzag, con las estelas de velocidad cruzando por detrás. */}
         {parts.slice(0, Math.ceil(n / 2)).map((i) => (
           <span key={i} className="absolute fx-dash" style={{ top: `${16 + (i * 70) / Math.ceil(n / 2)}%`, left: '10%', width: '80%', animationDelay: `-${(i / n) * 1.05}s` }}>
             <Particle element={element} color={color} size={8 + (i % 3) * 4} />
+          </span>
+        ))}
+        {[0, 1, 2, 3].map((g) => (
+          <span
+            key={`g${g}`}
+            className="absolute fx-ghost"
+            style={{ left: `${22 + g * 17}%`, top: `${62 - (g % 2) * 20}%`, animationDelay: `${g * 0.16}s`, filter: g < 3 ? 'grayscale(.4)' : undefined }}
+          >
+            <SvgBall className={g === 3 ? 'w-9 h-9 drop-shadow-lg' : 'w-7 h-7'} />
           </span>
         ))}
       </div>
@@ -475,6 +502,23 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
   if (kind === 'bloqueo') {
     return (
       <div className="absolute inset-0">
+        {/* LA MURALLA se alza del suelo: losas del color del elemento que
+            suben escalonadas, con la onda del golpe en la base. */}
+        <span className="absolute left-1/2 bottom-[12%] -translate-x-1/2 w-24 h-8 rounded-[50%] fx-ring border-2" style={{ borderColor: `${color}88` }} />
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={`w${i}`}
+            className="absolute bottom-[14%] rounded-sm fx-wall"
+            style={{
+              left: `${20 + i * 16}%`,
+              width: '13%',
+              height: `${30 + (i % 2) * 14}%`,
+              background: `linear-gradient(to top, ${color}e6, ${color}44)`,
+              boxShadow: `0 0 14px ${color}66`,
+              animationDelay: `${i * 0.12}s`,
+            }}
+          />
+        ))}
         {parts.slice(0, Math.ceil(n / 2)).map((i) => (
           <span key={i} className="absolute fx-float-up" style={{ left: `${15 + (i * 70) / Math.ceil(n / 2)}%`, bottom: '16%', animationDelay: `-${(i / n) * 1.5}s` }}>
             <Particle element={element} color={color} size={7 + (i % 3) * 3} />
@@ -485,6 +529,13 @@ function BaseKind({ kind, element, color, n }: { kind: TechniqueKind; element: E
   }
   return (
     <div className="absolute inset-0 grid place-items-center">
+      {/* La BARRERA del portero: cúpula de arcos + ondas — una parada se ve
+          como un muro que se enciende, no como tres anillos sueltos. */}
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full fx-loom" style={{ filter: `drop-shadow(0 0 10px ${color})` }}>
+        <path d="M16 88 A38 38 0 0 1 84 88" fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" opacity=".9" />
+        <path d="M26 88 A26 26 0 0 1 74 88" fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" opacity=".6" />
+        <path d="M36 88 A15 15 0 0 1 64 88" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity=".5" />
+      </svg>
       {[0, 1, 2].map((i) => (
         <span key={i} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 fx-ring" style={{ borderColor: color, animationDelay: `${i * 0.38}s` }} />
       ))}

@@ -501,7 +501,16 @@ export function buildRivalTeam(
   // no cambian — sigue siendo el Zeus, pero no sabes con quién juega.
   if (opts.shuffleFrom) {
     const eras = new Set(opts.shuffleFrom)
-    const pool = PLAYERS.filter((p) => !eras.size || eras.has(regionOfTeam(p.team)))
+    // Colapsado POR NOMBRE: el catálogo trae al mismo chaval en varias
+    // plantillas y el once sorteado podía llevar «gemelos» (o repetir a los
+    // suplentes multi-equipo tres veces más de lo que toca).
+    const byName = new Map<string, PlayerBase>()
+    for (const p of PLAYERS) {
+      if (eras.size && !eras.has(regionOfTeam(p.team))) continue
+      const cur = byName.get(p.name)
+      if (!cur || p.fame > cur.fame) byName.set(p.name, p)
+    }
+    const pool = [...byName.values()]
     const byPos = (pos: Position, n: number) =>
       rng.shuffle(pool.filter((p) => p.position === pos)).slice(0, n)
     const xi = [...byPos('POR', 1), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 2)]

@@ -265,6 +265,31 @@ body {
 }
 .fx-materialize { animation: fx-materialize .9s ease-out both; }
 
+/* CARGA del disparo: líneas de energía que corren hacia el núcleo. */
+@keyframes fx-converge {
+  0% { transform: translate(-50%, -50%) rotate(var(--fx-a)) translateX(58px) scaleX(1); opacity: 0; }
+  22% { opacity: .95; }
+  100% { transform: translate(-50%, -50%) rotate(var(--fx-a)) translateX(10px) scaleX(.3); opacity: 0; }
+}
+.fx-converge { animation: fx-converge .8s linear infinite; transform-origin: left center; }
+
+/* SOMBRAS del regate: cada copia del balón aparece y se desvanece en fila. */
+@keyframes fx-ghost {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(.8); }
+  35% { opacity: .8; transform: translateY(-4px) scale(1); }
+  70% { opacity: .35; }
+}
+.fx-ghost { animation: fx-ghost 1.15s ease-in-out infinite; }
+
+/* La MURALLA: cada losa sube del suelo y se queda temblando encendida. */
+@keyframes fx-wall {
+  0% { transform: translateY(60%) scaleY(.2); opacity: 0; }
+  45% { transform: translateY(0) scaleY(1.06); opacity: 1; }
+  60% { transform: translateY(0) scaleY(.98); }
+  100% { transform: translateY(0) scaleY(1); opacity: .95; }
+}
+.fx-wall { animation: fx-wall .7s cubic-bezier(.2,1.1,.4,1) both; transform-origin: bottom; }
+
 /* La foto del protagonista respira: zoom lento mientras está en pantalla. */
 @keyframes showcase-zoom {
   from { transform: scale(1.12); }

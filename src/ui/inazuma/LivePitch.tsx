@@ -208,6 +208,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   }
   const techFxRef = useRef<{
     key: number
+    /** La técnica NO brota hasta que el balón LLEGA a su protagonista: el
+        tramo de aproximación es lo que hace legible «qué está pasando». */
+    startAt: number
     until: number
     entries: { uid: string; name: string; techName: string; chance?: number; big: boolean; win: boolean; verdict: boolean }[]
   } | null>(null)
@@ -233,19 +236,26 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         // hacía la parada DOS veces: una antes del chut y otra después. En el
         // cruce del tiro lejano sí se pinta: el balón va hacia el bloqueador.
         if (last.counter && (last.step !== 'definicion' || last.intercept === true)) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
-        techFxRef.current = { key: feed.length, until: nowMs + 3400, entries }
+        // ARRANQUE LEGIBLE: primero se VE llegar la jugada (el balón viaja
+        // hasta el protagonista) y solo entonces brota la técnica. Sin esta
+        // espera era «tocan atrás y de repente ¡supertécnica!».
+        const protagonist = shownPos.current.get(last.attackerUid)
+        const ballShown = shownPos.current.get('ball')
+        const dist = protagonist && ballShown ? Math.hypot(protagonist.x - ballShown.x, protagonist.y - ballShown.y) : 0
+        const approach = Math.min(1300, Math.max(0, (dist / BALL_PURSUIT_SPEED) * 1000 - 100))
+        techFxRef.current = { key: feed.length, startAt: nowMs + approach, until: nowMs + approach + 3400, entries }
         // El que PIERDE el duelo queda ATURDIDO: parpadea al llegar el
         // veredicto y se queda apagado un tiempo de recuperación.
         if (verdict || last.intercept) {
           const loser = last.success ? last.defenderUid : last.attackerUid
-          stunRef.current.set(loser, { from: nowMs + 1400, until: nowMs + 5600 })
+          stunRef.current.set(loser, { from: nowMs + approach + 1400, until: nowMs + approach + 5600 })
         }
       } else if (last?.kind === 'duel' && !last.technique && !last.counter && last.step !== 'definicion' && !last.intercept) {
         // Duelo a pelo: también deja tocado al que lo pierde (sin destello).
         const loser = last.success ? last.defenderUid : last.attackerUid
         stunRef.current.set(loser, { from: nowMs, until: nowMs + 3200 })
       } else if (last?.kind === 'save' && last.technique) {
-        techFxRef.current = { key: feed.length, until: nowMs + 3400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
+        techFxRef.current = { key: feed.length, startAt: nowMs, until: nowMs + 3400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
       }
     }
   }
@@ -382,14 +392,22 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       // delantero que regatea combina con el otro punta.
       const wA = winnerUid ? [...posSide.defs, ...posSide.mids, ...posSide.fwds].find((a) => a.uid === winnerUid) : undefined
       if (wA) {
-        const sinW = (line: Actor[]) => line.filter((a) => a.uid !== wA.uid)
-        const dW = sinW(defsW)
-        const mW = sinW(midsW)
-        const fW = sinW(fwdsW)
-        const vW = [...mW].reverse()
-        seqRaw = wA.position === 'DEF'
-          ? [wA, ...mW, ...fW, ...vW, ...dW, ...mW, ...fW, ...vW]
-          : [wA, ...fW, ...vW, ...dW, ...mW, ...fW, ...vW]
+        // TRIÁNGULO LOCAL: el ganador del duelo retiene con sus DOS apoyos
+        // más cercanos (con preferencia hacia adelante). La jugada se queda
+        // donde está — nada de reciclar el campo entero hacia atrás justo
+        // después de ganar un regate, que agobiaba.
+        const anchorW = anchorsOf.get(wA.uid) ?? { x: 50, y: 50 }
+        const apoyos = [...posSide.defs, ...posSide.mids, ...posSide.fwds]
+          .filter((a) => a.uid !== wA.uid)
+          .map((a) => {
+            const an = anchorsOf.get(a.uid) ?? { x: 50, y: 50 }
+            const haciaDelante = posMineSide ? an.x - anchorW.x : anchorW.x - an.x
+            return { a, d: Math.hypot(an.x - anchorW.x, an.y - anchorW.y) - Math.max(0, haciaDelante) * 0.5 }
+          })
+          .sort((x, y) => x.d - y.d)
+          .slice(0, 2)
+          .map((x) => x.a)
+        seqRaw = [wA, ...apoyos]
       }
       // Sin pases de un jugador a sí mismo (líneas de un solo hombre).
       const order: Actor[] = []
@@ -847,7 +865,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
 
         {/* FX DE TÉCNICA: la animación de la supertécnica, anclada al jugador
             que la lanza. El partido sigue viéndose debajo — nada lo tapa. */}
-        {techFxRef.current && nowMs < techFxRef.current.until && techFxRef.current.entries.map((e) => {
+        {techFxRef.current && nowMs >= techFxRef.current.startAt && nowMs < techFxRef.current.until && techFxRef.current.entries.map((e) => {
           const t = techniqueByName(e.techName)
           if (!t) return null
           const pos = shownPos.current.get(e.uid)
