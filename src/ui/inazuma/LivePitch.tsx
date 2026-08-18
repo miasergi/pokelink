@@ -228,7 +228,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const verdict = last.step !== 'definicion' && !last.intercept
         const entries = []
         if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success, verdict })
-        if (last.counter) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
+        // OJO: en el DISPARO el `counter` es la técnica del PORTERO, y esa se
+        // enseña cuando el balón LLEGA (el evento de parada) — pintarla aquí
+        // hacía la parada DOS veces: una antes del chut y otra después. En el
+        // cruce del tiro lejano sí se pinta: el balón va hacia el bloqueador.
+        if (last.counter && (last.step !== 'definicion' || last.intercept === true)) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
         techFxRef.current = { key: feed.length, until: nowMs + 3400, entries }
         // El que PIERDE el duelo queda ATURDIDO: parpadea al llegar el
         // veredicto y se queda apagado un tiempo de recuperación.
