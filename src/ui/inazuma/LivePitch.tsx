@@ -197,6 +197,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // ANCLADA al jugador que la lanza, sin pantallas grandes que tapen el
   // partido. Duelo con técnica → burbuja del atacante (y la respuesta del
   // defensor, más pequeña); parada con técnica → burbuja del portero.
+  // ATURDIMIENTO tras perder un duelo: de uid a su ventana de recuperación.
+  const stunRef = useRef(new Map<string, { from: number; until: number }>())
+  if (stunRef.current.size > 24) {
+    for (const [uid, w] of stunRef.current) if (nowMs > w.until) stunRef.current.delete(uid)
+  }
+  const stunned = (uid: string) => {
+    const w = stunRef.current.get(uid)
+    return !!w && nowMs >= w.from && nowMs < w.until
+  }
   const techFxRef = useRef<{
     key: number
     until: number
@@ -215,9 +224,19 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const entries = []
         if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, chance: last.step === 'definicion' ? last.chance : undefined, big: true, win: last.success, verdict })
         if (last.counter) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
-        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries }
+        techFxRef.current = { key: feed.length, until: nowMs + 3400, entries }
+        // El que PIERDE el duelo queda ATURDIDO: parpadea al llegar el
+        // veredicto y se queda apagado un tiempo de recuperación.
+        if (verdict || last.intercept) {
+          const loser = last.success ? last.defenderUid : last.attackerUid
+          stunRef.current.set(loser, { from: nowMs + 1400, until: nowMs + 5600 })
+        }
+      } else if (last?.kind === 'duel' && !last.technique && !last.counter && last.step !== 'definicion' && !last.intercept) {
+        // Duelo a pelo: también deja tocado al que lo pierde (sin destello).
+        const loser = last.success ? last.defenderUid : last.attackerUid
+        stunRef.current.set(loser, { from: nowMs, until: nowMs + 3200 })
       } else if (last?.kind === 'save' && last.technique) {
-        techFxRef.current = { key: feed.length, until: nowMs + 2400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
+        techFxRef.current = { key: feed.length, until: nowMs + 3400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
       }
     }
   }
@@ -655,7 +674,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={mineBg} crest={myCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
-                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid} />
+                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid}
+                    stunned={stunned(a.uid)} />
                 )
               })}
               {theirActors.map((a) => {
@@ -665,7 +685,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={theirBg} crest={theirCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
-                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid} />
+                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid}
+                    stunned={stunned(a.uid)} />
                 )
               })}
             </>
@@ -691,6 +712,13 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
               className="absolute z-[38] pointer-events-none"
               style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             >
+              {/* DESTELLO del veredicto: el ganador emana un fogonazo. */}
+              {e.verdict && e.win && (
+                <span
+                  className="absolute left-0 top-0 w-24 h-24 rounded-full fx-destello"
+                  style={{ background: `radial-gradient(circle, #ffffffcc, ${info.color}77 40%, transparent 70%)` }}
+                />
+              )}
               <div
                 className={`${size} animate-tech-pop ${e.verdict ? (e.win ? 'fx-bubble-win' : 'fx-bubble-lose') : ''}`}
                 style={{
@@ -836,7 +864,7 @@ function ShotBall({ from, to, color, landed }: {
  *    izquierda VERDE = aguante (se vacían de arriba abajo);
  *  - debajo, su elemento y su nombre.
  */
-function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, dim }: {
+function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, dim, stunned }: {
   actor: Actor
   spot: Spot
   teamColor: string
@@ -848,6 +876,8 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
   showNames?: boolean
   /** FOCO DE JUGADA: los que no pintan nada en el lance se atenúan. */
   dim?: boolean
+  /** Perdió un duelo hace nada: parpadea y se queda apagado, recuperándose. */
+  stunned?: boolean
 }) {
   const info = ELEMENT_INFO[actor.element]
   const active = carrier || marker
@@ -862,13 +892,13 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
   // calculadas ni retardos — eran la fuente de los tirones.
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2"
+      className={`absolute -translate-x-1/2 -translate-y-1/2 ${stunned ? 'fx-stun' : ''}`}
       style={{
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        opacity: dim ? 0.4 : 1,
-        filter: dim ? 'grayscale(.6)' : undefined,
+        opacity: stunned ? 0.55 : dim ? 0.4 : 1,
+        filter: stunned ? 'grayscale(.8)' : dim ? 'grayscale(.6)' : undefined,
         transition: 'left 80ms linear, top 80ms linear, opacity .3s ease, filter .3s ease',
       }}
     >

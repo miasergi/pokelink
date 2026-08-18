@@ -220,12 +220,50 @@ body {
   100% { scale: 1.06; }
 }
 /* OJO: `animation` no se hereda de .animate-tech-pop (la propiedad se pisa),
-   así que el brote inicial va INCLUIDO en cada veredicto. */
-.fx-bubble-win { animation: tech-pop .32s ease-out both, tech-win .45s ease-out .9s both; }
+   así que el brote inicial va INCLUIDO en cada veredicto. El veredicto llega
+   a los 1.4s: deja tiempo a que las técnicas terminen de materializarse. */
+.fx-bubble-win { animation: tech-pop .32s ease-out both, tech-win .5s ease-out 1.4s both; }
 @keyframes tech-lose {
-  to { filter: grayscale(.85); opacity: .4; }
+  0% { filter: none; opacity: 1; }
+  15% { opacity: .2; }
+  32% { opacity: .85; }
+  50% { opacity: .25; }
+  100% { filter: grayscale(.9); opacity: .3; }
 }
-.fx-bubble-lose { animation: tech-pop .32s ease-out both, tech-lose .5s ease-in .9s both; }
+.fx-bubble-lose { animation: tech-pop .32s ease-out both, tech-lose 1s ease-in 1.4s both; }
+
+/* DESTELLO del ganador del duelo: fogonazo radial que emana de él justo al
+   llegar el veredicto. */
+@keyframes fx-destello {
+  0% { transform: translate(-50%, -50%) scale(.15); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+.fx-destello { animation: fx-destello .85s ease-out 1.4s both; }
+
+/* ATURDIDO: acaba de perder el duelo — parpadea como si no pudiera reaccionar
+   (la opacidad de reposo la pone el inline; esto es solo el tembleque). */
+@keyframes fx-stun-blink {
+  0% { opacity: .9; }
+  18% { opacity: .15; }
+  36% { opacity: .7; }
+  54% { opacity: .2; }
+  72% { opacity: .6; }
+  100% { opacity: .55; }
+}
+.fx-stun { animation: fx-stun-blink 1.1s ease-out; }
+
+/* MATERIALIZACIÓN de la técnica: las partículas encienden primero… */
+@keyframes fx-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fx-fade-in { animation: fx-fade-in .5s ease-out .08s both; }
+/* …y el motivo BROTA del suelo: barrido de abajo arriba, de un fogonazo
+   desenfocado a la figura nítida. */
+@keyframes fx-materialize {
+  0% { clip-path: inset(100% 0 0 0); filter: blur(9px) brightness(2.4); }
+  55% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); filter: blur(0) brightness(1); }
+}
+.fx-materialize { animation: fx-materialize .9s ease-out both; }
 
 /* La foto del protagonista respira: zoom lento mientras está en pantalla. */
 @keyframes showcase-zoom {

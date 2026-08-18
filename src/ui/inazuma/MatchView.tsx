@@ -86,6 +86,9 @@ export default function MatchView() {
     if (useSettings.getState().inazumaSimMatch) return
     const last = feed[feed.length - 1]
     const mine = playerSide(match)
+    // El MISMO factor que usa el ticker para encoger los holds: los tiempos
+    // del vuelo tienen que encoger igual o el balón y el portero se desfasan.
+    const f = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
     if (last.kind === 'goal') {
       const isMine = last.side === mine
       setShotFlight(null)
@@ -124,27 +127,29 @@ export default function MatchView() {
       // FX de la técnica anclado al jugador).
       const key = feed.length
       setShotFlight({ key, element: last.element, mine: last.side === mine, toUid: last.defenderUid })
-      setTimeout(() => setShotFlight((f) => (f && f.key === key ? { ...f, landed: true } : f)), 1000)
-      setTimeout(() => setShotFlight((f) => (f && f.key === key ? null : f)), 2300)
+      setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(1000 * f))
+      setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? null : fl)), Math.round(2300 * f))
     } else if (last.kind === 'duel' && last.step === 'definicion') {
       // DISPARO sin pantalla grande: la supertécnica brota sobre el tirador EN
       // EL CÉSPED (LivePitch) y el balón sale ardiendo hacia la portería. La
       // parada o el gol llegan como siguiente evento, también sobre el césped.
       const key = feed.length
-      setTimeout(() => setShotFlight((f) => (f?.key === key ? f : { key, element: last.element, mine: last.side === mine })), 1100)
-      setTimeout(() => setShotFlight((f) => (f && f.key === key ? { ...f, landed: true } : f)), 2400)
+      // La técnica CARGA (se materializa en el césped) antes de que el balón
+      // salga; el vuelo dura lo suyo y el portero NO responde hasta que llega.
+      setTimeout(() => setShotFlight((fl) => (fl?.key === key ? fl : { key, element: last.element, mine: last.side === mine })), Math.round(1600 * f))
+      setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(3300 * f))
     } else if (last.kind === 'save') {
       // La parada: el FX del portero sale anclado a él en el césped; el balón
       // deja de verse en la portería en cuanto la parada «cuenta». Y se CANTA
       // — sin el rótulo no quedaba claro si aquello había entrado o no.
-      setTimeout(() => setShotFlight(null), 900)
+      setTimeout(() => setShotFlight(null), Math.round(1000 * f))
       const keeperMine = last.side === mine
       const first = last.keeper.split(' ')[0].toUpperCase()
       setTimeout(() => setFlash({
         key: feed.length,
         text: `¡PARADA DE ${first}!`,
         color: keeperMine ? '#34d399' : '#f87171',
-      }), 700)
+      }), Math.round(1100 * f))
     } else if (last.kind === 'duel') {
       // Duelo de campo (regate contra bloqueo). CON supertécnica, el FX brota
       // sobre cada jugador en el propio césped (LivePitch); SIN técnica, un
@@ -155,9 +160,9 @@ export default function MatchView() {
       if (!last.technique && !last.counter) {
         setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' })
       } else {
-        // Con técnica, el rótulo espera a que la burbuja brote y se vea quién
-        // gana (el perdedor se apaga a la vez que sale esto).
-        setTimeout(() => setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' }), 1000)
+        // Con técnica, el rótulo espera a que las técnicas se materialicen y
+        // llegue el VEREDICTO (destello del ganador, apagón del perdedor).
+        setTimeout(() => setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' }), Math.round(1600 * f))
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

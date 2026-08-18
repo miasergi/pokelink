@@ -506,15 +506,19 @@ export default function TechniqueFX({ tech, className = '', bare = false }: {
 
   const layers = (
     <>
-      {/* El fondo de su clase (partículas), y encima SUS motivos. */}
-      <BaseKind kind={tech.kind} element={tech.element} color={color} n={n} />
+      {/* La técnica SE MATERIALIZA de a poco: primero las partículas de su
+          clase, y los motivos brotan del suelo — barrido de abajo arriba con
+          desenfoque que se enfoca, cada capa con su retardo. */}
+      <div className="absolute inset-0 fx-fade-in">
+        <BaseKind kind={tech.kind} element={tech.element} color={color} n={n} />
+      </div>
       {motifs.length === 0 && tech.kind === 'parada' && (
-        <div className="absolute inset-0 grid place-items-center">
+        <div className="absolute inset-0 grid place-items-center fx-materialize" style={{ animationDelay: '.25s' }}>
           <Icon name="glove" className="w-16 h-16 fx-charge" style={{ color }} />
         </div>
       )}
       {motifs.map((m, i) => (
-        <div key={m} className="absolute inset-0" style={{ opacity: i === 0 ? 1 : 0.65 }}>
+        <div key={m} className="absolute inset-0 fx-materialize" style={{ opacity: i === 0 ? 1 : 0.65, animationDelay: `${0.25 + i * 0.2}s` }}>
           <MotifLayer motif={m} color={color} element={tech.element} />
         </div>
       ))}
