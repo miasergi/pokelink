@@ -28,7 +28,8 @@ export function Button({
 }) {
   const handle = onClick
     ? () => {
-        play('select')
+        // La acción PRINCIPAL suena a rayo; la secundaria, a blip.
+        play(variant === 'primary' || variant === 'success' ? 'confirm' : 'select')
         onClick()
       }
     : undefined

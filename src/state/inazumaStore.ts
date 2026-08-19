@@ -1578,6 +1578,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { save } = get()
     if (!save || !(save.tactics ?? []).includes(id)) return
     const next = { ...save, armedTactic: id }
+    play('energia')
     set({ save: next, message: `Filosofía armada: ${getTactic(id)?.name ?? id}.` })
     void persist(next, get().phase)
   },
@@ -1751,8 +1752,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save) return
     const item = getItem(itemId)
     if (!item) return
-    if (save.coins < item.price) { set({ message: 'No te llega el presupuesto.' }); return }
+    if (save.coins < item.price) { play('error'); set({ message: 'No te llega el presupuesto.' }); return }
     const next = { ...save, coins: save.coins - item.price, bag: [...save.bag, itemId] }
+    play('buy')
     set({ save: next, message: `${item.name} comprado.` })
     void persist(next, get().phase)
   },

@@ -84,6 +84,8 @@ export type Sfx =
   | 'victory' | 'defeat' | 'select' | 'mega' | 'catch' | 'noEffect'
   // --- fútbol (modo Inazuma) ---
   | 'whistle' | 'kick' | 'gol' | 'parada' | 'supertecnica'
+  // --- interfaz (sintetizados propios, con nervio eléctrico Inazuma) ---
+  | 'tap' | 'confirm' | 'back' | 'buy' | 'error' | 'energia'
 
 export function play(kind: Sfx) {
   if (!useSettings.getState().sound) return
@@ -141,7 +143,45 @@ export function play(kind: Sfx) {
       vibrate(20)
       break
     case 'select':
-      tone(660, 0.04, 'square', 0.03)
+      // Blip de botón: doble armónico corto — cristalino, no un pitido seco.
+      tone(880, 0.035, 'triangle', 0.03)
+      tone(1320, 0.05, 'sine', 0.02, 0.03)
+      break
+    // ------------------------------------------------------- interfaz ---
+    case 'tap':
+      // Toque suave: chips, pestañas, cosas pequeñas.
+      tone(520, 0.03, 'triangle', 0.025)
+      break
+    case 'confirm':
+      // Acción principal: zap eléctrico ascendente + acorde rápido. El
+      // «¡rayo!» de la casa, en pequeño.
+      sweep(400, 1500, 0.12, 'sawtooth', 0.026)
+      tone(784, 0.07, 'square', 0.035)
+      tone(1175, 0.1, 'square', 0.03, 0.06)
+      break
+    case 'back':
+      // Volver: blip descendente, sin drama.
+      sweep(700, 320, 0.09, 'triangle', 0.03)
+      break
+    case 'buy':
+      // Compra/fichaje: clac de caja + campanita doble.
+      noiseBurst(0.05, 3000, 0.03)
+      tone(988, 0.08, 'square', 0.04, 0.04)
+      tone(1319, 0.14, 'square', 0.04, 0.12)
+      vibrate(15)
+      break
+    case 'error':
+      // No se puede: zumbido grave doble.
+      tone(140, 0.12, 'sawtooth', 0.045)
+      tone(120, 0.12, 'sawtooth', 0.04, 0.1)
+      vibrate(30)
+      break
+    case 'energia':
+      // Filosofía armada / energía que se enciende: carga eléctrica larga
+      // con chisporroteo al final.
+      sweep(150, 1800, 0.3, 'sawtooth', 0.035)
+      noiseBurst(0.15, 2500, 0.03, 0.22)
+      vibrate([0, 15, 20, 25])
       break
     // ------------------------------------------------- fútbol (Inazuma) ---
     case 'whistle':

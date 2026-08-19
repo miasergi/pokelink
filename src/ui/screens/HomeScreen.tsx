@@ -11,6 +11,7 @@ import RunTeamModal from '@/ui/components/RunTeamModal'
 import { formatDuration } from '@/ui/components/RunTimer'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
 import { dailyChallenge } from '@/engine/run/daily'
+import { play } from '@/utils/sfx'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
@@ -44,8 +45,8 @@ function CoverCard({ art, logo, alt, color, kicker, status, cta, onPlay }: {
     <div
       role="button"
       tabIndex={0}
-      onClick={onPlay}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlay() }}
+      onClick={() => { play('confirm'); onPlay() }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { play('confirm'); onPlay() } }}
       className="relative w-full overflow-hidden rounded-3xl border cursor-pointer select-none transition active:scale-[0.985]"
       style={{ borderColor: `${color}55`, boxShadow: `0 20px 44px -20px ${color}88` }}
     >
@@ -81,7 +82,7 @@ function Chip({ icon, label, onClick, locked }: {
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { play(locked ? 'error' : 'tap'); onClick() }}
       className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-700/70 bg-slate-900/85 px-3 py-1.5 text-[11px] font-bold text-slate-300 transition active:scale-95 ${locked ? 'opacity-60' : ''}`}
     >
       {icon}
