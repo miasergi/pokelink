@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
+import { setUpdater } from './utils/appUpdate'
 import App from './App'
 import './index.css'
 
@@ -14,13 +15,15 @@ if ('serviceWorker' in navigator) {
     window.location.reload()
   })
 }
-registerSW({
+const updateSW = registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, reg) {
     // Comprueba si hay actualización cada 60 s mientras la app está abierta.
     if (reg) setInterval(() => reg.update().catch(() => {}), 60_000)
   },
 })
+// El botón «Actualizar» del inicio usa este manejador como plan A.
+setUpdater(updateSW)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -12,6 +12,7 @@ import { formatDuration } from '@/ui/components/RunTimer'
 import { ACHIEVEMENT_BY_ID } from '@/data/achievements'
 import { dailyChallenge } from '@/engine/run/daily'
 import { play } from '@/utils/sfx'
+import { forceUpdate } from '@/utils/appUpdate'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
@@ -98,6 +99,7 @@ function Chip({ icon, label, onClick, locked }: {
 export default function HomeScreen() {
   const { navigate, hasSavedRun, resumeRun, cloudUser, pet, newAchievements, clearNewAchievements, startRun, totalWins, hasSavedLeague, resumeLeague } = useGame()
   const [account, setAccount] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const [dailyOpen, setDailyOpen] = useState(false)
   const [newsOpen, setNewsOpen] = useState(false)
   const [dailyWins, setDailyWins] = useState<BestRun[]>([])
@@ -187,6 +189,13 @@ export default function HomeScreen() {
           <Chip icon={<Icon name="achievement" className="w-3.5 h-3.5 text-amber-300" />} label="Logros" onClick={() => navigate('achievements')} />
           <Chip icon={<Icon name="wrench" className="w-3.5 h-3.5 text-slate-400" />} label="Ajustes" onClick={() => navigate('settings')} />
           <Chip icon={<Icon name="scroll" className="w-3.5 h-3.5 text-slate-400" />} label={`Novedades · ${APP_VERSION}`} onClick={() => setNewsOpen(true)} />
+          {/* Para quien no sabe de cachés: un toque y el juego queda al día
+              (limpia el service worker y las cachés; los saves no se tocan). */}
+          <Chip
+            icon={<Icon name="refresh" className={`w-3.5 h-3.5 ${updating ? 'animate-spin text-emerald-300' : 'text-emerald-400'}`} />}
+            label={updating ? 'Actualizando…' : 'Actualizar'}
+            onClick={() => { if (!updating) { setUpdating(true); void forceUpdate() } }}
+          />
         </div>
       </div>
 
