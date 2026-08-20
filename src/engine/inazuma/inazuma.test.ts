@@ -23,7 +23,7 @@ import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward, signingLevel } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, TECH_LEVEL_BONUS,
+  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, START_LEVEL, TECH_LEVEL_BONUS,
   techLevel, transferValue, upgradeTechnique,
   rivalArmbandBaseId, rivalRarityMap,
 } from './roster'
@@ -45,17 +45,21 @@ describe('elementos', () => {
 })
 
 describe('plantilla', () => {
-  it('el once inicial de CADA instituto es legal', () => {
-    // Las plantillas son las reales de la serie y cada una trae su reparto, así
-    // que la formación de salida se elige según lo que el equipo tenga: el
-    // Raimon con seis defensas y tres medios no puede jugar un 4-4-2.
-    for (const teamId of TEAMS.map((t) => t.id)) {
-      const save = createSave(1234, teamId)
-      // La convocatoria sale COMPLETA de casa: todos los de su plantilla real
-      // (11 titulares + banquillo), nunca menos de un once legal.
-      expect(save.roster.length, teamId).toBeGreaterThanOrEqual(11)
-      expect(lineupError(save.roster, save.lineup, save.formation), teamId).toBeNull()
-    }
+  it('se empieza con UN solo inicial, capitán y alineable', () => {
+    // DE LA NADA AL FRONTIER: la run arranca con tu inicial (y nadie más), el
+    // brazalete es suyo, y ese "equipo" de uno ES alineable — juegas con los
+    // que tengas hasta completar el cinco.
+    const save = createSave(1234, 'raimon', { starterId: 'axel-blaze' })
+    expect(save.roster).toHaveLength(1)
+    expect(save.roster[0].baseId).toBe('axel-blaze')
+    expect(save.roster[0].item).toBe('brazalete-capitan')
+    expect(save.lineup).toEqual([save.roster[0].uid])
+    expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
+    // Y con la plantilla construida, el cinco completo también es legal.
+    const full = fullSave(1234)
+    expect(full.roster.length).toBeGreaterThanOrEqual(5)
+    expect(full.lineup).toHaveLength(5)
+    expect(lineupError(full.roster, full.lineup, full.formation)).toBeNull()
   })
 
   it('NADIE está dos veces en el mismo equipo, y los clones de la wiki no entran', () => {
@@ -114,7 +118,7 @@ describe('plantilla', () => {
   })
 
   it('el RIVAL también juega con su filosofía canónica', () => {
-    const save = createSave(6)
+    const save = fullSave(6)
     const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     const away = setup.match.home.isPlayer ? setup.match.away : setup.match.home
@@ -133,7 +137,7 @@ describe('plantilla', () => {
     // como la Supervibración — misma barra, otra opción. Aquí se comprueba el
     // ciclo entero: opción disponible a barra llena, activación, efectos
     // aplicando (vía `fx`) y consumo hasta apagarse.
-    const save = { ...createSave(3), tactics: ['fondo-fisico'], armedTactic: 'fondo-fisico' }
+    const save = { ...fullSave(3), tactics: ['fondo-fisico'], armedTactic: 'fondo-fisico' }
     const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     const m = setup.match
@@ -311,6 +315,22 @@ describe('plantilla', () => {
 // Bot: juega un partido entero eligiendo siempre la mejor opción disponible
 // ---------------------------------------------------------------------------
 
+/**
+ * Save con la plantilla YA CONSTRUIDA (los 8: cinco titular + banquillo),
+ * como queda tras reclutar por el tramo callejero. Los tests de PARTIDO usan
+ * esto; el arranque real (1 solo inicial) lo cubren los de plantilla y el bot.
+ */
+function fullSave(seed: number, teamId = 'raimon'): InazumaSave {
+  const save = createSave(seed, teamId)
+  for (const id of startingSquad(teamId)) {
+    if (save.roster.length >= ROSTER_MAX) break
+    if (save.roster.some((p) => getPlayerBase(p.baseId).name === getPlayerBase(id).name)) continue
+    save.roster.push(createPlayer(id, START_LEVEL))
+  }
+  save.lineup = autoLineup(save.roster, save.formation)
+  return save
+}
+
 function playMatch(save: InazumaSave, node: TournamentNode): MatchState {
   const setup = startMatch(save, node)
   if ('error' in setup) throw new Error(setup.error)
@@ -342,7 +362,7 @@ describe('partido', () => {
     // a un jugador se le borraba de las líneas, `actorByUid` ya no lo
     // encontraba y su tarjeta desaparecía en silencio del resumen. Con los
     // cambios del rival en el descanso, esto pasaba en casi todos los partidos.
-    const save = createSave(11)
+    const save = fullSave(11)
     const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     const m = setup.match
@@ -365,7 +385,7 @@ describe('partido', () => {
     let bloqueos = 0
     let pasan = 0
     for (let seed = 0; seed < 60; seed++) {
-      const save = createSave(seed)
+      const save = fullSave(seed)
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       const m = setup.match
@@ -404,7 +424,7 @@ describe('partido', () => {
     // ser contra el PORTERO.
     let checked = false
     for (let seed = 0; seed < 40 && !checked; seed++) {
-      const save = createSave(seed)
+      const save = fullSave(seed)
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       const m = setup.match
@@ -448,7 +468,7 @@ describe('partido', () => {
     let extraTimes = 0
     let shootouts = 0
     for (let seed = 0; seed < 40; seed++) {
-      const save = createSave(seed)
+      const save = fullSave(seed)
       const m = playMatch(save, firstBoss(save))
       expect(m.phase).toBe('finished')
       expect(m.minute).toBe(m.stage === 'reglamentario' ? 90 : 120)
@@ -476,7 +496,7 @@ describe('partido', () => {
     let goals = 0
     const N = 40
     for (let seed = 0; seed < N; seed++) {
-      const save = createSave(seed * 31 + 7)
+      const save = fullSave(seed * 31 + 7)
       const m = playMatch(save, firstBoss(save))
       const [a, b] = playerScore(m)
       expect(a).toBeLessThanOrEqual(8)
@@ -498,7 +518,7 @@ describe('partido', () => {
     const N = 30
     for (let seed = 0; seed < N; seed++) {
       const play = (gear: boolean) => {
-        const save = createSave(seed)
+        const save = fullSave(seed)
         save.layer = 6
         if (gear) {
           save.roster = save.roster.map((p) => (save.lineup.includes(p.uid) ? { ...p, item: 'espinilleras' } : p))
@@ -511,7 +531,7 @@ describe('partido', () => {
   })
 
   it('las decisiones no se cobran PT que el jugador no tiene', () => {
-    const save = createSave(99)
+    const save = fullSave(99)
     const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     const { match, rng } = setup
@@ -593,17 +613,15 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
     const pick = (k: TournamentNode['kind']) => offer.find((n) => n.kind === k)
     const node = !smart
       ? offer[0]
-      // Desde que el banquillo también sube (un nivel menos), la pachanga
-      // renta SIEMPRE, no solo cuando vas corto: antes se jugaba solo si ibas
-      // por debajo del jefe y el bot se quedaba corto de nivel.
-      // Antes del instituto se para a comer aunque no vaya tirado: llegar
-      // fresco al jefe es la palanca gorda del modo.
+      // Con jefe a la vista, si va fundido pasa por la rueda (recuperación);
+      // en ruta, RECLUTAR manda mientras haya hueco — montar el cinco (y
+      // luego el banquillo) es el juego — y después la rueda de niveles.
       : (offer.some((n) => n.kind === 'jefe' || n.kind === 'final')
-        ? (tired < 85 ? pick('rairai') : undefined) ?? pick('jefe') ?? pick('final')
+        ? (tired < 85 ? pick('entrenamiento') : undefined) ?? pick('jefe') ?? pick('final')
         : undefined)
-        ?? (tired < 65 ? pick('rairai') : undefined)
-        ?? pick('pachanga')
-        ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto') ?? pick('rairai')
+        ?? (save.roster.length < ROSTER_MAX ? pick('ojeador') : undefined)
+        ?? pick('entrenamiento')
+        ?? pick('ojeador') ?? pick('tecnica') ?? pick('objeto')
         ?? offer[0]
 
     if (smart) save.lineup = autoLineup(save.roster)
@@ -612,11 +630,9 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
     // a las pachangas van los frescos (suben igual y así no gastas a los
     // buenos) y al jefe salen los mejores.
     if (smart) {
-      save.lineup = node.kind === 'pachanga'
-        ? freshLineup(save)
-        : node.teamId && (node.kind === 'jefe' || node.kind === 'final')
-          ? matchupLineup(save, node.teamId)
-          : autoLineup(save.roster, save.formation)
+      save.lineup = node.teamId && (node.kind === 'jefe' || node.kind === 'final')
+        ? matchupLineup(save, node.teamId)
+        : autoLineup(save.roster, save.formation)
       // Y se vacía la mochila antes del jefe: la comida guardada no gana nada.
       if (useItems && (node.kind === 'jefe' || node.kind === 'final')) consumeIfNeeded(save, true)
     }
@@ -646,6 +662,21 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
           autoTraining(save, 4, 1)
         }
         if (useItems) { shop(save); equipStarters(save) }
+        break
+      }
+      case 'entrenamiento': {
+        // La rueda: el listo recupera si va fundido y si no carga niveles al
+        // equipo entero; el tonto rueda suave siempre.
+        if (!smart) {
+          for (const p of save.roster) levelUp(p, 1)
+        } else if (tired < 70) {
+          fullRest(save)
+        } else {
+          for (const p of save.roster) {
+            levelUp(p, 2)
+            p.stamina = Math.max(0, p.stamina - 25)
+          }
+        }
         break
       }
       case 'pachanga': {
@@ -754,30 +785,6 @@ function resolveEventNode(save: InazumaSave, node: TournamentNode, rng: RNG, sma
   const resolved = ok ? opt : (opt.fail ?? opt)
   save.coins -= opt.cost ?? 0
   applyEventEffect(save, resolved.effect, rng)
-}
-
-/**
- * Once para una pachanga: el mismo reparto por líneas que `autoLineup` pero
- * ordenando por AGUANTE en vez de por calidad. Los suplentes se llevan los
- * niveles igual (uno menos), así que jugarlas con los frescos deja a las
- * estrellas enteras para el instituto.
- */
-function freshLineup(save: InazumaSave): string[] {
-  const f = FORMATIONS.find((x) => x.id === save.formation) ?? FORMATIONS[0]
-  const byPos = (pos: string) => save.roster
-    .filter((p) => getPlayerBase(p.baseId).position === pos)
-    .sort((a, b) => b.stamina - a.stamina)
-  const picked = [
-    ...byPos('POR').slice(0, 1),
-    ...byPos('DEF').slice(0, f.defs),
-    ...byPos('MED').slice(0, f.mids),
-    ...byPos('DEL').slice(0, f.fwds),
-  ]
-  if (picked.length < 11) {
-    const rest = save.roster.filter((p) => !picked.includes(p)).sort((a, b) => b.stamina - a.stamina)
-    picked.push(...rest.slice(0, 11 - picked.length))
-  }
-  return picked.slice(0, 11).map((p) => p.uid)
 }
 
 /**
@@ -972,15 +979,25 @@ describe('torneo', () => {
       // El jefe cierra el tramo y va solo en su capa.
       expect(map.layers[seg.end]).toHaveLength(1)
       expect(seg.end - seg.start).toBe(ROUTE_LAYERS_PER_SEGMENT)
-      let pachangas = 0
+      let entrenos = 0
       for (let li = seg.start; li < seg.end; li++) {
         const nodes = currentOffer(map, li)
         expect(nodes.length).toBeGreaterThan(1)
-        if (nodes.some((n) => n.kind === 'pachanga')) pachangas++
+        if (nodes.some((n) => n.kind === 'entrenamiento')) entrenos++
       }
-      // La pachanga se garantiza en capas ALTERNAS (forzarla en todas llenaba
-      // el mapa de fútbol de barrio): al menos la mitad del tramo la ofrece.
-      expect(pachangas).toBeGreaterThanOrEqual(ROUTE_LAYERS_PER_SEGMENT / 2)
+      // La rueda de entrenamiento se garantiza en capas alternas, y SIEMPRE
+      // en la última antes del jefe (la recuperación pre-partido).
+      expect(entrenos).toBeGreaterThanOrEqual(ROUTE_LAYERS_PER_SEGMENT / 2)
+      expect(currentOffer(map, seg.end - 1).some((n) => n.kind === 'entrenamiento')).toBe(true)
+    }
+    // TRAMO CALLEJERO: se empieza con 1 — el tramo 0 garantiza ojeadores en
+    // las capas pares (y no vende nada: sin equipo no hay a quién equipar).
+    const street = mapSegments(map)[0]
+    for (let li = street.start; li < street.end; li += 2) {
+      expect(currentOffer(map, li).some((n) => n.kind === 'ojeador'), `capa ${li} sin ojeador`).toBe(true)
+    }
+    for (let li = street.start; li < street.end; li++) {
+      expect(currentOffer(map, li).some((n) => n.kind === 'tienda' || n.kind === 'rairai')).toBe(false)
     }
   })
 
@@ -1007,11 +1024,11 @@ describe('torneo', () => {
     }
   })
 
-  it('el once va por huecos: cualquiera puede jugar en cualquier sitio', () => {
-    const save = createSave(77)
+  it('el cinco va por huecos: cualquiera puede jugar en cualquier sitio', () => {
+    const save = fullSave(77)
     for (const f of FORMATIONS) {
       const lineup = autoLineup(save.roster, f.id)
-      expect(lineup).toHaveLength(11)
+      expect(lineup).toHaveLength(5)
       // Lo que genera autoLineup siempre es válido…
       expect(lineupError(save.roster, lineup, f.id)).toBeNull()
       // …e invertirlo ENTERO también: desde la alineación libre, el papel lo
@@ -1021,14 +1038,15 @@ describe('torneo', () => {
       const built = buildLineup(save.roster, lineup.slice().reverse(), f.id)!
       expect(built.keeper.uid).toBe(lineup[lineup.length - 1])
     }
-    // Lo que sigue sin valer: repetir a alguien o no llegar a once.
+    // Lo que sigue sin valer: repetir a alguien o quedarse corto PUDIENDO
+    // completar el cinco (con menos plantilla que cinco, sales con lo que hay).
     const l = autoLineup(save.roster, FORMATIONS[0].id)
-    expect(lineupError(save.roster, l.slice(0, 10), FORMATIONS[0].id)).not.toBeNull()
-    expect(lineupError(save.roster, [l[0], ...l.slice(0, 10)], FORMATIONS[0].id)).not.toBeNull()
+    expect(lineupError(save.roster, l.slice(0, 4), FORMATIONS[0].id)).not.toBeNull()
+    expect(lineupError(save.roster, [l[0], ...l.slice(0, 4)], FORMATIONS[0].id)).not.toBeNull()
   })
 
   it('las estadísticas por jugador se acumulan de los eventos', () => {
-    const save = createSave(555)
+    const save = fullSave(555)
     const m = playMatch(save, firstBoss(save))
     const mine = m.home.isPlayer ? m.home : m.away
     const uids = new Set([mine.keeper, ...mine.defs, ...mine.mids, ...mine.fwds].map((a) => a.uid))
@@ -1080,36 +1098,10 @@ describe('torneo', () => {
     // Y hay de todo: el mapa no puede salir monotemático. La antigua casilla
     // «tecnica» ya no se genera (la absorbe la de objeto).
     const kinds = new Set(all.map((n) => n.kind))
-    for (const k of ['pachanga', 'objeto', 'firma', 'ojeador', 'evento', 'jefe'] as const) {
+    for (const k of ['entrenamiento', 'objeto', 'firma', 'ojeador', 'evento', 'jefe'] as const) {
       expect(kinds.has(k)).toBe(true)
     }
     expect(kinds.has('tecnica')).toBe(false)
-  })
-
-  it('la pachanga se decide rápido, cansa y da nivel al once que la juega', () => {
-    for (let seed = 0; seed < 20; seed++) {
-      const save = createSave(seed)
-      const node = currentOffer(save.map, 0).find((n) => n.kind === 'pachanga')!
-      const before = save.roster.map((p) => ({ lv: p.level, st: p.stamina }))
-      const s = playPachanga(save, node)!
-      expect(s.phase).toBe('finished')
-      // La muerte súbita puede alargarse, pero no eternizarse: al portero se le
-      // cargan las piernas y la tanda se desnivela sola.
-      expect(s.rounds.length).toBeLessThanOrEqual(25)
-      // Y NUNCA acaba en tablas: eso es lo que decide la muerte súbita.
-      expect(s.goals[0]).not.toBe(s.goals[1])
-
-      applyPachangaResult(save, s, node)
-      // Cansa siempre: alguien tiene que haber perdido aguante.
-      expect(save.roster.some((p, i) => p.stamina < before[i].st)).toBe(true)
-      // Nivel por jugarla: +2 al once si gana, +1 si pierde; el banquillo, 0.
-      const onPitch = new Set([s.mine.keeper, ...s.mine.defs, ...s.mine.mids, ...s.mine.fwds].map((a2) => a2.uid))
-      const gained = s.result === 'win' ? 2 : 1
-      for (let i = 0; i < save.roster.length; i++) {
-        const p = save.roster[i]
-        expect(p.level - before[i].lv, p.uid).toBe(onPitch.has(p.uid) ? gained : 0)
-      }
-    }
   })
 
   /**
@@ -1161,7 +1153,7 @@ describe('torneo', () => {
 describe('coherencia', () => {
   it('cada acción del partido nombra a jugadores que están en el campo', () => {
     for (let seed = 0; seed < 12; seed++) {
-      const save = createSave(seed * 17 + 5)
+      const save = fullSave(seed * 17 + 5)
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       const { match, rng } = setup
@@ -1206,7 +1198,7 @@ describe('coherencia', () => {
   })
 
   it('todo jugador del partido tiene retrato, nombre y elemento propios', () => {
-    const save = createSave(99)
+    const save = fullSave(99)
     const setup = startMatch(save, firstBoss(save))
     if ('error' in setup) throw new Error(setup.error)
     for (const side of [setup.match.home, setup.match.away]) {
@@ -1219,19 +1211,14 @@ describe('coherencia', () => {
     }
   })
 
-  it('las supertécnicas que ofrece el mapa las puede aprender alguien de tu plantilla', () => {
-    for (const teamId of PLAYABLE_TEAMS) {
-      const save = createSave(7, teamId)
-      // Las técnicas del mapa viven ahora en las casillas de objeto.
-      const techNodes = Object.values(save.map.nodes).filter((n) => n.kind === 'objeto' && n.techniqueId)
-      expect(techNodes.length).toBeGreaterThan(0)
-      for (const n of techNodes) {
-        // Compatible por demarcación Y elemento con alguien de la plantilla.
-        // (Que además no la sepa ya depende de la partida, no del generador.)
-        expect(save.roster.some((p) => learnBlocker(p, n.techniqueId!) === null
-          || learnBlocker(p, n.techniqueId!) === 'Ya la conoce')).toBe(true)
-      }
-    }
+  it('las supertécnicas que ofrece el mapa existen en el catálogo', () => {
+    // Con el equipo CONSTRUIBLE desde un inicial, el mapa ya no puede saber
+    // qué combinaciones tendrás: la técnica va a la mochila y espera al
+    // recluta adecuado. Lo exigible es que toda oferta sea una técnica real.
+    const save = createSave(7)
+    const techNodes = Object.values(save.map.nodes).filter((n) => n.kind === 'objeto' && n.techniqueId)
+    expect(techNodes.length).toBeGreaterThan(0)
+    for (const n of techNodes) expect(getTechnique(n.techniqueId!)).toBeTruthy()
   })
 
   it('cada saga arma su torneo completo: cuadro propio, jugables válidos y ojeador con oferta', () => {
@@ -1245,8 +1232,8 @@ describe('coherencia', () => {
           expect(saga.teams).toContain(b.teamId!)
           expect(b.teamId).not.toBe(teamId)
         }
-        // Plantilla inicial: los 14 REALES del instituto, con once válido.
-        expect(save.roster.length).toBe(14)
+        // Plantilla inicial: TU INICIAL (1) y alineable — el resto se recluta.
+        expect(save.roster.length).toBe(1)
         expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
         // El ojeador tiene a quien ofrecer desde la primera casilla.
         expect(buildScoutOffer(save, new RNG(1)).length).toBeGreaterThan(0)
@@ -1347,7 +1334,10 @@ describe('coherencia', () => {
 
   it('las combinadas se GANAN: hace falta despertar la técnica y tener al socio', () => {
     // Kevin sin su cadena despierta: NO hay combo aunque estén los dos.
-    const raw = createSave(1).roster.map((p) => ({ baseId: p.baseId, techniques: p.techniques }))
+    const raw = ['axel-blaze', 'kevin-dragonfly', 'mark-evans'].map((id) => {
+      const pl = createPlayer(id, 5)
+      return { baseId: pl.baseId, techniques: pl.techniques }
+    })
     expect(availableCombos('axel-blaze', raw).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
     // Kevin despierta el Tornado de Dragón (2º paso de su cadena) → combo.
     const conCadena = raw.map((a) => (a.baseId === 'kevin-dragonfly'
@@ -1363,8 +1353,15 @@ describe('coherencia', () => {
     let seenCombo = false
     for (let seed = 0; seed < 6 && !seenCombo; seed++) {
       const save = createSave(seed)
-      // Rareza suficiente para alcanzar el 2.º paso de la cadena + niveles.
-      save.roster = save.roster.map((p) => levelUp({ ...p, rarity: 3 }, 25))
+      // Los DOS socios en plantilla (el cinco tiene que alinearlos a ambos) y
+      // rareza suficiente para alcanzar el 2.º paso de la cadena + niveles.
+      // El ORDEN del cinco es la alineación (POR, DEF, MED, MED, DEL): Axel
+      // va al hueco de delantero — de defensa no puede tirar y no hay combo.
+      save.roster = [
+        save.roster[0],
+        ...['jack-wallside', 'nathan-swift', 'kevin-dragonfly', 'axel-blaze'].map((id) => createPlayer(id, 5)),
+      ].map((p) => levelUp({ ...p, rarity: 3 }, 25))
+      save.lineup = save.roster.map((p) => p.uid)
       const setup = startMatch(save, firstBoss(save))
       if ('error' in setup) throw new Error(setup.error)
       let guard = 0

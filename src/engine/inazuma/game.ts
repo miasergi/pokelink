@@ -2,27 +2,26 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { type RegionId, getTeam, regionOfTeam } from '@/data/inazuma/teams'
+import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
+import { type RegionId, getTeam } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
   levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
   rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
-  overall,
 } from './roster'
 import { createMatch } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
-import { buildScoutOffer, uniqueByName } from './rewards'
+import { buildScoutOffer } from './rewards'
 import { lootPool } from '@/data/inazuma/items'
 import {
-  ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
+  ROSTER_MAX, TECHNIQUE_SLOTS,
   type RandomFlags,
 } from './types'
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
-  Actor, DecisionMode, Difficulty, InazumaSave, MatchEvent, MatchSide, MatchState, PlayerBase,
+  Actor, DecisionMode, Difficulty, InazumaSave, MatchEvent, MatchSide, MatchState,
   PlayerInstance, PlayerStats, Position, Stats, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
@@ -47,6 +46,9 @@ const REST_PT_FRACTION = 0.35
 export interface NewRunOptions {
   difficulty?: Difficulty
   randomSquad?: boolean
+  /** TU INICIAL: el ÚNICO jugador con el que arrancas (id del catálogo). El
+   * resto de la plantilla se recluta por el camino — como en Pokémon. */
+  starterId?: string
   saga?: 'ff' | 'alius' | 'ffi' | 'vr'
   /** Nombre y escudo del equipo del bombo (a gusto del entrenador). */
   customName?: string
@@ -64,46 +66,23 @@ export const DIFFICULTY_LEVEL_BONUS: Record<Difficulty, number> = {
   leyenda: 12,
 }
 
-/**
- * Plantilla del BOMBO: 14 jugadores al azar de TODO el catálogo, con las
- * cuotas por demarcación de una convocatoria de verdad (2 porteros, 4-4-4).
- * El más raro capitanea. Es el modo «random» de un roguelike: cada partida,
- * un vestuario que no has entrenado nunca.
- */
-function randomSquadIds(rng: RNG, eras?: RegionId[]): string[] {
-  // COLAPSADO por nombre (los clones multi-equipo salían el triple) y
-  // respetando las ÉPOCAS elegidas en el configurador — antes el bombo
-  // ignoraba los pools y sorteaba sobre todo el catálogo.
-  const eraSet = new Set(eras ?? [])
-  const pool = uniqueByName(PLAYERS.filter((p) => !eraSet.size || eraSet.has(regionOfTeam(p.team))))
-  const byPos = (pos: PlayerBase['position'], n: number) =>
-    rng.shuffle(pool.filter((p) => p.position === pos).map((p) => p.id)).slice(0, n)
-  const picks = [...byPos('POR', 2), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 4)]
-  return picks.sort((a, b) => getPlayerBase(b).fame - getPlayerBase(a).fame)
-}
-
 export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions = {}): InazumaSave {
   const rng = new RNG(seed)
   const difficulty = opts.difficulty ?? 'normal'
   const formation = formationFor(teamId)
-  const squadIds = opts.randomSquad ? randomSquadIds(rng, opts.pools) : startingSquad(teamId, formation)
+  // DE LA NADA AL FRONTIER: se empieza con UN solo jugador (tu inicial) y el
+  // resto se recluta por el mapa. El bombo viejo (14 al azar) queda retirado;
+  // sin inicial explícito (saves de tests), arranca Mark Evans.
+  const squadIds = [opts.starterId ?? 'mark-evans']
   const roster = squadIds.map((id) => createPlayer(id, START_LEVEL))
-  // EL BRAZALETE DE CAPITÁN: único en todo el torneo, se entrega al empezar.
-  // +25 % a todo, y quien lo lleva ES el capitán (se puede reequipar: la
-  // figura del capitán intocable se retiró). En el bombo se lo lleva el mejor.
-  const capIdx = opts.randomSquad
-    ? roster.reduce((bi, p, i, arr) => (overall(p) > overall(arr[bi]) ? i : bi), 0)
-    : 0
-  roster[capIdx] = { ...roster[capIdx], item: 'brazalete-capitan' }
+  // EL BRAZALETE DE CAPITÁN: único en todo el torneo, y es de TU INICIAL —
+  // es tu capitán desde el día uno (+25 % a todo; se puede reequipar).
+  roster[0] = { ...roster[0], item: 'brazalete-capitan' }
   const map = generateMap(
     rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga,
     opts.random?.cuadro ? (opts.pools?.length ? opts.pools : undefined) ?? [] : undefined,
   )
-  // El once de salida es el CANÓNICO (los 11 primeros de la convocatoria son
-  // los titulares de la formación); si se dejara elegir a `autoLineup` entre
-  // los 14, el ruido de stats podía mandar al banquillo a titulares de la
-  // serie. En el bombo no hay canon: ahí sí elige entre todos.
-  const lineup = autoLineup(opts.randomSquad ? roster : roster.slice(0, SQUAD_SIZE), formation)
+  const lineup = autoLineup(roster, formation)
   return {
     seed,
     teamId,
@@ -113,8 +92,9 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     // Las épocas del pool: si no se elige nada, la de la saga que juegas.
     pools: opts.pools?.length ? opts.pools : undefined,
     random: opts.random && Object.values(opts.random).some(Boolean) ? opts.random : undefined,
-    customName: opts.randomSquad ? (opts.customName?.trim() || 'FC Bombo') : undefined,
-    customCrest: opts.randomSquad ? opts.customCrest : undefined,
+    // Nombre y escudo SIEMPRE tuyos: el equipo lo fundas tú.
+    customName: opts.customName?.trim() || 'Nuevo Raimon',
+    customCrest: opts.customCrest,
     rngState: rng.getState(),
     map,
     layer: 0,
@@ -233,6 +213,8 @@ export function startMatch(
   const rivals = buildRivalTeam(teamId, node.level ?? 10, rng, rivalRarity(bossIdx), {
     rarityMap: rivalRarityMap(teamId, bossIdx),
     elite: true,
+    // El primer jefe aún es calle: sale con 4, como tu equipo a medio hacer.
+    size: bossIdx === 0 ? 4 : 5,
     // Randomizador de PLANTILLAS: el instituto sale con once sorteado.
     shuffleFrom: save.random?.plantillas ? (save.pools ?? [save.saga ?? 'ff']) : undefined,
   })
@@ -254,7 +236,7 @@ export function startMatch(
   // 12º-14º): al descanso su banquillo hace hasta 3 cambios, como el tuyo.
   const xiIds = new Set(rivals.map((r) => r.baseId))
   away.bench = startingSquad(teamId)
-    .slice(11)
+    .slice(5, 8)
     .map(getPlayerBase)
     .filter((b) => !xiIds.has(b.id))
     .map((b, i) => actorFromRival(rivalFromBase(b, node.level ?? 10, team.power, rivalRarityMap(teamId, bossIdx).get(b.id) ?? rivalRarity(bossIdx)), 100 + i))

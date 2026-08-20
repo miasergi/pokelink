@@ -27,6 +27,7 @@ export const NODE_META: Record<NodeKind, { icon: string; color: string; label: s
   rairai: { icon: NODE_ICON.rairai, color: '#f472b6', label: 'Rai Rai' },
   tienda: { icon: NODE_ICON.tienda, color: '#fcd34d', label: 'Tienda' },
   concentracion: { icon: NODE_ICON.firma, color: '#fb923c', label: 'Concentración' },
+  entrenamiento: { icon: NODE_ICON.entrenamiento, color: '#38bdf8', label: 'Entrenamiento' },
   jefe: { icon: NODE_ICON.jefe, color: '#f87171', label: 'Instituto' },
   final: { icon: NODE_ICON.final, color: '#fde047', label: 'FINAL' },
 }

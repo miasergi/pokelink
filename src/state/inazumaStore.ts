@@ -381,6 +381,14 @@ interface InazumaState {
   skipNode: () => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
   resolveTrade: (uid: string) => void
+  /**
+   * RUEDA DE ENTRENAMIENTO: aplica el plan elegido.
+   *  - 'uno'          → +5 niveles a UN jugador, −50 de aguante (el machaque)
+   *  - 'equipo'       → +2 niveles a todos, −25 de aguante a todos
+   *  - 'suave'        → +1 nivel a todos, sin cansancio
+   *  - 'recuperacion' → aguante y PT al máximo para todos
+   */
+  resolveEntreno: (plan: 'uno' | 'equipo' | 'suave' | 'recuperacion', uid?: string) => void
 
   // plantilla
   setLineup: (uids: string[]) => void
@@ -585,6 +593,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         return
       case 'trade':
         set({ save: next, matchNode: node, phase: 'trade' })
+        return
+      case 'entrenamiento':
+        // La RUEDA DE ENTRENAMIENTO: cuatro planes a elegir en su pantalla.
+        set({ save: next, matchNode: node, phase: 'entreno' })
         return
       case 'concentracion': {
         // Tres cartas de BUILDEO puro, a elegir una: subir una rareza, meter
@@ -1354,6 +1366,44 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const next: InazumaSave = { ...save, cleared: save.cleared.slice() }
     advanceLayer(next, matchNode)
     set({ save: next, matchNode: null, phase: 'map' })
+    void persist(next, 'map')
+  },
+
+  resolveEntreno: (plan, uid) => {
+    const { save, matchNode } = get()
+    if (!save || matchNode?.kind !== 'entrenamiento') return
+    // Clones de trabajo: `levelUp` muta al jugador que recibe.
+    const roster = save.roster.map((p) => ({ ...p }))
+    let message: string
+    if (plan === 'uno') {
+      const p = roster.find((x) => x.uid === uid)
+      if (!p) return
+      levelUp(p, 5)
+      p.stamina = Math.max(0, p.stamina - 50)
+      message = `Entrenamiento intensivo: ${getPlayerBase(p.baseId).name} sube 5 niveles (y acaba reventado).`
+      play('energia')
+    } else if (plan === 'equipo') {
+      for (const p of roster) {
+        levelUp(p, 2)
+        p.stamina = Math.max(0, p.stamina - 25)
+      }
+      message = 'Intensivo de equipo: +2 niveles a todos, a cambio de sudor.'
+      play('energia')
+    } else if (plan === 'suave') {
+      for (const p of roster) levelUp(p, 1)
+      message = 'Rondo suave: +1 nivel a todos, sin cansar a nadie.'
+      play('levelup')
+    } else {
+      for (const p of roster) {
+        p.stamina = 100
+        p.pt = ptMax(p)
+      }
+      message = 'Jornada de recuperación: aguante y PT al máximo.'
+      play('heal')
+    }
+    const next: InazumaSave = { ...save, roster, cleared: save.cleared.slice() }
+    advanceLayer(next, matchNode)
+    set({ save: next, matchNode: null, phase: 'map', message })
     void persist(next, 'map')
   },
 

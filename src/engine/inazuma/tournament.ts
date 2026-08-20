@@ -19,7 +19,6 @@ import { BRACKET, buildBracket, getTeam, ROUND_NAMES, type RegionId } from '@/da
 import { lootPool } from '@/data/inazuma/items'
 import { EVENTS } from '@/data/inazuma/events'
 import { TECHNIQUES } from '@/data/inazuma/techniques'
-import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
 import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from './types'
 
 /**
@@ -38,7 +37,10 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // rarezas (1 medalla por pachanga, coste escalado): el tramo medio bajó un
 // par de puntos para que el torneo siga siendo GANABLE jugando bien.
 // Difícil/Leyenda suman su bono encima.
-export const RIVAL_LEVELS = [8, 14, 20, 27, 34, 41, 48, 55]
+// Recalibrada para el arranque DESDE UN INICIAL: sin pachangas que farmear,
+// el nivel viene de las ruedas de entrenamiento y de los partidos — la curva
+// vieja ([8..55]) dejaba al mejor bot 5 niveles por detrás en cada ronda.
+export const RIVAL_LEVELS = [5, 9, 13, 17, 21, 25, 29, 33]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
@@ -74,29 +76,39 @@ export function pachangaLevel(segment: number, routeIndex: number): number {
 // tres cosas a elegir y una de ellas es siempre una supertécnica, así que
 // tener las dos era redundante. `NodeKind` conserva 'tecnica' por las
 // partidas guardadas.
+// La RUEDA DE ENTRENAMIENTO sustituye a la pachanga como fuente de nivel; el
+// Rai Rai se retiró (la recuperación es una opción del entrenamiento y sus
+// productos pasaron a la tienda). Ambos NodeKind siguen en el tipo por saves.
 const ROUTE_WEIGHTS: { kind: NodeKind; weight: number }[] = [
-  { kind: 'pachanga', weight: 20 },
-  { kind: 'evento', weight: 16 },
-  { kind: 'firma', weight: 15 },
+  { kind: 'entrenamiento', weight: 20 },
+  { kind: 'evento', weight: 15 },
+  { kind: 'firma', weight: 14 },
   { kind: 'objeto', weight: 16 },
-  { kind: 'ojeador', weight: 10 },
+  { kind: 'ojeador', weight: 13 },
   { kind: 'trade', weight: 7 },
-  // Peso bajado de 9: la última capa de CADA tramo ya trae un Rai Rai
-  // garantizado, así que el sorteo solo reparte los extra. Con el peso viejo
-  // la ruta se llenaba de ramen y farmear pachangas salía gratis.
-  { kind: 'rairai', weight: 3 },
-  { kind: 'tienda', weight: 7 },
+  { kind: 'tienda', weight: 8 },
 ]
 
-function pickKind(rng: RNG, exclude: Set<NodeKind>): NodeKind {
-  const pool = ROUTE_WEIGHTS.filter((w) => !exclude.has(w.kind))
+// TRAMO 0 = FÚTBOL CALLEJERO: acabas de fundar el club con UN jugador — lo
+// que hace falta es GENTE. Los ojeadores mandan y la tienda ni aparece (sin
+// equipo no hay a quién equipar).
+const STREET_WEIGHTS: { kind: NodeKind; weight: number }[] = [
+  { kind: 'entrenamiento', weight: 16 },
+  { kind: 'evento', weight: 12 },
+  { kind: 'firma', weight: 12 },
+  { kind: 'objeto', weight: 12 },
+  { kind: 'ojeador', weight: 30 },
+]
+
+function pickKind(rng: RNG, exclude: Set<NodeKind>, street = false): NodeKind {
+  const pool = (street ? STREET_WEIGHTS : ROUTE_WEIGHTS).filter((w) => !exclude.has(w.kind))
   const total = pool.reduce((a, w) => a + w.weight, 0)
   let r = rng.next() * total
   for (const w of pool) {
     r -= w.weight
     if (r <= 0) return w.kind
   }
-  return pool[pool.length - 1]?.kind ?? 'pachanga'
+  return pool[pool.length - 1]?.kind ?? 'entrenamiento'
 }
 
 export function generateMap(
@@ -124,16 +136,28 @@ export function generateMap(
       const lastBeforeBoss = r === ROUTE_LAYERS_PER_SEGMENT - 1
       // (La casilla de «concentración» se retiró: solapaba con la de objeto.
       // El NodeKind sigue existiendo por los saves que la tengan en el mapa.)
-      const forced: NodeKind[] = seg === 0 && r === 0
-        ? ['pachanga', 'firma']
-        : [
-          ...(r % 2 === 0 ? ['pachanga' as const] : []),
-          ...(lastBeforeBoss ? ['rairai' as const] : []),
-        ]
+      const street = seg === 0
+      // Tramo callejero: OJEADOR garantizado en las capas pares (hay que
+      // montar el equipo) y la primera capa arranca con ojeador + firma.
+      // Resto del mapa: entrenamiento garantizado en capas alternas, y
+      // SIEMPRE en la última antes del jefe (poder recuperar antes del
+      // partido gordo era lo que garantizaba el Rai Rai retirado).
+      const forced: NodeKind[] = street && r === 0
+        ? ['ojeador', 'firma', 'entrenamiento']
+        : street
+          // En la calle SIEMPRE hay un ojeador a mano: montar el cinco es la
+          // misión del tramo. La rueda acompaña en las capas impares.
+          ? [
+            'ojeador' as const,
+            ...(r % 2 === 1 || lastBeforeBoss ? ['entrenamiento' as const] : []),
+          ]
+          : [
+            ...(r % 2 === 0 || lastBeforeBoss ? ['entrenamiento' as const] : []),
+          ]
       for (let c = 0; c < NODES_PER_LAYER; c++) {
-        const kind = forced[c] ?? pickKind(rng, used)
-        // Ni dos descansos ni dos tiendas en la misma capa.
-        if (kind === 'rairai' || kind === 'tienda') used.add(kind)
+        const kind = forced[c] ?? pickKind(rng, used, street)
+        // Ni dos tiendas ni dos ojeadores sorteados en la misma capa.
+        if (kind === 'rairai' || kind === 'tienda' || kind === 'ojeador') used.add(kind)
         const node = buildRouteNode(`n${layerIdx}-${c}`, kind, layerIdx, c, seg, r, rng, bracket, playerTeamId, levelBonus)
         nodes[node.id] = node
         ids.push(node.id)
@@ -293,6 +317,15 @@ function buildRouteNode(
         reward: `${tech.name} (${tech.kind})`,
       }
     }
+    case 'entrenamiento':
+      // La RUEDA DE ENTRENAMIENTO de Mark Evans: cuatro planes a elegir al
+      // llegar (intensivo a uno, intensivo al equipo, suave o recuperación).
+      return {
+        ...base,
+        title: 'Rueda de entrenamiento',
+        subtitle: 'Elige el plan del día',
+        reward: 'Niveles a cambio de sudor (o descanso)',
+      }
     case 'firma':
       return {
         ...base,
@@ -335,21 +368,11 @@ function buildRouteNode(
  * plantilla INICIAL, que es la única que el mapa conoce al generarse; con los
  * fichajes posteriores solo puede ampliarse, nunca reducirse.
  */
-function teachableTo(teamId: string): (t: Technique) => boolean {
-  // MISMA plantilla que monta `createSave` (formación incluida): si aquí se
-  // mirase una lista más ancha, el mapa ofrecería técnicas para jugadores que
-  // no tienes.
-  const squad = startingSquad(teamId, formationFor(teamId)).map(getPlayerBase)
-  const combos = new Set(squad.map((p) => `${KIND_FOR_POSITION[p.position]}|${p.element}`))
-  // Y las que ya se saben de salida no cuentan: repetir una técnica que ya
-  // lleva el único jugador que podría aprenderla es una casilla vacía.
-  const known = new Set(squad.flatMap((p) => p.techniques))
-  return (t) => combos.has(`${t.kind}|${t.element}`) && !known.has(t.id)
-}
-
-/** Qué clase de técnica usa cada demarcación (espejo de `learnBlocker`). */
-const KIND_FOR_POSITION: Record<string, Technique['kind']> = {
-  POR: 'parada', DEF: 'bloqueo', MED: 'regate', DEL: 'tiro',
+function teachableTo(_teamId: string): (t: Technique) => boolean {
+  // Desde que el equipo se CONSTRUYE desde un solo inicial, el mapa no puede
+  // saber qué combinaciones tendrás: cualquier técnica vale — va a la mochila
+  // y espera al recluta adecuado (como una MT en Pokémon).
+  return () => true
 }
 
 /** Rivales de pachanga: equipos de barrio, sin escudo ni entidad propia. */

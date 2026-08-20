@@ -78,9 +78,12 @@ export function getItem(id: string): InazumaItem | undefined {
  * más adelante tiene sentido.
  */
 export function stockFor(kind: 'tienda' | 'rairai', progress = 7): InazumaItem[] {
+  // El Rai Rai se retiró (la recuperación vive en la Rueda de entrenamiento):
+  // su comida se vende ahora en la TIENDA. El modo 'rairai' queda por los
+  // saves viejos que aún tengan la casilla en el mapa.
   const pool = kind === 'rairai'
     ? ITEMS.filter((i) => i.kind === 'comida')
-    : ITEMS.filter((i) => i.kind !== 'comida')
+    : ITEMS.slice()
   // Techo de precio: arranca en 900 ₽ y sube ~800 por eliminatoria superada.
   // Los raros nunca se venden: esos solo salen en las casillas de objeto.
   const ceiling = 900 + progress * 850

@@ -6,8 +6,10 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
-import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, type RegionId, type SagaId } from '@/data/inazuma/teams'
+import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
+import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId, type SagaId } from '@/data/inazuma/teams'
+import { STARTERS_BY_SAGA } from '@/data/inazuma/starters'
+import { uniqueByName } from '@/engine/inazuma/rewards'
 import { loadMeta } from '@/persistence/db'
 import type { PlayerStats } from '@/engine/inazuma/types'
 
@@ -296,30 +298,48 @@ const DIFFICULTIES = [
 
 export function TeamSelectView() {
   const { newTournament, goTo } = useInazuma()
-  // Modalidades de la partida: se eligen ANTES de tocar un instituto.
+  // Modalidades de la partida.
   const [saga, setSaga] = useState<SagaId>('ff')
   const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
-  const [randomSquad, setRandomSquad] = useState(false)
   // De qué juegos sale la gente y qué se desordena.
   const [pools, setPools] = useState<RegionId[]>([])
   const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean }>({})
-  // Identidad del equipo del bombo: nombre libre y CUALQUIER escudo.
+  // TU CLUB: lo fundas tú — nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
   const [customCrest, setCustomCrest] = useState<string | null>(null)
-  const begin = (teamId: string) => {
-    const crest = customCrest ?? teamId
-    void newTournament(teamId, {
+  // TU INICIAL: el único jugador con el que arrancas. Tres canónicos por
+  // saga + «Buscar» (cualquiera del catálogo de las épocas elegidas).
+  const [starterId, setStarterId] = useState<string>(STARTERS_BY_SAGA.ff[0])
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
+  useEffect(() => {
+    // Al cambiar de saga, si tu inicial era uno de los canónicos de la otra,
+    // salta al primero de la nueva (una elección de Buscar se respeta).
+    const all = Object.values(STARTERS_BY_SAGA).flat()
+    if (all.includes(starterId) && !STARTERS_BY_SAGA[saga].includes(starterId)) {
+      setStarterId(STARTERS_BY_SAGA[saga][0])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saga])
+  const begin = () => {
+    void newTournament('raimon', {
       difficulty,
-      randomSquad,
       saga,
-      // Sin nombre escrito, el equipo se llama como el escudo elegido.
-      customName: randomSquad ? (customName.trim() || getTeam(crest).name) : undefined,
-      customCrest: randomSquad ? crest : undefined,
+      starterId,
+      customName: customName.trim() || 'Nuevo Raimon',
+      customCrest: customCrest ?? 'raimon',
       pools,
       random,
     })
   }
   const sagaInfo = getSaga(saga)
+  // Catálogo del BUSCAR: las épocas marcadas (o la de la saga), sin clones.
+  const searchEras = new Set<RegionId>(pools.length ? pools : [saga as RegionId])
+  const searchPool = uniqueByName(PLAYERS.filter((pl) => searchEras.has(regionOfTeam(pl.team))))
+  const q = query.trim().toLowerCase()
+  const results = q
+    ? searchPool.filter((pl) => pl.name.toLowerCase().includes(q)).slice(0, 24)
+    : searchPool.filter((pl) => pl.fame >= 4).slice(0, 24)
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -445,136 +465,127 @@ export function TeamSelectView() {
           <p className="text-[10px] text-slate-500 mt-1">
             {DIFFICULTIES.find((d) => d.id === difficulty)!.desc}
           </p>
-          <button
-            onClick={() => setRandomSquad(!randomSquad)}
-            className={`mt-2 w-full rounded-xl border px-3 py-2 text-left text-[12px] font-bold transition active:scale-[0.99] ${
-              randomSquad
-                ? 'border-fuchsia-500/70 bg-fuchsia-500/15 text-fuchsia-200'
-                : 'border-slate-700 bg-slate-800/60 text-slate-400'
-            }`}
-          >
-            🎲 Plantilla del bombo {randomSquad ? '· ACTIVADA' : ''}
-            <span className="block text-[10px] font-normal text-slate-500">
-              14 jugadores al azar de TODO el catálogo (2 porteros, 4-4-4). Todos de rareza Normal, como manda el rogue.
-            </span>
-          </button>
+        </div>
 
-          {/* Con el bombo activo, el equipo es TUYO: bautízalo y elige escudo.
-              Con un valor por defecto para los ansiosos («FC Bombo»). */}
-          {randomSquad && (
-            <div className="mt-2 rounded-xl border border-fuchsia-500/30 bg-slate-900/50 p-2">
+        {/* TU INICIAL: como el de Pokémon — empiezas con UNO y a reclutar. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Tu inicial</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {STARTERS_BY_SAGA[saga].map((id) => {
+              const b = getPlayerBase(id)
+              const info = ELEMENT_INFO[b.element]
+              const on = starterId === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => { setStarterId(id); setSearching(false) }}
+                  className={`rounded-xl border overflow-hidden transition active:scale-95 ${
+                    on ? 'border-amber-400 ring-2 ring-amber-400/50' : 'border-slate-700 opacity-70'
+                  }`}
+                >
+                  <ImgFallback
+                    src={portraitUrl(b.id)}
+                    alt={b.name}
+                    className="w-full aspect-square object-cover object-top bg-slate-900"
+                    fallback={<span className="grid place-items-center w-full aspect-square bg-slate-900 text-lg font-extrabold">{b.name[0]}</span>}
+                  />
+                  <span className={`block text-[9px] font-bold leading-tight py-1 px-0.5 ${on ? 'text-amber-200 bg-amber-500/15' : 'text-slate-400'}`}>
+                    {b.name.split(' ')[0]}
+                    <span className="block text-[8px] font-normal" style={{ color: info.color }}>{b.position} · {info.label}</span>
+                  </span>
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setSearching(!searching)}
+              className={`rounded-xl border grid place-items-center transition active:scale-95 ${
+                searching || !STARTERS_BY_SAGA[saga].includes(starterId)
+                  ? 'border-sky-400 ring-2 ring-sky-400/40 bg-sky-500/10' : 'border-slate-700 bg-slate-800/60'
+              }`}
+            >
+              <Icon name="magnifier" className="w-6 h-6 text-sky-300" />
+              <span className="text-[9px] font-bold text-sky-200">Buscar</span>
+            </button>
+          </div>
+          {/* El elegido por BUSCAR, confirmado a la vista. */}
+          {!STARTERS_BY_SAGA[saga].includes(starterId) && (() => {
+            const b = getPlayerBase(starterId)
+            return (
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 px-2 py-1.5">
+                <span className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 grid place-items-center shrink-0">
+                  <ImgFallback src={portraitUrl(b.id)} className="w-full h-full object-cover object-top" fallback={<span className="text-[10px] font-bold">{b.name[0]}</span>} />
+                </span>
+                <div className="text-[12px] font-bold">{b.name} <span className="text-[10px] text-slate-400 font-normal">{b.position} · {getTeam(b.team).name}</span></div>
+              </div>
+            )
+          })()}
+          {searching && (
+            <div className="mt-2">
               <input
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value.slice(0, 24))}
-                placeholder={`${getTeam(customCrest ?? 'raimon').name} (ponle nombre)`}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Busca a cualquiera del catálogo…"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] placeholder:text-slate-600 outline-none focus:border-sky-500/60"
               />
-              {/* Con escudo elegido faltaba un botón para ARRANCAR: tocar un
-                  instituto de abajo también vale (elige tu hueco del cuadro),
-                  pero este empieza ya con el cuadro estándar de la saga. */}
-              <Button
-                variant="primary"
-                full
-                className="mt-2"
-                onClick={() => begin(sagaInfo.playable[0])}
-              >
-                ¡Empezar con este equipo!
-              </Button>
-              <p className="mt-1 text-[9px] text-slate-500">
-                O toca un instituto de abajo para ocupar SU hueco del cuadro (cambia a quién te enfrentas).
-              </p>
-              <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>
-              <div className="mt-1 grid grid-cols-8 gap-1.5">
-                {TEAMS.map((t) => (
+              <div className="mt-1.5 max-h-52 overflow-y-auto no-scrollbar flex flex-col gap-1">
+                {results.map((b) => (
                   <button
-                    key={t.id}
-                    onClick={() => setCustomCrest(t.id)}
-                    className={`aspect-square grid place-items-center rounded-lg border transition active:scale-95 ${
-                      customCrest === t.id ? 'border-fuchsia-400 bg-fuchsia-500/15' : 'border-slate-700/60 bg-slate-800/50'
-                    }`}
-                    title={t.name}
+                    key={b.id}
+                    onClick={() => { setStarterId(b.id); setSearching(false) }}
+                    className="flex items-center gap-2 rounded-lg border border-slate-700/70 bg-slate-800/60 px-2 py-1 text-left active:scale-[0.99]"
                   >
-                    <ImgFallback
-                      src={`${import.meta.env.BASE_URL}inazuma/teams/${t.id}.png`}
-                      className="w-6 h-6 object-contain"
-                      fallback={<span className="text-[9px] font-extrabold" style={{ color: t.color }}>{t.name[0]}</span>}
-                    />
+                    <span className="w-7 h-7 rounded-full overflow-hidden bg-slate-900 grid place-items-center shrink-0">
+                      <ImgFallback src={portraitUrl(b.id)} className="w-full h-full object-cover object-top" fallback={<span className="text-[9px] font-bold">{b.name[0]}</span>} />
+                    </span>
+                    <span className="text-[12px] font-bold truncate">{b.name}</span>
+                    <span className="ml-auto text-[10px] text-slate-500 shrink-0">{b.position} · {getTeam(b.team).name}</span>
                   </button>
                 ))}
+                {!results.length && <p className="text-[11px] text-slate-500 px-1 py-2">Nadie con ese nombre en las épocas marcadas.</p>}
               </div>
             </div>
           )}
+          <p className="text-[10px] text-slate-500 mt-1.5">
+            Empiezas SOLO con él (y el brazalete de capitán). Al resto los reclutas por el camino: ojeadores, rivales caídos, intercambios…
+          </p>
         </div>
-        {/* TODOS los equipos con entidad son jugables (no solo los tres de la
-            saga): primero los protagonistas de la saga, luego el resto de su
-            cuadro, y después todos los demás. Con la Plantilla del bombo
-            activada, el elegido pone escudo/hueco y el once sale del azar. */}
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 -mb-1">
-          Elige tu equipo · {randomSquad ? 'plantilla del BOMBO' : 'plantilla OFICIAL'}
+
+        {/* TU CLUB: nombre y escudo, siempre tuyos. */}
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Tu club</div>
+          <input
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value.slice(0, 24))}
+            placeholder="Nuevo Raimon (ponle nombre)"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-amber-500/60"
+          />
+          <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>
+          <div className="mt-1 grid grid-cols-8 gap-1.5">
+            {TEAMS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setCustomCrest(t.id)}
+                className={`aspect-square grid place-items-center rounded-lg border transition active:scale-95 ${
+                  (customCrest ?? 'raimon') === t.id ? 'border-amber-400 bg-amber-500/15' : 'border-slate-700/60 bg-slate-800/50'
+                }`}
+                title={t.name}
+              >
+                <ImgFallback
+                  src={`${import.meta.env.BASE_URL}inazuma/teams/${t.id}.png`}
+                  className="w-6 h-6 object-contain"
+                  fallback={<span className="text-[9px] font-extrabold" style={{ color: t.color }}>{t.name[0]}</span>}
+                />
+              </button>
+            ))}
+          </div>
         </div>
-        {[
-          ...sagaInfo.playable,
-          ...sagaInfo.teams.filter((id) => !sagaInfo.playable.includes(id)),
-          ...TEAMS.map((t) => t.id).filter((id) => !sagaInfo.teams.includes(id) && !sagaInfo.playable.includes(id)),
-        ].map((id) => {
-          const team = getTeam(id)
-          const squad = startingSquad(id).map((pid) => getPlayerBase(pid))
-          // Los nombres GRANDES de esa plantilla (peso en la serie, no rareza).
-          const stars = squad.filter((p) => p.fame >= 4)
-          const info = ELEMENT_INFO[team.element]
-          return (
-            <Card
-              key={id}
-              className="p-3"
-              onClick={() => begin(id)}
-              style={{ background: `linear-gradient(130deg, ${team.color}2e, rgba(15,23,42,.9) 62%)` }}
-            >
-              <div className="flex items-center gap-2.5">
-                <span
-                  className="w-11 h-11 shrink-0 grid place-items-center rounded-xl overflow-hidden border"
-                  style={{ borderColor: `${team.color}66`, background: `${team.color}22` }}
-                >
-                  <ImgFallback
-                    src={`${import.meta.env.BASE_URL}inazuma/teams/${id}.png`}
-                    className="w-full h-full object-contain"
-                    fallback={<span className="font-extrabold" style={{ color: team.color }}>{team.name[0]}</span>}
-                  />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-extrabold text-sm leading-tight">{team.name}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] inline-flex items-center gap-1" style={{ color: info.color }}>
-                      <Icon name={info.icon} className="w-3 h-3" />{info.label}
-                    </span>
-                    <span className="text-[10px] text-slate-500">·  {squad.length} jugadores</span>
-                  </div>
-                </div>
-              </div>
 
-              {team.taunt && <p className="text-[11px] italic text-slate-400 mt-2">«{team.taunt}»</p>}
-
-              {stars.length > 0 && (
-                <div className="mt-2 flex gap-1.5 flex-wrap">
-                  {stars.slice(0, 4).map((p) => (
-                    <span
-                      key={p.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/70 px-1.5 py-0.5 text-[10px]"
-                    >
-                      <span className="w-4 h-4 rounded-full overflow-hidden bg-slate-700 grid place-items-center">
-                        <ImgFallback
-                          src={portraitUrl(p.id)}
-                          className="w-full h-full object-cover object-top"
-                          fallback={<span className="text-[7px]">{p.name[0]}</span>}
-                        />
-                      </span>
-                      {p.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )
-        })}
+        <Button variant="primary" full onClick={begin}>
+          ¡Fundar el club y a la calle!
+        </Button>
+        <p className="text-[10px] text-slate-500 -mt-1 text-center">
+          El primer tramo es fútbol callejero: recluta un CINCO antes del primer instituto.
+        </p>
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">

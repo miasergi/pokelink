@@ -149,6 +149,8 @@ export const NODE_ICON: Record<NodeKind, string> = {
   tienda: 'node-tienda',
   // La concentración reutiliza el icono del entrenamiento de firma.
   concentracion: 'node-firma2',
+  // La RUEDA DE ENTRENAMIENTO hereda el icono de la pachanga retirada.
+  entrenamiento: 'node-pachanga',
   jefe: 'node-jefe',
   final: 'node-final',
 }

@@ -395,7 +395,9 @@ export function slotRole(formationId: string | undefined, i: number): Position {
 export function buildLineup(roster: PlayerInstance[], uids: string[], formationId?: string): Lineup | null {
   const byUid = new Map(roster.map((p) => [p.uid, p]))
   const all = uids.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
-  if (all.length < 11) return null
+  // FÚTBOL 5 y plantillas en construcción: si aún no tienes cinco, JUEGAS CON
+  // LOS QUE TENGAS (3 contra 5, 1 contra 5…). Solo sin nadie no hay partido.
+  if (all.length < 1) return null
   const role = (i: number) => slotRole(formationId, i)
   return {
     keeper: all[0],
@@ -450,11 +452,15 @@ export function lineupError(roster: PlayerInstance[], uids: string[], _formation
   // Desde que el once va POR HUECOS ya no se exige que cada demarcación cuadre:
   // puedes alinear a quien quieras donde quieras (con sus consecuencias). Lo
   // único invalidante es no ser once, repetir a alguien o alinear fantasmas.
-  if (uids.length > SQUAD_SIZE) return `Te sobran ${uids.length - SQUAD_SIZE} en el once`
-  if (uids.length < SQUAD_SIZE) {
-    const n = SQUAD_SIZE - uids.length
-    return n === 1 ? 'Te falta 1 jugador en el once' : `Te faltan ${n} jugadores en el once`
+  if (uids.length > SQUAD_SIZE) return `Te sobran ${uids.length - SQUAD_SIZE} en el cinco`
+  // El CINCO completo solo se exige si la plantilla da para ello: mientras
+  // reclutas, sales con los que tengas.
+  const required = Math.min(SQUAD_SIZE, roster.length)
+  if (uids.length < required) {
+    const n = required - uids.length
+    return n === 1 ? 'Te falta 1 jugador en el cinco' : `Te faltan ${n} jugadores en el cinco`
   }
+  if (uids.length < 1) return 'No tienes a nadie que alinear'
   if (new Set(uids).size !== uids.length) return 'Hay un jugador repetido en el once'
   const byUid = new Set(roster.map((p) => p.uid))
   if (!uids.every((u) => byUid.has(u))) return 'Hay alguien en el once que ya no está en la plantilla'
@@ -474,16 +480,17 @@ const FILLER_TECHS: Record<Position, string[]> = {
   DEL: ['tarzan-kick'],
 }
 
-/** Reparto de un once rival: 1 POR, 4 DEF, 4 MED, 2 DEL. */
-const RIVAL_SHAPE: Position[] = ['POR', 'DEF', 'DEF', 'DEF', 'DEF', 'MED', 'MED', 'MED', 'MED', 'DEL', 'DEL']
+/** Reparto del cinco rival: 1 POR, 1 DEF, 2 MED, 1 DEL. */
+const RIVAL_SHAPE: Position[] = ['POR', 'DEF', 'MED', 'MED', 'DEL']
 
-/** Once rival por líneas: 1 portero, 4 defensas, 4 medios y 2 delanteros. */
+/** El CINCO rival por líneas: portero, defensa, dos medios y delantero — los
+ * mejores con nombre propio de su plantilla real. */
 export function rivalStartingXI(teamId: string): PlayerBase[] {
   const own = playersOfTeam(teamId)
   const line = (pos: Position, n: number) => own.filter((p) => p.position === pos).slice(0, n)
-  const picked = [...line('POR', 1), ...line('DEF', 4), ...line('MED', 4), ...line('DEL', 2)]
-  if (picked.length < 11) picked.push(...own.filter((p) => !picked.includes(p)).slice(0, 11 - picked.length))
-  return picked.slice(0, 11)
+  const picked = [...line('POR', 1), ...line('DEF', 1), ...line('MED', 2), ...line('DEL', 1)]
+  if (picked.length < 5) picked.push(...own.filter((p) => !picked.includes(p)).slice(0, 5 - picked.length))
+  return picked.slice(0, 5)
 }
 
 /**
@@ -493,8 +500,11 @@ export function rivalStartingXI(teamId: string): PlayerBase[] {
  */
 export function buildRivalTeam(
   teamId: string, level: number, rng: RNG, rarity = 2,
-  opts: { rarityMap?: Map<string, number>; elite?: boolean; shuffleFrom?: RegionId[] } = {},
+  opts: { rarityMap?: Map<string, number>; elite?: boolean; shuffleFrom?: RegionId[]; size?: number } = {},
 ): RivalPlayer[] {
+  // FÚTBOL CALLEJERO: el primer instituto salta con CUATRO (tú vienes de
+  // reclutar por la calle). A partir de ahí, el cinco completo.
+  const size = Math.max(1, Math.min(5, opts.size ?? 5))
   const team = getTeam(teamId)
   // RANDOMIZADOR de plantillas: el instituto sale con once sorteado de las
   // épocas elegidas en vez de con el suyo canónico. Su ESCUDO y su dificultad
@@ -513,9 +523,9 @@ export function buildRivalTeam(
     const pool = [...byName.values()]
     const byPos = (pos: Position, n: number) =>
       rng.shuffle(pool.filter((p) => p.position === pos)).slice(0, n)
-    const xi = [...byPos('POR', 1), ...byPos('DEF', 4), ...byPos('MED', 4), ...byPos('DEL', 2)]
-    if (xi.length >= 11) {
-      const drawn = xi.slice(0, 11)
+    const xi = [...byPos('POR', 1), ...byPos('DEF', 1), ...byPos('MED', 2), ...byPos('DEL', 1)]
+    if (xi.length >= 5) {
+      const drawn = xi.slice(0, 5)
       // El plan de rarezas del instituto se reparte entre LOS MEJORES del
       // once sorteado (peso en la serie y, a igualdad, números).
       const planValues = opts.rarityMap
@@ -532,11 +542,11 @@ export function buildRivalTeam(
   // POR LÍNEAS, igual que el tuyo. Cogerlos «los 11 primeros de la lista» era
   // asimétrico (a ellos les tocaban siempre los mejores y a ti no) y además
   // podía dejarles sin portero.
-  const named = rivalStartingXI(teamId)
+  const named = rivalStartingXI(teamId).slice(0, size)
   const out: RivalPlayer[] = named.map((b) =>
     toRival(b, level, team.power, opts.rarityMap?.get(b.id) ?? rarity, opts.elite ?? false))
 
-  const needed = RIVAL_SHAPE.slice()
+  const needed = (size >= 5 ? RIVAL_SHAPE : (['POR', 'DEF', 'MED', 'DEL'] as Position[]).slice(0, size)).slice()
   for (const p of out) {
     const i = needed.indexOf(p.position)
     if (i >= 0) needed.splice(i, 1)

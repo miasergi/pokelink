@@ -137,7 +137,8 @@ export interface PlayerInstance {
 }
 
 export const TECHNIQUE_SLOTS = 4
-export const SQUAD_SIZE = 11
+/** FÚTBOL 5: el once pasa a ser un CINCO (portero + 4 de campo). */
+export const SQUAD_SIZE = 5
 
 /**
  * Formación del once. No es decorativa: la cadena del partido
@@ -153,8 +154,9 @@ export interface Formation {
   fwds: number
   desc: string
 }
-/** Titulares + suplentes. El draft ofrece traspasar cuando se llena. */
-export const ROSTER_MAX = 16
+/** Titulares + suplentes: 5 del cinco + 3 de banquillo. Se EMPIEZA con 1
+ * (tu inicial) y el resto se recluta — el arco de «de la nada al Frontier». */
+export const ROSTER_MAX = 8
 
 // ---------------------------------------------------------------------------
 // Institutos rivales
@@ -452,6 +454,9 @@ export interface ChainState {
  */
 export type NodeKind =
   | 'pachanga' | 'objeto' | 'tecnica' | 'firma' | 'ojeador' | 'trade' | 'rairai' | 'tienda' | 'evento' | 'concentracion' | 'jefe' | 'final'
+  // La RUEDA DE ENTRENAMIENTO (sustituye a las pachangas; 'pachanga' y
+  // 'rairai' quedan en el tipo por los saves viejos, ya no se generan).
+  | 'entrenamiento'
 
 export interface TournamentNode {
   id: string
@@ -551,7 +556,7 @@ export interface InazumaItem {
 
 export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
-  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'trade' | 'victory' | 'gameover'
+  | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'trade' | 'entreno' | 'victory' | 'gameover'
 
 /** Dificultad de la partida: cuánto nivel extra llevan TODOS los rivales. */
 export type Difficulty = 'normal' | 'dificil' | 'leyenda'

@@ -17,10 +17,9 @@ import { useCyber } from '@/state/cyberStore'
 import { createAdventure } from '@/engine/cyber/cyberEngine'
 import InazumaScreen from '@/ui/screens/InazumaScreen'
 import { useInazuma } from '@/state/inazumaStore'
-import { createSave, startMatch, startPachanga } from '@/engine/inazuma/game'
+import { createSave, startMatch } from '@/engine/inazuma/game'
 import { actorByUid, advance, chooseOption } from '@/engine/inazuma/match'
 import { signatureNext } from '@/engine/inazuma/game'
-import { nextRound, shoot } from '@/engine/inazuma/pachanga'
 import { buildSingleReward } from '@/engine/inazuma/rewards'
 import { RNG } from '@/utils/rng'
 import { rivalStartingXI } from '@/engine/inazuma/roster'
@@ -151,26 +150,15 @@ describe('render de pantallas (smoke)', () => {
     expect(() => mount(InazumaScreen)).not.toThrow()
     useInazuma.setState({ save, phase: 'map' })
 
-    // Pachanga: se juega entera y en cada ronda se ve quién tira y quién para.
-    const pachNode = save.map.layers[0].map((id) => save.map.nodes[id]).find((n) => n.kind === 'pachanga')!
-    const ps = startPachanga(save, pachNode)
-    if ('error' in ps) throw new Error(ps.error)
-    nextRound(ps.pachanga, ps.rng)
-    let pGuard = 0
-    while (ps.pachanga.phase !== 'finished' && pGuard++ < 50) {
-      useInazuma.setState({ pachanga: ps.pachanga, matchNode: pachNode, phase: 'pachanga' })
-      const html = mount(InazumaScreen)
-      if (ps.pachanga.phase === 'decision' && ps.pachanga.pending) {
-        expect(html).toContain(ps.pachanga.pending.shooter.name)
-        expect(html).toContain(ps.pachanga.pending.keeper.name)
-        shoot(ps.pachanga, ps.rng, ps.pachanga.options[0].id)
-      }
-      nextRound(ps.pachanga, ps.rng)
-    }
-    expect(ps.pachanga.phase).toBe('finished')
-    useInazuma.setState({ pachanga: ps.pachanga, phase: 'pachanga' })
-    expect(() => mount(InazumaScreen)).not.toThrow()
-    useInazuma.setState({ pachanga: null })
+    // La RUEDA DE ENTRENAMIENTO (la casilla que sustituye a la pachanga):
+    // los cuatro planes a la vista, y el intensivo pide elegir víctima.
+    const entrenoNode = save.map.layers[0].map((id) => save.map.nodes[id]).find((n) => n.kind === 'entrenamiento')!
+    expect(entrenoNode, 'la capa 0 no trae rueda de entrenamiento').toBeDefined()
+    useInazuma.setState({ save, matchNode: entrenoNode, phase: 'entreno' })
+    const entreno = mount(InazumaScreen)
+    expect(entreno).toContain('Intensivo a uno')
+    expect(entreno).toContain('Recuperación total')
+    useInazuma.setState({ matchNode: null })
 
     // Previa del instituto: su once, en formato alineación.
     const node = Object.values(save.map.nodes).find((n) => n.kind === 'jefe')!

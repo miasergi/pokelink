@@ -7,6 +7,7 @@ import { useInazuma } from '@/state/inazumaStore'
 import { useSettings } from '@/state/settingsStore'
 import { PlayerCard, PlayerRow, ElementChip, Meter, portraitUrl, staminaColor, StatGrid } from '@/ui/inazuma/PlayerCard'
 import MapBoard, { NodePreview } from '@/ui/inazuma/MapBoard'
+import SquadBar from '@/ui/inazuma/SquadBar'
 import PitchView from '@/ui/inazuma/PitchView'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
@@ -160,6 +161,10 @@ export function MapView() {
           sin pasar por la ventana informativa. Las inalcanzables la abren
           igual (explica por qué no se puede). */}
       <MapBoard save={save} onPick={(n) => (skipNodeInfo && reachable.has(n.id) ? chooseNode(n.id) : setPreview(n))} />
+
+      {/* LA PLANTILLA A LA VISTA: el cinco, el banquillo y los huecos por
+          reclutar — con drag & drop, como la barra del equipo Pokémon. */}
+      <SquadBar />
 
       <BottomBar onSquad={() => goTo('squad')} onBag={() => goTo('bag')} />
 

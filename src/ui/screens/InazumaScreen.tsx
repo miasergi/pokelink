@@ -11,6 +11,7 @@ import BagView from '@/ui/inazuma/BagView'
 import EventView from '@/ui/inazuma/EventView'
 import FirmaView from '@/ui/inazuma/FirmaView'
 import TradeView from '@/ui/inazuma/TradeView'
+import EntrenoView from '@/ui/inazuma/EntrenoView'
 import ItemFxOverlay from '@/ui/inazuma/ItemFxOverlay'
 import PlayerRevealOverlay from '@/ui/inazuma/PlayerRevealOverlay'
 import TechniqueSheet from '@/ui/inazuma/TechniqueSheet'
@@ -51,6 +52,7 @@ export default function InazumaScreen() {
       case 'evento': return <EventView />
       case 'firma': return <FirmaView />
       case 'trade': return <TradeView />
+      case 'entreno': return <EntrenoView />
       case 'stats': return <StatsView />
       case 'album': return <AlbumView />
       case 'teamSelect': return <TeamSelectView />
