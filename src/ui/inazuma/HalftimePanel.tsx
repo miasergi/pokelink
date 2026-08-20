@@ -15,8 +15,14 @@ import { FORMATIONS } from '@/data/inazuma/formations'
 import { ptMax } from '@/engine/inazuma/roster'
 import type { Actor } from '@/engine/inazuma/types'
 
-/** Consumibles con sentido en un descanso: curas de PT y aguante. */
-const HALFTIME_ITEMS = new Set(['bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial'])
+/** Consumibles con sentido en un descanso: curas de PT y aguante — las
+ * POCIONES estándar nuevas y los brebajes clásicos de las partidas viejas.
+ * (Se quedó la lista antigua al estandarizar los objetos y el descanso decía
+ * «Sin consumibles» con la mochila llena de pociones.) */
+const HALFTIME_ITEMS = new Set([
+  'pocion-pt', 'pocion-pt-max', 'pocion-aguante', 'pocion-aguante-max',
+  'bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial',
+])
 
 export default function HalftimePanel() {
   const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute, halftimeFormation, halftimeSwap } = useInazuma()
