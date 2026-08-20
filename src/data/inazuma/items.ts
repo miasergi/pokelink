@@ -35,12 +35,12 @@ export const ITEMS: InazumaItem[] = [
   // Pociones en PORCENTAJE (como pediste): mitad o todo, uno o el equipo.
   // Tres niveles por familia, como en Pokémon: Poción (25 %), Superpoción
   // (50 %) y Máxima (todo).
-  { id: 'pocion-pt', name: 'Poción de PT', kind: 'consumible', desc: 'Recupera el 25 % del depósito de PT a un jugador.', price: 150, consumable: true },
-  { id: 'superpocion-pt', name: 'Superpoción de PT', kind: 'consumible', desc: 'Recupera el 50 % del depósito de PT a un jugador.', price: 350, consumable: true },
-  { id: 'pocion-pt-max', name: 'Poción Máxima de PT', kind: 'consumible', desc: 'PT al MÁXIMO a un jugador.', price: 700, consumable: true },
-  { id: 'pocion-aguante', name: 'Poción de Aguante', kind: 'consumible', desc: 'Recupera el 25 % del aguante a un jugador.', price: 150, consumable: true },
-  { id: 'superpocion-aguante', name: 'Superpoción de Aguante', kind: 'consumible', desc: 'Recupera el 50 % del aguante a un jugador.', price: 350, consumable: true },
-  { id: 'pocion-aguante-max', name: 'Poción Máxima de Aguante', kind: 'consumible', desc: 'Aguante al MÁXIMO a un jugador.', price: 700, consumable: true },
+  { id: 'pocion-pt', name: 'Poción de PT', kind: 'consumible', desc: 'Recupera el 25 % del depósito de PT a un jugador.', price: 300, consumable: true },
+  { id: 'superpocion-pt', name: 'Superpoción de PT', kind: 'consumible', desc: 'Recupera el 50 % del depósito de PT a un jugador.', price: 500, consumable: true },
+  { id: 'pocion-pt-max', name: 'Poción Máxima de PT', kind: 'consumible', desc: 'PT al MÁXIMO a un jugador.', price: 900, consumable: true },
+  { id: 'pocion-aguante', name: 'Poción de Aguante', kind: 'consumible', desc: 'Recupera el 25 % del aguante a un jugador.', price: 300, consumable: true },
+  { id: 'superpocion-aguante', name: 'Superpoción de Aguante', kind: 'consumible', desc: 'Recupera el 50 % del aguante a un jugador.', price: 500, consumable: true },
+  { id: 'pocion-aguante-max', name: 'Poción Máxima de Aguante', kind: 'consumible', desc: 'Aguante al MÁXIMO a un jugador.', price: 900, consumable: true },
   { id: 'elixir-equipo', name: 'Elixir de equipo', kind: 'consumible', desc: 'Recupera un 33 % de PT y de aguante a TODA la plantilla.', price: 1500, consumable: true },
   { id: 'plan-entrenamiento', name: 'Plan de entrenamiento', kind: 'consumible', desc: 'Sube 2 niveles a un jugador.', price: 1800, consumable: true },
   { id: 'plan-intensivo', name: 'Plan intensivo', kind: 'consumible', desc: 'Sube 4 niveles a un jugador.', price: 3400, consumable: true },
