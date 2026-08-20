@@ -5,6 +5,7 @@ import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import { ELEMENT_ICON } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId, type SagaId } from '@/data/inazuma/teams'
@@ -491,7 +492,10 @@ export function TeamSelectView() {
                   />
                   <span className={`block text-[9px] font-bold leading-tight py-1 px-0.5 ${on ? 'text-amber-200 bg-amber-500/15' : 'text-slate-400'}`}>
                     {b.name.split(' ')[0]}
-                    <span className="block text-[8px] font-normal" style={{ color: info.color }}>{b.position} · {info.label}</span>
+                    <span className="mt-0.5 flex items-center justify-center gap-1 text-[8px] font-normal" style={{ color: info.color }}>
+                      {b.position}
+                      <Icon name={ELEMENT_ICON[b.element]} className="w-2.5 h-2.5" />
+                    </span>
                   </span>
                 </button>
               )

@@ -37,10 +37,12 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // rarezas (1 medalla por pachanga, coste escalado): el tramo medio bajó un
 // par de puntos para que el torneo siga siendo GANABLE jugando bien.
 // Difícil/Leyenda suman su bono encima.
-// Recalibrada para el arranque DESDE UN INICIAL: sin pachangas que farmear,
-// el nivel viene de las ruedas de entrenamiento y de los partidos — la curva
-// vieja ([8..55]) dejaba al mejor bot 5 niveles por detrás en cada ronda.
-export const RIVAL_LEVELS = [5, 8, 12, 16, 20, 24, 28, 32]
+// Recalibrada con los ENTRENAMIENTOS funcionando (un bug los dejaba en
+// nada, y la curva vieja estaba medida contra ese bot cojo). El bot con
+// criterio (que ya gasta sus medallas de rareza) gana 5/150 y cae en la
+// eliminatoria 3 de media; el humano, con sprint, filosofías y fichajes
+// dirigidos, va por encima. El básico no gana nunca.
+export const RIVAL_LEVELS = [5, 11, 19, 28, 37, 46, 55, 64]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

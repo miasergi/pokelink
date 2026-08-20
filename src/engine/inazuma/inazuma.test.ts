@@ -23,7 +23,7 @@ import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward, signingLevel } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, signatureLevelFor, START_LEVEL, TECH_LEVEL_BONUS,
+  levelUp, lineupError, MAX_RARITY, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, signatureLevelFor, START_LEVEL, TECH_LEVEL_BONUS,
   techLevel, transferValue, upgradeTechnique,
   rivalArmbandBaseId, rivalRarityMap,
 } from './roster'
@@ -249,10 +249,11 @@ describe('plantilla', () => {
     const soloVR = { ...createSave(3), pools: ['vr' as const] }
     const ofertaVR = availableSignings(soloVR)
     expect(ofertaVR.length, 'sin nadie de Victory Road').toBeGreaterThan(50)
-    expect(ofertaVR.every((p) => regionOfTeam(p.team) === 'vr'), 'se coló alguien de otra época').toBe(true)
+    // Los AGENTES LIBRES (Scor Nelles y cía) son de todas las épocas.
+    expect(ofertaVR.every((p) => p.team === 'libre' || regionOfTeam(p.team) === 'vr'), 'se coló alguien de otra época').toBe(true)
     // Y con dos épocas marcadas, entran las dos y nadie más.
     const dos = { ...createSave(3), pools: ['ff' as const, 'ffi' as const] }
-    const regiones = new Set(availableSignings(dos).map((p) => regionOfTeam(p.team)))
+    const regiones = new Set(availableSignings(dos).filter((p) => p.team !== 'libre').map((p) => regionOfTeam(p.team)))
     expect([...regiones].sort()).toEqual(['ff', 'ffi'])
     // Sin elegir nada, vale todo el catálogo (como siempre).
     expect(new Set(availableSignings(createSave(3)).map((p) => regionOfTeam(p.team))).size)
@@ -678,14 +679,11 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         // La rueda: el listo recupera si va fundido y si no carga niveles al
         // equipo entero; el tonto rueda suave siempre.
         if (!smart) {
-          for (const p of save.roster) levelUp(p, 1)
+          save.roster = save.roster.map((p) => levelUp(p, 1))
         } else if (tired < 70) {
           fullRest(save)
         } else {
-          for (const p of save.roster) {
-            levelUp(p, 2)
-            p.stamina = Math.max(0, p.stamina - 25)
-          }
+          save.roster = save.roster.map((p) => ({ ...levelUp(p, 2), stamina: Math.max(0, p.stamina - 25) }))
         }
         break
       }
@@ -905,6 +903,18 @@ function shop(save: InazumaSave, kind: 'tienda' | 'rairai' = 'tienda'): void {
  */
 function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
   const starters = () => save.roster.filter((p) => save.lineup.includes(p.uid))
+  // Las MEDALLAS se gastan en el acto, en el mejor titular mejorable: subir
+  // rarezas es LA palanca contra los planes de rareza rivales — el bot que
+  // las acumulaba sin usarlas medía el torneo mucho más difícil de lo que es.
+  let mGuard = 0
+  while (save.bag.includes('medalla-rareza') && mGuard++ < 8) {
+    const target = starters()
+      .filter((p) => rarityOf(p) < MAX_RARITY)
+      .sort((a, b) => overall(b) - overall(a))[0]
+    if (!target) break
+    const res = applyConsumable(save, 'medalla-rareza', target.uid)
+    if (!res.ok) break
+  }
   let guard = 0
   while (guard++ < 12) {
     const worst = starters().slice().sort((a, b) => a.stamina - b.stamina)[0]

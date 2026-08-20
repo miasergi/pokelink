@@ -91,7 +91,9 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
   const eras = new Set(save.pools ?? [])
   const pool = PLAYERS
     .filter((p) => !owned.has(p.name))
-    .filter((p) => !eras.size || eras.has(regionOfTeam(p.team)))
+    // Los AGENTES LIBRES (equipo 'libre', como Scor Nelles) son de TODAS las
+    // épocas: el filtro de eras los dejaba infichables.
+    .filter((p) => !eras.size || p.team === 'libre' || eras.has(regionOfTeam(p.team)))
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])

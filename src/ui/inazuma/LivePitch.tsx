@@ -56,11 +56,17 @@ function anchors(keeper: Actor, defs: Actor[], mids: Actor[], fwds: Actor[], att
   const out = new Map<string, Spot>()
   const X = attackRight ? { por: 7, def: 22, med: 38, del: 51 } : { por: 93, def: 78, med: 62, del: 49 }
   const place = (row: Actor[], x: number) => {
-    // Escalonado alterno: sin él, las líneas de 4-5 jugadores quedaban en una
-    // columna perfecta y las fichas vecinas se solapaban.
+    // FÚTBOL 5: las parejas se ABREN A BANDA de verdad (22/78) — con el
+    // reparto genérico quedaban a 36/64 y TODO el juego pasaba por el
+    // centro: ni carreras por banda ni zigzag del rondo.
+    const lanes = row.length === 1
+      ? [50]
+      : row.length === 2
+        ? [22, 78]
+        : row.map((_, i) => ((i + 1) / (row.length + 1)) * 84 + 8)
     row.forEach((a, i) => out.set(a.uid, {
       x: x + (i % 2 ? 3 : -3) * (attackRight ? 1 : -1),
-      y: ((i + 1) / (row.length + 1)) * 84 + 8,
+      y: lanes[i],
     }))
   }
   out.set(keeper.uid, { x: X.por, y: 50 })
@@ -845,7 +851,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         {/* LA TÉCNICA EN EL BALÓN: halo del color del elemento alrededor de
             la pelota + placa con nombre y potencia. Lo demás lo cuenta la
             tele de Chester — el césped queda limpio. */}
-        {techTag.current && tagActive && (
+        {techTag.current && tagActive && !flight && (
           <div
             key={techTag.current.key}
             className="absolute z-[38] pointer-events-none"

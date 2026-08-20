@@ -1460,25 +1460,24 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   resolveEntreno: (plan, uid) => {
     const { save, matchNode } = get()
     if (!save || matchNode?.kind !== 'entrenamiento') return
-    // Clones de trabajo: `levelUp` muta al jugador que recibe.
-    const roster = save.roster.map((p) => ({ ...p }))
+    // OJO: `levelUp` DEVUELVE al jugador subido (no muta) — la primera
+    // versión tiraba el resultado y el intensivo «cansaba pero no subía».
+    let roster = save.roster.map((p) => ({ ...p }))
     let message: string
     if (plan === 'uno') {
-      const p = roster.find((x) => x.uid === uid)
-      if (!p) return
-      levelUp(p, 5)
-      p.stamina = Math.max(0, p.stamina - 50)
-      message = `Entrenamiento intensivo: ${getPlayerBase(p.baseId).name} sube 5 niveles (y acaba reventado).`
+      const target = roster.find((x) => x.uid === uid)
+      if (!target) return
+      roster = roster.map((p) => (p.uid === uid
+        ? { ...levelUp(p, 5), stamina: Math.max(0, p.stamina - 50) }
+        : p))
+      message = `Entrenamiento intensivo: ${getPlayerBase(target.baseId).name} sube 5 niveles (y acaba reventado).`
       play('energia')
     } else if (plan === 'equipo') {
-      for (const p of roster) {
-        levelUp(p, 2)
-        p.stamina = Math.max(0, p.stamina - 25)
-      }
+      roster = roster.map((p) => ({ ...levelUp(p, 2), stamina: Math.max(0, p.stamina - 25) }))
       message = 'Intensivo de equipo: +2 niveles a todos, a cambio de sudor.'
       play('energia')
     } else if (plan === 'suave') {
-      for (const p of roster) levelUp(p, 1)
+      roster = roster.map((p) => levelUp(p, 1))
       message = 'Rondo suave: +1 nivel a todos, sin cansar a nadie.'
       play('levelup')
     } else {

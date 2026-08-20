@@ -160,6 +160,9 @@ export default function MatchView() {
         text: `¡PARADA DE ${first}!`,
         color: keeperMine ? '#34d399' : '#f87171',
       }), Math.round(1100 * f))
+    } else if (last.kind === 'turnover' || last.kind === 'possession') {
+      // Continuidad: si quedara un balón de disparo pintado, se recoge.
+      setShotFlight(null)
     } else if (last.kind === 'duel') {
       // Duelo de campo (regate contra bloqueo). CON supertécnica, el FX brota
       // sobre cada jugador en el propio césped (LivePitch); SIN técnica, un

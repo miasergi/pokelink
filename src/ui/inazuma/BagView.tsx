@@ -188,7 +188,8 @@ export default function BagView() {
               const q = query.trim().toLowerCase()
               const vistos = new Set<string>()
               const pool = PLAYERS.filter((b) => {
-                if (b.team === 'libre' || ownedNames.has(b.name) || vistos.has(b.name)) return false
+                // Los agentes libres también se fichan (Scor Nelles y cía).
+                if (ownedNames.has(b.name) || vistos.has(b.name)) return false
                 vistos.add(b.name)
                 return true
               })

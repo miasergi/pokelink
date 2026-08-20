@@ -14,8 +14,12 @@ import { ptMax, rarityOf } from '@/engine/inazuma/roster'
 import { ROSTER_MAX, type PlayerInstance } from '@/engine/inazuma/types'
 import { slotRole } from '@/engine/inazuma/roster'
 
-function Chip({ p, dragging, onDown, onUp }: {
+/** Columna UNIFORME de la barra: retrato (siempre 40px, siempre con borde),
+ * «Nv. X», las dos mini-barras y la etiqueta del papel — misma estructura
+ * para titular, suplente y hueco, que si no la fila baila. */
+function Chip({ p, label, dragging, onDown, onUp }: {
   p: PlayerInstance
+  label: string
   dragging: boolean
   onDown: (e: React.PointerEvent) => void
   onUp: (e: React.PointerEvent) => void
@@ -29,11 +33,11 @@ function Chip({ p, dragging, onDown, onUp }: {
       data-uid={p.uid}
       onPointerDown={onDown}
       onPointerUp={onUp}
-      className={`shrink-0 w-11 flex flex-col items-center touch-none cursor-grab select-none transition ${
+      className={`shrink-0 w-12 flex flex-col items-center touch-none cursor-grab select-none transition ${
         dragging ? 'opacity-40 scale-95' : ''
       }`}
     >
-      <div className="relative">
+      <div className="relative w-10 h-10">
         <span
           className="block w-10 h-10 rounded-full overflow-hidden border-2 bg-slate-900"
           style={{ borderColor: r === 4 ? 'transparent' : rarityBorder(r) }}
@@ -46,17 +50,34 @@ function Chip({ p, dragging, onDown, onUp }: {
           />
           {r === 4 && <span className="mc-ring rounded-full" />}
         </span>
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-950/95 border border-slate-700 px-1 text-[8px] font-bold tabular-nums leading-tight">
-          {p.level}
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/95 border border-slate-700 px-1 text-[7px] font-bold tabular-nums leading-tight">
+          Nv. {p.level}
         </span>
       </div>
       {/* PT (azul) y aguante (verde), en miniatura. */}
-      <div className="mt-1.5 w-9 h-[3px] rounded-full bg-slate-800 overflow-hidden">
+      <div className="mt-2 w-9 h-[3px] rounded-full bg-slate-800 overflow-hidden">
         <span className="block h-full bg-sky-400" style={{ width: `${pt * 100}%` }} />
       </div>
       <div className="mt-0.5 w-9 h-[3px] rounded-full bg-slate-800 overflow-hidden">
         <span className="block h-full bg-emerald-400" style={{ width: `${agu * 100}%` }} />
       </div>
+      <span className="mt-0.5 text-[7px] font-extrabold uppercase tracking-wider text-slate-500">{label}</span>
+    </div>
+  )
+}
+
+/** Hueco vacío con la MISMA estructura que un Chip (nada descuadrado). */
+function Hole({ slot, label, faded }: { slot?: number; label: string; faded?: boolean }) {
+  const attrs = slot != null ? { 'data-slot': slot } : {}
+  return (
+    <div {...attrs} className={`shrink-0 w-12 flex flex-col items-center ${faded ? 'opacity-50' : ''}`}>
+      <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 grid place-items-center">
+        <Icon name="plus" className="w-4 h-4 text-slate-600" />
+      </span>
+      {/* Huecos de las barras, para cuadrar con las columnas con jugador. */}
+      <div className="mt-2 w-9 h-[3px] rounded-full bg-slate-800/50" />
+      <div className="mt-0.5 w-9 h-[3px] rounded-full bg-slate-800/50" />
+      <span className="mt-0.5 text-[7px] font-extrabold uppercase tracking-wider text-slate-600">{label}</span>
     </div>
   )
 }
@@ -90,40 +111,24 @@ export default function SquadBar() {
 
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/85 px-2 pt-2 pb-1.5">
-      <div className="flex items-end gap-1.5 overflow-x-auto no-scrollbar">
-        {/* EL CINCO, hueco a hueco: cada uno con su PAPEL debajo. Vacío =
-            soltable (el «+» del papel que quieras darle). */}
+      <div className="flex items-start gap-1.5 overflow-x-auto no-scrollbar">
+        {/* EL CINCO, hueco a hueco: columnas idénticas, papel debajo.
+            Vacío = soltable (el «+» del papel que quieras darle). */}
         {save.lineup.map((u, slot) => {
           const p = u ? byUid.get(u) : undefined
           const role = slotRole(save.formation, slot)
-          if (!p) {
-            return (
-              <div key={`slot${slot}`} data-slot={slot} className="shrink-0 w-11 flex flex-col items-center">
-                <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 grid place-items-center text-slate-600 text-sm font-bold">+</span>
-                <span className="mt-1 text-[7px] font-extrabold uppercase tracking-wider text-slate-500">{role}</span>
-              </div>
-            )
-          }
-          return (
-            <div key={p.uid} className="flex flex-col items-center">
-              <Chip p={p} dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
-              <span className="text-[7px] font-extrabold uppercase tracking-wider text-slate-500">{role}</span>
-            </div>
-          )
+          if (!p) return <Hole key={`slot${slot}`} slot={slot} label={role} />
+          return <Chip key={p.uid} p={p} label={role} dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
         })}
         {/* Separador cinco/banquillo. */}
         <div className="shrink-0 self-stretch w-px bg-slate-700/80 mx-0.5" />
         {/* EL BANQUILLO */}
         {bench.map((p) => (
-          <Chip key={p.uid} p={p} dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
+          <Chip key={p.uid} p={p} label="SUP" dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
         ))}
         {/* Huecos por RECLUTAR hasta los 8. */}
         {Array.from({ length: holes }).map((_, i) => (
-          <div key={`h${i}`} className="shrink-0 w-11 flex flex-col items-center opacity-50">
-            <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-700 grid place-items-center">
-              <Icon name="plus" className="w-4 h-4 text-slate-600" />
-            </span>
-          </div>
+          <Hole key={`h${i}`} label="FICHA" faded />
         ))}
       </div>
       <div className="mt-1 flex justify-between text-[8px] uppercase tracking-widest text-slate-600 px-0.5">
