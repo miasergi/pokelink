@@ -6,7 +6,7 @@
 //  - SUPERTÉCNICAS: las que te encuentras por el mapa. Se guardan aquí hasta
 //    que decides a quién enseñárselas — antes había que elegir destinatario en
 //    el acto, que es justo cuando menos información tienes.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -36,6 +36,15 @@ type Pending =
 export default function BagView() {
   const { save, goTo, equip, useConsumable, convertLegacyTechniques, useFichajeEstrella } = useInazuma()
   const [pending, setPending] = useState<Pending>(null)
+  // El Fichaje personalizado del ojeador aterriza aquí con el buscador YA
+  // abierto: pagar y elegir, sin pasos intermedios.
+  const fichajeAutoOpen = useInazuma((st) => st.fichajeAutoOpen)
+  useEffect(() => {
+    if (fichajeAutoOpen) {
+      setPending({ kind: 'estrella' })
+      useInazuma.setState({ fichajeAutoOpen: false })
+    }
+  }, [fichajeAutoOpen])
   // Buscador del Fichaje estrella.
   const [query, setQuery] = useState('')
   if (!save) return null

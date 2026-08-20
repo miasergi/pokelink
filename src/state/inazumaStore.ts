@@ -381,6 +381,8 @@ interface InazumaState {
   skipNode: () => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
   resolveTrade: (uid: string) => void
+  /** El Fichaje personalizado del ojeador: al comprarlo se abre el buscador. */
+  fichajeAutoOpen: boolean
   /** Cola de APRENDIZAJES: técnicas recién despertadas, para su animación. */
   learnFx: { uid: string; baseId: string; playerName: string; techId: string }[]
   clearLearnFx: () => void
@@ -1183,6 +1185,14 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
       if (opt.cost) next.coins -= opt.cost
       next.bag.push(opt.itemId)
+      // El FICHAJE PERSONALIZADO no se guarda para luego: pagar y elegir. Se
+      // cierra el draft y se abre el buscador de la mochila directamente.
+      if (opt.itemId === 'fichaje-estrella') {
+        closeDraft(set, next, draft, draftPicks, optionId, null)
+        set({ phase: 'bag', fichajeAutoOpen: true })
+        void persist(next, 'bag')
+        return
+      }
       message = opt.cost
         ? `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila (−${opt.cost.toLocaleString('es-ES')} ₽).`
         : `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila.`
@@ -1443,6 +1453,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, 'map')
   },
 
+  fichajeAutoOpen: false,
   learnFx: [],
   clearLearnFx: () => set({ learnFx: get().learnFx.slice(1) }),
 

@@ -559,7 +559,10 @@ export function TeamSelectView() {
             placeholder="Nuevo Raimon (ponle nombre)"
             className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-amber-500/60"
           />
-          <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Escudo</div>
+          <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Tu equipo (escudo)</div>
+          <p className="text-[9px] text-slate-500 mt-0.5">
+            El escudo DEFINE tu club: el ojeador siempre te ofrecerá a un canon de este equipo.
+          </p>
           <div className="mt-1 grid grid-cols-8 gap-1.5">
             {TEAMS.map((t) => (
               <button

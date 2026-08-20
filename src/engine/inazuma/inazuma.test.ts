@@ -1325,7 +1325,10 @@ describe('coherencia', () => {
       // casilla de ojeador se convierte en una comisión de consuelo.
       const offer = buildScoutOffer(save, new RNG(1))
       expect(offer.length).toBeGreaterThan(0)
-      expect(offer.every((o) => o.kind === 'fichaje')).toBe(true)
+      // 3 fichas + el Fichaje personalizado (carta de pago, SIEMPRE presente
+      // fuera de las runs random).
+      expect(offer.filter((o) => o.kind === 'fichaje').length).toBeGreaterThan(0)
+      expect(offer.some((o) => o.kind === 'objeto' && o.id === 'scout-custom')).toBe(true)
       for (const o of offer) {
         if (o.kind !== 'fichaje') continue
         expect(save.roster.some((p) => p.baseId === o.playerId)).toBe(false)
@@ -1334,8 +1337,14 @@ describe('coherencia', () => {
   })
 
   it('el ojeador ofrece SIEMPRE a un canon de tu club (y jamás repite nombres)', () => {
-    // Empiezas con Axel (Raimon): la primera ficha de cada ojeador es un
-    // compañero canónico del Raimon — reconstruir tu club, fichaje a fichaje.
+    // EL ESCUDO define el club: fundas con escudo del Royal (aunque tu
+    // inicial sea Axel) y el canon del ojeador es del ROYAL.
+    const royal = createSave(3, 'raimon', { starterId: 'axel-blaze', customCrest: 'royal' })
+    const oferta = buildScoutOffer(royal, new RNG(2)).filter((o) => o.kind === 'fichaje')
+    if (oferta[0]?.kind === 'fichaje') {
+      expect(getPlayerBase(oferta[0].playerId).team, 'el canon no sale del escudo elegido').toBe('royal')
+    }
+    // Sin escudo con plantilla, cae al equipo del inicial (Raimon).
     const save = createSave(21, 'raimon', { starterId: 'axel-blaze' })
     for (let i = 0; i < 8; i++) {
       const offer = buildScoutOffer(save, new RNG(i))
@@ -1355,8 +1364,11 @@ describe('coherencia', () => {
     const rnd = createSave(21, 'raimon', { starterId: 'axel-blaze', random: { plantillas: true } })
     const teams = new Set<string>()
     for (let i = 0; i < 10; i++) {
-      const offer = buildScoutOffer(rnd, new RNG(i)).filter((o) => o.kind === 'fichaje')
-      if (offer[0]?.kind === 'fichaje') teams.add(getPlayerBase(offer[0].playerId).team)
+      const offer = buildScoutOffer(rnd, new RNG(i))
+      const signs = offer.filter((o) => o.kind === 'fichaje')
+      if (signs[0]?.kind === 'fichaje') teams.add(getPlayerBase(signs[0].playerId).team)
+      // Y en run random TAMPOCO hay Fichaje personalizado: manda el caos.
+      expect(offer.some((o) => o.kind === 'objeto')).toBe(false)
     }
     expect(teams.size).toBeGreaterThan(1)
   })

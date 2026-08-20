@@ -4,8 +4,8 @@
 import type { RNG } from '@/utils/rng'
 import { ITEMS } from '@/data/inazuma/items'
 import { TACTICS } from '@/data/inazuma/tactics'
-import { regionOfTeam } from '@/data/inazuma/teams'
-import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
+import { getTeam, regionOfTeam } from '@/data/inazuma/teams'
+import { getPlayerBase, PLAYERS, playersOfTeam } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
 import type { DraftOption, InazumaSave, PlayerBase } from './types'
 import { bossIndexForLayer } from './tournament'
@@ -157,11 +157,18 @@ export const SCOUT_STAR_PRICE = 1000
  * plantillas la run es random y no aplica; y nunca ofrece a alguien que ya
  * tienes (por NOMBRE) ni repetido en la misma oferta.
  */
-function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>): DraftOption | null {
+/** El EQUIPO CANON de la run: el del ESCUDO elegido al fundar el club (si
+ * ese club tiene plantilla en el catálogo); si no, el equipo de tu inicial. */
+export function canonTeamOf(save: InazumaSave): string | null {
   if (save.random?.plantillas) return null
+  if (save.customCrest && playersOfTeam(save.customCrest).length) return save.customCrest
   const starterId = save.starterBaseId ?? save.roster.find((p) => p.bond != null)?.baseId
-  if (!starterId) return null
-  const team = getPlayerBase(starterId).team
+  return starterId ? getPlayerBase(starterId).team : null
+}
+
+function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>): DraftOption | null {
+  const team = canonTeamOf(save)
+  if (!team) return null
   const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
   const seenIds = new Set(save.scoutSeen ?? [])
   const pool = uniqueByName(PLAYERS.filter((p) => p.team === team))
@@ -177,7 +184,7 @@ function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeN
     kind: 'fichaje',
     id: `sign-${pick.id}`,
     title: `Fichar a ${pick.name}`,
-    desc: `${pick.position} · nivel ${level} · CANON de tu club`,
+    desc: `${pick.position} · nivel ${level} · Fichaje CANON del ${getTeam(team).name}`,
     playerId: pick.id,
     level,
   }
@@ -195,15 +202,15 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
     if (!o) break
     out.push(o)
   }
-  // De vez en cuando el ojeador ofrece SU AGENDA (el Fichaje estrella): la
-  // vía garantizada de encontrarse el objeto en una run sin depender del
-  // botín ni de la última tienda.
-  if (out.length && rng.chance(0.28)) {
+  // Y SIEMPRE, la cuarta carta: el FICHAJE PERSONALIZADO — pagas 1.000 ₽ y
+  // eliges EXACTAMENTE a quién fichar del catálogo. En una run random
+  // (plantillas al azar) el ojeador no la ofrece: ahí manda el caos.
+  if (out.length && !save.random?.plantillas) {
     out.push({
       kind: 'objeto',
-      id: 'scout-estrella',
-      title: 'La agenda del ojeador',
-      desc: `Fichaje estrella: busca y ficha al jugador EXACTO que quieras del catálogo. Cuesta ${SCOUT_STAR_PRICE.toLocaleString('es-ES')} ₽.`,
+      id: 'scout-custom',
+      title: 'Fichaje personalizado',
+      desc: `Busca y ficha al jugador EXACTO que quieras del catálogo. Cuesta ${SCOUT_STAR_PRICE.toLocaleString('es-ES')} ₽.`,
       itemId: 'fichaje-estrella',
       // A diferencia del resto de cartas, ESTA se paga: elegir tú al jugador
       // que quieras del catálogo entero es demasiado como para salir gratis.
