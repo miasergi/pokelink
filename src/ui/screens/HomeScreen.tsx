@@ -173,7 +173,9 @@ export default function HomeScreen() {
           color="#fbbf24"
           status={inazumaRound ? inazumaRound.replace('Continuar · ', '') : 'Nuevo asalto al Football Frontier'}
           cta={inazumaRound ? 'Continuar' : 'Jugar'}
-          onPlay={() => navigate('inazuma')}
+          // DIRECTO al grano: con partida, al mapa; sin ella, al configurador
+          // (la portada del modo era un doble paso que sobraba).
+          onPlay={() => { setInazumaEntry(inazumaRound ? 'map' : 'teamSelect'); navigate('inazuma') }}
         />
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <Chip icon={<Icon name="album" className="w-3.5 h-3.5 text-amber-300" />} label="Álbum de cromos" onClick={() => { setInazumaEntry('album'); navigate('inazuma') }} />

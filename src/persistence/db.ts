@@ -56,12 +56,24 @@ interface MetaRecord {
     goalsFor: number
     goalsAgainst: number
     coins: number
+    /** Identidad del club (formato «de la nada al Frontier»). */
+    name?: string
+    crest?: string
+    starterBaseId?: string
     roster: {
       baseId: string
       level: number
       techniques: string[]
       item?: string
       captain?: boolean
+      rarity?: number
+      bond?: number
+      /** Números de la run: goles, paradas, duelos y partidos. */
+      goals?: number
+      saves?: number
+      duelsWon?: number
+      duelsLost?: number
+      matches?: number
     }[]
     lineup: string[]
     formation: string

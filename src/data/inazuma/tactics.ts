@@ -168,3 +168,52 @@ export const TACTIC_BY_ID = new Map(TACTICS.map((t) => [t.id, t]))
 export function getTactic(id: string): Tactic | undefined {
   return TACTIC_BY_ID.get(id)
 }
+
+
+// ---------------------------------------------------------------------------
+// Lectura humana de los efectos (para el vestuario y la hoja de tácticas):
+// cada palanca del motor, contada en cristiano.
+// ---------------------------------------------------------------------------
+
+const FASE: Record<string, string> = {
+  construccion: 'la salida de balón',
+  penetracion: 'tres cuartos',
+  definicion: 'la definición',
+}
+const PCT = (m: number) => `${m >= 1 ? '+' : '−'}${Math.abs(Math.round((m - 1) * 100))} %`
+
+/** Los efectos de una filosofía, línea a línea y en cristiano. */
+export function tacticEffectLines(t: Tactic): string[] {
+  const e = t.effect
+  const out: string[] = []
+  if (e.attackBias) for (const [k, v] of Object.entries(e.attackBias)) out.push(`${PCT(v)} atacando en ${FASE[k] ?? k}`)
+  if (e.defendBias) for (const [k, v] of Object.entries(e.defendBias)) out.push(`${PCT(v)} defendiendo en ${FASE[k] ?? k}`)
+  if (e.counterChance) out.push(`+${Math.round(e.counterChance * 100)} % de contraataque al robar`)
+  if (e.reclaimChance) out.push(`${Math.round(e.reclaimChance * 100)} % de recuperar el balón tras perder un duelo`)
+  if (e.staminaDrain != null) out.push(e.staminaDrain < 1
+    ? `los tuyos se cansan un ${Math.round((1 - e.staminaDrain) * 100)} % menos`
+    : `los tuyos se cansan un ${Math.round((e.staminaDrain - 1) * 100)} % más`)
+  if (e.burstGain) out.push(`la barra de Ruptura se llena ${PCT(e.burstGain)} más rápido`)
+  if (e.longShotRelief) out.push('la distancia castiga menos tus tiros lejanos')
+  if (e.ptCost != null) out.push(e.ptCost < 1
+    ? `tus supertécnicas cuestan un ${Math.round((1 - e.ptCost) * 100)} % menos de PT`
+    : `tus supertécnicas cuestan un ${Math.round((e.ptCost - 1) * 100)} % más de PT`)
+  if (e.elementEdge) out.push('las ventajas de elemento pegan más fuerte')
+  if (e.momentumStep) out.push('cada duelo ganado en la misma jugada da impulso extra')
+  if (e.comebackBoost) out.push(`+${Math.round(e.comebackBoost * 100)} % de potencia cuando vais por debajo`)
+  if (e.freePassing) out.push('el pase no gasta la posesión: puedes pasar más de una vez')
+  if (e.elementAffinity) out.push(`plus de potencia a tus jugadores de ${e.elementAffinity.element}`)
+  return out
+}
+
+/** A quién le saca más partido (pista rápida del vestuario). */
+export function tacticFitsHint(t: Tactic): string | null {
+  const e = t.effect
+  if (e.elementAffinity) return `Ideal para equipos con jugadores de ${e.elementAffinity.element}.`
+  if (e.attackBias?.definicion || e.longShotRelief) return 'Ideal con delanteros de mucho tiro.'
+  if (e.defendBias || e.reclaimChance) return 'Ideal para equipos defensivos o con buen corte.'
+  if (e.freePassing || e.attackBias?.construccion) return 'Ideal para equipos de toque con buen control.'
+  if (e.staminaDrain != null && e.staminaDrain < 1) return 'Ideal para plantillas cortas: llegan enteros al final.'
+  if (e.comebackBoost) return 'Ideal si sueles sufrir: pega más cuando vas perdiendo.'
+  return null
+}

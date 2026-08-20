@@ -1,6 +1,6 @@
 // Pantallas de apoyo del modo: estadísticas de la partida, álbum de fichados y
 // el tutorial de entrada.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -22,6 +22,9 @@ const EMPTY: PlayerStats = { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matc
 
 export function StatsView() {
   const { save, goTo } = useInazuma()
+  // Ficha DESPLEGABLE: toca una fila y ves sus números completos y las
+  // supertécnicas que usó (con cuántas veces salieron bien).
+  const [open, setOpen] = useState<string | null>(null)
   if (!save) return null
 
   const rows = save.roster
@@ -75,17 +78,45 @@ export function StatsView() {
           {rows.map(({ p, s }) => {
             const base = getPlayerBase(p.baseId)
             const total = s.duelsWon + s.duelsLost
+            const expanded = open === p.uid
+            const techs = Object.entries(s.techs ?? {}).sort((a, b) => b[1] - a[1])
             return (
-              <div key={p.uid} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 py-1.5 border-t border-slate-800 items-center">
-                <span className="text-[12px] font-bold truncate">
-                  {base.name}
-                  <span className="text-[9px] text-slate-500 ml-1">{base.position}</span>
-                </span>
-                <span className="w-8 text-right text-[12px] tabular-nums font-bold text-emerald-300">{s.goals || '·'}</span>
-                <span className="w-8 text-right text-[12px] tabular-nums text-sky-300">{s.saves || '·'}</span>
-                <span className="w-12 text-right text-[11px] tabular-nums text-slate-400">
-                  {total ? `${Math.round((s.duelsWon / total) * 100)}%` : '·'}
-                </span>
+              <div key={p.uid} className="border-t border-slate-800">
+                <button
+                  onClick={() => setOpen(expanded ? null : p.uid)}
+                  className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 py-1.5 items-center text-left active:bg-slate-800/40"
+                >
+                  <span className="text-[12px] font-bold truncate">
+                    {base.name}
+                    <span className="text-[9px] text-slate-500 ml-1">{base.position}</span>
+                  </span>
+                  <span className="w-8 text-right text-[12px] tabular-nums font-bold text-emerald-300">{s.goals || '·'}</span>
+                  <span className="w-8 text-right text-[12px] tabular-nums text-sky-300">{s.saves || '·'}</span>
+                  <span className="w-12 text-right text-[11px] tabular-nums text-slate-400">
+                    {total ? `${Math.round((s.duelsWon / total) * 100)}%` : '·'}
+                  </span>
+                </button>
+                {expanded && (
+                  <div className="px-2 pb-2 text-[11px] text-slate-300 bg-slate-900/40">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-400">
+                      <span><b className="text-slate-200">{s.matches}</b> partidos</span>
+                      <span>duelos <b className="text-emerald-300">{s.duelsWon}</b>–<b className="text-rose-300">{s.duelsLost}</b></span>
+                      <span><b className="text-emerald-300">{s.goals}</b> goles</span>
+                      <span><b className="text-sky-300">{s.saves}</b> paradas</span>
+                    </div>
+                    {techs.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {techs.map(([name, n]) => (
+                          <span key={name} className="rounded-full border border-slate-700 bg-slate-800/70 px-1.5 py-0.5 text-[9px] font-bold text-amber-200">
+                            {name} ×{n}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-[9px] text-slate-600">Sin supertécnicas ganadoras registradas aún.</div>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -302,8 +333,14 @@ export function TeamSelectView() {
   // Modalidades de la partida.
   const [saga, setSaga] = useState<SagaId>('ff')
   const [difficulty, setDifficulty] = useState<'normal' | 'dificil' | 'leyenda'>('normal')
-  // De qué juegos sale la gente y qué se desordena.
-  const [pools, setPools] = useState<RegionId[]>([])
+  // De qué juegos sale la gente y qué se desordena. Por defecto, LA SAGA
+  // ELEGIDA (sigue al selector hasta que toques las épocas a mano).
+  const [pools, setPools] = useState<RegionId[]>(['ff'])
+  const poolsTouched = useRef(false)
+  useEffect(() => {
+    if (!poolsTouched.current) setPools([saga as RegionId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saga])
   const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean }>({})
   // TU CLUB: lo fundas tú — nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
@@ -403,7 +440,7 @@ export function TeamSelectView() {
               return (
                 <button
                   key={r.id}
-                  onClick={() => setPools(on ? pools.filter((x) => x !== r.id) : [...pools, r.id])}
+                  onClick={() => { poolsTouched.current = true; setPools(on ? pools.filter((x) => x !== r.id) : [...pools, r.id]) }}
                   className={`rounded-xl border py-1.5 px-2 text-[11px] font-bold leading-tight text-left transition active:scale-95 ${
                     on ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-200'
                       : 'border-slate-700 bg-slate-800/60 text-slate-400'

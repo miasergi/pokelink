@@ -28,7 +28,8 @@ import type { Element as InazumaElement } from '@/engine/inazuma/types'
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
-import { getTactic } from '@/data/inazuma/tactics'
+import { tacticEffectLines, tacticFitsHint, getTactic } from '@/data/inazuma/tactics'
+import { loadMeta } from '@/persistence/db'
 import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
@@ -42,6 +43,15 @@ import { ROSTER_MAX, type InazumaSave, type PlayerInstance, type TournamentNode 
 export function TitleView() {
   const { hasSave, save, continueTournament, abandonTournament, exitInazuma, goTo } = useInazuma()
   const [confirm, setConfirm] = useState(false)
+  // EL SALÓN DE LA FAMA: las runs CAMPEONAS guardadas en la meta (como el
+  // hall del modo Pokémon). Base de futuros torneos entre tus equipos.
+  const [hall, setHall] = useState<null | NonNullable<Awaited<ReturnType<typeof loadMeta>>['inazumaTeams']>>(null)
+  const [hallOpen, setHallOpen] = useState(false)
+  const [hallSel, setHallSel] = useState<number | null>(null)
+  const openHall = () => {
+    setHallOpen(true)
+    void loadMeta().then((m) => setHall((m.inazumaTeams ?? []).filter((t) => t.result === 'campeon').reverse()))
+  }
 
   return (
     <div className="flex flex-col flex-1 items-center justify-between p-6 safe-top safe-bottom">
@@ -88,8 +98,90 @@ export function TitleView() {
             <Icon name="pokedex" className="w-4 h-4" /> Álbum de fichajes
           </span>
         </Button>
+        <Button variant="secondary" full onClick={openHall}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="trophy" className="w-4 h-4 text-amber-300" /> Salón de la fama
+          </span>
+        </Button>
         <Button variant="ghost" full onClick={exitInazuma}>Volver al inicio</Button>
       </div>
+
+      {hallOpen && (
+        <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm grid place-items-center p-4" onClick={() => { setHallOpen(false); setHallSel(null) }}>
+          <div className="w-full max-w-sm rounded-3xl border border-amber-500/50 bg-slate-900 p-4 max-h-[86svh] flex flex-col animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center shrink-0">
+              <Icon name="trophy" className="w-9 h-9 mx-auto text-amber-300" />
+              <div className="font-extrabold text-amber-300 text-lg">Salón de la fama</div>
+              <p className="text-[11px] text-slate-400">Tus equipos campeones del Football Frontier.</p>
+            </div>
+            <div className="mt-3 flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-2">
+              {hall == null && <div className="text-center text-[11px] text-slate-500 py-6">Cargando…</div>}
+              {hall != null && hall.length === 0 && (
+                <div className="text-center text-[12px] text-slate-500 py-6">
+                  Aún no hay campeones. El primero que levante el título entra aquí para siempre.
+                </div>
+              )}
+              {(hall ?? []).map((t, i) => {
+                const sel = hallSel === i
+                return (
+                  <button
+                    key={t.finishedAt}
+                    onClick={() => setHallSel(sel ? null : i)}
+                    className={`rounded-2xl border p-2.5 text-left transition active:scale-[0.99] ${sel ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-700 bg-slate-800/50'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-9 h-9 shrink-0 grid place-items-center rounded-xl overflow-hidden border border-amber-500/40 bg-slate-900">
+                        <ImgFallback
+                          src={`${import.meta.env.BASE_URL}inazuma/teams/${t.crest ?? t.teamId}.png`}
+                          className="w-full h-full object-contain"
+                          fallback={<Icon name="trophy" className="w-5 h-5 text-amber-300" />}
+                        />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-extrabold truncate">{t.name ?? 'Mi club'}</div>
+                        <div className="text-[10px] text-slate-400 tabular-nums">
+                          {new Date(t.finishedAt).toLocaleDateString('es-ES')} · {t.record[0]}V {t.record[1]}E {t.record[2]}D · {t.goalsFor}-{t.goalsAgainst}
+                        </div>
+                      </div>
+                      <Icon name="trophy" className="w-4 h-4 text-amber-300 shrink-0" />
+                    </div>
+                    {sel && (
+                      <div className="mt-2 flex flex-col gap-1">
+                        {[...t.roster]
+                          .sort((a, b) => (b.goals ?? 0) - (a.goals ?? 0) || (b.duelsWon ?? 0) - (a.duelsWon ?? 0))
+                          .map((p, k) => (
+                            <div key={k} className="flex items-center gap-2 rounded-lg bg-slate-900/60 px-1.5 py-1">
+                              <span
+                                className="w-7 h-7 shrink-0 rounded-full overflow-hidden border-2 grid place-items-center bg-slate-900"
+                                style={{ borderColor: (p.rarity ?? 1) === 4 ? 'transparent' : rarityBorder(p.rarity ?? 1) }}
+                              >
+                                <ImgFallback
+                                  src={portraitUrl(p.baseId)}
+                                  className="w-full h-full object-cover object-top"
+                                  fallback={<span className="text-[8px] font-bold">{getPlayerBase(p.baseId).name.slice(0, 2)}</span>}
+                                />
+                              </span>
+                              <span className="min-w-0 flex-1 text-[11px] font-bold truncate">
+                                {getPlayerBase(p.baseId).name}
+                                <span className="ml-1 text-[9px] text-slate-500 font-normal">Nv.{p.level}{p.bond ? ` · vínculo +${p.bond}%` : ''}</span>
+                              </span>
+                              <span className="shrink-0 text-[9px] tabular-nums text-slate-400">
+                                {(p.goals ?? 0) > 0 && <b className="text-emerald-300">{p.goals}G </b>}
+                                {(p.saves ?? 0) > 0 && <b className="text-sky-300">{p.saves}P </b>}
+                                {(p.duelsWon ?? 0)}-{(p.duelsLost ?? 0)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <Button variant="primary" full className="mt-3 shrink-0" onClick={() => { setHallOpen(false); setHallSel(null) }}>Cerrar</Button>
+          </div>
+        </div>
+      )}
 
       {confirm && (
         <div className="absolute inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => setConfirm(false)}>
@@ -636,23 +728,36 @@ export function SquadView() {
             <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
               Filosofías · toca una para ARMARLA
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-col gap-1.5">
               {(save.tactics ?? []).map((id) => {
                 const t = getTactic(id)
                 if (!t) return null
                 const armed = (save.armedTactic ?? save.tactics?.[0]) === id
+                const lines = tacticEffectLines(t)
+                const hint = tacticFitsHint(t)
                 return (
                   <button
                     key={id}
                     onClick={() => armTactic(id)}
-                    title={t.desc}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide transition active:scale-95 ${
-                      armed ? 'ring-2 ring-offset-1 ring-offset-slate-900' : 'opacity-45 grayscale'
+                    className={`rounded-xl border p-2 text-left transition active:scale-[0.99] ${
+                      armed ? 'ring-1' : 'opacity-55 grayscale'
                     }`}
-                    style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color, ...(armed ? { boxShadow: `0 0 12px ${t.color}66` } : {}) }}
+                    style={{ borderColor: `${t.color}66`, background: `${t.color}12`, ...(armed ? { boxShadow: `0 0 12px ${t.color}44` } : {}) }}
                   >
-                    <Icon name={t.icon} className="w-3 h-3" />
-                    {t.name}
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wide" style={{ color: t.color }}>
+                      <Icon name={t.icon} className="w-3.5 h-3.5" />
+                      {t.name}
+                      {armed && <span className="rounded-full bg-slate-950/70 border px-1.5 text-[8px]" style={{ borderColor: `${t.color}66` }}>ARMADA</span>}
+                    </span>
+                    {/* QUÉ HACE, línea a línea — antes solo se veía el nombre. */}
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {lines.map((l, i) => (
+                        <li key={i} className="text-[10px] text-slate-300 leading-snug flex gap-1">
+                          <span style={{ color: t.color }}>›</span>{l}
+                        </li>
+                      ))}
+                    </ul>
+                    {hint && <p className="mt-0.5 text-[9px] text-slate-500 italic">{hint}</p>}
                   </button>
                 )
               })}
@@ -660,7 +765,6 @@ export function SquadView() {
             <p className="text-[10px] text-slate-500 mt-1 leading-snug">
               La ARMADA se enciende en pleno partido gastando la barra de Ruptura
               (o guardas la barra para la Supervibración: tú eliges el momento).
-              Mantén pulsada una para leer qué hace.
             </p>
           </div>
         )}

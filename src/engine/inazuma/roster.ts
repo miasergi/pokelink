@@ -198,7 +198,11 @@ export function ptMax(p: PlayerInstance): number {
   // potencia) nadie se quedaba sin PT en un partido y las supertécnicas se
   // tiraban a discreción. Ahora un jugador medio paga 2-3 técnicas medianas y
   // a la cuarta está seco: administrar PT vuelve a ser una decisión.
-  return Math.round(28 + effectiveStats(p).aguante * 0.7)
+  const base = 28 + effectiveStats(p).aguante * 0.7
+  // El BIDÓN (y equivalentes): +% directo al depósito de PT.
+  const item = p.item ? getItem(p.item) : undefined
+  const mult = item?.ptPct ? 1 + item.ptPct / 100 : 1
+  return Math.round(base * mult)
 }
 
 /**
@@ -227,11 +231,17 @@ export function effectiveStats(p: PlayerInstance): Stats {
     // modelo genérico de `InazumaItem` solo guarda uno, así que va aparte.
     // Los objetos «a todo» no caben en el modelo genérico de `InazumaItem`
     // (que guarda un solo atributo), así que van aparte.
-    if (item.id === 'brazalete-capitan' || item.id === 'amuleto-relampago') {
-      const mult = 1 + (item.amount ?? 10) / 100
-      for (const k of Object.keys(s) as (keyof Stats)[]) s[k] = Math.round(s[k] * mult)
-    } else if (item.stat && item.amount) {
-      s[item.stat] = Math.round(s[item.stat] * (1 + item.amount / 100))
+    // GATING estándar: los emblemas de elemento y el material de demarcación
+    // solo actúan si el jugador ES de ese elemento/posición.
+    const fits = (!item.element || item.element === base.element)
+      && (!item.position || item.position === base.position)
+    if (fits) {
+      if (item.all || item.id === 'brazalete-capitan' || item.id === 'amuleto-relampago') {
+        const mult = 1 + (item.all ?? item.amount ?? 10) / 100
+        for (const k of Object.keys(s) as (keyof Stats)[]) s[k] = Math.round(s[k] * mult)
+      } else if (item.stat && item.amount) {
+        s[item.stat] = Math.round(s[item.stat] * (1 + item.amount / 100))
+      }
     }
   }
   return s

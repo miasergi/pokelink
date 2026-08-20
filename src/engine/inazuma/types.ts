@@ -271,7 +271,8 @@ export interface PlayerStats {
   saves: number
   duelsWon: number
   duelsLost: number
-  matches: number
+  matches: number  /** Veces que usó cada supertécnica (por NOMBRE), ganando el duelo. */
+  techs?: Record<string, number>
 }
 
 /** Jugador rival: instancia ligera, sin progresión ni uid persistente. */
@@ -553,6 +554,17 @@ export interface InazumaItem {
   amount?: number
   /** Consumibles: se gastan al usarlos desde la plantilla. */
   consumable?: boolean
+  /** Solo surte efecto en jugadores de este ELEMENTO (emblemas). */
+  element?: Element
+  /** Solo surte efecto en jugadores de esta DEMARCACIÓN natural. */
+  position?: Position
+  /** +% a TODOS los atributos (brazalete, amuleto…). */
+  all?: number
+  /** +% al DEPÓSITO de PT (independiente del aguante). */
+  ptPct?: number
+  /** Retirado del catálogo activo: ni tienda ni botín, pero sigue
+   * funcionando en las partidas que ya lo tienen. */
+  legacy?: boolean
   kind: 'equipo' | 'consumible' | 'manual' | 'comida' | 'raro'
 }
 

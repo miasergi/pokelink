@@ -465,7 +465,10 @@ async function fetchTechnique(title) {
   // Las TRES entregas de la saga original: Football Frontier, Instituto Alius
   // y el Mundial. Con solo IE1-IE2, las selecciones de la FFI (Fire Dragon,
   // The Kingdom, Ogre…) se quedaban sin sus técnicas de verdad.
-  const debut = longField(wt, 'debut_game')
+  // OJO: `debut_game` suele ser el ÚLTIMO campo del infobox y el parser de
+  // campos exige un salto+pipe detrás — todas las fichas de VR con esa forma
+  // devolvían null y sus técnicas no existían. Ventana acotada y listo.
+  const debut = /\|\s*debut_game\s*=\s*([\s\S]{0,160})/i.exec(wt)?.[1] ?? ''
   const clasica = /\{\{Media\|games\|IE([23])?\}\}/.test(debut)
   // VICTORY ROAD es otra ÉPOCA: sus técnicas entran, pero marcadas, para que
   // el relleno de cadenas no le cuelgue una técnica de VR a Mark Evans (ni al
@@ -590,7 +593,9 @@ async function rescueNamed(found) {
   try {
     roster = JSON.parse(await readFile(join(ROOT, 'scripts', '.cache', 'inazuma-roster.json'), 'utf8'))
   } catch { return }
-  const have = new Set(found.map((t) => slug(t.name)))
+  // Por NOMBRE dub y por TÍTULO: los movesets del módulo van en romaji y
+  // comparar solo el dub hacía refetchear cientos de fichas en cada pasada.
+  const have = new Set(found.flatMap((t) => [slug(t.name), slug(t.title)]))
   const wanted = new Map()
   for (const list of Object.values(roster)) {
     for (const p of list) {
@@ -607,15 +612,32 @@ async function rescueNamed(found) {
     try {
       const t = await fetchTechnique(name)
       if (t) { found.push(t); ok++; console.log(`  + ${t.name} · ${t.type} · ${t.element}`) }
-    } catch { /* la siguiente */ }
+      else console.log(`  ? ${name}: la ficha no se pudo interpretar`)
+    } catch (err) { console.log(`  ✗ ${name}: ${err.message}`) }
     await new Promise((r) => setTimeout(r, 90))
   }
   console.log(`repesca: ${ok} recuperadas`)
 }
 
+/** Técnicas que ALGÚN jugador del roster usa: entran SIEMPRE al catálogo. */
+async function rosterUsedSlugs() {
+  try {
+    const roster = JSON.parse(await readFile(join(ROOT, 'scripts', '.cache', 'inazuma-roster.json'), 'utf8'))
+    const used = new Set()
+    for (const list of Object.values(roster)) {
+      for (const p of list) for (const h of p.hissatsu ?? []) used.add(slug(h))
+    }
+    return used
+  } catch { return new Set() }
+}
+
 async function emit(found) {
   // Reparto por clase Y elemento (ver `PER_KIND_ELEMENT`).
   const must = new Set(MUST_HAVE)
+  // Y lo que USA la gente del roster NUNCA se muestrea fuera: la repesca las
+  // recuperaba… y este muestreo por cupos las volvía a tirar (Tenkuu Thunder
+  // del protagonista de VR, sin ir más lejos).
+  const used = await rosterUsedSlugs()
   const list = []
   for (const [kind, max] of Object.entries(PER_KIND_ELEMENT)) {
     for (const element of ELEMENTS) {
@@ -628,7 +650,7 @@ async function emit(found) {
       }
       // Primero las imprescindibles y el resto muestreando la curva de potencia,
       // para que haya básicas, medias y definitivas de cada elemento.
-      const picked = pool.filter((t) => must.has(t.name) || must.has(t.title))
+      const picked = pool.filter((t) => must.has(t.name) || must.has(t.title) || used.has(slug(t.title)) || used.has(slug(t.name)))
       const rest = pool.filter((t) => !picked.includes(t))
       const room = Math.max(0, max - picked.length)
       for (let i = 0; i < room && rest.length; i++) {
@@ -638,7 +660,16 @@ async function emit(found) {
     }
   }
 
-  const balanced = balance([...new Set(list)])
+  // SIN DUPLICADOS: las repescas encadenadas apilaban la misma técnica en el
+  // caché (mismo título varias veces) y el catálogo salía con ids repetidos.
+  const seenIds = new Set()
+  const deduped = balance([...new Set(list)]).filter((t) => {
+    const id = slug(t.title)
+    if (seenIds.has(id)) return false
+    seenIds.add(id)
+    return true
+  })
+  const balanced = deduped
     .sort((a, b) => (a.type < b.type ? -1 : a.type > b.type ? 1 : a.power - b.power))
 
   // Imágenes

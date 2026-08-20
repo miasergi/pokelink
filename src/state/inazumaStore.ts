@@ -27,6 +27,7 @@ import { actorByUid, advance, chooseOption, otherSide, playerScore, playerSide, 
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import { getTactic, TACTICS } from '@/data/inazuma/tactics'
+import { teamDisplay } from '@/data/inazuma/teams'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalRarityMap, slotRole, transferValue, upgradeTechnique,
@@ -85,14 +86,29 @@ function teamSnapshot(save: InazumaSave, result: 'campeon' | 'eliminado') {
     goalsFor: save.goalsFor,
     goalsAgainst: save.goalsAgainst,
     coins: save.coins,
-    roster: save.roster.map((p) => ({
-      baseId: p.baseId,
-      level: p.level,
-      techniques: p.techniques.slice(),
-      item: p.item,
-      captain: p.captain,
-    })),
-    lineup: save.lineup.slice(),
+    // La identidad del club y los NÚMEROS de cada jugador: es lo que enseña
+    // el Salón de la fama (y la base de modos futuros tipo liga).
+    name: teamDisplay(save).name,
+    crest: teamDisplay(save).crestId,
+    starterBaseId: save.starterBaseId,
+    roster: save.roster.map((p) => {
+      const st = save.playerStats[p.uid]
+      return {
+        baseId: p.baseId,
+        level: p.level,
+        techniques: p.techniques,
+        item: p.item,
+        captain: p.captain,
+        rarity: rarityOf(p),
+        bond: p.bond,
+        goals: st?.goals ?? 0,
+        saves: st?.saves ?? 0,
+        duelsWon: st?.duelsWon ?? 0,
+        duelsLost: st?.duelsLost ?? 0,
+        matches: st?.matches ?? 0,
+      }
+    }),
+    lineup: save.lineup,
     formation: save.formation,
   }
 }

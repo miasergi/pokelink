@@ -22,7 +22,7 @@ import {
 import type { EventEffect } from '@/data/inazuma/events'
 import type {
   Actor, DecisionMode, Difficulty, InazumaSave, MatchEvent, MatchSide, MatchState,
-  PlayerInstance, PlayerStats, Position, Stats, Technique,
+  PlayerInstance, Position, Stats, Technique,
   RivalPlayer, TournamentNode,
 } from './types'
 
@@ -111,7 +111,7 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     // Se empieza con tres CURATIVOS (sin ellos, el primer bajón de PT/aguante
     // pillaba sin herramientas) y DOS MEDALLAS: con la pachanga pagando solo
     // una, el arranque necesitaba algo de material de rareza para moldear.
-    bag: ['bebida-isotonica', 'masaje', 'ramen-rai-rai', 'medalla-rareza', 'medalla-rareza'],
+    bag: ['pocion-pt', 'pocion-aguante', 'pocion-aguante', 'medalla-rareza', 'medalla-rareza'],
     techniqueBag: [],
     formation,
     playerStats: {},
@@ -312,17 +312,33 @@ function catchUp(p: PlayerInstance, ref: number): PlayerInstance {
 /** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
 export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
   const stats = { ...save.playerStats }
-  const bump = (uid: string, key: keyof PlayerStats, n = 1) => {
+  const bump = (uid: string, key: 'goals' | 'saves' | 'duelsWon' | 'duelsLost' | 'matches', n = 1) => {
     if (!mineUids.has(uid)) return
     const cur = stats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
-    stats[uid] = { ...cur, [key]: cur[key] + n }
+    stats[uid] = { ...cur, [key]: (cur[key] ?? 0) + n }
   }
   for (const uid of mineUids) bump(uid, 'matches')
+  // Técnicas GANADORAS: qué usó cada uno cuando salió bien (para la ficha).
+  const bumpTech = (uid: string, name: string) => {
+    if (!mineUids.has(uid)) return
+    const cur = stats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
+    const techs = { ...(cur.techs ?? {}) }
+    techs[name] = (techs[name] ?? 0) + 1
+    stats[uid] = { ...cur, techs }
+  }
   for (const e of events) {
-    if (e.kind === 'goal') bump(e.scorerUid, 'goals')
-    else if (e.kind === 'save') bump(e.keeperUid, 'saves')
+    if (e.kind === 'goal') {
+      bump(e.scorerUid, 'goals')
+      if (e.technique) bumpTech(e.scorerUid, e.technique)
+    }
+    else if (e.kind === 'save') {
+      bump(e.keeperUid, 'saves')
+      if (e.technique) bumpTech(e.keeperUid, e.technique)
+    }
     else if (e.kind === 'duel') {
       bump(e.attackerUid, e.success ? 'duelsWon' : 'duelsLost')
+      if (e.success && e.technique) bumpTech(e.attackerUid, e.technique)
+      if (!e.success && e.counter) bumpTech(e.defenderUid, e.counter)
       bump(e.defenderUid, e.success ? 'duelsLost' : 'duelsWon')
     }
   }
@@ -634,6 +650,26 @@ export function applyConsumable(
   }
 
   switch (itemId) {
+    // --- Pociones ESTÁNDAR, en porcentaje. ---
+    case 'pocion-pt':
+      one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.5)) }))
+      return spend('+50 % del depósito de PT')
+    case 'pocion-pt-max':
+      one((p) => ({ ...p, pt: ptMax(p) }))
+      return spend('PT al máximo')
+    case 'pocion-aguante':
+      one((p) => ({ ...p, stamina: Math.min(100, p.stamina + 50) }))
+      return spend('+50 % de aguante')
+    case 'pocion-aguante-max':
+      one((p) => ({ ...p, stamina: 100 }))
+      return spend('Aguante al máximo')
+    case 'elixir-equipo':
+      all((p) => ({
+        ...p,
+        pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.33)),
+        stamina: Math.min(100, p.stamina + 33),
+      }))
+      return spend('Elixir: +33 % de PT y aguante a toda la plantilla')
     case 'bebida-isotonica':
       one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + 40) }))
       return spend('+40 PT')
@@ -722,6 +758,18 @@ export function subActor(save: InazumaSave, uid: string, role: Position): Actor 
  */
 export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean; message: string } {
   switch (itemId) {
+    case 'pocion-pt':
+      a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.5))
+      return { ok: true, message: '+50 % de PT' }
+    case 'pocion-pt-max':
+      a.pt = a.ptMax
+      return { ok: true, message: 'PT al máximo' }
+    case 'pocion-aguante':
+      a.stamina = Math.min(100, a.stamina + 50)
+      return { ok: true, message: '+50 % de aguante' }
+    case 'pocion-aguante-max':
+      a.stamina = 100
+      return { ok: true, message: 'Aguante al máximo' }
     case 'bebida-isotonica':
       a.pt = Math.min(a.ptMax, a.pt + 40)
       return { ok: true, message: '+40 PT' }

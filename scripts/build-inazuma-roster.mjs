@@ -154,6 +154,17 @@ const PAGE_ALIAS = {
   Diver: 'Taira Moguru',
 }
 
+/**
+ * Alias POR EQUIPO: el mismo nombre corto es gente DISTINTA según el equipo.
+ * El caso que lo motivó: «Yagyuu» es página de desambiguación — el Shuriken
+ * clásico se llevaba el nombre dub del protagonista de VR (Thierry Reyes) y
+ * el Nagumohara se quedaba sin él.
+ */
+const TEAM_PAGE_ALIAS = {
+  'shuriken:Yagyuu': 'Yagyuu Juurou',
+  'nagumohara:Yagyuu': 'Yagyuu Suruga',
+}
+
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -164,6 +175,9 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
  */
 const FORCED_MEMBERS = {
   royal: ['Kidou'],
+  // El protagonista de VR en su instituto: la plantilla del wikitext lo
+  // pierde por la desambiguación de «Yagyuu».
+  nagumohara: ['Yagyuu Suruga'],
   // El PROTAGONISTA de Victory Road: su ficha de la wiki lo deja en un
   // «unnamed youth team» sin plantilla que rastrear, así que el crawler lo
   // perdía. Va al Raimon de IEVR (Ouja Raimon), que es donde le toca.
@@ -262,7 +276,13 @@ async function teamRoster(pages) {
 }
 
 /** Resuelve un nombre corto («Kazemaru») a su página completa. */
-async function resolvePage(short) {
+async function resolvePage(short, teamId) {
+  // El alias con equipo manda sobre todo lo demás.
+  const scoped = TEAM_PAGE_ALIAS[`${teamId}:${short}`]
+  if (scoped) {
+    const wt = await wikitext(scoped)
+    if (wt && /\|name_dub\s*=/.test(wt)) return { title: scoped, wt }
+  }
   if (PAGE_ALIAS[short]) {
     const wt = await wikitext(PAGE_ALIAS[short])
     if (wt && /\|name_dub\s*=/.test(wt)) return { title: PAGE_ALIAS[short], wt }
@@ -357,7 +377,7 @@ async function main() {
     const seenPages = new Set()
     for (const short of [...(FORCED_MEMBERS[teamId] ?? []), ...roster.names]) {
       if (out[teamId].length >= 14) break
-      const page = await resolvePage(short)
+      const page = await resolvePage(short, teamId)
       if (!page) { missing.push(`${teamId}/${short}`); continue }
       // La MISMA persona no entra dos veces en un equipo: el capitán forzado
       // del Royal (Kidou) se sumaba al Kidou de la plantilla — dos Jude Sharp.
@@ -401,10 +421,22 @@ async function main() {
         // juegos). De aquí salen las cadenas características verdaderas.
         // El moveset REAL del módulo manda; lo rascado de la ficha queda de
         // apoyo (algunas páginas sí listan técnicas a mano).
-        hissatsu: [
-          ...((await movesets()).get(page.title.split('/')[0]) ?? []).map(prettyMove),
-          ...extractHissatsu(page.wt),
-        ].filter((v, i, a) => a.indexOf(v) === i),
+        hissatsu: await (async () => {
+          // La clave REAL del módulo es la de {{MainlineMovesets|CLAVE}} (las
+          // fichas de VR usan avatar tipo «Yagyuu_VR», no el título): sin
+          // leerla, el protagonista de VR se quedaba sin Super Elástico.
+          const ms = await movesets()
+          const avatarKey = page.wt.match(/\{\{MainlineMovesets\|([^}|]+)/)?.[1]?.trim()
+          // El TÍTULO manda y el avatar es respaldo: hay personajes con clave
+          // clásica Y avatar de VR (Miguel/Rio), y el avatar les colaba el
+          // moveset del futuro. Quien solo existe en VR (Yagyuu_VR) no tiene
+          // clave por título y cae al avatar, que es lo que se quería.
+          const canon = ms.get(page.title.split('/')[0]) ?? ms.get(avatarKey) ?? []
+          return [
+            ...canon.map(prettyMove),
+            ...extractHissatsu(page.wt),
+          ].filter((v, i, a) => a.indexOf(v) === i)
+        })(),
       })
     }
     const full = out[teamId].filter((p) => p.element).length

@@ -260,7 +260,7 @@ const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
  *                 es donde sí importa no mezclar (a Mark Evans no le cuelga una
  *                 técnica del futuro porque le falte un hueco).
  */
-function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all) {
+function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all, allowVr = true) {
   const kind = KIND[position] ?? 'regate'
   const byId = new Map(all.map((t) => [t.id, t]))
   // Puesto que ocupa cada técnica en SU moveset: es el orden en que las
@@ -288,6 +288,9 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
     .map(slugTech)
     .filter((id, i, arr) => arr.indexOf(id) === i)
     .filter((id) => kinds.includes(byId.get(id)?.kind) && !curated.includes(id))
+    // Personaje de DOS épocas jugando en su equipo CLÁSICO: sus técnicas de
+    // Victory Road se quedan fuera (Berdy Caster con Round Spark en Manyuuji).
+    .filter((id) => allowVr || byId.get(id)?.era !== 'vr')
   const realPrimary = real.filter((id) => byId.get(id).kind === kind)
   const realOther = real.filter((id) => byId.get(id).kind !== kind)
 
@@ -498,6 +501,7 @@ async function main() {
       const signature = signatureFor(
         allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [],
         eraTechs.length >= 20 ? eraTechs : allTechs,
+        VR_TEAMS.has(teamId),
       )
       const techs = techsFor(signature, rarity)
       lines.push('  {')

@@ -122,21 +122,21 @@ describe('render de pantallas (smoke)', () => {
     // La tienda vende material Y manuales de supertécnica, con su precio.
     useInazuma.setState({ save, matchNode: null, phase: 'shop' })
     const shop = mount(InazumaScreen)
-    // Las supertécnicas sueltas ya no se venden: la tienda es material.
-    expect(shop).toContain('Botas Rayo')
+    // La primera tienda vende lo asequible: las pociones estándar.
+    expect(shop).toContain('Poción de PT')
 
     // Mochila con contenido: objetos y supertécnicas, cada una con su nombre.
     useInazuma.setState({
       save: {
         ...save,
-        bag: ['botas-rayo', 'mejora', 'manual-avanzado'],
+        bag: ['emblema-fuego', 'mejora', 'manual-avanzado'],
         techniqueBag: [TECHNIQUES[0].id],
         playerStats: { [save.roster[0].uid]: { goals: 3, saves: 5, duelsWon: 9, duelsLost: 4, matches: 2 } },
       },
       phase: 'bag',
     })
     const bag = mount(InazumaScreen)
-    expect(bag).toContain('Botas Rayo')
+    expect(bag).toContain('Emblema de Fuego')
     // Las técnicas sueltas están suprimidas: si una partida vieja aún guarda
     // alguna, la mochila ofrece convertirla en Manual avanzado.
     expect(bag).toContain('suelta')

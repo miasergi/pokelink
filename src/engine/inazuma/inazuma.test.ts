@@ -1458,13 +1458,32 @@ describe('coherencia', () => {
     const save = createSave(5)
     for (const item of ITEMS) {
       if (item.kind === 'equipo' || item.kind === 'raro') {
-        // Equipado, algún atributo tiene que subir DE VERDAD. Sobre un
-        // jugador SIN nada puesto: el primero de la plantilla lleva ahora el
-        // Brazalete de Capitán de serie, y comparar contra él salía al revés.
-        const p = { ...save.roster[0], item: undefined }
-        const before = effectiveStats(p)
-        const after = effectiveStats({ ...p, item: item.id })
-        const sube = (Object.keys(after) as (keyof typeof after)[]).some((k) => after[k] > before[k])
+        // Equipado, algún atributo tiene que subir DE VERDAD… en el jugador
+        // ADECUADO: los emblemas y el material de demarcación van con gating
+        // de elemento/posición, así que se prueba sobre uno que encaje.
+        const donor = item.position === 'POR' || (!item.position && !item.element)
+          ? createPlayer('mark-evans', 20)
+          : createPlayer('axel-blaze', 20)
+        const base = getPlayerBase(donor.baseId)
+        const p = {
+          ...donor,
+          item: undefined,
+          // El emblema pide SU elemento y el material SU posición: se fuerza
+          // el donante correcto buscando en el catálogo si hace falta.
+        }
+        const fits = (!item.element || item.element === base.element)
+          && (!item.position || item.position === base.position)
+        const subject = fits ? p : (() => {
+          const match = PLAYERS.find((b) =>
+            (!item.element || b.element === item.element)
+            && (!item.position || b.position === item.position))!
+          return { ...createPlayer(match.id, 20), item: undefined }
+        })()
+        const before = { stats: effectiveStats(subject), pt: ptMax(subject) }
+        const equipped = { ...subject, item: item.id }
+        const after = { stats: effectiveStats(equipped), pt: ptMax(equipped) }
+        const sube = (Object.keys(after.stats) as (keyof typeof after.stats)[])
+          .some((k) => after.stats[k] > before.stats[k]) || after.pt > before.pt
         expect(sube, `${item.id} no sube nada`).toBe(true)
       } else if (item.id !== 'mejora' && item.id !== 'manual-avanzado' && item.id !== 'fichaje-estrella') {
         // (El Fichaje estrella no entra aquí: se resuelve con su propio
@@ -1493,7 +1512,7 @@ describe('coherencia', () => {
     for (const item of ITEMS) {
       expect(item.price).toBeGreaterThan(0)
       const usable = item.kind === 'equipo' || item.kind === 'raro'
-        ? !!item.stat
+        ? !!(item.stat || item.all || item.ptPct)
         : !!item.consumable
       expect(usable).toBe(true)
     }
