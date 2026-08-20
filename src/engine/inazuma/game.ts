@@ -93,6 +93,7 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     // Las épocas del pool: si no se elige nada, la de la saga que juegas.
     pools: opts.pools?.length ? opts.pools : undefined,
     random: opts.random && Object.values(opts.random).some(Boolean) ? opts.random : undefined,
+    starterBaseId: opts.starterId ?? 'mark-evans',
     // Nombre y escudo SIEMPRE tuyos: el equipo lo fundas tú.
     customName: opts.customName?.trim() || 'Nuevo Raimon',
     customCrest: opts.customCrest,

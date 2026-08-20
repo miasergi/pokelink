@@ -100,12 +100,15 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
   return fresh.length >= 6 ? fresh : uniq
 }
 
-function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>): DraftOption | null {
-  const pool = availableSignings(save).filter((p) => !exclude.has(p.id))
+function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>): DraftOption | null {
+  // Se excluye por id Y por NOMBRE: el catálogo trae al mismo chaval con
+  // varios ids, y la oferta canónica podía duplicarse con la aleatoria.
+  const pool = availableSignings(save).filter((p) => !exclude.has(p.id) && !excludeNames.has(p.name))
   if (!pool.length) return null
   const pick = weightedPick(pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)
   if (!pick) return null
   exclude.add(pick.id)
+  excludeNames.add(pick.name)
   const level = signingLevel(save)
   return {
     kind: 'fichaje',
@@ -148,12 +151,49 @@ export function buildTacticOffer(save: InazumaSave, rng: RNG): DraftOption[] {
 export const SCOUT_STAR_PRICE = 1000
 
 /** Las tres fichas del ojeador. Todas son fichajes: es su razón de existir. */
+/**
+ * La oferta CANÓNICA del ojeador: un compañero de equipo (canon) de tu
+ * inicial — reconstruir tu club, fichaje a fichaje. Con el randomizador de
+ * plantillas la run es random y no aplica; y nunca ofrece a alguien que ya
+ * tienes (por NOMBRE) ni repetido en la misma oferta.
+ */
+function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>): DraftOption | null {
+  if (save.random?.plantillas) return null
+  const starterId = save.starterBaseId ?? save.roster.find((p) => p.bond != null)?.baseId
+  if (!starterId) return null
+  const team = getPlayerBase(starterId).team
+  const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
+  const seenIds = new Set(save.scoutSeen ?? [])
+  const pool = uniqueByName(PLAYERS.filter((p) => p.team === team))
+    .filter((p) => !owned.has(p.name) && !exclude.has(p.id) && !excludeNames.has(p.name))
+  if (!pool.length) return null
+  const fresh = pool.filter((p) => !seenIds.has(p.id))
+  const pick = weightedPick(fresh.length ? fresh : pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)
+  if (!pick) return null
+  exclude.add(pick.id)
+  excludeNames.add(pick.name)
+  const level = signingLevel(save)
+  return {
+    kind: 'fichaje',
+    id: `sign-${pick.id}`,
+    title: `Fichar a ${pick.name}`,
+    desc: `${pick.position} · nivel ${level} · CANON de tu club`,
+    playerId: pick.id,
+    level,
+  }
+}
+
 export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
   const seen = new Set<string>()
+  const seenNames = new Set<string>()
   const out: DraftOption[] = []
-  for (let i = 0; i < 3; i++) {
-    const o = signingOption(save, rng, seen)
-    if (o) out.push(o)
+  // La primera ficha sobre la mesa: el CANON de tu club (si queda alguien).
+  const canon = canonOption(save, rng, seen, seenNames)
+  if (canon) out.push(canon)
+  while (out.length < 3) {
+    const o = signingOption(save, rng, seen, seenNames)
+    if (!o) break
+    out.push(o)
   }
   // De vez en cuando el ojeador ofrece SU AGENDA (el Fichaje estrella): la
   // vía garantizada de encontrarse el objeto en una run sin depender del
@@ -194,11 +234,12 @@ export function buildSingleReward(save: InazumaSave, rng: RNG): DraftOption {
 export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
   const out: DraftOption[] = []
   const seen = new Set<string>()
+  const seenNames = new Set<string>()
   // Lo avanzada que va la partida, 0-7. Sustituye a la antigua «ronda» ahora
   // que el torneo es un mapa por capas y no un cuadro de eliminatorias.
   const prog = bossIndexForLayer(save.layer)
 
-  const sign = signingOption(save, rng, seen)
+  const sign = signingOption(save, rng, seen, seenNames)
   if (sign) out.push(sign)
 
   // Mejora: entrenamiento o una técnica nueva.

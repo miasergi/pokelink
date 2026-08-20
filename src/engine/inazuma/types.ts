@@ -591,6 +591,9 @@ export interface InazumaSave {
   /** true si la plantilla inicial salió del bombo (modo aleatorio). */
   randomSquad?: boolean
   /** Nombre y escudo elegidos para el equipo del bombo. */
+  /** TU INICIAL (id del catálogo): define el equipo CANON de tu club — el
+   * ojeador siempre ofrece a uno de sus compañeros canónicos. */
+  starterBaseId?: string
   customName?: string
   customCrest?: string
   /** Mapa completo de la partida, generado al empezar. */

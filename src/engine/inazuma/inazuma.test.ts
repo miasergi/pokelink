@@ -1333,6 +1333,34 @@ describe('coherencia', () => {
     }
   })
 
+  it('el ojeador ofrece SIEMPRE a un canon de tu club (y jamás repite nombres)', () => {
+    // Empiezas con Axel (Raimon): la primera ficha de cada ojeador es un
+    // compañero canónico del Raimon — reconstruir tu club, fichaje a fichaje.
+    const save = createSave(21, 'raimon', { starterId: 'axel-blaze' })
+    for (let i = 0; i < 8; i++) {
+      const offer = buildScoutOffer(save, new RNG(i))
+      const signs = offer.filter((o) => o.kind === 'fichaje')
+      expect(signs.length).toBeGreaterThan(0)
+      const first = signs[0]
+      if (first.kind === 'fichaje') {
+        expect(getPlayerBase(first.playerId).team, 'la primera oferta no es canon del club').toBe('raimon')
+      }
+      // Sin nombres repetidos dentro de la oferta, y nadie que ya tengas.
+      const names = signs.map((o) => (o.kind === 'fichaje' ? getPlayerBase(o.playerId).name : ''))
+      expect(new Set(names).size).toBe(names.length)
+      const owned = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
+      for (const n of names) expect(owned.has(n)).toBe(false)
+    }
+    // Con el randomizador de plantillas, la run es random: sin hueco canon fijo.
+    const rnd = createSave(21, 'raimon', { starterId: 'axel-blaze', random: { plantillas: true } })
+    const teams = new Set<string>()
+    for (let i = 0; i < 10; i++) {
+      const offer = buildScoutOffer(rnd, new RNG(i)).filter((o) => o.kind === 'fichaje')
+      if (offer[0]?.kind === 'fichaje') teams.add(getPlayerBase(offer[0].playerId).team)
+    }
+    expect(teams.size).toBeGreaterThan(1)
+  })
+
   it('la cadena se despierta sola al cruzar los umbrales de nivel', () => {
     // Sobre la cadena REAL del jugador (viene de la wiki), paso a paso.
     const chain = getPlayerBase('mark-evans').signature ?? []
