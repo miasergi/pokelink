@@ -31,7 +31,7 @@ import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
   RIVAL_LEVELS, ROUTE_LAYERS_PER_SEGMENT, TOTAL_LAYERS,
 } from './tournament'
-import { ROSTER_MAX, type InazumaSave, type MatchState, type TournamentNode } from './types'
+import { ROSTER_MAX, SQUAD_SIZE, type InazumaSave, type MatchState, type TournamentNode } from './types'
 
 describe('elementos', () => {
   it('forma un ciclo cerrado sin elemento dominante', () => {
@@ -53,7 +53,11 @@ describe('plantilla', () => {
     expect(save.roster).toHaveLength(1)
     expect(save.roster[0].baseId).toBe('axel-blaze')
     expect(save.roster[0].item).toBe('brazalete-capitan')
-    expect(save.lineup).toEqual([save.roster[0].uid])
+    // Alineación POR HUECOS: largo fijo, y Axel (delantero) en el hueco de
+    // ARRIBA — no «de portero porque el array empieza por ahí».
+    expect(save.lineup).toHaveLength(5)
+    expect(save.lineup.filter(Boolean)).toEqual([save.roster[0].uid])
+    expect(save.lineup[4]).toBe(save.roster[0].uid)
     expect(lineupError(save.roster, save.lineup, save.formation)).toBeNull()
     // Y con la plantilla construida, el cinco completo también es legal.
     const full = fullSave(1234)
@@ -809,17 +813,25 @@ function matchupLineup(save: InazumaSave, teamId: string): string[] {
   const byPos = (pos: string) => save.roster
     .filter((p) => getPlayerBase(p.baseId).position === pos)
     .sort((a, b) => score(b) - score(a))
-  const picked = [
-    ...byPos('POR').slice(0, 1),
-    ...byPos('DEF').slice(0, f.defs),
-    ...byPos('MED').slice(0, f.mids),
-    ...byPos('DEL').slice(0, f.fwds),
-  ]
-  if (picked.length < 11) {
-    const rest = save.roster.filter((p) => !picked.includes(p)).sort((a, b) => score(b) - score(a))
-    picked.push(...rest.slice(0, 11 - picked.length))
+  // POR HUECOS y al tamaño del CINCO — la versión vieja apilaba hasta 11 y
+  // el bot jugaba los jefes con 8 (media plantilla de más, trampa medida).
+  const out: string[] = Array.from({ length: SQUAD_SIZE }, () => '')
+  const used = new Set<string>()
+  const take = (pos: string) => {
+    const p = byPos(pos).find((x) => !used.has(x.uid))
+    if (p) used.add(p.uid)
+    return p
   }
-  return picked.slice(0, 11).map((p) => p.uid)
+  const put = (slot: number, p?: typeof save.roster[number]) => { if (p) out[slot] = p.uid }
+  put(0, take('POR'))
+  for (let i = 0; i < f.defs; i++) put(1 + i, take('DEF'))
+  for (let i = 0; i < f.mids; i++) put(1 + f.defs + i, take('MED'))
+  for (let i = 0; i < f.fwds; i++) put(1 + f.defs + f.mids + i, take('DEL'))
+  const rest = save.roster.filter((p) => !used.has(p.uid)).sort((a, b) => score(b) - score(a))
+  for (let sIdx = 0; sIdx < SQUAD_SIZE && rest.length; sIdx++) {
+    if (!out[sIdx]) { const p = rest.shift()!; used.add(p.uid); out[sIdx] = p.uid }
+  }
+  return out
 }
 
 /** Juega una pachanga entera eligiendo siempre la mejor opción disponible. */
@@ -1047,7 +1059,7 @@ describe('torneo', () => {
     // Lo que sigue sin valer: repetir a alguien o quedarse corto PUDIENDO
     // completar el cinco (con menos plantilla que cinco, sales con lo que hay).
     const l = autoLineup(save.roster, FORMATIONS[0].id)
-    expect(lineupError(save.roster, l.slice(0, 4), FORMATIONS[0].id)).not.toBeNull()
+    expect(lineupError(save.roster, [...l.slice(0, 4), ''], FORMATIONS[0].id)).not.toBeNull()
     expect(lineupError(save.roster, [l[0], ...l.slice(0, 4)], FORMATIONS[0].id)).not.toBeNull()
   })
 

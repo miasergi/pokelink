@@ -11,7 +11,8 @@ import { rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
-import { ROSTER_MAX, SQUAD_SIZE, type PlayerInstance } from '@/engine/inazuma/types'
+import { ROSTER_MAX, type PlayerInstance } from '@/engine/inazuma/types'
+import { slotRole } from '@/engine/inazuma/roster'
 
 function Chip({ p, dragging, onDown, onUp }: {
   p: PlayerInstance
@@ -61,12 +62,11 @@ function Chip({ p, dragging, onDown, onUp }: {
 }
 
 export default function SquadBar() {
-  const { save, swapPlayers } = useInazuma()
+  const { save, swapPlayers, placeAt } = useInazuma()
   const [dragUid, setDragUid] = useState<string | null>(null)
   if (!save) return null
 
   const byUid = new Map(save.roster.map((p) => [p.uid, p]))
-  const titulares = save.lineup.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
   const bench = save.roster.filter((p) => !save.lineup.includes(p.uid))
   const holes = Math.max(0, ROSTER_MAX - save.roster.length)
 
@@ -76,9 +76,14 @@ export default function SquadBar() {
   }
   const up = (e: React.PointerEvent) => {
     if (dragUid) {
-      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-uid]')
-      const target = el?.getAttribute('data-uid')
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      const chip = el?.closest('[data-uid]')
+      const hole = el?.closest('[data-slot]')
+      const target = chip?.getAttribute('data-uid')
+      // Soltar EN UN HUECO coloca ahí (la demarcación la eliges tú);
+      // soltar sobre otro jugador, intercambia.
       if (target && target !== dragUid) swapPlayers(dragUid, target)
+      else if (hole) placeAt(dragUid, Number(hole.getAttribute('data-slot')))
     }
     setDragUid(null)
   }
@@ -86,16 +91,26 @@ export default function SquadBar() {
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/85 px-2 pt-2 pb-1.5">
       <div className="flex items-end gap-1.5 overflow-x-auto no-scrollbar">
-        {/* EL CINCO */}
-        {titulares.map((p) => (
-          <Chip key={p.uid} p={p} dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
-        ))}
-        {/* Huecos del cinco aún sin cubrir (plantilla en construcción). */}
-        {Array.from({ length: Math.max(0, Math.min(SQUAD_SIZE, save.roster.length, SQUAD_SIZE) - titulares.length) }).map((_, i) => (
-          <div key={`s${i}`} className="shrink-0 w-11 grid place-items-center">
-            <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-700" />
-          </div>
-        ))}
+        {/* EL CINCO, hueco a hueco: cada uno con su PAPEL debajo. Vacío =
+            soltable (el «+» del papel que quieras darle). */}
+        {save.lineup.map((u, slot) => {
+          const p = u ? byUid.get(u) : undefined
+          const role = slotRole(save.formation, slot)
+          if (!p) {
+            return (
+              <div key={`slot${slot}`} data-slot={slot} className="shrink-0 w-11 flex flex-col items-center">
+                <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 grid place-items-center text-slate-600 text-sm font-bold">+</span>
+                <span className="mt-1 text-[7px] font-extrabold uppercase tracking-wider text-slate-500">{role}</span>
+              </div>
+            )
+          }
+          return (
+            <div key={p.uid} className="flex flex-col items-center">
+              <Chip p={p} dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
+              <span className="text-[7px] font-extrabold uppercase tracking-wider text-slate-500">{role}</span>
+            </div>
+          )
+        })}
         {/* Separador cinco/banquillo. */}
         <div className="shrink-0 self-stretch w-px bg-slate-700/80 mx-0.5" />
         {/* EL BANQUILLO */}
@@ -113,7 +128,7 @@ export default function SquadBar() {
       </div>
       <div className="mt-1 flex justify-between text-[8px] uppercase tracking-widest text-slate-600 px-0.5">
         <span>El cinco</span>
-        <span>{save.roster.length}/{ROSTER_MAX} · arrastra para cambiar</span>
+        <span>{save.roster.length}/{ROSTER_MAX} · arrastra a un hueco o sobre otro</span>
       </div>
     </div>
   )

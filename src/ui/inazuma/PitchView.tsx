@@ -62,7 +62,9 @@ export default function PitchView({
   const moved = useRef(false)
 
   const byUid = new Map(save.roster.map((p) => [p.uid, p]))
-  const starters = save.lineup.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
+  // La alineación va POR HUECOS con vacíos (''): el hueco N pinta a
+  // lineup[N] o el «+» para colocar. Nada de compactar el array.
+  const starters = save.lineup.map((u) => (u ? byUid.get(u) : undefined))
   const bench = save.roster.filter((p) => !save.lineup.includes(p.uid))
   const formation = getFormation(save.formation)
 
@@ -209,7 +211,7 @@ export default function PitchView({
       </div>
 
       <p className="text-[10px] text-slate-600">
-        Un toque abre la ficha (y desde ella, «Mover»). Arrastrar sobre otro jugador también intercambia.
+        Un toque abre la ficha (y desde ella, «Mover»). Arrastra a un hueco «+» para colocar donde quieras, o sobre otro jugador para intercambiar.
       </p>
 
       {/* Ficha que sigue al dedo */}

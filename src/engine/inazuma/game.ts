@@ -222,7 +222,7 @@ export function startMatch(
 
   const mineTeam = getTeam(save.teamId ?? 'raimon')
   const home = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
-    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
+    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, lineup.slots[i]))))
   // Tus FILOSOFÍAS viajan contigo al campo. El rival no lleva: son la señal de
   // identidad de TU partida.
   // Al campo va LA ARMADA (elegida en el vestuario): la que puedes ENCENDER
@@ -264,7 +264,7 @@ export function startPachanga(save: InazumaSave, node: TournamentNode): Pachanga
   const rivals = buildRivalTeam(node.teamId ?? 'occult', node.level ?? 8, rng, rivalRarity(bossIndexForLayer(node.layer)))
   const mineTeam = getTeam(save.teamId ?? 'raimon')
   const mine = sideFromActors(save.customName ?? mineTeam.name, mineTeam.color, mineTeam.element, true,
-    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, i))))
+    lineup.all.map((p, i) => actorFromPlayer(p, slotRole(save.formation, lineup.slots[i]))))
   const theirs = sideFromActors(node.title, '#64748b', 'montana', false, rivals.map(actorFromRival))
 
   return {

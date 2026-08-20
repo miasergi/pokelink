@@ -391,6 +391,28 @@ export interface Lineup {
   mids: PlayerInstance[]
   fwds: PlayerInstance[]
   all: PlayerInstance[]
+  /** HUECO original de cada jugador de `all` (la alineación tiene vacíos). */
+  slots: number[]
+}
+
+/**
+ * Normaliza una alineación al formato POR HUECOS: largo SQUAD_SIZE exacto,
+ * '' en los huecos vacíos, sin repetidos ni fantasmas. Es lo que permite
+ * poner a tu único delantero ARRIBA y dejar la defensa vacía — con el array
+ * contiguo de antes, dos jugadores eran «portero y defensa» sí o sí.
+ */
+export function padLineup(uids: (string | undefined | null)[], roster?: PlayerInstance[]): string[] {
+  const valid = roster ? new Set(roster.map((p) => p.uid)) : null
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const u of uids) {
+    if (out.length >= SQUAD_SIZE) break
+    const ok = !!u && (!valid || valid.has(u)) && !seen.has(u)
+    if (ok) seen.add(u as string)
+    out.push(ok ? (u as string) : '')
+  }
+  while (out.length < SQUAD_SIZE) out.push('')
+  return out
 }
 
 /**
@@ -414,17 +436,29 @@ export function slotRole(formationId: string | undefined, i: number): Position {
  */
 export function buildLineup(roster: PlayerInstance[], uids: string[], formationId?: string): Lineup | null {
   const byUid = new Map(roster.map((p) => [p.uid, p]))
-  const all = uids.map((u) => byUid.get(u)).filter((p): p is PlayerInstance => !!p)
+  // El papel lo da EL HUECO, y la alineación puede tener huecos VACÍOS ('').
+  const all: PlayerInstance[] = []
+  const slots: number[] = []
+  uids.slice(0, SQUAD_SIZE).forEach((u, i) => {
+    const p = u ? byUid.get(u) : undefined
+    if (!p) return
+    all.push(p)
+    slots.push(i)
+  })
   // FÚTBOL 5 y plantillas en construcción: si aún no tienes cinco, JUEGAS CON
   // LOS QUE TENGAS (3 contra 5, 1 contra 5…). Solo sin nadie no hay partido.
   if (all.length < 1) return null
   const role = (i: number) => slotRole(formationId, i)
+  // Portería vacía: el primero que haya hace de portero además de lo suyo
+  // (el precio de salir con el equipo a medio hacer).
+  const at0 = all.find((_, k) => slots[k] === 0)
   return {
-    keeper: all[0],
-    defs: all.filter((_, i) => role(i) === 'DEF'),
-    mids: all.filter((_, i) => role(i) === 'MED'),
-    fwds: all.filter((_, i) => role(i) === 'DEL'),
+    keeper: at0 ?? all[0],
+    defs: all.filter((_, k) => role(slots[k]) === 'DEF'),
+    mids: all.filter((_, k) => role(slots[k]) === 'MED'),
+    fwds: all.filter((_, k) => role(slots[k]) === 'DEL'),
     all,
+    slots,
   }
 }
 
@@ -435,22 +469,29 @@ export function buildLineup(roster: PlayerInstance[], uids: string[], formationI
  */
 export function autoLineup(roster: PlayerInstance[], formationId?: string): string[] {
   const f = getFormation(formationId)
+  const out: string[] = Array.from({ length: SQUAD_SIZE }, () => '')
+  const used = new Set<string>()
   const byPos = (pos: Position) =>
-    roster.filter((p) => getPlayerBase(p.baseId).position === pos)
+    roster.filter((p) => getPlayerBase(p.baseId).position === pos && !used.has(p.uid))
       .sort((a, b) => overall(b) - overall(a))
-  const picked = [
-    ...byPos('POR').slice(0, 1),
-    ...byPos('DEF').slice(0, f.defs),
-    ...byPos('MED').slice(0, f.mids),
-    ...byPos('DEL').slice(0, f.fwds),
-  ]
-  if (picked.length < SQUAD_SIZE) {
-    const rest = roster
-      .filter((p) => !picked.includes(p))
-      .sort((a, b) => overall(b) - overall(a))
-    picked.push(...rest.slice(0, SQUAD_SIZE - picked.length))
+  const put = (slot: number, p?: PlayerInstance) => {
+    if (!p) return
+    out[slot] = p.uid
+    used.add(p.uid)
   }
-  return picked.slice(0, SQUAD_SIZE).map((p) => p.uid)
+  // CADA UNO A SU HUECO: portero al 0, defensas a los de defensa… Si falta
+  // gente en una línea, su hueco queda VACÍO — con 2 jugadores tu medio va
+  // al centro, no «a defensa porque el array seguía».
+  put(0, byPos('POR')[0])
+  for (let i = 0; i < f.defs; i++) put(1 + i, byPos('DEF')[0])
+  for (let i = 0; i < f.mids; i++) put(1 + f.defs + i, byPos('MED')[0])
+  for (let i = 0; i < f.fwds; i++) put(1 + f.defs + f.mids + i, byPos('DEL')[0])
+  // Los sobrantes (línea llena) rellenan los huecos que queden, mejores antes.
+  const rest = roster.filter((p) => !used.has(p.uid)).sort((a, b) => overall(b) - overall(a))
+  for (let sIdx = 0; sIdx < SQUAD_SIZE && rest.length; sIdx++) {
+    if (!out[sIdx]) put(sIdx, rest.shift())
+  }
+  return out
 }
 
 /** Cuántos jugadores hay en el once por demarcación. */
@@ -458,7 +499,7 @@ export function lineupShape(roster: PlayerInstance[], uids: string[]): Record<Po
   const byUid = new Map(roster.map((p) => [p.uid, p]))
   const out: Record<Position, number> = { POR: 0, DEF: 0, MED: 0, DEL: 0 }
   for (const u of uids) {
-    const p = byUid.get(u)
+    const p = u ? byUid.get(u) : undefined
     if (p) out[getPlayerBase(p.baseId).position] += 1
   }
   return out
@@ -469,21 +510,22 @@ export function lineupShape(roster: PlayerInstance[], uids: string[]): Record<Po
  * la formación elegida. Sin lo último la formación sería decorativa.
  */
 export function lineupError(roster: PlayerInstance[], uids: string[], _formationId?: string): string | null {
-  // Desde que el once va POR HUECOS ya no se exige que cada demarcación cuadre:
-  // puedes alinear a quien quieras donde quieras (con sus consecuencias). Lo
-  // único invalidante es no ser once, repetir a alguien o alinear fantasmas.
-  if (uids.length > SQUAD_SIZE) return `Te sobran ${uids.length - SQUAD_SIZE} en el cinco`
+  // El cinco va POR HUECOS y puede llevar VACÍOS (''): lo que cuenta son los
+  // jugadores presentes. Invalidante: sobrar, faltar pudiendo, repetir o
+  // alinear fantasmas.
+  const filled = uids.filter(Boolean)
+  if (filled.length > SQUAD_SIZE) return `Te sobran ${filled.length - SQUAD_SIZE} en el cinco`
   // El CINCO completo solo se exige si la plantilla da para ello: mientras
   // reclutas, sales con los que tengas.
   const required = Math.min(SQUAD_SIZE, roster.length)
-  if (uids.length < required) {
-    const n = required - uids.length
+  if (filled.length < required) {
+    const n = required - filled.length
     return n === 1 ? 'Te falta 1 jugador en el cinco' : `Te faltan ${n} jugadores en el cinco`
   }
-  if (uids.length < 1) return 'No tienes a nadie que alinear'
-  if (new Set(uids).size !== uids.length) return 'Hay un jugador repetido en el once'
+  if (filled.length < 1) return 'No tienes a nadie que alinear'
+  if (new Set(filled).size !== filled.length) return 'Hay un jugador repetido en el cinco'
   const byUid = new Set(roster.map((p) => p.uid))
-  if (!uids.every((u) => byUid.has(u))) return 'Hay alguien en el once que ya no está en la plantilla'
+  if (!filled.every((u) => byUid.has(u))) return 'Hay alguien en el cinco que ya no está en la plantilla'
   return null
 }
 

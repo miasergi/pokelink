@@ -29,14 +29,14 @@ import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazu
 import { getTactic, TACTICS } from '@/data/inazuma/tactics'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  MAX_RARITY, RARITY_LABEL, rarityOf, rivalRarityMap, transferValue, upgradeTechnique,
+  MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalRarityMap, slotRole, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
   type DecisionOption, type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent,
-  type MatchPhase, type MatchState, type TournamentNode,
+  type MatchPhase, type MatchState, type PlayerInstance, type TournamentNode,
 } from '@/engine/inazuma/types'
 
 /** Barra animada del efecto de un objeto (de `from` a `to`). */
@@ -429,6 +429,24 @@ function learnedBetween(before: InazumaSave['roster'], after: InazumaSave['roste
   return out
 }
 
+/** Mete al recién fichado en un hueco LIBRE del cinco (su demarcación si se
+ * puede): mientras construyes el equipo, fichar es alinear. */
+function slotIn(save: InazumaSave, p: PlayerInstance): void {
+  const lineup = padLineup(save.lineup, save.roster)
+  if (lineup.includes(p.uid)) return
+  const pos = getPlayerBase(p.baseId).position
+  let free = -1
+  for (let sIdx = 0; sIdx < lineup.length; sIdx++) {
+    if (lineup[sIdx]) continue
+    if (slotRole(save.formation, sIdx) === pos) { free = sIdx; break }
+    if (free < 0) free = sIdx
+  }
+  if (free >= 0) {
+    lineup[free] = p.uid
+    save.lineup = lineup
+  }
+}
+
 export const useInazuma = create<InazumaState>((set, get) => ({
   phase: 'title',
   save: null,
@@ -468,6 +486,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     rng = null
     matchRng = null
     if (save) getRng(save)
+    // ALINEACIÓN POR HUECOS: los saves anteriores traían un array contiguo —
+    // se normaliza a largo fijo con vacíos ('').
+    if (save) save.lineup = padLineup(save.lineup, save.roster)
     // Entrada directa desde el menú principal (Álbum, etc.): se consume aquí.
     const entry = pendingEntry
     pendingEntry = null
@@ -982,6 +1003,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         if (next.roster.length < ROSTER_MAX) {
           const nuevo = createPlayer(pick.id, level, { rarity })
           next.roster = [...next.roster, nuevo]
+          slotIn(next, nuevo)
           void persistInazumaMeta({ signed: [pick.id] })
           reveal = { uid: nuevo.uid, title: `¡${getPlayerBase(pick.id).name} se une tras la derrota de su equipo!` }
         } else {
@@ -1147,7 +1169,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
       // TODO fichaje llega en rareza NORMAL: la rareza la construyes tú con
       // medallas (a cambio, el ojeador puede traer a cualquiera del catálogo).
-      next.roster.push(createPlayer(opt.playerId, opt.level, { rarity: 1 }))
+      const fichado = createPlayer(opt.playerId, opt.level, { rarity: 1 })
+      next.roster.push(fichado)
+      slotIn(next, fichado)
       void persistInazumaMeta({ signed: [opt.playerId] })
       message = `${getPlayerBase(opt.playerId).name} firma por el Raimon.`
     } else if (opt.kind === 'objeto') {
@@ -1610,9 +1634,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   placeAt: (uid, slot) => {
     const { save } = get()
     if (!save) return
-    const lineup = save.lineup.filter((u) => u !== uid)
-    lineup.splice(Math.max(0, Math.min(slot, lineup.length)), 0, uid)
-    const next = { ...save, lineup: lineup.slice(0, SQUAD_SIZE) }
+    if (slot < 0 || slot >= SQUAD_SIZE) return
+    // COLOCAR de verdad: el jugador va AL HUECO elegido. Si estaba ocupado,
+    // el ocupante hereda el hueco de origen (o baja al banquillo si venías
+    // de él). Antes se insertaba «donde cupiera» y elegir demarcación era
+    // imposible con el cinco a medio hacer.
+    const lineup = padLineup(save.lineup, save.roster)
+    const from = lineup.indexOf(uid)
+    const prev = lineup[slot]
+    if (prev === uid) return
+    lineup[slot] = uid
+    if (from >= 0) lineup[from] = prev && prev !== uid ? prev : ''
+    const next = { ...save, lineup }
     set({ save: next })
     void persist(next, get().phase)
   },
@@ -1620,14 +1653,29 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   toggleStarter: (uid) => {
     const { save } = get()
     if (!save) return
-    const inXi = save.lineup.includes(uid)
+    const lineup = padLineup(save.lineup, save.roster)
+    const at = lineup.indexOf(uid)
     const player = save.roster.find((p) => p.uid === uid)
     if (!player) return
-    if (!inXi && save.lineup.length >= SQUAD_SIZE) {
-      set({ message: 'El once ya está completo. Saca a alguien primero.' })
-      return
+    if (at >= 0) {
+      // Sale: su hueco queda VACÍO (no se corre nadie de sitio).
+      lineup[at] = ''
+    } else {
+      // Entra: a un hueco libre de SU demarcación si lo hay; si no, al
+      // primero libre; y si el cinco está lleno, a cambiar por alguien.
+      const pos = getPlayerBase(player.baseId).position
+      let free = -1
+      for (let sIdx = 0; sIdx < lineup.length; sIdx++) {
+        if (lineup[sIdx]) continue
+        if (slotRole(save.formation, sIdx) === pos) { free = sIdx; break }
+        if (free < 0) free = sIdx
+      }
+      if (free < 0) {
+        set({ message: 'El cinco ya está completo. Saca a alguien primero.' })
+        return
+      }
+      lineup[free] = uid
     }
-    const lineup = inXi ? save.lineup.filter((u) => u !== uid) : [...save.lineup, uid]
     const next = { ...save, lineup }
     set({ save: next })
     void persist(next, get().phase)
@@ -1827,7 +1875,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       return
     }
     const roster = save.roster.filter((x) => x.uid !== uid)
-    const lineup = save.lineup.filter((u) => u !== uid)
+    const lineup = save.lineup.map((u) => (u === uid ? '' : u))
     // Lo que llevara EQUIPADO vuelve a la mochila: con el Brazalete de
     // Capitán (único en el torneo) perderlo sería irreversible.
     const keptItems = p.item ? [p.item] : []
