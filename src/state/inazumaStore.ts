@@ -23,7 +23,7 @@ import {
   type NewRunOptions,
   LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
-import { advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
+import { actorByUid, advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import { getTactic, TACTICS } from '@/data/inazuma/tactics'
@@ -1000,6 +1000,34 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // FILOSOFÍA DE EQUIPO: ganar un instituto TE LA DA directamente (el menú
     // de elección rompía el ritmo tras cada partido — se pidió quitarlo). En
     // el VESTUARIO se configura cuáles salen al campo.
+    // MOMENTOS CHESTER: los hitos que el comentarista premia en metálico.
+    // Narrativa emergente barata: el partido te deja titulares, no solo goles.
+    let momentoMsg = ''
+    {
+      const momentos: string[] = []
+      const mySideKey = playerSide(match)
+      const theirSide = match.home.isPlayer ? match.away : match.home
+      const misGoles = match.events.filter((e) => e.kind === 'goal' && e.side === mySideKey)
+      const porJugador = new Map<string, number>()
+      for (const g of misGoles) {
+        if (g.kind !== 'goal') continue
+        porJugador.set(g.scorerUid, (porJugador.get(g.scorerUid) ?? 0) + 1)
+      }
+      const hat = [...porJugador.entries()].find(([, n]) => n >= 3)
+      if (hat) momentos.push(`¡HAT-TRICK de ${actorByUid(match, hat[0])?.name ?? 'tu delantero'}!`)
+      if (result === 'win' && theirSide.goals === 0) momentos.push('¡Portería a cero!')
+      const ht = match.events.find((e) => e.kind === 'halftime')
+      if (result === 'win' && ht?.kind === 'halftime') {
+        const mineAtHT = match.home.isPlayer ? ht.score[0] : ht.score[1]
+        const theirsAtHT = match.home.isPlayer ? ht.score[1] : ht.score[0]
+        if (mineAtHT < theirsAtHT) momentos.push('¡REMONTADA épica!')
+      }
+      if (momentos.length) {
+        next.coins += 250 * momentos.length
+        momentoMsg = ` · Momentos Chester: ${momentos.join(' ')} +${250 * momentos.length} ₽`
+      }
+    }
+
     let tacticMsg = ''
     if (result === 'win' && (matchNode.kind === 'jefe' || matchNode.kind === 'final')) {
       const owned = new Set(next.tactics ?? [])
@@ -1021,7 +1049,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       revealPlayer: reveal,
       pendingSigning,
       message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
-        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg,
+        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg + momentoMsg,
     })
     void persist(next, 'map')
   },

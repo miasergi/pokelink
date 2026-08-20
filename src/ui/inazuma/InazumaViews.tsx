@@ -975,6 +975,18 @@ function PlayerDetail({
         </button>
         <PlayerCard player={player} />
 
+        {/* EL VÍNCULO del inicial: el cariño, con número. Crece +1 % a todo
+            por partido jugado (tope 15). Solo lo tiene tu primer fichaje. */}
+        {player.bond != null && (
+          <div className="mt-2 flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5">
+            <Icon name="flame" className="w-4 h-4 text-amber-300 shrink-0" />
+            <span className="text-[11px] text-amber-200 font-bold">
+              Vínculo del inicial: +{player.bond}% a todo
+            </span>
+            <span className="ml-auto text-[9px] text-amber-300/70">{player.bond >= 15 ? 'MÁXIMO' : '+1% por partido'}</span>
+          </div>
+        )}
+
         {/* SUPERTÉCNICAS: una sola lista con su CADENA entera. Las que ya
             tiene, con su potencia y coste reales; y a continuación las que le
             quedan, con lo que le falta para despertarlas (nivel y rareza).

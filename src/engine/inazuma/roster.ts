@@ -214,6 +214,11 @@ export function effectiveStats(p: PlayerInstance): Stats {
   if (p.boosts) {
     for (const k of Object.keys(s) as (keyof Stats)[]) s[k] += p.boosts[k] ?? 0
   }
+  // El VÍNCULO del inicial: % plano a todo, antes del objeto.
+  if (p.bond) {
+    const mult = 1 + p.bond / 100
+    for (const k of Object.keys(s) as (keyof Stats)[]) s[k] = Math.round(s[k] * mult)
+  }
   const item = p.item ? getItem(p.item) : undefined
   if (item) {
     // `amount` es un PORCENTAJE (ver `InazumaItem`), para que un objeto valga

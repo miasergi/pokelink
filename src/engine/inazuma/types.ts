@@ -134,6 +134,12 @@ export interface PlayerInstance {
   techLevels?: Record<string, number>
   /** Capitán: no se puede traspasar ni sacar del once. */
   captain?: boolean
+  /**
+   * VÍNCULO del INICIAL: % extra a todos los atributos, que crece +1 por
+   * partido jugado (tope 15). Solo lo tiene el jugador con el que fundaste
+   * el club — el cariño, con mecánica (como el lazo del inicial en Pokémon).
+   */
+  bond?: number
 }
 
 export const TECHNIQUE_SLOTS = 4

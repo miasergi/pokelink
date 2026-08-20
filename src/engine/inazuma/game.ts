@@ -77,7 +77,8 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   const roster = squadIds.map((id) => createPlayer(id, START_LEVEL))
   // EL BRAZALETE DE CAPITÁN: único en todo el torneo, y es de TU INICIAL —
   // es tu capitán desde el día uno (+25 % a todo; se puede reequipar).
-  roster[0] = { ...roster[0], item: 'brazalete-capitan' }
+  // Y el VÍNCULO: solo él lo tiene, y crece partido a partido.
+  roster[0] = { ...roster[0], item: 'brazalete-capitan', bond: 0 }
   const map = generateMap(
     rng, teamId, DIFFICULTY_LEVEL_BONUS[difficulty], opts.saga,
     opts.random?.cuadro ? (opts.pools?.length ? opts.pools : undefined) ?? [] : undefined,
@@ -364,6 +365,8 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
     // Y NUNCA descolgado: el suplente rezagado entrena hasta quedar a tiro de
     // la media del once — el banquillo siempre es alineable.
     if (!a) next = catchUp(next, xiAvg)
+    // El VÍNCULO del inicial crece cada partido que pisa el campo.
+    if (a && p.bond != null) next = { ...next, bond: Math.min(15, p.bond + 1) }
     // Descanso entre eliminatorias: algo, pero nunca del todo.
     next = {
       ...next,
