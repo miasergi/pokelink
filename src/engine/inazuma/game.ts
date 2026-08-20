@@ -390,7 +390,11 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
     scorers: match.scorers,
   }
 
-  save.coins += result === 'win' ? prizeMoney(bossIndexForLayer(save.layer)) : 200
+  // LA TAQUILLA: sin pachangas, el dinero de la run sale de los PARTIDOS
+  // (más eventos, Momentos Chester y ventas). Ganar paga el premio entero;
+  // empatar, media entrada; perder, la taquilla mínima.
+  const prize = prizeMoney(bossIndexForLayer(save.layer))
+  save.coins += result === 'win' ? prize : result === 'draw' ? Math.round(prize * 0.5) : 250
   // Tras CADA partido, 3 medallas de talento (planas, a petición): el resto
   // del material de rareza llega con el FICHAJE del equipo vencido, las
   // pachangas y las ventas.

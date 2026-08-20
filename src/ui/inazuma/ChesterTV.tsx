@@ -62,11 +62,11 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
     <div className="shrink-0 px-2 pt-1.5">
       <div
         key={mood === 'euforia' ? `gol-${feed.length}` : 'tv'}
-        className={`relative flex h-[84px] rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
+        className={`relative flex h-[106px] rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
         style={{ borderColor: accent, boxShadow: `0 0 18px ${accent}44` }}
       >
         {/* LA PANTALLA: Chester (o la técnica, cuando salta una). */}
-        <div className="relative w-[136px] shrink-0 overflow-hidden bg-slate-900">
+        <div className="relative w-[168px] shrink-0 overflow-hidden bg-slate-900">
           {techInfo ? (
             <div key={tech!.key} className="absolute inset-0 animate-pop-in">
               <ImgFallback

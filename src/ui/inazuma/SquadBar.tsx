@@ -33,7 +33,7 @@ function Chip({ p, label, dragging, onDown, onUp }: {
       data-uid={p.uid}
       onPointerDown={onDown}
       onPointerUp={onUp}
-      className={`shrink-0 w-12 flex flex-col items-center touch-none cursor-grab select-none transition ${
+      className={`flex-1 min-w-0 max-w-[52px] flex flex-col items-center touch-none cursor-grab select-none transition ${
         dragging ? 'opacity-40 scale-95' : ''
       }`}
     >
@@ -70,7 +70,7 @@ function Chip({ p, label, dragging, onDown, onUp }: {
 function Hole({ slot, label, faded }: { slot?: number; label: string; faded?: boolean }) {
   const attrs = slot != null ? { 'data-slot': slot } : {}
   return (
-    <div {...attrs} className={`shrink-0 w-12 flex flex-col items-center ${faded ? 'opacity-50' : ''}`}>
+    <div {...attrs} className={`flex-1 min-w-0 max-w-[52px] flex flex-col items-center ${faded ? 'opacity-50' : ''}`}>
       <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 grid place-items-center">
         <Icon name="plus" className="w-4 h-4 text-slate-600" />
       </span>
@@ -89,7 +89,9 @@ export default function SquadBar() {
 
   const byUid = new Map(save.roster.map((p) => [p.uid, p]))
   const bench = save.roster.filter((p) => !save.lineup.includes(p.uid))
-  const holes = Math.max(0, ROSTER_MAX - save.roster.length)
+  // El banquillo son SIEMPRE 3 plazas: suplentes y, si faltan, huecos por
+  // reclutar. 5 + 3 = una sola vista, sin scroll.
+  const BENCH_SLOTS = ROSTER_MAX - save.lineup.length
 
   const down = (uid: string) => (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -111,7 +113,7 @@ export default function SquadBar() {
 
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/85 px-2 pt-2 pb-1.5">
-      <div className="flex items-start gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="flex items-start gap-1 w-full">
         {/* EL CINCO, hueco a hueco: columnas idénticas, papel debajo.
             Vacío = soltable (el «+» del papel que quieras darle). */}
         {save.lineup.map((u, slot) => {
@@ -122,14 +124,12 @@ export default function SquadBar() {
         })}
         {/* Separador cinco/banquillo. */}
         <div className="shrink-0 self-stretch w-px bg-slate-700/80 mx-0.5" />
-        {/* EL BANQUILLO */}
-        {bench.map((p) => (
-          <Chip key={p.uid} p={p} label="SUP" dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
-        ))}
-        {/* Huecos por RECLUTAR hasta los 8. */}
-        {Array.from({ length: holes }).map((_, i) => (
-          <Hole key={`h${i}`} label="FICHA" faded />
-        ))}
+        {/* EL BANQUILLO: 3 plazas exactas — suplente o hueco por reclutar. */}
+        {Array.from({ length: BENCH_SLOTS }).map((_, i) => {
+          const p = bench[i]
+          if (!p) return <Hole key={`h${i}`} label="FICHA" faded />
+          return <Chip key={p.uid} p={p} label="SUP" dragging={dragUid === p.uid} onDown={down(p.uid)} onUp={up} />
+        })}
       </div>
       <div className="mt-1 flex justify-between text-[8px] uppercase tracking-widest text-slate-600 px-0.5">
         <span>El cinco</span>

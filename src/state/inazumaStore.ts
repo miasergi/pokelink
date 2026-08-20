@@ -489,8 +489,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     matchRng = null
     if (save) getRng(save)
     // ALINEACIÓN POR HUECOS: los saves anteriores traían un array contiguo —
-    // se normaliza a largo fijo con vacíos ('').
-    if (save) save.lineup = padLineup(save.lineup, save.roster)
+    // se normaliza a largo fijo con vacíos ('') y, si el cinco quedó con
+    // huecos teniendo banquillo (saves del formato viejo), se rellena solo.
+    if (save) {
+      save.lineup = padLineup(save.lineup, save.roster)
+      const enCinco = new Set(save.lineup.filter(Boolean))
+      const banquillo = save.roster.filter((p) => !enCinco.has(p.uid))
+      for (let sIdx = 0; sIdx < save.lineup.length && banquillo.length; sIdx++) {
+        if (save.lineup[sIdx]) continue
+        const pos = slotRole(save.formation, sIdx)
+        const bi = banquillo.findIndex((p) => getPlayerBase(p.baseId).position === pos)
+        const p = banquillo.splice(bi >= 0 ? bi : 0, 1)[0]
+        save.lineup[sIdx] = p.uid
+      }
+    }
     // Entrada directa desde el menú principal (Álbum, etc.): se consume aquí.
     const entry = pendingEntry
     pendingEntry = null

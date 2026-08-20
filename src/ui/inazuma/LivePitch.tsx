@@ -239,11 +239,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const uid = name === last.technique ? last.attackerUid : last.defenderUid
         const t = name ? techniqueByName(name) : undefined
         if (t) {
-          techTag.current = { key: feed.length, until: nowMs + 2000, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid }
+          techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid }
         }
       } else if (last?.kind === 'save' && last.technique) {
         const t = techniqueByName(last.technique)
-        if (t) techTag.current = { key: feed.length, until: nowMs + 2000, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid }
+        if (t) techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid }
       }
       // El que PIERDE un duelo de campo queda ATURDIDO, con técnica o sin ella.
       if (last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
@@ -857,9 +857,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
             className="absolute z-[38] pointer-events-none"
             style={{ left: `${ballPx.x}%`, top: `${ballPx.y}%` }}
           >
+            {/* Un ANILLO fino en el balón (nada de manchas difuminadas que
+                «ensuciaban» el césped) y la placa compacta debajo. */}
             <span
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full blur-[5px] animate-flame-flicker"
-              style={{ background: `radial-gradient(circle, ${techTag.current.color}e0, ${techTag.current.color}55 55%, transparent 75%)` }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2"
+              style={{ borderColor: techTag.current.color, boxShadow: `0 0 8px ${techTag.current.color}aa` }}
             />
             <div
               className="absolute left-1/2 -translate-x-1/2 top-3 whitespace-nowrap rounded-full border bg-slate-950/90 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide animate-tech-pop"
