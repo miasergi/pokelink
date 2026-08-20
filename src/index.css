@@ -290,6 +290,32 @@ body {
 }
 .fx-wall { animation: fx-wall .7s cubic-bezier(.2,1.1,.4,1) both; transform-origin: bottom; }
 
+/* LA TELE DE CHESTER: temblor en los goles, zoom del comentarista y
+   parpadeo en las paradas dramáticas. */
+@keyframes tv-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-2px, 1px); }
+  30% { transform: translate(2px, -1px); }
+  45% { transform: translate(-2px, -1px); }
+  60% { transform: translate(2px, 1px); }
+  75% { transform: translate(-1px, 0); }
+}
+.tv-shake { animation: tv-shake .5s linear 2; }
+@keyframes tv-zoom {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1.06); }
+}
+.tv-zoom { animation: tv-zoom 1s ease-out both; }
+@keyframes tv-blink {
+  0%, 100% { filter: none; }
+  30% { filter: brightness(1.9) contrast(1.2); }
+  60% { filter: brightness(.8); }
+}
+.tv-blink { animation: tv-blink .7s ease-out; }
+@keyframes fade-in-soft { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+.animate-fade-in { animation: fade-in-soft .3s ease-out both; }
+
 /* La foto del protagonista respira: zoom lento mientras está en pantalla. */
 @keyframes showcase-zoom {
   from { transform: scale(1.12); }

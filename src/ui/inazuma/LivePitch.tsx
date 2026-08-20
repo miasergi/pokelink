@@ -15,7 +15,6 @@ import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
-import TechniqueFX from '@/ui/inazuma/TechniqueFX'
 import { techniqueByName } from '@/ui/inazuma/DuelStage'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
@@ -193,10 +192,6 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
   const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
-  // FX DE TÉCNICA EN EL CÉSPED: la animación de la supertécnica aparece
-  // ANCLADA al jugador que la lanza, sin pantallas grandes que tapen el
-  // partido. Duelo con técnica → burbuja del atacante (y la respuesta del
-  // defensor, más pequeña); parada con técnica → burbuja del portero.
   // ATURDIMIENTO tras perder un duelo: de uid a su ventana de recuperación.
   const stunRef = useRef(new Map<string, { from: number; until: number }>())
   if (stunRef.current.size > 24) {
@@ -206,66 +201,52 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     const w = stunRef.current.get(uid)
     return !!w && nowMs >= w.from && nowMs < w.until
   }
-  const techFxRef = useRef<{
+  // LA TÉCNICA EN EL CÉSPED, versión roguelike: nada de animaciones grandes —
+  // el BALÓN se tiñe del color del elemento y una placa canta nombre y
+  // potencia. La imagen de la técnica la enseña la tele de Chester arriba.
+  // (Las animaciones procedurales de TechniqueFX siguen en el repo, ancladas
+  // al escenario de penaltis, por si algún día vuelve el modo cinemático.)
+  const techTag = useRef<{
     key: number
-    /** La técnica NO brota hasta que el balón LLEGA a su protagonista: el
-        tramo de aproximación es lo que hace legible «qué está pasando». */
-    startAt: number
     until: number
-    entries: { uid: string; name: string; techName: string; chance?: number; big: boolean; win: boolean; verdict: boolean }[]
+    name: string
+    power: number
+    color: string
+    uid: string
   } | null>(null)
-  const techFxSeen = useRef(0)
+  const techSeen = useRef(0)
   {
     const last = feed[feed.length - 1]
-    if (feed.length !== techFxSeen.current) {
-      techFxSeen.current = feed.length
-      const nm = (uid: string) => (actorByUid(match, uid)?.name ?? '').split(' ')[0]
+    if (feed.length !== techSeen.current) {
+      techSeen.current = feed.length
       // Tras un cruce SUPERADO (tiro lejano que pasa rozando), el duelo con
-      // el portero es la CONTINUACIÓN del mismo disparo: nada de volver a
-      // materializar la técnica del tirador.
+      // el portero es la CONTINUACIÓN del mismo disparo: sin placa repetida.
       const prev = feed[feed.length - 2]
       const grazedPrev = prev?.kind === 'duel' && prev.intercept === true && prev.success
       if (last?.kind === 'duel' && (last.technique || last.counter) && !grazedPrev) {
-        // En el duelo de campo el desenlace se ve (ganador brilla, perdedor se
-        // apaga); en el disparo NO — el veredicto lo da la parada o el gol.
-        const verdict = last.step !== 'definicion' && !last.intercept
-        const entries = []
-        if (last.technique) entries.push({ uid: last.attackerUid, name: nm(last.attackerUid), techName: last.technique, big: true, win: last.success, verdict })
-        // OJO: en el DISPARO el `counter` es la técnica del PORTERO, y esa se
-        // enseña cuando el balón LLEGA (el evento de parada) — pintarla aquí
-        // hacía la parada DOS veces: una antes del chut y otra después. En el
-        // cruce del tiro lejano sí se pinta: el balón va hacia el bloqueador.
-        if (last.counter && (last.step !== 'definicion' || last.intercept === true)) entries.push({ uid: last.defenderUid, name: nm(last.defenderUid), techName: last.counter, big: !last.technique, win: !last.success, verdict: verdict || last.intercept === true })
-        // ARRANQUE LEGIBLE: primero se VE llegar la jugada (el balón viaja
-        // hasta el protagonista) y solo entonces brota la técnica. Sin esta
-        // espera era «tocan atrás y de repente ¡supertécnica!».
-        const protagonist = shownPos.current.get(last.attackerUid)
-        const ballShown = shownPos.current.get('ball')
-        const dist = protagonist && ballShown ? Math.hypot(protagonist.x - ballShown.x, protagonist.y - ballShown.y) : 0
-        const approach = Math.min(1300, Math.max(0, (dist / BALL_PURSUIT_SPEED) * 1000 - 100))
-        techFxRef.current = { key: feed.length, startAt: nowMs + approach, until: nowMs + approach + 3400, entries }
-        // El que PIERDE el duelo queda ATURDIDO: parpadea al llegar el
-        // veredicto y se queda apagado un tiempo de recuperación.
-        if (verdict || last.intercept) {
-          const loser = last.success ? last.defenderUid : last.attackerUid
-          stunRef.current.set(loser, { from: nowMs + approach + 1400, until: nowMs + approach + 5600 })
+        // La placa es de la técnica QUE DECIDE: en el disparo la del tirador
+        // (la parada tendrá la suya al llegar), en el duelo de campo la del
+        // ganador, en el cruce la del bloqueador si corta.
+        const name = last.step === 'definicion' && !last.intercept
+          ? last.technique ?? last.counter
+          : (last.success ? last.technique ?? last.counter : last.counter ?? last.technique)
+        const uid = name === last.technique ? last.attackerUid : last.defenderUid
+        const t = name ? techniqueByName(name) : undefined
+        if (t) {
+          techTag.current = { key: feed.length, until: nowMs + 2000, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid }
         }
-      } else if (last?.kind === 'duel' && !last.technique && !last.counter && last.step !== 'definicion' && !last.intercept) {
-        // Duelo a pelo: también deja tocado al que lo pierde (sin destello).
-        const loser = last.success ? last.defenderUid : last.attackerUid
-        stunRef.current.set(loser, { from: nowMs, until: nowMs + 3200 })
       } else if (last?.kind === 'save' && last.technique) {
-        techFxRef.current = { key: feed.length, startAt: nowMs, until: nowMs + 3400, entries: [{ uid: last.keeperUid, name: nm(last.keeperUid), techName: last.technique, big: true, win: true, verdict: false }] }
+        const t = techniqueByName(last.technique)
+        if (t) techTag.current = { key: feed.length, until: nowMs + 2000, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid }
+      }
+      // El que PIERDE un duelo de campo queda ATURDIDO, con técnica o sin ella.
+      if (last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
+        const loser = last.success ? last.defenderUid : last.attackerUid
+        stunRef.current.set(loser, { from: nowMs + 500, until: nowMs + 4200 })
       }
     }
   }
-  // FOCO DE JUGADA: mientras hay FX de técnica, los protagonistas mandan y el
-  // resto de jugadores se atenúa — el ojo va directo a la jugada.
-  const fxActive = techFxRef.current !== null && nowMs < techFxRef.current.until
-  const focusUids = new Set<string>()
-  if (fxActive) {
-    for (const e of techFxRef.current!.entries) focusUids.add(e.uid)
-  }
+  const tagActive = techTag.current !== null && nowMs < techTag.current.until
 
   // LA CHISPA del duelo de campo: al revelarse un regate/corte, un fogonazo
   // EN EL PUNTO donde está el balón. Sin ella, esos duelos pasaban sin que se
@@ -274,7 +255,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const sparkSeen = useRef(0)
   {
     const last = feed[feed.length - 1]
-    if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept && !last.technique && !last.counter) {
+    if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
       sparkSeen.current = feed.length
       const winnerMine = (last.side === mine) === last.success
       spark.current = { key: feed.length, at: { ...lastBallLogical.current }, mine: winnerMine, until: nowMs + 1000 }
@@ -327,7 +308,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   let rondoFromPos: string | null = null
   // Sin jugada viva en pantalla, el rondo entra YA (al saque inicial no hay
   // nada que asentar y el campo se quedaba muerto del minuto 1 al 6).
-  if (flowing && !fxActive && !flight && (holdSec > 0.2 || shown == null)) {
+  if (flowing && !tagActive && !flight && (holdSec > 0.2 || shown == null)) {
     // ¿De quién es el balón AHORA? Del último evento que lo diga.
     let possession: 'home' | 'away' | null = null
     // Tras parada o gol, el balón LO TIENE EL PORTERO: el rondo empieza en
@@ -757,8 +738,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // Mientras una técnica está en pantalla sin jugada escenificada (la parada
   // del portero, p. ej.), el balón se queda EN LOS PIES del protagonista —
   // el rondo espera a que el momento termine.
-  if (fxActive && !rondoBall && !carrierSpot && techFxRef.current!.entries.length) {
-    const star = actorByUid(match, techFxRef.current!.entries[0].uid)
+  if (tagActive && !rondoBall && !carrierSpot) {
+    const star = actorByUid(match, techTag.current!.uid)
     if (star) ball = spotOf(star, myActors.some((a) => a.uid === star.uid))
   }
 
@@ -844,7 +825,6 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={mineBg} crest={myCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
-                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid}
                     stunned={stunned(a.uid)} />
                 )
               })}
@@ -855,7 +835,6 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
                     spot={pursue(a.uid, toScreen(s), a.uid === carrierUid || a.uid === markerUid ? ACTIVE_SPEED : PLAYER_SPEED)}
                     teamColor={theirBg} crest={theirCrest}
                     carrier={a.uid === carrierUid} marker={a.uid === markerUid} showNames={showNames}
-                    dim={fxActive && !focusUids.has(a.uid) && a.uid !== carrierUid && a.uid !== markerUid}
                     stunned={stunned(a.uid)} />
                 )
               })}
@@ -863,61 +842,27 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           )
         })()}
 
-        {/* FX DE TÉCNICA: la animación de la supertécnica, anclada al jugador
-            que la lanza. El partido sigue viéndose debajo — nada lo tapa. */}
-        {techFxRef.current && nowMs >= techFxRef.current.startAt && nowMs < techFxRef.current.until && techFxRef.current.entries.map((e) => {
-          const t = techniqueByName(e.techName)
-          if (!t) return null
-          const pos = shownPos.current.get(e.uid)
-          if (!pos) return null
-          const info = ELEMENT_INFO[t.element]
-          const size = e.big ? 'w-36 h-36' : 'w-20 h-20'
-          // La técnica BROTA del jugador: la base del efecto en sus pies y el
-          // motivo alzándose sobre él. Pegado a la portería de arriba no cabe
-          // alzarse: ahí el efecto envuelve al jugador (centrado en él).
-          const rises = pos.y > 26
-          return (
+        {/* LA TÉCNICA EN EL BALÓN: halo del color del elemento alrededor de
+            la pelota + placa con nombre y potencia. Lo demás lo cuenta la
+            tele de Chester — el césped queda limpio. */}
+        {techTag.current && tagActive && (
+          <div
+            key={techTag.current.key}
+            className="absolute z-[38] pointer-events-none"
+            style={{ left: `${ballPx.x}%`, top: `${ballPx.y}%` }}
+          >
+            <span
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full blur-[5px] animate-flame-flicker"
+              style={{ background: `radial-gradient(circle, ${techTag.current.color}e0, ${techTag.current.color}55 55%, transparent 75%)` }}
+            />
             <div
-              key={`${techFxRef.current!.key}-${e.uid}`}
-              className="absolute z-[38] pointer-events-none"
-              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+              className="absolute left-1/2 -translate-x-1/2 top-3 whitespace-nowrap rounded-full border bg-slate-950/90 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide animate-tech-pop"
+              style={{ color: techTag.current.color, borderColor: `${techTag.current.color}88` }}
             >
-              {/* DESTELLO del veredicto: el ganador emana un fogonazo. */}
-              {e.verdict && e.win && (
-                <span
-                  className="absolute left-0 top-0 w-24 h-24 rounded-full fx-destello"
-                  style={{ background: `radial-gradient(circle, #ffffffcc, ${info.color}77 40%, transparent 70%)` }}
-                />
-              )}
-              <div
-                className={`${size} animate-tech-pop ${e.verdict ? (e.win ? 'fx-bubble-win' : 'fx-bubble-lose') : ''}`}
-                style={{
-                  transform: rises ? 'translate(-50%, calc(-100% + 18px))' : 'translate(-50%, -52%)',
-                  filter: `drop-shadow(0 0 10px ${info.color}66)`,
-                }}
-              >
-                <TechniqueFX tech={t} bare />
-              </div>
-              {/* QUIÉN la lanza y QUÉ lanza, en una placa bajo el jugador. */}
-              <div
-                className="absolute left-0 top-0 flex flex-col items-center rounded-lg overflow-hidden border bg-slate-950/90"
-                style={{
-                  borderColor: `${info.color}88`,
-                  transform: pos.y > 86 ? 'translate(-50%, calc(-100% - 46px))' : 'translate(-50%, 16px)',
-                }}
-              >
-                <span className="max-w-[130px] truncate px-1.5 pt-0.5 text-[9px] font-extrabold text-white leading-tight whitespace-nowrap">{e.name}</span>
-                <span
-                  className="max-w-[130px] truncate px-1.5 pb-0.5 text-[9px] font-extrabold uppercase tracking-wide leading-tight whitespace-nowrap"
-                  style={{ color: info.color }}
-                >
-                  {e.techName}
-                  {e.chance != null && <span className="ml-1 text-amber-300">{Math.round(e.chance * 100)}%</span>}
-                </span>
-              </div>
+              {techTag.current.name} <span className="text-amber-300">{techTag.current.power}</span>
             </div>
-          )
-        })}
+          </div>
+        )}
 
         {/* LA CHISPA del duelo de campo: fogonazo en el punto del choque. */}
         {spark.current && nowMs < spark.current.until && (

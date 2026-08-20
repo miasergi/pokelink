@@ -24,8 +24,9 @@ import type {
   MatchState, Position, ShootoutState, Side, Technique,
 } from './types'
 
-/** Posesiones por partido. Con la conversión actual salen resultados 0-4. */
-export const PLAYS_PER_MATCH = 16
+/** Posesiones por partido. En FÚTBOL 5 el partido es más corto y directo:
+ * 11 posesiones — cada una pesa más y la tarde no se eterniza. */
+export const PLAYS_PER_MATCH = 12
 /** Puntos de Ruptura por hito. A 100 se puede activar la Supervibración. */
 const BURST_ON_DUEL = 13
 const BURST_ON_GOAL = 26

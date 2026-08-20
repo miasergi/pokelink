@@ -13,6 +13,7 @@ import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import LivePitch from '@/ui/inazuma/LivePitch'
+import ChesterTV from '@/ui/inazuma/ChesterTV'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
@@ -171,7 +172,7 @@ export default function MatchView() {
       } else {
         // Con técnica, el rótulo espera a que las técnicas se materialicen y
         // llegue el VEREDICTO (destello del ganador, apagón del perdedor).
-        setTimeout(() => setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' }), Math.round(1600 * f))
+        setTimeout(() => setFlash({ key: feed.length, text: label, color: winnerMine ? '#34d399' : '#f87171' }), Math.round(800 * f))
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,6 +271,9 @@ export default function MatchView() {
         </div>
       )}
       <HalftimePanel />
+      {/* LA TELE: Chester Horley comenta el partido desde su cabina, con la
+          imagen de cada supertécnica cuando salta una. Sustituye al ticker. */}
+      {!finished && <ChesterTV feed={shownFeed} clock={clock} />}
       <Scoreboard
         match={match}
         feed={feed}
@@ -371,18 +375,6 @@ export default function MatchView() {
         )
       })()}
 
-      {/* TICKER: las dos últimas jugadas contadas, sin robarle sitio al campo.
-          ALTURA FIJA: con altura libre, pasar de 1 a 2 líneas (o a un banner
-          de gol) estiraba y encogía el césped a cada acción. */}
-      {!finished && (
-        <div className="shrink-0 h-[4.4rem] overflow-hidden px-3 pb-1 flex flex-col justify-end gap-1">
-          {shownFeed.slice(-2).map((e, i) => (
-            <EventLine key={`${shownFeed.length}-${i}`} event={e} isMine={eventIsMine(match, e)} />
-          ))}
-          <div ref={bottom} />
-        </div>
-      )}
-
       {/* ¡GOL! La celebración para el partido un instante: sin ella, el gol
           pasaba tan deprisa como un regate cualquiera. */}
       {gol && (
@@ -474,12 +466,6 @@ export default function MatchView() {
       )}
     </div>
   )
-}
-
-/** ¿El evento es a favor del usuario? Decide el color de la línea. */
-function eventIsMine(match: MatchState, e: MatchEvent): boolean {
-  const mine = playerSide(match)
-  return 'side' in e ? e.side === mine : false
 }
 
 function TacticsSheet({ mine, theirs, mineName, theirName, onClose }: {
@@ -728,110 +714,6 @@ function BurstBar({ value, turns, tactic, color, flip }: {
             : active ? '#fbbf24' : color,
         }}
       />
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Narración
-// ---------------------------------------------------------------------------
-
-function EventLine({ event, isMine }: { event: MatchEvent; isMine: boolean }) {
-  switch (event.kind) {
-    case 'kickoff':
-      return <Banner text="¡Comienza el partido!" tone="neutral" />
-    case 'halftime':
-      return <Banner text={`Descanso · ${event.score[0]}-${event.score[1]}`} tone="neutral" />
-    case 'stage':
-      // Prórroga y penaltis se anuncian a lo grande: es el momento en el que
-      // el partido cambia de reglas.
-      return <Banner text={event.text} tone="burst" />
-    case 'penalty':
-      return (
-        <div className={`rounded-xl border px-3 py-2 animate-pop-in ${
-          event.scored
-            ? (isMine ? 'border-emerald-500/60 bg-emerald-500/15' : 'border-rose-500/60 bg-rose-500/15')
-            : 'border-slate-700 bg-slate-800/60'
-        }`}>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-widest text-slate-400">Penalti</span>
-            <span className="ml-auto text-xs font-extrabold tabular-nums text-slate-300">
-              {event.shootout[0]} – {event.shootout[1]}
-            </span>
-          </div>
-          <div className="text-[12px] text-slate-200 leading-snug">{event.text}</div>
-        </div>
-      )
-    case 'fulltime':
-      return <Banner text={`Final · ${event.score[0]}-${event.score[1]}`} tone="neutral" />
-    case 'goal':
-      return (
-        <div className={`rounded-xl border px-3 py-2 animate-pop-in ${
-          isMine ? 'border-emerald-500/60 bg-emerald-500/15' : 'border-rose-500/60 bg-rose-500/15'
-        }`}>
-          <div className="text-[10px] tabular-nums text-slate-400">{event.minute}′</div>
-          <div className="font-extrabold text-sm">
-            <SvgBall className="w-4 h-4 inline-block mr-1 align-[-3px]" />
-            ¡GOL de {event.scorer}!{event.technique ? ` (${event.technique})` : ''}
-          </div>
-          <div className="text-xs text-slate-300 tabular-nums">{event.score[0]} – {event.score[1]}</div>
-        </div>
-      )
-    case 'burst':
-      return <Banner text={event.text} tone="burst" />
-    case 'save':
-      return <Line minute={event.minute} text={event.text} accent={isMine ? '#22c55e' : '#94a3b8'} />
-    case 'turnover':
-      return <Line minute={event.minute} text={event.text} accent="#64748b" />
-    case 'exhausted':
-      return <Line minute={event.minute} text={event.text} accent="#f97316" icon="tired" />
-    case 'possession':
-      return <Line minute={event.minute} text={event.text} accent={isMine ? '#38bdf8' : '#475569'} />
-    case 'duel': {
-      const el = event.element ? ELEMENT_INFO[event.element] : null
-      return (
-        <Line
-          minute={event.minute}
-          text={event.text}
-          accent={event.success ? (isMine ? '#22c55e' : '#f43f5e') : '#64748b'}
-          badge={el && event.effectiveness !== 1
-            ? `${event.effectiveness > 1 ? '×1.35' : '×0.78'}`
-            : undefined}
-        />
-      )
-    }
-    default:
-      return null
-  }
-}
-
-function Line({ minute, text, accent, badge, icon }: {
-  minute: number
-  text: string
-  accent: string
-  badge?: string
-  icon?: string
-}) {
-  return (
-    <div className="flex gap-2 items-start animate-fade-in">
-      <span className="text-[10px] tabular-nums text-slate-600 w-7 shrink-0 pt-0.5">{minute}′</span>
-      <span className="w-0.5 shrink-0 self-stretch rounded-full" style={{ background: accent }} />
-      <span className="text-[12px] text-slate-300 leading-snug flex-1">
-        {icon && <Icon name={icon} className="w-3.5 h-3.5 inline-block mr-1 align-[-3px]" style={{ color: accent }} />}
-        {text}
-        {badge && <span className="ml-1.5 text-[10px] font-bold" style={{ color: accent }}>{badge}</span>}
-      </span>
-    </div>
-  )
-}
-
-function Banner({ text, tone, icon }: { text: string; tone: 'neutral' | 'burst'; icon?: string }) {
-  return (
-    <div className={`flex items-center justify-center gap-1.5 text-center text-[11px] font-extrabold uppercase tracking-widest py-1.5 rounded-lg my-1 ${
-      tone === 'burst' ? 'text-amber-200 bg-amber-500/15 border border-amber-500/40 animate-pop-in' : 'text-slate-500 bg-slate-800/60'
-    }`}>
-      {icon && <Icon name={icon} className="w-4 h-4 shrink-0" />}
-      {text}
     </div>
   )
 }

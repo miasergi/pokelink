@@ -13,8 +13,9 @@ export const STARTERS_BY_SAGA: Record<RegionId, string[]> = {
   // IE2 — la caravana contra el Instituto Alius: Mark, el lobo de Hakuren y
   // el capitán de Génesis.
   alius: ['mark-evans', 'shawn-froste-2', 'xavier-foster'],
-  // IE3 — el once de Inazuma Japón rumbo al Mundial.
-  ffi: ['mark-evans-2', 'axel-blaze-2', 'jude-sharp-2'],
-  // IEVR — la nueva generación del Raimon Soberano.
-  vr: ['harper-evans', 'eleanor-estrella', 'viorain-maleby'],
+  // IE3 — el Mundial: Mark, el capitán de Orpheus y el portero de Little
+  // Gigant (elegidos a dedo por el míster).
+  ffi: ['mark-evans-2', 'paolo-bianchi', 'hector-helio'],
+  // IEVR — la nueva generación (elegidos a dedo por el míster).
+  vr: ['harper-evans', 'destin-billows', 'cedric-freud'],
 }

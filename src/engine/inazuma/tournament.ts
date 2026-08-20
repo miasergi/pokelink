@@ -40,7 +40,7 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // Recalibrada para el arranque DESDE UN INICIAL: sin pachangas que farmear,
 // el nivel viene de las ruedas de entrenamiento y de los partidos — la curva
 // vieja ([8..55]) dejaba al mejor bot 5 niveles por detrás en cada ronda.
-export const RIVAL_LEVELS = [5, 9, 13, 17, 21, 25, 29, 33]
+export const RIVAL_LEVELS = [5, 8, 12, 16, 20, 24, 28, 32]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */
