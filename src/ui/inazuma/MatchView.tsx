@@ -93,7 +93,12 @@ export default function MatchView() {
     if (last.kind === 'goal') {
       const isMine = last.side === mine
       setShotFlight(null)
-      setGol({ scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
+      // Con intento FALLIDO del portero, la celebración espera un latido: da
+      // tiempo a ver su técnica en el césped y en la tele antes del ¡GOL!
+      const wait = last.keeperTech ? Math.round(1100 * f) : 0
+      const golData = { scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) }
+      if (wait > 0) setTimeout(() => setGol(golData), wait)
+      else setGol(golData)
     } else if (last.kind === 'penalty') {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
       setStage({

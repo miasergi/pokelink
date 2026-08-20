@@ -8,7 +8,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { getItem } from '@/data/inazuma/items'
 import { getPlayerBase } from '@/data/inazuma/players'
-import { Meter, PlayerRow, staminaColor } from '@/ui/inazuma/PlayerCard'
+import { PlayerCard, PlayerRow } from '@/ui/inazuma/PlayerCard'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import { ItemIcon } from '@/ui/inazuma/Glyphs'
 import { FORMATIONS } from '@/data/inazuma/formations'
@@ -106,12 +106,18 @@ export default function HalftimePanel() {
         {/* Acciones sobre el elegido */}
         {target && (
           <div className="mt-3 rounded-2xl border border-amber-500/40 bg-slate-800/60 p-3">
-            <div className="text-[12px] font-extrabold mb-1">{target.name}</div>
-            {/* Sus depósitos, para decidir QUÉ darle (o si mejor cambiarlo). */}
-            <div className="mb-2 flex flex-col gap-0.5">
-              <Meter value={target.pt} max={target.ptMax} color="#38bdf8" label="PT" />
-              <Meter value={target.stamina} max={100} color={staminaColor(target.stamina)} label="AGU" />
-            </div>
+            {/* Su FICHA COMPLETA (stats, técnicas, objeto), con el PT y el
+                aguante DEL PARTIDO: para decidir con datos qué darle o si
+                cambiarlo — antes solo salían el nombre y dos barras. */}
+            {(() => {
+              const inst = save.roster.find((p) => p.uid === target.uid)
+              if (!inst) return <div className="text-[12px] font-extrabold mb-1">{target.name}</div>
+              return (
+                <div className="mb-2">
+                  <PlayerCard player={{ ...inst, pt: target.pt, stamina: target.stamina }} />
+                </div>
+              )
+            })()}
             {!action && (
               <div className="flex gap-2">
                 <Button variant="secondary" full onClick={() => setAction('item')} disabled={!items.length}>

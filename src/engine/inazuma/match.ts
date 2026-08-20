@@ -533,7 +533,7 @@ function executeDuel(
     addBurst(atkSide, BURST_ON_DUEL)
     chain.momentum += 0.08 + (atkFx.momentumStep ?? 0)
     if (step === 'definicion') {
-      scoreGoal(m, out, attacker, atkTech)
+      scoreGoal(m, out, attacker, atkTech, defender, defTech)
       return
     }
     const nextStep: ChainStep = step === 'construccion' ? 'penetracion' : 'definicion'
@@ -680,7 +680,7 @@ function executeDuel(
   m.chain = null
 }
 
-function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Technique | undefined): void {
+function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Technique | undefined, keeper?: Actor, keeperTech?: Technique): void {
   const chain = m.chain!
   const atkSide = sideOf(m, chain.side)
   const defSide = sideOf(m, otherSide(chain.side))
@@ -688,7 +688,12 @@ function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Techni
   addBurst(atkSide, BURST_ON_GOAL)
   addBurst(defSide, BURST_ON_CONCEDE)
   if (chain.side === playerSide(m)) m.scorers.push(scorer.name)
-  out.push({ kind: 'goal', minute: m.minute, side: chain.side, scorer: scorer.name, scorerUid: scorer.uid, technique: tech?.name, score: score(m) })
+  out.push({
+    kind: 'goal', minute: m.minute, side: chain.side, scorer: scorer.name, scorerUid: scorer.uid, technique: tech?.name, score: score(m),
+    // El intento FALLIDO del portero viaja con el gol: gastó sus PT y la
+    // retransmisión debe contarlo (si no, «desaparecían» sin explicación).
+    keeper: keeper?.name, keeperUid: keeper?.uid, keeperTech: keeperTech?.name,
+  })
   m.chain = null
 }
 

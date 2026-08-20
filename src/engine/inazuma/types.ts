@@ -212,7 +212,12 @@ export type MatchEvent =
     passFromUid?: string; passToUid?: string
   }
   | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; /** Probabilidad REAL que tenía el atacante (transparencia de la mecánica). */ chance?: number; /** El disparo salió de LEJOS: el césped lo pinta desde su sitio. */ longShot?: boolean; /** Es el CRUCE de un defensa en la trayectoria, no el disparo final. */ intercept?: boolean; text: string }
-  | { kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number] }
+  | {
+    kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number]
+    /** La técnica que el portero INTENTÓ y no bastó: se gasta PT igual, así
+        que la retransmisión tiene que contarla (tele + placa en el césped). */
+    keeper?: string; keeperUid?: string; keeperTech?: string
+  }
   | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }

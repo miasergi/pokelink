@@ -12,7 +12,7 @@ import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type
 import { STARTERS_BY_SAGA } from '@/data/inazuma/starters'
 import { uniqueByName } from '@/engine/inazuma/rewards'
 import { loadMeta } from '@/persistence/db'
-import type { PlayerStats } from '@/engine/inazuma/types'
+import type { InazumaSave, PlayerStats } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
 // Estadísticas de la partida
@@ -20,12 +20,15 @@ import type { PlayerStats } from '@/engine/inazuma/types'
 
 const EMPTY: PlayerStats = { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
 
-export function StatsView() {
-  const { save, goTo } = useInazuma()
+/**
+ * El CUERPO de las estadísticas (pichichi + tabla desplegable por jugador),
+ * compartido entre la vista de Estadísticas del mapa y el CIERRE del torneo:
+ * al perder se merecen los MISMOS datos que al ganar.
+ */
+export function StatsBoard({ save }: { save: InazumaSave }) {
   // Ficha DESPLEGABLE: toca una fila y ves sus números completos y las
   // supertécnicas que usó (con cuántas veces salieron bien).
   const [open, setOpen] = useState<string | null>(null)
-  if (!save) return null
 
   const rows = save.roster
     .map((p) => ({ p, s: save.playerStats[p.uid] ?? EMPTY }))
@@ -34,16 +37,7 @@ export function StatsView() {
   const totalGoals = rows.reduce((a, r) => a + r.s.goals, 0)
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
-        <Icon name="chartUp" className="w-5 h-5 text-emerald-300" />
-        <div className="font-extrabold text-sm">Estadísticas</div>
-        <span className="ml-auto text-[11px] text-slate-400 tabular-nums">
-          {save.record[0]}V {save.record[1]}E {save.record[2]}D
-        </span>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
+    <>
         {pichichi ? (
           <Card className="p-3 border-amber-500/50" style={{ background: 'linear-gradient(120deg,#f59e0b22,rgba(30,41,59,.7) 60%)' }}>
             <div className="text-[10px] uppercase tracking-widest text-amber-300">Pichichi</div>
@@ -124,6 +118,26 @@ export function StatsView() {
         <p className="text-[10px] text-slate-600">
           «Duelos» es el porcentaje de mano a mano ganados, tirando y defendiendo.
         </p>
+    </>
+  )
+}
+
+export function StatsView() {
+  const { save, goTo } = useInazuma()
+  if (!save) return null
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 px-3 py-2 flex items-center gap-2">
+        <Icon name="chartUp" className="w-5 h-5 text-emerald-300" />
+        <div className="font-extrabold text-sm">Estadísticas</div>
+        <span className="ml-auto text-[11px] text-slate-400 tabular-nums">
+          {save.record[0]}V {save.record[1]}E {save.record[2]}D
+        </span>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
+        <StatsBoard save={save} />
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom">

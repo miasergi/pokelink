@@ -12,13 +12,14 @@ import PitchView from '@/ui/inazuma/PitchView'
 import LineupBoard from '@/ui/inazuma/LineupBoard'
 import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 import { MedalHint } from '@/ui/inazuma/BagView'
+import { StatsBoard } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import { Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
+  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf,
   realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
   signatureLevelFor, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
@@ -1576,14 +1577,6 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
 export function EndView({ won }: { won: boolean }) {
   const { save, exitInazuma, abandonTournament, goTo } = useInazuma()
   if (!save) return null
-  // TODA la plantilla, ordenada por lo que aportó en el torneo (goles primero,
-  // luego paradas y duelos): el cierre es el momento de repasar a los tuyos.
-  const statsOf = (uid: string) => save.playerStats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
-  const contribution = (uid: string) => {
-    const s = statsOf(uid)
-    return s.goals * 3 + s.saves + s.duelsWon
-  }
-  const squad = [...save.roster].sort((a, b) => contribution(b.uid) - contribution(a.uid) || overall(b) - overall(a))
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -1605,25 +1598,11 @@ export function EndView({ won }: { won: boolean }) {
           <Stat label="En contra" value={save.goalsAgainst} />
           <Stat label="Plantilla" value={save.roster.length} />
         </div>
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-3">
-          La plantilla · {squad.length}
-        </div>
-        <div className="w-full max-w-sm flex flex-col gap-1.5 text-left">
-          {squad.map((p) => {
-            const s = statsOf(p.uid)
-            return (
-              <PlayerRow
-                key={p.uid}
-                player={p}
-                right={
-                  <span className="text-[9px] text-slate-400 leading-tight tabular-nums text-right">
-                    <span className="block">{s.goals} goles · {s.saves} paradas</span>
-                    <span className="block text-slate-500">{s.duelsWon}-{s.duelsLost} duelos · {s.matches} part.</span>
-                  </span>
-                }
-              />
-            )
-          })}
+        {/* Las MISMAS estadísticas que en la vista del mapa (pichichi, tabla
+            desplegable con duelos y técnicas): ganar o perder, el cierre se
+            merece los datos completos. */}
+        <div className="w-full max-w-sm flex flex-col gap-3 text-left mt-2">
+          <StatsBoard save={save} />
         </div>
       </div>
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">

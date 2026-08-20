@@ -21,7 +21,14 @@ function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
   const first = (n: string) => n.split(' ')[0]
   switch (e.kind) {
     case 'kickoff': return { text: '¡Rueda el balón! Chester Horley, con ustedes.', mood: 'calma' }
-    case 'goal': return { text: `¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡${e.technique}!` : ''}`, mood: 'euforia' }
+    // Si el portero INTENTÓ una técnica y no bastó, se dice: gastó sus PT y
+    // sin mención parecía que la parada nunca había existido.
+    case 'goal': return {
+      text: e.keeperTech
+        ? `¡GOOOOOL de ${first(e.scorer)}! ¡Ni la ${e.keeperTech} de ${first(e.keeper ?? '')} la para!`
+        : `¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡${e.technique}!` : ''}`,
+      mood: 'euforia',
+    }
     case 'save': return {
       text: e.technique
         ? `¡${first(e.keeper)} usa ${e.technique} para parar el tiro!`
@@ -80,7 +87,11 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           : (e.success ? e.technique ?? e.counter : e.counter ?? e.technique))
       : e?.kind === 'save' || e?.kind === 'penalty'
         ? e.technique
-        : undefined
+        // En el gol, la imagen es la del INTENTO del portero (la del tiro ya
+        // se enseñó al disparar): se ve la técnica que no pudo con el balón.
+        : e?.kind === 'goal'
+          ? e.keeperTech
+          : undefined
     if (!name) return
     const key = feed.length
     setTech({ name, key })
