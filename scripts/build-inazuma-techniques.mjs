@@ -474,7 +474,12 @@ async function fetchTechnique(title) {
   // el relleno de cadenas no le cuelgue una técnica de VR a Mark Evans (ni al
   // revés). Ver `ERA` en el emisor de jugadores.
   const vr = /\{\{Media\|games\|VR/i.test(debut)
-  if (!clasica && !vr) return null
+  // INAZUMA ELEVEN GO (solo la temporada 1 y su película): códigos GO, 2011 y
+  // TO. Chrono Stone (CS) y Galaxy (GAL) quedan FUERA a propósito. Las
+  // técnicas de espíritu guerrero del anime entran aquí como supertécnicas
+  // NORMALES (su ficha ya trae type/element de siempre) — regla Entretainer.
+  const go = /\{\{Media\|games\|(GO|2011|TO)\}\}/i.test(debut)
+  if (!clasica && !vr && !go) return null
   const name = dubName(wt, title)
 
   // Algunas técnicas son de dos clases (`type` y `type2`). Se queda la
@@ -499,7 +504,7 @@ async function fetchTechnique(title) {
     if (k !== '-1' && pages[k]?.thumbnail?.source) thumb = pages[k].thumbnail.source
   }
 
-  return { title, name, type, element, power, tp, thumb, era: clasica ? 'clasica' : 'vr' }
+  return { title, name, type, element, power, tp, thumb, era: clasica ? 'clasica' : vr ? 'vr' : 'go' }
 }
 
 /**
@@ -731,9 +736,9 @@ async function emit(found) {
     const id = slug(t.title)
     const name = ES[t.name] ?? ES[t.title] ?? t.name
     const desc = DESC[t.name] ?? DESC[t.title] ?? GENERIC[t.type][t.element]
-    // `era: 'vr'` solo en las de Victory Road: las clásicas se quedan sin el
-    // campo, que son la inmensa mayoría.
-    const era = t.era === 'vr' ? ", era: 'vr'" : ''
+    // `era` solo en las de otra época (VR y GO): las clásicas se quedan sin
+    // el campo, que son la inmensa mayoría.
+    const era = t.era === 'vr' ? ", era: 'vr'" : t.era === 'go' ? ", era: 'go'" : ''
     lines.push(`  { id: '${id}', name: ${JSON.stringify(name)}, kind: '${t.type}', element: '${t.element}', power: ${t.power}, cost: ${t.cost}${era}, desc: ${JSON.stringify(desc)} },`)
   }
   lines.push(']')

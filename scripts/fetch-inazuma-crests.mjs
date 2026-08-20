@@ -96,6 +96,19 @@ const WIKI_NAME = {
   'senjutsu-no-teikoku': ['Senjutsu no Teikoku'],
   'toufuu-ikokukan': ['Toufuu Ikokukan'],
   'hakuren-vr': ['Hakuren (Victory Road)', 'Hakuren'],
+  // IEGO (Inazuma Eleven GO): el Holy Road.
+  'raimon-go': ['Raimon (GO)', 'Raimon'],
+  mannouzaka: ['Mannouzaka'],
+  tengawara: ['Tengawara'],
+  'gassan-kunimitsu': ['Gassan Kunimitsu'],
+  'hakuren-go': ['Hakuren (GO)', 'Hakuren'],
+  'kaiou-gakuen': ['Kaiou Gakuen'],
+  'genei-gakuen': ['Genei Gakuen'],
+  'arakumo-gakuen': ['Arakumo Gakuen'],
+  seidouzan: ['Seidouzan'],
+  dragonlink: ['Dragonlink'],
+  'kidokawa-go': ['Kidokawa Seishuu (GO)', 'Kidokawa Seishuu'],
+  'unlimited-shining': ['Unlimited Shining'],
 }
 
 async function api(params) {

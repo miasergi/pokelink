@@ -60,12 +60,12 @@ export interface Technique {
   /** Nivel mínimo del jugador para poder aprenderla en un draft. */
   minLevel?: number
   /**
-   * ÉPOCA. Ausente = saga clásica (IE1-IE3). `'vr'` = Victory Road, que pasa
-   * en el futuro: sus técnicas solo se reparten entre jugadores de esa región,
-   * para que el relleno de cadenas no le cuelgue una técnica de VR a Mark
-   * Evans (ni una de los 2000 a los chavales nuevos).
+   * ÉPOCA. Ausente = saga clásica (IE1-IE3). `'vr'` = Victory Road y `'go'` =
+   * Inazuma Eleven GO: sus técnicas solo se reparten entre jugadores de esa
+   * región, para que el relleno de cadenas no le cuelgue una técnica de otra
+   * época a Mark Evans (ni una de los 2000 a los chavales nuevos).
    */
-  era?: 'vr'
+  era?: 'vr' | 'go'
 }
 
 /** Ficha inmutable de un jugador (la «especie», por analogía con Pokémon). */
@@ -611,7 +611,7 @@ export interface InazumaSave {
   /** Dificultad elegida al empezar (ausente en partidas viejas = normal). */
   difficulty?: Difficulty
   /** Saga (región) de la partida: 'ff' clásica, 'alius' (IE2), 'ffi' (IE3). */
-  saga?: 'ff' | 'alius' | 'ffi' | 'vr'
+  saga?: 'ff' | 'alius' | 'ffi' | 'go' | 'vr'
   /** true si la plantilla inicial salió del bombo (modo aleatorio). */
   randomSquad?: boolean
   /** Nombre y escudo elegidos para el equipo del bombo. */
@@ -638,7 +638,7 @@ export interface InazumaSave {
    * fichajes). Vacío o ausente = solo la de tu saga. Multiselección: se puede
    * jugar el Football Frontier con fichajes del Mundial y de Victory Road.
    */
-  pools?: ('ff' | 'alius' | 'ffi' | 'vr')[]
+  pools?: ('ff' | 'alius' | 'ffi' | 'go' | 'vr')[]
   /**
    * FILOSOFÍAS ACTIVAS: subconjunto de `tactics` que sale al campo. Ausente =
    * todas las ganadas. Se configura en el vestuario — ganar una nueva ya no

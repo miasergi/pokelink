@@ -100,6 +100,20 @@ const TEAMS = {
   'senjutsu-no-teikoku': ['Senjutsu no Teikoku'],
   'toufuu-ikokukan': ['Toufuu Ikokukan'],
   'hakuren-vr': ['Hakuren (Victory Road)'],
+  // --- IEGO (Inazuma Eleven GO, temporada 1 + su película): el Holy Road.
+  //     Solo GO a secas — nada de Chrono Stone ni Galaxy (ver GO_ONLY).
+  'raimon-go': ['Raimon (GO)'],
+  mannouzaka: ['Mannouzaka'],
+  tengawara: ['Tengawara'],
+  'gassan-kunimitsu': ['Gassan Kunimitsu'],
+  'hakuren-go': ['Hakuren (GO)'],
+  'kaiou-gakuen': ['Kaiou Gakuen'],
+  'genei-gakuen': ['Genei Gakuen'],
+  'arakumo-gakuen': ['Arakumo Gakuen'],
+  seidouzan: ['Seidouzan'],
+  dragonlink: ['Dragonlink'],
+  'kidokawa-go': ['Kidokawa Seishuu (GO)'],
+  'unlimited-shining': ['Unlimited Shining'],
 }
 
 /**
@@ -112,6 +126,18 @@ const VR_ONLY = new Set([
   'nagumohara', 'ouja-raimon', 'hokuyou-gakuen', 'ai-gakuen', 'houreikan',
   'ijin-meibundou', 'keizen-arashiyama', 'nishinomiya', 'senjutsu-no-teikoku',
   'toufuu-ikokukan', 'hakuren-vr',
+])
+
+/**
+ * Equipos de INAZUMA ELEVEN GO (temporada 1 + película): misma regla que VR —
+ * solo entra quien DEBUTA en GO (códigos GO/2011/TO de la wiki), fuera los
+ * veteranos de IE1-IE3 que reaparecen de mayores y fuera cualquiera que solo
+ * exista en Chrono Stone o Galaxy.
+ */
+const GO_ONLY = new Set([
+  'raimon-go', 'mannouzaka', 'tengawara', 'gassan-kunimitsu', 'hakuren-go',
+  'kaiou-gakuen', 'genei-gakuen', 'arakumo-gakuen', 'seidouzan', 'dragonlink',
+  'kidokawa-go', 'unlimited-shining',
 ])
 
 /** Los cuatro elementos, como los escribe la wiki en inglés. */
@@ -395,6 +421,16 @@ async function main() {
         const debut = page.wt.match(/debut_game[\s\S]{0,160}/i)?.[0] ?? ''
         const otroJuego = /\{\{Media\|games\|(IE|IE2|IE3|GO|CS|GAL|ARES|ORION)\}\}/i.test(debut)
         if (otroJuego && !/\{\{Media\|games\|VR/i.test(debut)) {
+          skippedVeterans.push(`${teamId}/${dub}`); continue
+        }
+      }
+      // GO: misma criba que VR pero para su época. Debuts válidos: GO, 2011
+      // (el juego GO de 3DS) y TO. Un veterano clásico o alguien que solo
+      // exista en Chrono Stone/Galaxy no entra.
+      if (GO_ONLY.has(teamId)) {
+        const debut = page.wt.match(/debut_game[\s\S]{0,160}/i)?.[0] ?? ''
+        const otraEpoca = /\{\{Media\|games\|(IE|IE2|IE3|CS|GAL|ARES|ORION|VR)\}\}/i.test(debut)
+        if (otraEpoca && !/\{\{Media\|games\|(GO|2011|TO)\}\}/i.test(debut)) {
           skippedVeterans.push(`${teamId}/${dub}`); continue
         }
       }

@@ -49,7 +49,7 @@ export interface NewRunOptions {
   /** TU INICIAL: el ÚNICO jugador con el que arrancas (id del catálogo). El
    * resto de la plantilla se recluta por el camino — como en Pokémon. */
   starterId?: string
-  saga?: 'ff' | 'alius' | 'ffi' | 'vr'
+  saga?: 'ff' | 'alius' | 'ffi' | 'go' | 'vr'
   /** Nombre y escudo del equipo del bombo (a gusto del entrenador). */
   customName?: string
   customCrest?: string

@@ -312,7 +312,74 @@ export const TEAMS: TeamBase[] = [
   },
   {
     id: 'hakuren-vr', name: 'Hakuren (nueva generación)', color: '#38bdf8', kit: ['#e0f2fe', '#0369a1'], element: 'aire', power: 0.92, tactic: 'muro',
+    lineup: [],
     taunt: 'La nieve sigue aquí. Los de antes ya no.',
+  },
+  // -------------------------------------------------------------------------
+  // IEGO (Inazuma Eleven GO) · el Holy Road, diez años después
+  //
+  // SOLO la temporada 1 y su película: nada de Chrono Stone ni Galaxy. Los
+  // espíritus guerreros no existen aquí — sus supertécnicas del anime entran
+  // como supertécnicas normales (regla Entretainer).
+  // -------------------------------------------------------------------------
+  {
+    id: 'raimon-go', name: 'Instituto Raimon (GO)', color: '#eab308', kit: ['#fbbf24', '#1e40af'], element: 'aire', power: 1, tactic: 'futbol-total',
+    taunt: '¡El fútbol no se controla desde un despacho: se juega!',
+    lineup: [],
+  },
+  {
+    id: 'mannouzaka', name: 'Instituto Mannouzaka', color: '#57534e', kit: ['#a8a29e', '#292524'], element: 'montana', power: 0.72, tactic: 'gegenpressing',
+    taunt: 'Aquí el fútbol se juega con los dientes apretados.',
+    lineup: [],
+  },
+  {
+    id: 'gassan-kunimitsu', name: 'Gassan Kunimitsu', color: '#7c3aed', kit: ['#c4b5fd', '#4c1d95'], element: 'montana', power: 0.8, tactic: 'fondo-fisico',
+    taunt: 'La montaña no se aparta. Apartaos vosotros.',
+    lineup: [],
+  },
+  {
+    id: 'kidokawa-go', name: 'Kidokawa Seishuu (GO)', color: '#f97316', kit: ['#fdba74', '#9a3412'], element: 'fuego', power: 0.86, tactic: 'escuela-tiro',
+    taunt: 'El triángulo letal tiene herederos. Nosotros.',
+    lineup: [],
+  },
+  {
+    id: 'hakuren-go', name: 'Hakuren (Holy Road)', color: '#38bdf8', kit: ['#e0f2fe', '#075985'], element: 'aire', power: 0.9, tactic: 'muro',
+    taunt: 'En la nieve aprendes a no resbalar. Vosotros no.',
+    lineup: [],
+  },
+  {
+    id: 'kaiou-gakuen', name: 'Instituto Kaiou', color: '#0e7490', kit: ['#67e8f9', '#164e63'], element: 'aire', power: 0.95, tactic: 'contragolpe',
+    taunt: 'La marea sube. Y vosotros no sabéis nadar.',
+    lineup: [],
+  },
+  {
+    id: 'genei-gakuen', name: 'Instituto Genei', color: '#6b7280', kit: ['#d1d5db', '#1f2937'], element: 'bosque', power: 1.0, tactic: 'vibracion',
+    taunt: 'Perseguid nuestras sombras. Es lo único que tocaréis.',
+    lineup: [],
+  },
+  {
+    id: 'arakumo-gakuen', name: 'Instituto Arakumo', color: '#f59e0b', kit: ['#fde68a', '#b45309'], element: 'fuego', power: 1.06, tactic: 'remontada',
+    taunt: 'El sol no se apaga por muchas nubes que traigáis.',
+    lineup: [],
+  },
+  {
+    id: 'dragonlink', name: 'Dragonlink', color: '#dc2626', kit: ['#fca5a5', '#450a0a'], element: 'fuego', power: 1.15, tactic: 'furinkazan',
+    taunt: 'El Quinto Sector escribe los finales. Este ya está escrito.',
+    lineup: [],
+  },
+  {
+    id: 'tengawara', name: 'Instituto Tengawara', color: '#65a30d', kit: ['#bef264', '#3f6212'], element: 'bosque', power: 0.76, tactic: 'toque',
+    taunt: 'Jugamos como nos mandan. Y nos mandan ganar.',
+    lineup: [],
+  },
+  {
+    id: 'seidouzan', name: 'Seidouzan', color: '#4338ca', kit: ['#a5b4fc', '#312e81'], element: 'montana', power: 1.08, tactic: 'academia',
+    taunt: 'El fútbol perfecto existe. Lo entrenamos nosotros.',
+    lineup: [],
+  },
+  {
+    id: 'unlimited-shining', name: 'Unlimited Shining', color: '#e2e8f0', kit: ['#f8fafc', '#64748b'], element: 'fuego', power: 1.1, tactic: 'escuela-tiro',
+    taunt: 'La luz no compite. La luz deslumbra.',
     lineup: [],
   },
 ]
@@ -349,7 +416,7 @@ export const ROUND_NAMES = [
  * roguelike. Los equipos que no están en `teams` nunca entran en su cuadro.
  */
 export interface Saga {
-  id: 'ff' | 'alius' | 'ffi' | 'vr'
+  id: 'ff' | 'alius' | 'ffi' | 'go' | 'vr'
   name: string
   desc: string
   /** Los NUEVE equipos del torneo (jugables incluidos). */
@@ -386,6 +453,15 @@ export const SAGAS: Saga[] = [
     playable: ['inazuma-japan', 'orpheus', 'unicorn'],
     scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero',
       'the-kingdom', 'rose-griffon', 'brockenborg', 'ogre', 'neo-japan', 'gaia'],
+  },
+  {
+    id: 'go',
+    name: 'Inazuma Eleven GO',
+    desc: 'Diez años después: el Holy Road contra el Quinto Sector, con la nueva generación del Raimon.',
+    teams: ['raimon-go', 'mannouzaka', 'gassan-kunimitsu', 'kidokawa-go', 'hakuren-go', 'kaiou-gakuen', 'genei-gakuen', 'arakumo-gakuen', 'dragonlink'],
+    playable: ['raimon-go', 'arakumo-gakuen', 'unlimited-shining'],
+    // Solo gente de GO: otra época, misma regla que Victory Road.
+    scoutTeams: ['tengawara', 'seidouzan', 'unlimited-shining'],
   },
   {
     id: 'vr',
@@ -470,6 +546,7 @@ export const REGIONS = [
   { id: 'ff' as const, name: 'IE1 · Football Frontier', desc: 'La primera temporada: institutos de Japón.' },
   { id: 'alius' as const, name: 'IE2 · Academia Alius', desc: 'La invasión alienígena y los equipos de la caravana.' },
   { id: 'ffi' as const, name: 'IE3 · Mundial (FFI)', desc: 'Las selecciones del Football Frontier Internacional.' },
+  { id: 'go' as const, name: 'IEGO · Holy Road', desc: 'Diez años después: la nueva generación contra el Quinto Sector.' },
   { id: 'vr' as const, name: 'IEVR · Victory Road', desc: 'La nueva generación, años después.' },
 ]
 
@@ -493,6 +570,8 @@ const EXTRA_REGION: Record<string, RegionId> = {
   'neo-japan': 'ffi', gaia: 'ffi',
   // IEVR: la nueva generación.
   'ouja-raimon': 'vr', 'ijin-meibundou': 'vr',
+  // IEGO: el Holy Road (los que solo salen en el ojeador).
+  tengawara: 'go', seidouzan: 'go', 'unlimited-shining': 'go',
 }
 
 const REGION_BY_TEAM = (() => {

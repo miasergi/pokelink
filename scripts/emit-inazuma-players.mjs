@@ -111,6 +111,16 @@ const VR_TEAMS = new Set([
   'toufuu-ikokukan', 'hakuren-vr',
 ])
 
+/** Equipos de INAZUMA ELEVEN GO: tercera época, misma regla que VR. */
+const GO_TEAMS = new Set([
+  'raimon-go', 'mannouzaka', 'tengawara', 'gassan-kunimitsu', 'hakuren-go',
+  'kaiou-gakuen', 'genei-gakuen', 'arakumo-gakuen', 'seidouzan', 'dragonlink',
+  'kidokawa-go', 'unlimited-shining',
+])
+
+/** Época de un equipo: decide qué técnicas puede llevar su gente. */
+const eraOf = (teamId) => (VR_TEAMS.has(teamId) ? 'vr' : GO_TEAMS.has(teamId) ? 'go' : 'clasica')
+
 const LOW_PRIORITY_TEAMS = new Set([
   'the-fires', 'the-mountains', 'the-woods', 'windies', 'extra-stars', 'kage-no-hero', 'chaos',
 ])
@@ -133,6 +143,20 @@ const LOW_PRIORITY_TEAMS = new Set([
  * que merezca más estrellas, se añade aquí y se vuelve a generar el fichero.
  */
 const STARS = {
+  // --- Inazuma Eleven GO: los cracks del Holy Road ---
+  'Arion Sherwind': 5,    // Matsukaze Tenma, el protagonista
+  'Riccardo Di Rigo': 5,  // Shindou Takuto, el capitán del Raimon GO
+  'Victor Blade': 5,      // Tsurugi Kyousuke
+  'Bailong': 5,           // Hakuryuu, el as del Unlimited Shining
+  'Sol Daystar': 5,       // Amemiya Taiyou, el sol del Arakumo
+  'Gabriel Garden': 4,    // Kirino Ranmaru
+  'Jean-Pierre Lapin': 4, // Nishizono Shinsuke
+  'Samguk Han': 4,        // Sangoku Taichi, portero titular del Raimon GO
+  'Ryoma Nishiki': 4,     // Nishiki Ryouma
+  'Adé Kebé': 4,          // Hamano Kaiji
+  'Skie Blue': 4,         // Sorano Aoi… por si sale como jugadora
+  'Aitor Cazador': 4,     // Isozaki Kenma (Kaiou)
+  'Simeon Sedd': 5,       // Senguuji Yamato, el as del Dragonlink
   // --- Capitanes y cracks de los equipos añadidos (IE1/IE2/IE3) ---
   'Harper Evans': 5, // el protagonista de Victory Road
   'Mac Robingo': 5, // capitán de Brasil
@@ -260,7 +284,7 @@ const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
  *                 es donde sí importa no mezclar (a Mark Evans no le cuelga una
  *                 técnica del futuro porque le falte un hueco).
  */
-function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all, allowVr = true) {
+function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all, playerEra = 'clasica') {
   const kind = KIND[position] ?? 'regate'
   const byId = new Map(all.map((t) => [t.id, t]))
   // Puesto que ocupa cada técnica en SU moveset: es el orden en que las
@@ -288,9 +312,11 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
     .map(slugTech)
     .filter((id, i, arr) => arr.indexOf(id) === i)
     .filter((id) => kinds.includes(byId.get(id)?.kind) && !curated.includes(id))
-    // Personaje de DOS épocas jugando en su equipo CLÁSICO: sus técnicas de
-    // Victory Road se quedan fuera (Berdy Caster con Round Spark en Manyuuji).
-    .filter((id) => allowVr || byId.get(id)?.era !== 'vr')
+    // Personaje de VARIAS épocas: una técnica con época declarada solo la
+    // lleva quien juega EN esa época (Berdy Caster con Round Spark en
+    // Manyuuji, o un clásico con una de GO). Las clásicas (sin era) son el
+    // fondo común: los chavales de GO/VR heredan God Hand y compañía.
+    .filter((id) => { const e = byId.get(id)?.era; return !e || e === playerEra })
   const realPrimary = real.filter((id) => byId.get(id).kind === kind)
   const realOther = real.filter((id) => byId.get(id).kind !== kind)
 
@@ -434,7 +460,7 @@ async function main() {
     .sort((a, b) =>
       // Clásicos primero, Victory Road después (para poder descartar nombres
       // repetidos), y los equipos de relleno al final de cada bloque.
-      (Number(VR_TEAMS.has(a[0])) - Number(VR_TEAMS.has(b[0])))
+      (Number(eraOf(a[0]) !== 'clasica') - Number(eraOf(b[0]) !== 'clasica'))
       || (Number(LOW_PRIORITY_TEAMS.has(a[0])) - Number(LOW_PRIORITY_TEAMS.has(b[0]))))
   for (const [teamId, rawList0] of ordered) {
     if (CLONE_TEAMS.has(teamId)) continue
@@ -463,7 +489,10 @@ async function main() {
       .replace(/\s*\([^)]*\)\s*$/, '').trim()
     const byMoves = [...list].sort((a, b) => ((b.hissatsu ?? []).length - (a.hissatsu ?? []).length))
     const moveRank = new Map(byMoves.map((q, i) => [q, i]))
-    const ALIUS_ELITE = new Set(['genesis', 'chaos', 'prominence', 'diamond-dust', 'epsilon', 'gemini-storm', 'royal', 'zeus'])
+    // Élites con suelo de rareza 2: los Alius clásicos y la cúspide de GO
+    // (los equipos del Fifth Sector y el del final del Holy Road).
+    const ALIUS_ELITE = new Set(['genesis', 'chaos', 'prominence', 'diamond-dust', 'epsilon', 'gemini-storm', 'royal', 'zeus',
+      'seidouzan', 'dragonlink', 'unlimited-shining'])
     const fameOf = (q) => {
       const curated = STARS[cleanOf(q)]
       if (curated != null) return curated
@@ -489,19 +518,20 @@ async function main() {
       while (seenIds.has(id)) id = `${baseId}-${n++}`
       seenIds.add(id)
 
-      // Victory Road: ni un nombre repetido de la saga clásica.
-      if (VR_TEAMS.has(teamId) && classicNames.has(cleanName)) continue
+      // VR y GO: ni un nombre repetido de la saga clásica.
+      if (eraOf(teamId) !== 'clasica' && classicNames.has(cleanName)) continue
       const rarity = fameOf(p)
       if (p.captain) captainByTeam.set(teamId, id)
       const st = statsFor(p.position, rarity, id)
       // CADA UNO CON LAS DE SU ÉPOCA.
-      const eraTechs = VR_TEAMS.has(teamId)
-        ? allTechs.filter((t) => t.era === 'vr')
-        : allTechs.filter((t) => t.era !== 'vr')
+      const era = eraOf(teamId)
+      const eraTechs = era === 'clasica'
+        ? allTechs.filter((t) => !t.era)
+        : allTechs.filter((t) => t.era === era)
       const signature = signatureFor(
         allTechs, cleanName, p.position, p.element, rarity, p.hissatsu ?? [],
         eraTechs.length >= 20 ? eraTechs : allTechs,
-        VR_TEAMS.has(teamId),
+        era,
       )
       const techs = techsFor(signature, rarity)
       lines.push('  {')
@@ -511,7 +541,7 @@ async function main() {
       if (signature.length) lines.push(`    signature: [${signature.map(q).join(', ')}],`)
       lines.push('  },')
       ;(emitted[teamId] ??= []).push({ id, position: p.position, rarity })
-      if (!VR_TEAMS.has(teamId)) classicNames.add(cleanName)
+      if (eraOf(teamId) === 'clasica') classicNames.add(cleanName)
       idx++
     }
   }
@@ -616,7 +646,7 @@ async function main() {
     // El préstamo respeta la ÉPOCA: un instituto de Victory Road se completa
     // con gente de Victory Road, nunca con un clásico (que además saldría
     // repetido, porque ese chaval ya existe en su equipo de los 2000).
-    const mismaEra = (t) => VR_TEAMS.has(t) === VR_TEAMS.has(teamId)
+    const mismaEra = (t) => eraOf(t) === eraOf(teamId)
     const pool = (DONORS[teamId] ?? Object.keys(emitted)
       .filter((t) => t !== teamId && t !== 'raimon' && t !== 'libre' && mismaEra(t)))
       .flatMap((t) => emitted[t] ?? [])

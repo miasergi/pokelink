@@ -18,6 +18,7 @@ const COVERS = {
   ff: 'File:Inazuma Eleven cover.jpg',
   alius: 'File:Inazuma Eleven 2 Kyoui no Shinryakusha Fire cover.jpg',
   ffi: 'File:Inazuma Eleven 3 Sekai e no Chousen!! Spark cover.jpg',
+  go: 'File:Inazuma Eleven GO Shine cover.png',
   vr: 'File:Inazuma Eleven Eiyuutachi no Victory Road cover.png',
 }
 

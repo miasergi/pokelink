@@ -16,6 +16,9 @@ export const STARTERS_BY_SAGA: Record<RegionId, string[]> = {
   // IE3 — el Mundial: Mark, el capitán de Orpheus y el portero de Little
   // Gigant (elegidos a dedo por el míster).
   ffi: ['mark-evans-2', 'paolo-bianchi', 'hector-helio'],
+  // IEGO — el Holy Road: el protagonista, el capitán del Raimon GO y el as
+  // del Unlimited Shining (elegidos a dedo por el míster).
+  go: ['arion-sherwind', 'riccardo-di-rigo', 'bailong'],
   // IEVR — la nueva generación (elegidos a dedo por el míster).
   vr: ['harper-evans', 'destin-billows', 'cedric-freud'],
 }
