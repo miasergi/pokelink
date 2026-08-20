@@ -219,6 +219,9 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
     power: number
     color: string
     uid: string
+    /** Punto FIJO (en pantalla) donde se ancla la placa: perseguir al balón
+        en movimiento dejaba un rastro de repintados — los «clones». */
+    at: Spot
   } | null>(null)
   const techSeen = useRef(0)
   {
@@ -239,11 +242,15 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const uid = name === last.technique ? last.attackerUid : last.defenderUid
         const t = name ? techniqueByName(name) : undefined
         if (t) {
-          techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid }
+          const at = shownPos.current.get(uid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
+          techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid, at: { ...at } }
         }
       } else if (last?.kind === 'save' && last.technique) {
         const t = techniqueByName(last.technique)
-        if (t) techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid }
+        if (t) {
+          const at = shownPos.current.get(last.keeperUid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
+          techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid, at: { ...at } }
+        }
       }
       // El que PIERDE un duelo de campo queda ATURDIDO, con técnica o sin ella.
       if (last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
@@ -855,7 +862,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           <div
             key={techTag.current.key}
             className="absolute z-[38] pointer-events-none"
-            style={{ left: `${ballPx.x}%`, top: `${ballPx.y}%` }}
+            // FIJA en el punto del duelo y en su propia capa de composición
+            // (translateZ): sin ambas cosas, Chrome dejaba un rastro de
+            // repintados persiguiendo al balón — los «clones» del playtest.
+            style={{ left: `${techTag.current.at.x}%`, top: `${techTag.current.at.y}%`, transform: 'translateZ(0)', willChange: 'transform' }}
           >
             {/* Un ANILLO fino en el balón (nada de manchas difuminadas que
                 «ensuciaban» el césped) y la placa compacta debajo. */}
