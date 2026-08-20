@@ -162,6 +162,10 @@ export const NODE_ICON: Record<NodeKind, string> = {
 export function itemIconName(item: InazumaItem | undefined): string {
   if (!item) return 'bag'
   if (item.id === 'fichaje-estrella') return 'magnifier'
+  if (item.id === 'medalla-rareza') return 'medal'
+  if (item.id.startsWith('pocion')) return 'potion'
+  if (item.id === 'elixir-equipo') return 'potion'
+  if (item.id === 'bidon-inagotable') return 'drink'
   if (item.kind === 'comida') return item.id.includes('ramen') ? 'ramen' : 'drink'
   if (item.kind === 'manual') return 'book'
   if (item.kind === 'consumible') return item.id.startsWith('plan') ? 'dumbbell' : 'drink'
@@ -180,15 +184,40 @@ export function itemIconName(item: InazumaItem | undefined): string {
  * Imagen del objeto. Cada id tiene su PNG (`item-<id>.png`); si faltase, se cae
  * al SVG por familia para que nunca quede un hueco.
  */
+/** Los objetos NUEVOS reutilizan el sprite DS del equivalente clásico. */
+const SPRITE_ALIAS: Record<string, string> = {
+  'botas-rematador': 'botas-doradas',
+  'muneq-estratega': 'muneq-control',
+  'espinilleras-muro': 'espinilleras',
+  'guantes-guardameta': 'guantes-portero',
+  'bidon-inagotable': 'bebida-doble',
+  'pocion-pt': 'bebida-isotonica',
+  'pocion-pt-max': 'bebida-doble',
+  'pocion-aguante': 'masaje',
+  'pocion-aguante-max': 'ramen-especial',
+  'elixir-equipo': 'concentrado',
+}
+
 export function ItemIcon({ itemId, className = 'w-5 h-5' }: { itemId: string; className?: string }) {
   const item = getItem(itemId)
   const [broken, setBroken] = useState(false)
+  // Los EMBLEMAS de elemento: insignia propia (escudo del color + su icono),
+  // que un sprite prestado de otra cosa despistaría.
+  if (item?.element && item.id.startsWith('emblema-')) {
+    const info = ELEMENT_INFO[item.element]
+    return (
+      <span className={`${className} relative grid place-items-center shrink-0`} title={item.name}>
+        <Icon name="shield" className="w-full h-full" style={{ color: info.color }} />
+        <Icon name={ELEMENT_ICON[item.element]} className="absolute w-[52%] h-[52%] text-white drop-shadow" />
+      </span>
+    )
+  }
   if (broken) {
     return <Icon name={itemIconName(item)} className={className} title={item?.name} />
   }
   return (
     <img
-      src={`${BASE}inazuma/icons/item-${itemId}.png`}
+      src={`${BASE}inazuma/icons/item-${SPRITE_ALIAS[itemId] ?? itemId}.png`}
       alt={item?.name ?? ''}
       title={item?.name}
       draggable={false}

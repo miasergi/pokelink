@@ -257,8 +257,16 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         const loser = last.success ? last.defenderUid : last.attackerUid
         stunRef.current.set(loser, { from: nowMs + 500, until: nowMs + 4200 })
       }
+      // CUALQUIER evento sin técnica RECOGE la placa anterior: cinturón y
+      // tirantes contra placas que se quedaran pintadas en el césped.
+      if (last && last.kind !== 'duel' && !(last.kind === 'save' && last.technique)) {
+        techTag.current = null
+      }
     }
   }
+  // Y expiración DURA: pasado su tiempo, la referencia se vacía (no solo se
+  // deja de pintar) — imposible que reviva o se quede.
+  if (techTag.current && nowMs >= techTag.current.until) techTag.current = null
   const tagActive = techTag.current !== null && nowMs < techTag.current.until
 
   // LA CHISPA del duelo de campo: al revelarse un regate/corte, un fogonazo
