@@ -96,13 +96,21 @@ async function main() {
       // personaje: se busca directamente en el espacio de FICHEROS por
       // «apellido + verbo de parada». El apellido es el nombre wiki japonés
       // (así se titulan los ficheros); sin él, el nombre dub como último tren.
-      const short = wikis.get(id)
-      const surname = (short ?? name).split(' ')[0]
+      // Las VARIANTES (mark-evans-2, joseph-king-3…) son el MISMO personaje:
+      // heredan el nombre wiki de su id base.
+      const short = wikis.get(id) ?? wikis.get(id.replace(/-\d+$/, ''))
+      // El nombre del caché puede ser un ALIAS de plantilla («Genou», «Idol»):
+      // se resuelve la página real (redirects incluidos) y el apellido con el
+      // que se titulan los ficheros es el primer token del título resuelto.
+      const page = await resolvePage(short, name)
+      const surname = (page ?? short ?? name).split(' ')[0]
       const found = new Set()
       for (const verb of ['catching', 'catches', 'caught', 'holding', 'stops', 'saves', 'blocking', 'punches']) {
         const j = await api({ action: 'query', list: 'search', srsearch: `${surname} ${verb}`, srnamespace: '6', srlimit: '10' })
         for (const r of j?.query?.search ?? []) found.add(r.title)
-        await new Promise((r) => setTimeout(r, 120))
+        // 400 ms entre búsquedas: con 120 la wiki nos cortaba el grifo a
+        // mitad de lote y medio catálogo salía «sin fotograma» de mentira.
+        await new Promise((r) => setTimeout(r, 400))
       }
       // El PORTERO tiene que ser el que ejecuta el verbo («Endou catching…»),
       // no el que sufre la parada («Domon catching Endou's shot»).
