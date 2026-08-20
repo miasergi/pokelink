@@ -586,6 +586,7 @@ function executeDuel(
       side: otherSide(chain.side),
       keeper: defender.name,
       keeperUid: defender.uid,
+      keeperBaseId: defender.baseId,
       technique: defTech?.name,
       text: `¡${defender.name} lo detiene! ${defSide.name} respira.`,
     })

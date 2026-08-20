@@ -282,7 +282,7 @@ export default function MatchView() {
         </div>
       )}
       <HalftimePanel />
-      {/* LA TELE: Chester Horley comenta el partido desde su cabina, con la
+      {/* LA TELE: Chester Horse comenta el partido desde su cabina, con la
           imagen de cada supertécnica cuando salta una. Sustituye al ticker. */}
       {!finished && <ChesterTV feed={shownFeed} clock={clock} />}
       <Scoreboard

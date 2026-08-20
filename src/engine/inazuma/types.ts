@@ -221,7 +221,11 @@ export type MatchEvent =
   /** EL MOMENTO DEL PORTERO: saca su técnica ANTES de saberse el veredicto.
       Se emite con el mismo compás pare o encaje — cero spoilers por ritmo. */
   | { kind: 'keeperTry'; minute: number; side: Side; keeper: string; keeperUid: string; technique: string; text: string }
-  | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
+  | {
+    kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string
+    /** Para el plano del paradón en la tele (`inazuma/keepers/<baseId>.png`). */
+    keeperBaseId?: string
+  }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }
   | { kind: 'tactic'; minute: number; side: Side; tactic: string; name: string; text: string }

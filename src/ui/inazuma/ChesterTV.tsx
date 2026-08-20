@@ -1,4 +1,4 @@
-// LA TELE DEL PARTIDO: Chester Horley comentando desde su cabina, en un
+// LA TELE DEL PARTIDO: Chester Horse comentando desde su cabina, en un
 // recuadro tipo cámara de streamer. Reacciona a lo que pasa (temblor y zoom
 // en los goles, flash en las paradas, borde del elemento en las técnicas) y
 // cuando salta una supertécnica enseña SU imagen de la wiki con nombre y
@@ -16,11 +16,11 @@ type Mood = 'calma' | 'tension' | 'euforia' | 'drama'
 /** Qué dice Chester y con qué cara. FRASES CORTAS: el partido cambia rápido
  * y los párrafos del motor no daban tiempo a leerse. */
 function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
-  if (!e) return { text: '¡Muy buenas! Chester Horley desde la cabina.', mood: 'calma' }
+  if (!e) return { text: '¡Muy buenas! Chester Horse desde la cabina.', mood: 'calma' }
   const text = 'text' in e && typeof e.text === 'string' && e.text ? e.text : ''
   const first = (n: string) => n.split(' ')[0]
   switch (e.kind) {
-    case 'kickoff': return { text: '¡Rueda el balón! Chester Horley, con ustedes.', mood: 'calma' }
+    case 'kickoff': return { text: '¡Rueda el balón! Chester Horse, con ustedes.', mood: 'calma' }
     // Si el portero INTENTÓ una técnica y no bastó, se dice: gastó sus PT y
     // sin mención parecía que la parada nunca había existido.
     case 'goal': return {
@@ -74,8 +74,10 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
   const [tech, setTech] = useState<{ name: string; key: number } | null>(null)
-  // PLANO DE GOL: al marcar, la tele corta a Chester en pleno éxtasis.
+  // PLANO DE GOL: al marcar, la tele corta al balón reventando la red.
   const [golCam, setGolCam] = useState<{ key: number } | null>(null)
+  // PLANO DE PARADA: el portero con la pelota atrapada, al cantar el paradón.
+  const [saveCam, setSaveCam] = useState<{ key: number; baseId: string } | null>(null)
   const seen = useRef(0)
   useEffect(() => {
     if (feed.length === seen.current) return
@@ -86,10 +88,19 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
     // intento del portero incluida) y dura lo que dura la celebración.
     if (e?.kind === 'goal') {
       setTech(null)
+      setSaveCam(null)
       const key = feed.length
       setGolCam({ key })
       setTimeout(() => setGolCam((s) => (s?.key === key ? null : s)), 3400)
       return
+    }
+    // PARADA: el plano del portero con la pelota atrapada (si tiene foto).
+    if (e?.kind === 'save' && e.keeperBaseId) {
+      const key = feed.length
+      setSaveCam({ key, baseId: e.keeperBaseId })
+      setTimeout(() => setSaveCam((s) => (s?.key === key ? null : s)), 2600)
+      // La imagen de la técnica se deja viva por debajo: si la foto del
+      // portero no carga, la tele cae a ella sin hueco en negro.
     }
     // Tras un cruce SUPERADO, el duelo con el portero es el MISMO disparo:
     // no se vuelve a cortar a la imagen del tiro.
@@ -114,12 +125,13 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
       // portero (se va sola a los 2.6 s, «un pelín más»); cualquier otro
       // evento corta a Chester AL MOMENTO — una imagen jamás sobrevive a la
       // reanudación del juego.
-      if (e?.kind !== 'save') { setTech(null); setGolCam(null) }
+      if (e?.kind !== 'save') { setTech(null); setGolCam(null); setSaveCam(null) }
       return
     }
     const key = feed.length
     setTech({ name, key })
     setGolCam(null)
+    setSaveCam(null)
     // OJO: SIN cleanup. Si el timer se limpiara al llegar el siguiente
     // evento (como hacía), una imagen cuyo evento retiene menos de 2.6 s se
     // quedaba PILLADA para siempre — el guard por `key` ya evita que un
@@ -144,12 +156,24 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           {golCam ? (
             <div key={`gol-${golCam.key}`} className="absolute inset-0 animate-pop-in">
               <ImgFallback
-                src={`${BASE}inazuma/chester-gol.png`}
-                // Chester sale en el TERCIO DERECHO del fotograma: se encuadra
-                // ahí (object-right) para que el éxtasis no quede recortado.
-                className="w-full h-full object-cover object-right tv-zoom"
+                src={`${BASE}inazuma/gol.jpg`}
+                // El fotograma trae BANDAS NEGRAS de cine arriba y abajo: el
+                // zoom del 125 % las deja fuera del encuadre.
+                className="w-full h-full object-cover scale-125"
                 alt="¡GOL!"
                 fallback={<span className="grid place-items-center w-full h-full text-lg font-black text-amber-300">¡GOOOL!</span>}
+              />
+            </div>
+          ) : saveCam ? (
+            <div key={`save-${saveCam.key}`} className="absolute inset-0 animate-pop-in">
+              {/* La FOTO DEL PARADÓN: el portero con la pelota atrapada. Si
+                  este portero no tiene fotograma, el error de carga tira el
+                  plano y la tele cae a lo de siempre (técnica o Chester). */}
+              <img
+                src={`${BASE}inazuma/keepers/${saveCam.baseId}.png`}
+                className="w-full h-full object-cover"
+                alt="¡Parada!"
+                onError={() => setSaveCam(null)}
               />
             </div>
           ) : techInfo ? (
@@ -171,7 +195,7 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
             <ImgFallback
               src={`${BASE}inazuma/chester.png`}
               className={`w-full h-full object-cover ${mood === 'euforia' ? 'tv-zoom' : mood === 'drama' ? 'tv-blink' : ''}`}
-              alt="Chester Horley"
+              alt="Chester Horse"
               fallback={<span className="grid place-items-center w-full h-full text-2xl font-black text-slate-500">CH</span>}
             />
           )}
@@ -188,7 +212,7 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
             <span className="text-[10px] font-black tabular-nums" style={{ color: accent === '#334155' ? '#94a3b8' : accent }}>
               {Math.min(120, Math.max(0, Math.floor(clock)))}&apos;
             </span>
-            <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horley · comentarista</span>
+            <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horse · comentarista</span>
           </div>
           <p key={feed.length} className="mt-1 text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
             {text || 'El balón circula. Se mastica la tensión, señores.'}
