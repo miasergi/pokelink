@@ -212,6 +212,17 @@ body {
 }
 .animate-tech-pop { animation: tech-pop .32s ease-out both; }
 
+/* VIDA COMPLETA de la placa de técnica del césped: vive sus 1.3 s y SE APAGA
+   A CERO con fill forwards. Es el seguro definitivo contra placas pegadas:
+   aunque el nodo sobreviviera a React o al compositor de Chrome, pasada su
+   vida es invisible por CSS, sin depender de ningún re-render. */
+@keyframes tech-tag-life {
+  0% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.fx-tech-tag { animation: tech-tag-life 1.3s linear forwards; }
+
 /* VEREDICTO del duelo con técnica: la burbuja ganadora da un latigazo y la
    perdedora se apaga (gris y tenue) — se ve quién gana sin leer nada. */
 @keyframes tech-win {

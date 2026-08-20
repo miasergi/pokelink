@@ -223,7 +223,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         en movimiento dejaba un rastro de repintados — los «clones». */
     at: Spot
   } | null>(null)
-  const techSeen = useRef(0)
+  // Arranca en el largo ACTUAL del feed: si el componente se monta con
+  // historia (volver de un panel, remontaje), el último evento viejo no debe
+  // «revivir» su placa en mitad del césped.
+  const techSeen = useRef(feed.length)
   {
     const last = feed[feed.length - 1]
     if (feed.length !== techSeen.current) {
@@ -273,7 +276,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // EN EL PUNTO donde está el balón. Sin ella, esos duelos pasaban sin que se
   // viera dónde ni entre quiénes.
   const spark = useRef<{ key: number; at: Spot; mine: boolean; until: number } | null>(null)
-  const sparkSeen = useRef(0)
+  const sparkSeen = useRef(feed.length)
   {
     const last = feed[feed.length - 1]
     if (feed.length !== sparkSeen.current && last?.kind === 'duel' && last.step !== 'definicion' && !last.intercept) {
@@ -869,11 +872,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         {techTag.current && tagActive && !flight && (
           <div
             key={techTag.current.key}
-            className="absolute z-[38] pointer-events-none"
-            // FIJA en el punto del duelo y en su propia capa de composición
-            // (translateZ): sin ambas cosas, Chrome dejaba un rastro de
-            // repintados persiguiendo al balón — los «clones» del playtest.
-            style={{ left: `${techTag.current.at.x}%`, top: `${techTag.current.at.y}%`, transform: 'translateZ(0)', willChange: 'transform' }}
+            // FIJA en el punto del duelo (perseguir al balón dejaba rastro de
+            // repintados — los «clones») y con VIDA POR CSS: fx-tech-tag la
+            // funde a invisible al cumplir su tiempo aunque el nodo se quede.
+            className="absolute z-[38] pointer-events-none fx-tech-tag"
+            style={{ left: `${techTag.current.at.x}%`, top: `${techTag.current.at.y}%` }}
           >
             {/* Un ANILLO fino en el balón (nada de manchas difuminadas que
                 «ensuciaban» el césped) y la placa compacta debajo. */}
