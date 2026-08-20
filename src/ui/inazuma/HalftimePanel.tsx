@@ -20,7 +20,8 @@ import type { Actor } from '@/engine/inazuma/types'
  * (Se quedó la lista antigua al estandarizar los objetos y el descanso decía
  * «Sin consumibles» con la mochila llena de pociones.) */
 const HALFTIME_ITEMS = new Set([
-  'pocion-pt', 'pocion-pt-max', 'pocion-aguante', 'pocion-aguante-max',
+  'pocion-pt', 'superpocion-pt', 'pocion-pt-max',
+  'pocion-aguante', 'superpocion-aguante', 'pocion-aguante-max',
   'bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial',
 ])
 

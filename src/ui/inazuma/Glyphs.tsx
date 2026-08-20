@@ -192,8 +192,10 @@ const SPRITE_ALIAS: Record<string, string> = {
   'guantes-guardameta': 'guantes-portero',
   'bidon-inagotable': 'bebida-doble',
   'pocion-pt': 'bebida-isotonica',
+  'superpocion-pt': 'bebida-doble',
   'pocion-pt-max': 'bebida-doble',
   'pocion-aguante': 'masaje',
+  'superpocion-aguante': 'masaje',
   'pocion-aguante-max': 'ramen-especial',
   'elixir-equipo': 'concentrado',
 }

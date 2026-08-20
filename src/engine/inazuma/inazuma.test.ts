@@ -920,11 +920,11 @@ function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
     const worst = starters().slice().sort((a, b) => a.stamina - b.stamina)[0]
     if (!worst) return
     // Primero lo que cunde para todos, y solo si de verdad hace falta.
-    const team = ['banquete', 'concentrado', 'gyoza'].find((id) => save.bag.includes(id))
+    const team = ['elixir-equipo', 'banquete', 'concentrado', 'gyoza'].find((id) => save.bag.includes(id))
     const avg = starters().reduce((a, p) => a + p.stamina, 0) / Math.max(1, save.lineup.length)
     if (team && avg < (beforeBoss ? 92 : 55)) { applyConsumable(save, team, worst.uid); continue }
     if (worst.stamina < (beforeBoss ? 88 : 45)) {
-      const solo = ['ramen-rai-rai', 'masaje', 'ramen-especial'].find((id) => save.bag.includes(id))
+      const solo = ['pocion-aguante-max', 'superpocion-aguante', 'pocion-aguante', 'ramen-rai-rai', 'masaje', 'ramen-especial'].find((id) => save.bag.includes(id))
       if (solo) { applyConsumable(save, solo, worst.uid); continue }
     }
     // Antes del jefe también se rellenan los PT: sin depósito no hay
@@ -932,7 +932,7 @@ function consumeIfNeeded(save: InazumaSave, beforeBoss = false): void {
     if (beforeBoss) {
       const dry = starters().find((p) => p.pt < ptMax(p) * 0.5)
       if (dry) {
-        const drink = ['concentrado', 'bebida-doble', 'ramen-especial', 'bebida-isotonica']
+        const drink = ['pocion-pt-max', 'superpocion-pt', 'pocion-pt', 'concentrado', 'bebida-doble', 'ramen-especial', 'bebida-isotonica']
           .find((id) => save.bag.includes(id))
         if (drink) { applyConsumable(save, drink, dry.uid); continue }
       }

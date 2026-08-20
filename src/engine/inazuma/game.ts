@@ -652,12 +652,18 @@ export function applyConsumable(
   switch (itemId) {
     // --- Pociones ESTÁNDAR, en porcentaje. ---
     case 'pocion-pt':
+      one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.25)) }))
+      return spend('+25 % del depósito de PT')
+    case 'superpocion-pt':
       one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.5)) }))
       return spend('+50 % del depósito de PT')
     case 'pocion-pt-max':
       one((p) => ({ ...p, pt: ptMax(p) }))
       return spend('PT al máximo')
     case 'pocion-aguante':
+      one((p) => ({ ...p, stamina: Math.min(100, p.stamina + 25) }))
+      return spend('+25 % de aguante')
+    case 'superpocion-aguante':
       one((p) => ({ ...p, stamina: Math.min(100, p.stamina + 50) }))
       return spend('+50 % de aguante')
     case 'pocion-aguante-max':
@@ -759,12 +765,18 @@ export function subActor(save: InazumaSave, uid: string, role: Position): Actor 
 export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean; message: string } {
   switch (itemId) {
     case 'pocion-pt':
+      a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.25))
+      return { ok: true, message: '+25 % de PT' }
+    case 'superpocion-pt':
       a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.5))
       return { ok: true, message: '+50 % de PT' }
     case 'pocion-pt-max':
       a.pt = a.ptMax
       return { ok: true, message: 'PT al máximo' }
     case 'pocion-aguante':
+      a.stamina = Math.min(100, a.stamina + 25)
+      return { ok: true, message: '+25 % de aguante' }
+    case 'superpocion-aguante':
       a.stamina = Math.min(100, a.stamina + 50)
       return { ok: true, message: '+50 % de aguante' }
     case 'pocion-aguante-max':
