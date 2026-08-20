@@ -878,7 +878,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         {/* LA TÉCNICA EN EL BALÓN: halo del color del elemento alrededor de
             la pelota + placa con nombre y potencia. Lo demás lo cuenta la
             tele de Chester — el césped queda limpio. */}
-        {techTag.current && tagActive && !flight && (
+        {/* Con el balón YA ATERRIZADO en la portería, la placa sí se pinta:
+            es el momento del portero (keeperTry) y su técnica va anclada a
+            él, no al vuelo. Solo se oculta durante el vuelo en sí. */}
+        {techTag.current && tagActive && (!flight || flight.landed) && (
           <div
             key={techTag.current.key}
             // FIJA en el punto del duelo (perseguir al balón dejaba rastro de

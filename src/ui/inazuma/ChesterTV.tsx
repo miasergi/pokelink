@@ -101,8 +101,11 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
     if (!name) return
     const key = feed.length
     setTech({ name, key })
-    const t = setTimeout(() => setTech((s) => (s?.key === key ? null : s)), 2600)
-    return () => clearTimeout(t)
+    // OJO: SIN cleanup. Si el timer se limpiara al llegar el siguiente
+    // evento (como hacía), una imagen cuyo evento retiene menos de 2.6 s se
+    // quedaba PILLADA para siempre — el guard por `key` ya evita que un
+    // timer viejo borre una imagen más nueva.
+    setTimeout(() => setTech((s) => (s?.key === key ? null : s)), 2600)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed.length])
 

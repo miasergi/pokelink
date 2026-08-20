@@ -144,8 +144,9 @@ function holdFor(e: MatchEvent): number {
       // tiene su momento.
       return 1500
     // El portero saca su técnica y el estadio contiene el aire: su momento
-    // dura lo mismo acabe en parada o en gol.
-    case 'keeperTry': return 1500
+    // dura lo mismo acabe en parada o en gol. A 1.5 s el veredicto pisaba a
+    // la técnica — con 2.2 s la imagen (2.6 s) casi termina antes del fallo.
+    case 'keeperTry': return 2200
     case 'tactic': return 1800
     case 'burst':
     case 'stage': return 1100

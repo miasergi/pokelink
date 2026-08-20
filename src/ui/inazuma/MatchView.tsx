@@ -98,10 +98,10 @@ export default function MatchView() {
       setShotFlight(null)
       setGol({ scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
     } else if (last.kind === 'keeperTry') {
-      // EL MOMENTO DEL PORTERO: el balón sigue en la portería mientras su
-      // técnica se materializa (tele + placa); el veredicto es el siguiente
-      // evento. Se suelta el balón a mitad para que la placa se vea limpia.
-      setTimeout(() => setShotFlight(null), Math.round(900 * f))
+      // EL MOMENTO DEL PORTERO: el balón se queda EN LA PORTERÍA durante todo
+      // el momento (con el vuelo aún vivo, el rondo no arranca y el campo no
+      // se mueve). Lo recoge el veredicto: la parada al segundo, el gol al
+      // instante bajo su celebración.
     } else if (last.kind === 'penalty') {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
       setStage({
