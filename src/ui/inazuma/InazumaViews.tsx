@@ -20,7 +20,7 @@ import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, overall, ptMax, RARITY_LABEL, rarityOf,
   realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
-  SIGNATURE_LEVELS, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
+  signatureLevelFor, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 import type { Element as InazumaElement } from '@/engine/inazuma/types'
@@ -1031,7 +1031,7 @@ function PlayerDetail({
                   const t = getTechnique(id)
                   if (!t) return null
                   const i = chain.indexOf(id)
-                  const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+                  const need = signatureLevelFor(player.baseId, i)
                   // El paso i pide rareza i+1: el 2.º es de Avanzado, el 3.º de Ídolo…
                   const needRarity = Math.min(MAX_RARITY, i + 1)
                   const faltaNivel = player.level < need
@@ -1411,7 +1411,7 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
             const t = getTechnique(id)
             if (!t) return null
             const info = ELEMENT_INFO[t.element]
-            const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+            const need = signatureLevelFor(baseId, i)
             return (
               <span key={id} className="inline-flex items-center gap-1">
                 <span

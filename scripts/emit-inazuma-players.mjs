@@ -305,7 +305,10 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
   }
   for (const id of [...realPrimary, ...realOther]) { if (merged.length < 4 && !merged.includes(id)) merged.push(id) }
 
-  if (merged.length >= 4) return sortSameKindAscending(merged.slice(0, 4), byId, canonRank)
+  // CADENAS SOLO CANÓNICAS: cada jugador lleva LO SUYO y nada más — como las
+  // evoluciones de Pokémon, no todos tienen 4 pasos ni falta que les hace.
+  // El chaval de barrio con una técnica ES diseño; el crack lleva su arsenal.
+  if (merged.length >= 1) return sortSameKindAscending(merged.slice(0, 4), byId, canonRank)
 
   // Relleno DETERMINISTA POR JUGADOR, cubriendo las clases que falten: la
   // cadena de un no-portero acaba con AL MENOS un tiro, un regate y un
@@ -318,8 +321,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
   // por la del puesto), luego repetir la del puesto.
   const missing = kinds.filter((k) => countKind(k) === 0)
   missing.sort((a, b) => (a === kind ? -1 : 0) - (b === kind ? -1 : 0))
-  const wanted = []
-  while (wanted.length + merged.length < 4) wanted.push(missing[wanted.length] ?? kind)
+  const wanted = [missing[0] ?? kind]
 
   const picks = []
   wanted.forEach((k, i) => {

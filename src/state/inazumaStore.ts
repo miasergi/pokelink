@@ -381,6 +381,9 @@ interface InazumaState {
   skipNode: () => void
   /** Casilla de intercambio: cambia al elegido por otro al azar (+3 niveles). */
   resolveTrade: (uid: string) => void
+  /** Cola de APRENDIZAJES: técnicas recién despertadas, para su animación. */
+  learnFx: { uid: string; baseId: string; playerName: string; techId: string }[]
+  clearLearnFx: () => void
   /**
    * RUEDA DE ENTRENAMIENTO: aplica el plan elegido.
    *  - 'uno'          → +5 niveles a UN jugador, −50 de aguante (el machaque)
@@ -409,6 +412,21 @@ interface InazumaState {
   resumePausedMatch: () => void
   release: (uid: string) => void
   buy: (itemId: string) => void
+}
+
+/** Técnicas que APARECEN al comparar la plantilla de antes y después: son
+ * los despertares por nivel, y alimentan la animación de aprendizaje. */
+function learnedBetween(before: InazumaSave['roster'], after: InazumaSave['roster']) {
+  const prev = new Map(before.map((p) => [p.uid, new Set(p.techniques)]))
+  const out: { uid: string; baseId: string; playerName: string; techId: string }[] = []
+  for (const p of after) {
+    const had = prev.get(p.uid)
+    if (!had) continue
+    for (const t of p.techniques) {
+      if (!had.has(t)) out.push({ uid: p.uid, baseId: p.baseId, playerName: getPlayerBase(p.baseId).name, techId: t })
+    }
+  }
+  return out
 }
 
 export const useInazuma = create<InazumaState>((set, get) => ({
@@ -911,6 +929,10 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       cleared: save.cleared.slice(),
     }
     applyMatchResult(next, match, matchNode)
+    // Los niveles del partido pueden DESPERTAR técnicas: a la cola de la
+    // animación de aprendizaje (se enseña al volver al mapa).
+    const learned = learnedBetween(save.roster, next.roster)
+    if (learned.length) set({ learnFx: [...get().learnFx, ...learned] })
     const result = match.result ?? 'draw'
 
     if (isEliminated(matchNode, result)) {
@@ -1369,6 +1391,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     void persist(next, 'map')
   },
 
+  learnFx: [],
+  clearLearnFx: () => set({ learnFx: get().learnFx.slice(1) }),
+
   resolveEntreno: (plan, uid) => {
     const { save, matchNode } = get()
     if (!save || matchNode?.kind !== 'entrenamiento') return
@@ -1403,7 +1428,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     const next: InazumaSave = { ...save, roster, cleared: save.cleared.slice() }
     advanceLayer(next, matchNode)
-    set({ save: next, matchNode: null, phase: 'map', message })
+    // Lo DESPERTADO en el entrenamiento se anuncia con su animación.
+    const learned = learnedBetween(save.roster, roster)
+    set({ save: next, matchNode: null, phase: 'map', message, learnFx: [...get().learnFx, ...learned] })
     void persist(next, 'map')
   },
 

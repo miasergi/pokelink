@@ -23,7 +23,7 @@ import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward, signingLevel } from './rewards'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
-  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, START_LEVEL, TECH_LEVEL_BONUS,
+  levelUp, lineupError, overall, ptMax, rarityOf, rivalStartingXI, SIGNATURE_LEVELS, signatureLevelFor, START_LEVEL, TECH_LEVEL_BONUS,
   techLevel, transferValue, upgradeTechnique,
   rivalArmbandBaseId, rivalRarityMap,
 } from './roster'
@@ -190,13 +190,19 @@ describe('plantilla', () => {
     expect(clones.map((t) => t.id)).toHaveLength(0)
   })
 
-  it('TODA cadena tiene sus 4 pasos (nadie se queda a medias)', () => {
-    // 44 jugadores de Victory Road salían con cadenas de 1-3 pasos: el relleno
-    // estaba limitado al pool de técnicas de su época, corto en algunos cruces
-    // de clase y elemento. Ahora cae al catálogo completo antes que dejar
-    // huecos — y esto vigila que no vuelva a pasar.
-    const cortas = PLAYERS.filter((p) => (p.signature ?? []).length < 4)
-    expect(cortas.map((p) => `${p.name} (${(p.signature ?? []).length})`)).toHaveLength(0)
+  it('TODA cadena es CANÓNICA: entre 1 y 4 pasos, y todos resuelven', () => {
+    // El relleno inventado murió: cada jugador lleva LO SUYO, y quien solo
+    // tiene una técnica en el canon lleva UNA (como en Pokémon no todos
+    // evolucionan). Lo exigible: nadie sin nada, nadie con más de 4, y cada
+    // paso apunta a una técnica real del catálogo.
+    for (const p of PLAYERS) {
+      const chain = p.signature ?? []
+      expect(chain.length, `${p.name} sin cadena`).toBeGreaterThanOrEqual(1)
+      expect(chain.length, p.name).toBeLessThanOrEqual(4)
+      for (const id of chain) expect(getTechnique(id), `${p.name}: ${id}`).toBeDefined()
+    }
+    // Y las cadenas cortas EXISTEN: son diseño, no un bug del generador.
+    expect(PLAYERS.some((p) => (p.signature ?? []).length < 4)).toBe(true)
   })
 
   it('cada jugador lleva SUS supertécnicas, no un relleno', () => {
@@ -1321,10 +1327,12 @@ describe('coherencia', () => {
     expect(chain.length).toBeGreaterThanOrEqual(3)
     // Rareza MULTICOLOR: la cadena entera es alcanzable (un bronce se queda
     // en el primer paso — eso lo cubre el test de rarezas).
-    let p = createPlayer('mark-evans', 5, { rarity: 4 })
-    expect(p.techniques).toHaveLength(0)
+    let p = createPlayer('mark-evans', 2, { rarity: 4 })
     chain.forEach((id, i) => {
-      const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+      // El umbral es PERSONAL (±3 sobre la tabla): como los niveles de
+      // evolución, cada jugador tiene los suyos.
+      const need = signatureLevelFor('mark-evans', i)
+      expect(Math.abs(need - SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])).toBeLessThanOrEqual(3)
       p = levelUp(p, need - p.level)
       expect(p.techniques, `paso ${i} al nivel ${need}`).toContain(id)
     })

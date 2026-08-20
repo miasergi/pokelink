@@ -320,6 +320,21 @@ export function createPlayer(
 export const SIGNATURE_LEVELS = [8, 18, 30, 44]
 
 /**
+ * Nivel al que ESTE jugador despierta el paso i de su cadena. Como las
+ * evoluciones de Pokémon: no todos aprenden a los mismos niveles — cada
+ * jugador desplaza la tabla base hasta ±3 niveles, determinista por su id
+ * (hash FNV), y siempre creciente (los saltos base son de 10+).
+ */
+export function signatureLevelFor(baseId: string, i: number): number {
+  const base = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+  let h = 2166136261
+  for (const ch of baseId) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) }
+  h = h >>> 0
+  const off = ((h >>> (i * 5)) % 7) - 3
+  return Math.max(2, base + off)
+}
+
+/**
  * La cadena ALCANZABLE de un jugador: los primeros N pasos, con N = su rareza
  * (bronce 1 … multicolor 4). Subir de rareza desbloquea el siguiente paso.
  */
@@ -332,7 +347,7 @@ function awakenByLevel(p: PlayerInstance): PlayerInstance {
   const chain = reachableChain(p)
   let out = p
   chain.forEach((id, i) => {
-    const need = SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)]
+    const need = signatureLevelFor(p.baseId, i)
     if (out.level >= need && !out.techniques.includes(id)) {
       const techs = out.techniques.slice()
       if (techs.length >= TECHNIQUE_SLOTS) techs.shift()
@@ -630,7 +645,7 @@ function applyPower(s: Stats, power: number): Stats {
  */
 export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: number, elite = false): string[] {
   const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
-  let known = chain.filter((_, i) => level >= SIGNATURE_LEVELS[Math.min(i, SIGNATURE_LEVELS.length - 1)])
+  let known = chain.filter((_, i) => level >= signatureLevelFor(b.id, i))
   // El paso EXTRA de los cracks ★5 solo a partir del tramo alto (nivel 30+):
   // desde el primer partido hacía que «el rival no para de usar supertécnicas»
   // mientras tu equipo aún despertaba las suyas.
