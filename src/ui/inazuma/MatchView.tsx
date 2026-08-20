@@ -91,14 +91,17 @@ export default function MatchView() {
     // del vuelo tienen que encoger igual o el balón y el portero se desfasan.
     const f = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
     if (last.kind === 'goal') {
+      // La celebración entra YA: el momento del portero fue el evento
+      // anterior (keeperTry) — retrasarla solo dejaba ver el campo
+      // recolocándose al centro por debajo.
       const isMine = last.side === mine
       setShotFlight(null)
-      // Con intento FALLIDO del portero, la celebración espera un latido: da
-      // tiempo a ver su técnica en el césped y en la tele antes del ¡GOL!
-      const wait = last.keeperTech ? Math.round(1100 * f) : 0
-      const golData = { scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) }
-      if (wait > 0) setTimeout(() => setGol(golData), wait)
-      else setGol(golData)
+      setGol({ scorer: last.scorer, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
+    } else if (last.kind === 'keeperTry') {
+      // EL MOMENTO DEL PORTERO: el balón sigue en la portería mientras su
+      // técnica se materializa (tele + placa); el veredicto es el siguiente
+      // evento. Se suelta el balón a mitad para que la placa se vea limpia.
+      setTimeout(() => setShotFlight(null), Math.round(900 * f))
     } else if (last.kind === 'penalty') {
       // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
       setStage({

@@ -254,10 +254,10 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           const at = shownPos.current.get(last.keeperUid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
           techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid, at: { ...at } }
         }
-      } else if (last?.kind === 'goal' && last.keeperTech && last.keeperUid) {
-        // GOL con intento del portero: su técnica también sale al césped —
-        // gastó los PT y sin placa parecía que nunca la había usado.
-        const t = techniqueByName(last.keeperTech)
+      } else if (last?.kind === 'keeperTry') {
+        // El MOMENTO del portero: su placa brota ANTES del veredicto, con el
+        // mismo compás pare o encaje.
+        const t = techniqueByName(last.technique)
         if (t) {
           const at = shownPos.current.get(last.keeperUid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
           techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid, at: { ...at } }
@@ -270,8 +270,8 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       }
       // CUALQUIER evento sin técnica RECOGE la placa anterior: cinturón y
       // tirantes contra placas que se quedaran pintadas en el césped.
-      if (last && last.kind !== 'duel' && !(last.kind === 'save' && last.technique)
-        && !(last.kind === 'goal' && last.keeperTech)) {
+      if (last && last.kind !== 'duel' && last.kind !== 'keeperTry'
+        && !(last.kind === 'save' && last.technique)) {
         techTag.current = null
       }
     }

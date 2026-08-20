@@ -214,10 +214,13 @@ export type MatchEvent =
   | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; /** Probabilidad REAL que tenía el atacante (transparencia de la mecánica). */ chance?: number; /** El disparo salió de LEJOS: el césped lo pinta desde su sitio. */ longShot?: boolean; /** Es el CRUCE de un defensa en la trayectoria, no el disparo final. */ intercept?: boolean; text: string }
   | {
     kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number]
-    /** La técnica que el portero INTENTÓ y no bastó: se gasta PT igual, así
-        que la retransmisión tiene que contarla (tele + placa en el césped). */
+    /** La técnica que el portero INTENTÓ y no bastó (para la frase de
+        Chester; el momento en sí lo cuenta el evento `keeperTry` previo). */
     keeper?: string; keeperUid?: string; keeperTech?: string
   }
+  /** EL MOMENTO DEL PORTERO: saca su técnica ANTES de saberse el veredicto.
+      Se emite con el mismo compás pare o encaje — cero spoilers por ritmo. */
+  | { kind: 'keeperTry'; minute: number; side: Side; keeper: string; keeperUid: string; technique: string; text: string }
   | { kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string }
   | { kind: 'turnover'; minute: number; side: Side; text: string }
   | { kind: 'burst'; minute: number; side: Side; text: string }

@@ -529,6 +529,21 @@ function executeDuel(
     text: duelText(step, attacker, defender, atkTech, defTech, r.success, r.effectiveness),
   })
 
+  // EL MOMENTO DEL PORTERO: si intentó una técnica ante el disparo, tiene su
+  // propio evento ANTES del veredicto — con el mismo compás pare o encaje.
+  // Sin él, en el gol la técnica salía a la vez que el ¡GOOOL! (o no salía).
+  if (step === 'definicion' && defTech) {
+    out.push({
+      kind: 'keeperTry',
+      minute: m.minute,
+      side: otherSide(chain.side),
+      keeper: defender.name,
+      keeperUid: defender.uid,
+      technique: defTech.name,
+      text: `¡${defender.name} saca su ${defTech.name}!`,
+    })
+  }
+
   if (r.success) {
     addBurst(atkSide, BURST_ON_DUEL)
     chain.momentum += 0.08 + (atkFx.momentumStep ?? 0)

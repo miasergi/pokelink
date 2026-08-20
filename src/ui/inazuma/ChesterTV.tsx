@@ -29,9 +29,13 @@ function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
         : `¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡${e.technique}!` : ''}`,
       mood: 'euforia',
     }
+    // El portero SACA su técnica: aún no se sabe si basta. Puro drama.
+    case 'keeperTry': return { text: `¡${first(e.keeper)} saca su ${e.technique}!`, mood: 'drama' }
     case 'save': return {
       text: e.technique
-        ? `¡${first(e.keeper)} usa ${e.technique} para parar el tiro!`
+        // La técnica ya se contó en su momento (keeperTry): esto es el
+        // VEREDICTO a secas.
+        ? `¡LA PARA! ¡Enorme ${first(e.keeper)}!`
         : `¡${first(e.keeper)} la para!`,
       mood: 'drama',
     }
@@ -85,13 +89,15 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
         : e.intercept
           ? (e.success ? e.technique : e.counter ?? e.technique)
           : (e.success ? e.technique ?? e.counter : e.counter ?? e.technique))
-      : e?.kind === 'save' || e?.kind === 'penalty'
+      // El MOMENTO del portero: su técnica en imagen ANTES del veredicto.
+      // La parada posterior ya no re-corta (la imagen sería la misma).
+      : e?.kind === 'keeperTry'
         ? e.technique
-        // En el gol, la imagen es la del INTENTO del portero (la del tiro ya
-        // se enseñó al disparar): se ve la técnica que no pudo con el balón.
-        : e?.kind === 'goal'
-          ? e.keeperTech
-          : undefined
+        : e?.kind === 'save'
+          ? (prev?.kind === 'keeperTry' ? undefined : e.technique)
+          : e?.kind === 'penalty'
+            ? e.technique
+            : undefined
     if (!name) return
     const key = feed.length
     setTech({ name, key })

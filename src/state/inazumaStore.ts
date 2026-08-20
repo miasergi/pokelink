@@ -134,18 +134,18 @@ function holdFor(e: MatchEvent): number {
     case 'penalty': return 4200     // escenario (2.3s) + celebración retardada
     case 'save': return 2600        // el FX del portero brota en el césped
     case 'duel':
-      // El tiro que ACABA en gol corta antes: el escenario no pone sello (eso
-      // sería el spoiler) y la celebración del evento de gol toma el relevo.
-      if (e.step === 'definicion' && e.success) return 3600
-      // El tiro que NO entra: carga (1.6s) + vuelo (1.7s)… y la parada se
-      // revela JUSTO cuando el balón está llegando — el portero reacciona al
-      // balón, no se queda mirándolo parado en sus guantes.
+      // TODO disparo retiene lo mismo, entre o no: carga (1.6s) + vuelo
+      // (1.7s), y el siguiente evento llega JUSTO con el balón en los
+      // guantes. Un hold distinto por resultado era un spoiler de ritmo.
       if (e.step === 'definicion') return 3400
       if (e.technique || e.counter) return 3600
       // Duelo de campo a pelo: antes 500 ms — pasaba sin que te dieras ni
       // cuenta de quién contra quién. Ahora respira y la CHISPA del césped
       // tiene su momento.
       return 1500
+    // El portero saca su técnica y el estadio contiene el aire: su momento
+    // dura lo mismo acabe en parada o en gol.
+    case 'keeperTry': return 1500
     case 'tactic': return 1800
     case 'burst':
     case 'stage': return 1100
@@ -167,6 +167,7 @@ function soundFor(e: MatchEvent): void {
       else if (e.technique || e.counter) play('supertecnica')
       else play('hit')
       break
+    case 'keeperTry':
     case 'tactic':
     case 'burst': play('supertecnica'); break
     case 'kickoff':
