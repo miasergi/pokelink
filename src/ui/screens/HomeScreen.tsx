@@ -31,10 +31,10 @@ function localDateStr(ms: number): string {
  * encima, el estado de tu partida y UN solo botón. Un toque = jugar. Los
  * accesos secundarios van en chips debajo — nada de pilas de botones.
  */
-function CoverCard({ art, logo, alt, color, kicker, status, cta, onPlay }: {
+function CoverCard({ art, title, color, kicker, status, cta, onPlay }: {
   art: string
-  logo: string
-  alt: string
+  /** El TÍTULO del juego, en texto grande sobre el arte. */
+  title: string
   color: string
   kicker: string
   status: string
@@ -55,7 +55,12 @@ function CoverCard({ art, logo, alt, color, kicker, status, cta, onPlay }: {
           color del juego en el borde superior. */}
       <div className="absolute inset-0" style={{ background: `linear-gradient(to top, rgba(2,6,23,.95) 6%, rgba(2,6,23,.55) 46%, rgba(2,6,23,.12) 78%, ${color}26 100%)` }} />
       <div className="relative h-44 p-4 flex flex-col justify-between">
-        <img src={logo} alt={alt} draggable={false} className="h-12 self-start object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,.85)]" />
+        <span
+          className="self-start max-w-[85%] text-[22px] leading-[1.05] font-black uppercase tracking-tight text-white"
+          style={{ textShadow: `0 2px 0 rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.85), 0 0 24px ${color}66` }}
+        >
+          {title}
+        </span>
         <div className="flex items-end justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[9px] uppercase tracking-[0.22em] font-extrabold" style={{ color }}>{kicker}</div>
@@ -143,9 +148,8 @@ export default function HomeScreen() {
       <div className="w-full max-w-sm mx-auto flex flex-col gap-2.5 my-auto">
         {/* ---- POKÉMON ---- */}
         <CoverCard
-          art={`${import.meta.env.BASE_URL}regions/gen1.webp`}
-          logo={`${import.meta.env.BASE_URL}pokerogue.png`}
-          alt="PokéRogue"
+          art={`${import.meta.env.BASE_URL}covers/pokemon-cover.jpg`}
+          title="Pokémon Roguelike"
           color="#f87171"
           kicker="Roguelike autobattler"
           status={hasSavedRun ? 'Run en curso' : 'Nueva aventura por las 9 regiones'}
@@ -163,9 +167,8 @@ export default function HomeScreen() {
 
         {/* ---- INAZUMA ELEVEN ---- */}
         <CoverCard
-          art={`${import.meta.env.BASE_URL}inazuma/sagas/ff.png`}
-          logo={`${import.meta.env.BASE_URL}inazuma/logo.png`}
-          alt="Inazuma Eleven"
+          art={`${import.meta.env.BASE_URL}covers/inazuma-cover.jpg`}
+          title="Inazuma Eleven Roguelike"
           color="#fbbf24"
           kicker="Roguelite de fútbol"
           status={inazumaRound ? inazumaRound.replace('Continuar · ', '') : 'Nuevo asalto al Football Frontier'}
