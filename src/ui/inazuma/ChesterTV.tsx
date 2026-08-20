@@ -74,12 +74,23 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
   const [tech, setTech] = useState<{ name: string; key: number } | null>(null)
+  // PLANO DE GOL: al marcar, la tele corta a Chester en pleno éxtasis.
+  const [golCam, setGolCam] = useState<{ key: number } | null>(null)
   const seen = useRef(0)
   useEffect(() => {
     if (feed.length === seen.current) return
     seen.current = feed.length
     const e = feed[feed.length - 1]
     const prev = feed[feed.length - 2]
+    // GOL: el plano de la celebración PISA cualquier imagen anterior (la del
+    // intento del portero incluida) y dura lo que dura la celebración.
+    if (e?.kind === 'goal') {
+      setTech(null)
+      const key = feed.length
+      setGolCam({ key })
+      setTimeout(() => setGolCam((s) => (s?.key === key ? null : s)), 3400)
+      return
+    }
     // Tras un cruce SUPERADO, el duelo con el portero es el MISMO disparo:
     // no se vuelve a cortar a la imagen del tiro.
     const grazedPrev = prev?.kind === 'duel' && prev.intercept === true && prev.success
@@ -98,9 +109,17 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           : e?.kind === 'penalty'
             ? e.technique
             : undefined
-    if (!name) return
+    if (!name) {
+      // Sin imagen propia: la PARADA deja respirar a la del intento del
+      // portero (se va sola a los 2.6 s, «un pelín más»); cualquier otro
+      // evento corta a Chester AL MOMENTO — una imagen jamás sobrevive a la
+      // reanudación del juego.
+      if (e?.kind !== 'save') { setTech(null); setGolCam(null) }
+      return
+    }
     const key = feed.length
     setTech({ name, key })
+    setGolCam(null)
     // OJO: SIN cleanup. Si el timer se limpiara al llegar el siguiente
     // evento (como hacía), una imagen cuyo evento retiene menos de 2.6 s se
     // quedaba PILLADA para siempre — el guard por `key` ya evita que un
@@ -119,9 +138,21 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
         className={`relative flex h-[120px] rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
         style={{ borderColor: accent, boxShadow: `0 0 18px ${accent}44` }}
       >
-        {/* LA PANTALLA: Chester (o la técnica, cuando salta una). */}
+        {/* LA PANTALLA: Chester (o la técnica, cuando salta una; o el PLANO
+            DE GOL, con Chester en éxtasis, cuando el balón entra). */}
         <div className="relative w-[190px] shrink-0 overflow-hidden bg-slate-900">
-          {techInfo ? (
+          {golCam ? (
+            <div key={`gol-${golCam.key}`} className="absolute inset-0 animate-pop-in">
+              <ImgFallback
+                src={`${BASE}inazuma/chester-gol.png`}
+                // Chester sale en el TERCIO DERECHO del fotograma: se encuadra
+                // ahí (object-right) para que el éxtasis no quede recortado.
+                className="w-full h-full object-cover object-right tv-zoom"
+                alt="¡GOL!"
+                fallback={<span className="grid place-items-center w-full h-full text-lg font-black text-amber-300">¡GOOOL!</span>}
+              />
+            </div>
+          ) : techInfo ? (
             <div key={tech!.key} className="absolute inset-0 animate-pop-in">
               <ImgFallback
                 src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
