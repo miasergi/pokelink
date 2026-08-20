@@ -77,7 +77,8 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
   // PLANO DE GOL: al marcar, la tele corta al balón reventando la red.
   const [golCam, setGolCam] = useState<{ key: number } | null>(null)
   // PLANO DE PARADA: el portero con la pelota atrapada, al cantar el paradón.
-  const [saveCam, setSaveCam] = useState<{ key: number; baseId: string } | null>(null)
+  // Si no tiene ese fotograma, `portrait` marca la caída a su RETRATO.
+  const [saveCam, setSaveCam] = useState<{ key: number; baseId: string; portrait?: boolean } | null>(null)
   const seen = useRef(0)
   useEffect(() => {
     if (feed.length === seen.current) return
@@ -165,15 +166,16 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
               />
             </div>
           ) : saveCam ? (
-            <div key={`save-${saveCam.key}`} className="absolute inset-0 animate-pop-in">
+            <div key={`save-${saveCam.key}-${saveCam.portrait ? 'p' : 'f'}`} className="absolute inset-0 animate-pop-in">
               {/* La FOTO DEL PARADÓN: el portero con la pelota atrapada. Si
-                  este portero no tiene fotograma, el error de carga tira el
-                  plano y la tele cae a lo de siempre (técnica o Chester). */}
+                  este portero no tiene fotograma, cae a su RETRATO (busto
+                  centrado, no un recorte); y si tampoco hay retrato, el
+                  segundo error tira el plano y la tele sigue con lo suyo. */}
               <img
-                src={`${BASE}inazuma/keepers/${saveCam.baseId}.png`}
-                className="w-full h-full object-cover"
+                src={`${BASE}inazuma/${saveCam.portrait ? 'players' : 'keepers'}/${saveCam.baseId}.png`}
+                className={`w-full h-full ${saveCam.portrait ? 'object-contain p-1' : 'object-cover'}`}
                 alt="¡Parada!"
-                onError={() => setSaveCam(null)}
+                onError={() => setSaveCam((s) => (s && !s.portrait ? { ...s, portrait: true } : null))}
               />
             </div>
           ) : techInfo ? (
