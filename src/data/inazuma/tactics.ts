@@ -32,7 +32,7 @@ export interface TacticEffect {
   reclaimChance?: number
   /** Multiplicador del desgaste de aguante de los tuyos (0.8 = aguantan más). */
   staminaDrain?: number
-  /** Multiplicador de la Ruptura ganada: llena antes la Supervibración. */
+  /** Multiplicador de la barra ganada: la táctica se enciende antes. */
   burstGain?: number
   /** Multiplicador del castigo por distancia del tiro lejano (>1 = castiga menos). */
   longShotRelief?: number
@@ -60,6 +60,9 @@ export interface Tactic {
   color: string
   effect: TacticEffect
 }
+
+/** Lo que cobra la tienda por una TÁCTICA ESPECIAL nueva (no se regalan). */
+export const TACTIC_PRICE = 1200
 
 export const TACTICS: Tactic[] = [
   {
@@ -108,7 +111,7 @@ export const TACTICS: Tactic[] = [
   {
     id: 'vibracion',
     name: 'Vibración colectiva',
-    desc: 'La barra de Ruptura sube un 55 % más rápido. Supervibración casi cada jugada buena.',
+    desc: 'La barra de Táctica especial sube un 55 % más rápido: la enciendes antes que nadie.',
     icon: 'bolt',
     color: '#a855f7',
     effect: { burstGain: 1.55 },
@@ -193,7 +196,7 @@ export function tacticEffectLines(t: Tactic): string[] {
   if (e.staminaDrain != null) out.push(e.staminaDrain < 1
     ? `los tuyos se cansan un ${Math.round((1 - e.staminaDrain) * 100)} % menos`
     : `los tuyos se cansan un ${Math.round((e.staminaDrain - 1) * 100)} % más`)
-  if (e.burstGain) out.push(`la barra de Ruptura se llena ${PCT(e.burstGain)} más rápido`)
+  if (e.burstGain) out.push(`la barra de Táctica especial se llena ${PCT(e.burstGain)} más rápido`)
   if (e.longShotRelief) out.push('la distancia castiga menos tus tiros lejanos')
   if (e.ptCost != null) out.push(e.ptCost < 1
     ? `tus supertécnicas cuestan un ${Math.round((1 - e.ptCost) * 100)} % menos de PT`

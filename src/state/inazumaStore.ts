@@ -26,8 +26,8 @@ import {
 import { actorByUid, advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
-import { getTactic, TACTICS } from '@/data/inazuma/tactics'
-import { teamDisplay } from '@/data/inazuma/teams'
+import { getTactic, TACTIC_PRICE } from '@/data/inazuma/tactics'
+import { teamDisplay, TEAM_BY_ID } from '@/data/inazuma/teams'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalRarityMap, slotRole, transferValue, upgradeTechnique,
@@ -426,6 +426,8 @@ interface InazumaState {
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
   /** ARMA una filosofía ganada: la que podrás encender en el partido. */
   armTactic: (id: string) => void
+  /** Compra una TÁCTICA ESPECIAL en la tienda (las nuevas ya no se regalan). */
+  buyTactic: (id: string) => void
   /** Elige los COMPAÑEROS preferidos de una técnica combinada. */
   setComboPartner: (techniqueId: string, uids: string[]) => void
   /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
@@ -524,6 +526,13 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         const bi = banquillo.findIndex((p) => getPlayerBase(p.baseId).position === pos)
         const p = banquillo.splice(bi >= 0 ? bi : 0, 1)[0]
         save.lineup[sIdx] = p.uid
+      }
+      // MIGRACIÓN de tácticas: una partida vieja sin ninguna recibe la
+      // canónica de su club (ahora vienen de serie y no se regalan).
+      if (!save.tactics?.length) {
+        const canon = TEAM_BY_ID.get(save.customCrest ?? save.teamId)?.tactic ?? 'remontada'
+        save.tactics = [canon]
+        save.armedTactic ??= canon
       }
     }
     // Entrada directa desde el menú principal (Álbum, etc.): se consume aquí.
@@ -1087,18 +1096,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
     }
 
-    let tacticMsg = ''
-    if (result === 'win' && (matchNode.kind === 'jefe' || matchNode.kind === 'final')) {
-      const owned = new Set(next.tactics ?? [])
-      const pool = TACTICS.filter((t) => !owned.has(t.id))
-      if (pool.length) {
-        const won = pool[getRng(next).int(0, pool.length - 1)]
-        next.tactics = [...(next.tactics ?? []), won.id]
-        // Sin nada armado, la nueva se arma sola: lista para encender.
-        if (!next.armedTactic) next.armedTactic = won.id
-        tacticMsg = ` · Nueva filosofía: ${won.name}`
-      }
-    }
+    // Las TÁCTICAS ESPECIALES ya no se regalan al ganar: empiezas con la
+    // canónica de tu club y las demás SE COMPRAN en la tienda.
+    const tacticMsg = ''
 
     set({
       save: next,
@@ -1777,7 +1777,25 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (!save || !(save.tactics ?? []).includes(id)) return
     const next = { ...save, armedTactic: id }
     play('energia')
-    set({ save: next, message: `Filosofía armada: ${getTactic(id)?.name ?? id}.` })
+    set({ save: next, message: `Táctica especial armada: ${getTactic(id)?.name ?? id}.` })
+    void persist(next, get().phase)
+  },
+
+  buyTactic: (id) => {
+    const { save } = get()
+    if (!save) return
+    const t = getTactic(id)
+    if (!t || (save.tactics ?? []).includes(id)) return
+    if (save.coins < TACTIC_PRICE) { play('error'); set({ message: 'No te llega el presupuesto.' }); return }
+    const next = {
+      ...save,
+      coins: save.coins - TACTIC_PRICE,
+      tactics: [...(save.tactics ?? []), id],
+      // Sin nada armado, la nueva se arma sola: lista para encender.
+      armedTactic: save.armedTactic ?? id,
+    }
+    play('buy')
+    set({ save: next, message: `Vuestro equipo adopta: ${t.name}.` })
     void persist(next, get().phase)
   },
 

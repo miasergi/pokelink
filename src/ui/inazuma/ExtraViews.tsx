@@ -265,8 +265,8 @@ const PAGES = [
   },
   {
     icon: 'bolt',
-    title: 'Ruptura y Supervibración',
-    body: 'Encadenar jugadas buenas llena la barra de Ruptura. Al llenarse puedes activar la SUPERVIBRACIÓN: tres acciones sin gastar PT y con la potencia multiplicada. Una vez por barra, así que elige bien el momento.',
+    title: 'La Táctica especial',
+    body: 'Encadenar jugadas buenas llena la barra de Táctica especial. Al llenarse puedes ENCENDER la táctica de tu club: durante unas acciones cambia cómo se resuelve el partido. Las nuevas se compran en la tienda.',
   },
   {
     icon: 'bench',

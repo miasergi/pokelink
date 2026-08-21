@@ -33,13 +33,14 @@ const BURST_ON_DUEL = 13
 const BURST_ON_GOAL = 26
 const BURST_ON_SAVE = 20
 const BURST_ON_CONCEDE = 18
-/** Acciones que dura la Supervibración una vez activada. */
+/** Reliquia de la Supervibración (retirada): nadie la activa ya. */
 export const BURST_DURATION = 3
 /**
- * Acciones que dura una FILOSOFÍA activada. Más larga que la Supervibración:
- * sus efectos son más sutiles que un ×1.4 a todo.
+ * Acciones que dura la TÁCTICA ESPECIAL encendida. Al retirar la
+ * Supervibración es el ÚNICO pago de la barra, así que dura más (7 → 9):
+ * la banda del bot cayó de 2.5+ a 2.3 con el cambio y esto la devuelve.
  */
-export const TACTIC_DURATION = 7
+export const TACTIC_DURATION = 9
 /** Aguante que cuesta disputar un duelo (solo se persiste el de tu plantilla). */
 // Tercera subida (10/2 → 12/3): «da la sensación de que se cansan muy poco»
 // con 10/2 — el descanso y los cambios tienen que pedirse solos.
@@ -365,33 +366,25 @@ function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   const mine = playerSide(m)
   const iAttack = chain.side === mine
 
-  // La SUPERVIBRACIÓN del rival la enciende su banquillo: con la barra a tope
-  // la activa en el acto (tú la tuya, desde el panel). Sin esto el rival
-  // acumulaba Ruptura y no la usaba jamás.
+  // La TÁCTICA ESPECIAL del rival la enciende su banquillo: con la barra a
+  // tope la activa en el acto (tú la tuya, desde el panel). La Supervibración
+  // ya no existe: la barra tiene UN solo uso — encender la táctica.
   const rivalTeam = sideOf(m, otherSide(mine))
   if (rivalTeam.burst >= 100 && rivalTeam.burstTurns === 0 && !rivalTeam.tacticActive) {
     const rTactic = rivalTeam.tactics?.[0] ? getTactic(rivalTeam.tactics[0]) : undefined
-    if (rTactic && rng.chance(0.5)) {
-      // Su FILOSOFÍA canónica, encendida con la barra: identidad en juego.
-      rivalTeam.tacticActive = { id: rTactic.id, turns: TACTIC_DURATION }
-      rivalTeam.burst = 0
+    rivalTeam.burst = 0
+    if (rTactic) {
+      // Al rival le dura un poco menos que a ti (7 contra 9): antes malgastaba
+      // la mitad de sus barras en la Supervibración corta y al quitarla se
+      // volvió más duro de la cuenta — la banda del bot cayó de 2.5+ a 2.3.
+      rivalTeam.tacticActive = { id: rTactic.id, turns: TACTIC_DURATION - 2 }
       out.push({
         kind: 'tactic',
         minute: m.minute,
         side: otherSide(mine),
         tactic: rTactic.id,
         name: rTactic.name,
-        text: `¡${rivalTeam.name} enciende su filosofía: ${rTactic.name.toUpperCase()}!`,
-      })
-    } else {
-      rivalTeam.burstTurns = BURST_DURATION
-      rivalTeam.burst = 0
-      // Solo a `out`: `commit` ya vuelca los eventos del latido en `m.events`.
-      out.push({
-        kind: 'burst',
-        minute: m.minute,
-        side: otherSide(mine),
-        text: `¡${rivalTeam.name} entra en SUPERVIBRACIÓN! Sus próximas ${BURST_DURATION} acciones son gratis.`,
+        text: `¡${rivalTeam.name} enciende su táctica especial: ${rTactic.name.toUpperCase()}!`,
       })
     }
   }
@@ -956,32 +949,20 @@ function buildDecision(
     })
   }
 
-  // 5c) TU FILOSOFÍA, si la barra está llena: la alternativa táctica a la
-  //     Supervibración — misma barra, decisión distinta.
+  // 5b) TU TÁCTICA ESPECIAL, si la barra está llena: el ÚNICO uso de la
+  //     barra (la Supervibración se quitó — dos usos no se entendían).
   if (mySide.burst >= 100 && mySide.burstTurns === 0 && !mySide.tacticActive && mySide.tactics?.[0]) {
     const t = getTactic(mySide.tactics[0])
     if (t) {
       options.push({
         id: 'tactic',
         label: `¡ENCIENDE ${t.name.toUpperCase()}!`,
-        detail: `Gasta la Ruptura · tu filosofía activa ${TACTIC_DURATION} acciones`,
+        detail: `Gasta la barra · tu táctica especial activa ${TACTIC_DURATION} acciones`,
         odds: 3,
         chance: 1,
         cost: 0,
       })
     }
-  }
-
-  // 5b) Supervibración, si la barra está llena.
-  if (mySide.burst >= 100 && mySide.burstTurns === 0) {
-    options.push({
-      id: 'burst',
-      label: '¡SUPERVIBRACIÓN!',
-      detail: `Gasta la Ruptura · ${BURST_DURATION} acciones sin pagar PT y potencia ×1.4`,
-      odds: 3,
-      chance: 1,
-      cost: 0,
-    })
   }
 
   // Defendiendo se VE VENIR la jugada: la técnica que el atacante va a lanzar.
@@ -1197,23 +1178,6 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
       name: t.name,
       text: `¡${mySide.name} enciende su filosofía: ${t.name.toUpperCase()}!`,
     }]
-    m.decision = null
-    m.phase = 'playing'
-    m.events.push(...out)
-    resolveStep(m, rng, [])
-    return out
-  }
-
-  if (optionId === 'burst') {
-    mySide.burstTurns = BURST_DURATION
-    mySide.burst = 0
-    const out: MatchEvent[] = [{
-      kind: 'burst',
-      minute: m.minute,
-      side: d.mode === 'ataque' ? chain.side : otherSide(chain.side),
-      text: `¡${mySide.name} entra en SUPERVIBRACIÓN! Las próximas ${BURST_DURATION} acciones son gratis.`,
-    }]
-    // Se rehace la decisión: ahora las técnicas no cuestan PT.
     m.decision = null
     m.phase = 'playing'
     m.events.push(...out)

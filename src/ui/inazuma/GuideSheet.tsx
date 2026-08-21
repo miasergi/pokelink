@@ -23,16 +23,16 @@ const B = ({ children }: { children: React.ReactNode }) => <b className="text-sl
 const SECTIONS: Section[] = [
   {
     icon: 'bolt',
-    title: 'Filosofías de equipo',
+    title: 'Tácticas especiales',
     body: (
       <>
-        Cada instituto ganado te da una filosofía nueva, y en el <B>vestuario</B>
-        eliges cuál llevas ARMADA. En el partido, con la barra de Ruptura llena,
-        puedes <B>encenderla</B> (o gastar la barra en la Supervibración: tú
-        eliges): durante unas acciones cambia cómo se resuelve el juego — más
-        contraataques, bloqueos más duros, supertécnicas más baratas… La barra
-        <B>arde</B> mientras se consume. El <B>rival también enciende la suya</B>:
-        cada instituto tiene su forma canónica de jugar.
+        Empiezas con la táctica canónica de tu club y las demás se <B>compran
+        en la tienda</B>; en el <B>vestuario</B> eliges cuál llevas ARMADA. En el
+        partido, su barra se llena ganando jugadas y, al llegar a 100, puedes
+        <B>encenderla</B>: durante unas acciones cambia cómo se resuelve el
+        juego — más contraataques, bloqueos más duros, supertécnicas más
+        baratas… La barra <B>arde</B> mientras se consume. El <B>rival también
+        enciende la suya</B>: cada instituto tiene su forma canónica de jugar.
       </>
     ),
   },
@@ -92,12 +92,12 @@ const SECTIONS: Section[] = [
   },
   {
     icon: 'sparkle',
-    title: 'Ruptura — la barra del partido',
+    title: 'La barra de Táctica especial',
     body: (
       <>
-        La barra fina de la parte de arriba del partido. Se llena encadenando jugadas ganadas y, una vez
-        llena, se gasta en la <B>Supervibración</B>: tres acciones seguidas gratis y con la potencia
-        multiplicada. Elige bien el momento — vuelve a costar llenarla entera.
+        La barra fina de la parte de arriba del partido. Se llena encadenando
+        jugadas ganadas y, una vez llena, se gasta en <B>encender tu táctica
+        especial</B>. Elige bien el momento — vuelve a costar llenarla entera.
       </>
     ),
   },

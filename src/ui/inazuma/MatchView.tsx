@@ -364,7 +364,7 @@ export default function MatchView() {
                       ¡{t.name}!
                     </span>
                     <span className="text-[10px] uppercase tracking-widest text-slate-300">
-                      {tacticFx.mine ? 'filosofía encendida' : 'el rival la enciende'}
+                      {tacticFx.mine ? 'táctica especial encendida' : 'el rival la enciende'}
                     </span>
                   </div>
                 </div>
@@ -523,10 +523,9 @@ function TacticsSheet({ mine, theirs, mineName, theirName, onClose }: {
         >
           <Icon name="x" className="w-4.5 h-4.5" />
         </button>
-        <div className="text-center font-extrabold text-lg mb-1">Filosofías en juego</div>
+        <div className="text-center font-extrabold text-lg mb-1">Tácticas especiales en juego</div>
         <p className="text-[11px] text-slate-400 text-center mb-3 leading-snug">
-          Se ENCIENDEN con la barra de Ruptura llena (o gastas la barra en la
-          Supervibración: tú eliges) y cambian CÓMO se resuelve el partido
+          Se ENCIENDEN con su barra llena y cambian CÓMO se resuelve el partido
           durante unas acciones. La armada se elige en el vestuario.
         </p>
         {bloque(mine, mineName, true)}
@@ -674,7 +673,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
             ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
         }`}>
           {burst.mineTactic
-            ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Filosofía'} · ${burst.mineTactic.turns}`}</>
+            ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Táctica'} · ${burst.mineTactic.turns}`}</>
             : burst.mineTurns > 0
               ? `¡Supervibración! quedan ${burst.mineTurns}`
               : burst.theirsTactic
@@ -684,8 +683,8 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
                   // LLENA: se dice claro qué toca hacer — era el gran «¿y esto
                   // para qué sirve?» del playtest.
                   : burst.mine >= 100
-                    ? '¡Ruptura LISTA! Elige en tu próxima jugada'
-                    : 'Ruptura'}
+                    ? '¡Táctica especial LISTA! Actívala en tu próxima jugada'
+                    : 'Táctica especial'}
         </span>
         <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
       </div>

@@ -29,7 +29,7 @@ import type { Element as InazumaElement } from '@/engine/inazuma/types'
 import { availableNextNodes, layerName, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
-import { tacticEffectLines, tacticFitsHint, getTactic } from '@/data/inazuma/tactics'
+import { tacticEffectLines, tacticFitsHint, getTactic, TACTICS, TACTIC_PRICE } from '@/data/inazuma/tactics'
 import { loadMeta } from '@/persistence/db'
 import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -722,13 +722,13 @@ export function SquadView() {
         {err && <div className="text-[11px] text-rose-300">{err}</div>}
 
         {/* FILOSOFÍAS: aquí se ARMA la que llevas al partido. La armada se
-            ENCIENDE durante el juego con la barra de Ruptura (compite con la
-            Supervibración por la misma barra). PLEGABLE: el vestuario estaba
+            ENCIENDE durante el juego cuando su barra se llena. PLEGABLE: el
+            vestuario estaba
             creciendo y estas secciones se consultan, no se miran siempre. */}
         {!!(save.tactics ?? []).length && (
           <Foldout
             icon={<Icon name="flame" className="w-3.5 h-3.5 text-amber-300" />}
-            title="Filosofía"
+            title="Táctica especial"
             summary={getTactic(save.armedTactic ?? save.tactics![0])?.name ?? '—'}
           >
           <div className="rounded-b-2xl border-x border-b border-slate-700 bg-slate-800/50 p-2.5">
@@ -770,9 +770,9 @@ export function SquadView() {
               })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-              La ARMADA se enciende en pleno partido: cuando la barra de Ruptura
-              llega a 100, en tu siguiente jugada clave te sale el botón para
-              encenderla (o gastas la barra en la Supervibración: tú eliges).
+              La ARMADA se enciende en pleno partido: cuando su barra llega a
+              100, en tu siguiente jugada clave te sale el botón para encenderla.
+              Las nuevas se COMPRAN en la tienda — ya no se regalan.
             </p>
           </div>
           </Foldout>
@@ -1319,7 +1319,7 @@ function PlayerDetail({
 // ---------------------------------------------------------------------------
 
 export function ShopView() {
-  const { save, buy, goTo, matchNode } = useInazuma()
+  const { save, buy, buyTactic, goTo, matchNode } = useInazuma()
   if (!save) return null
   const isRaiRai = matchNode?.kind === 'rairai'
   const progress = bossIndexForLayer(save.layer)
@@ -1359,6 +1359,41 @@ export function ShopView() {
         {/* Las supertécnicas sueltas ya no se venden: cada jugador aprende
             las de SU cadena. La Mejora y el Manual avanzado siguen en stock. */}
 
+        {/* TÁCTICAS ESPECIALES en venta: empiezas con la canónica de tu club
+            y las demás se compran aquí (ya no se regalan al ganar). Rotan
+            con el avance: dos por visita, sin repetir las que ya tienes. */}
+        {!isRaiRai && (() => {
+          const owned = new Set(save.tactics ?? [])
+          const pool = TACTICS.filter((t) => !owned.has(t.id))
+          const enVenta = pool.length <= 2 ? pool : [0, 1].map((i) => pool[(save.layer + i * 3) % pool.length])
+            .filter((t, i, a) => a.indexOf(t) === i)
+          if (!enVenta.length) return null
+          return (
+            <>
+              <div className="text-[10px] uppercase tracking-widest text-slate-500">Tácticas especiales</div>
+              {enVenta.map((t) => {
+                const afford = save.coins >= TACTIC_PRICE
+                return (
+                  <Card key={t.id} className={`p-3 ${afford ? '' : 'opacity-50'}`} onClick={afford ? () => buyTactic(t.id) : undefined}>
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid place-items-center w-8 h-8 shrink-0 rounded-lg border" style={{ borderColor: `${t.color}88`, background: `${t.color}1a` }}>
+                        <Icon name={t.icon} className="w-4.5 h-4.5" style={{ color: t.color }} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-sm" style={{ color: t.color }}>{t.name}</div>
+                        <div className="text-[11px] text-slate-400">{t.desc}</div>
+                      </div>
+                      <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
+                        {TACTIC_PRICE.toLocaleString('es-ES')} ₽
+                      </span>
+                    </div>
+                  </Card>
+                )
+              })}
+              <div className="h-1" />
+            </>
+          )
+        })()}
 
         {!isRaiRai && progress < 7 && (
           <p className="text-[10px] text-slate-600">
@@ -1428,16 +1463,15 @@ export function DraftView() {
         )}
         <div className="text-[11px] uppercase tracking-widest text-slate-500">
           {draft.some((o) => o.kind === 'tactica')
-            ? 'La filosofía del equipo · elige una para el resto de la partida'
+            ? 'La táctica especial del equipo · elige una para el resto de la partida'
             : `Elige tu recompensa${draftPicks > 1 ? ` · te quedan ${draftPicks}` : ''}`}
         </div>
         {draft.some((o) => o.kind === 'tactica') && (
           <p className="text-[11px] text-slate-400 leading-snug -mt-1">
-            Las filosofías NO dan números a jugadores: cambian CÓMO se resuelve el
-            partido (contraataques, bloqueos, coste de PT…). Se ACUMULAN: cada
-            instituto ganado añade una más, y las llevas a la vista bajo el marcador
-            — tócalas ahí para releer qué hace cada una. El rival también juega con
-            la suya.
+            Las tácticas especiales NO dan números a jugadores: cambian CÓMO se
+            resuelve el partido (contraataques, bloqueos, coste de PT…). Las
+            llevas a la vista bajo el marcador — tócalas ahí para releer qué
+            hace cada una. El rival también juega con la suya.
           </p>
         )}
         {draft.map((o) => (

@@ -3,7 +3,7 @@
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
 import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
-import { type RegionId, getTeam } from '@/data/inazuma/teams'
+import { type RegionId, getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
@@ -97,6 +97,9 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     // Nombre y escudo SIEMPRE tuyos: el equipo lo fundas tú.
     customName: opts.customName?.trim() || 'Nuevo Raimon',
     customCrest: opts.customCrest,
+    // LA TÁCTICA ESPECIAL canónica de tu club (la del escudo elegido) viene
+    // de serie; las demás SE COMPRAN en la tienda — ya no se regalan.
+    tactics: [TEAM_BY_ID.get(opts.customCrest ?? teamId)?.tactic ?? getTeam(teamId).tactic ?? 'remontada'],
     rngState: rng.getState(),
     map,
     layer: 0,

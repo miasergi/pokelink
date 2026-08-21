@@ -58,13 +58,17 @@ function mount(Comp: () => JSX.Element | null): string {
  * partido esperan a que lo revelado esté al día y sin animación en pantalla —
  * que es exactamente lo que este montaje simula.
  */
-function mountSettled(Comp: () => JSX.Element | null, ms = 8000): string {
+function mountSettled(Comp: () => JSX.Element | null, ms = 9000): string {
   vi.useFakeTimers()
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   act(() => { root.render(createElement(Comp)) })
-  act(() => { vi.advanceTimersByTime(ms) })
+  // EN PASOS: un solo advanceTimersByTime(ms) NO dispara los timers que
+  // programan los EFECTOS de componentes montados a mitad del avance (la
+  // celebración de gol montaba a los 1.9s y su cierre quedaba sin correr:
+  // el overlay se quedaba «para siempre» y el panel de decisión no salía).
+  for (let t = 0; t < ms; t += 1000) act(() => { vi.advanceTimersByTime(1000) })
   const out = host.textContent ?? ''
   act(() => { root.unmount() })
   host.remove()
