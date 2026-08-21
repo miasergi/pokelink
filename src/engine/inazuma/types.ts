@@ -343,6 +343,10 @@ export interface MatchSide {
   /** true en el lado que controla el usuario. */
   isPlayer: boolean
   keeper: Actor
+  /** PAREJAS DE COMBO elegidas en el vestuario: técnica → uids preferidos.
+   * Si el elegido no está en el campo, el motor auto-ajusta (canónico en
+   * campo, y si no, el mejor compañero disponible). */
+  comboPartners?: Record<string, string[]>
   defs: Actor[]
   mids: Actor[]
   fwds: Actor[]
@@ -621,6 +625,9 @@ export interface InazumaSave {
   /** TU INICIAL (id del catálogo): define el equipo CANON de tu club — el
    * ojeador siempre ofrece a uno de sus compañeros canónicos. */
   starterBaseId?: string
+  /** PAREJAS DE COMBO del vestuario: técnica combinada → uids de la plantilla
+   * que actuarán de compañeros (se auto-ajusta si no están en el campo). */
+  comboPartners?: Record<string, string[]>
   customName?: string
   customCrest?: string
   /** Mapa completo de la partida, generado al empezar. */

@@ -11,6 +11,7 @@ import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { RARITY_COLOR, RARITY_GRADIENT } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
+import { comboOf } from '@/data/inazuma/combos'
 import type { Element, InazumaItem, NodeKind, Technique } from '@/engine/inazuma/types'
 
 const BASE = import.meta.env.BASE_URL
@@ -311,6 +312,21 @@ export const useTechSheet = create<TechSheetState>((set) => ({
  * CLICABLE por defecto: abre el visor con todos los datos (pasa `holder` para
  * que enseñe potencia y coste efectivos de ese dueño; `silent` la apaga).
  */
+/**
+ * MARCA DE COMBO: dos siluetas juntas — la insignia de las técnicas
+ * combinadas allá donde salgan (estampas, chips, visor).
+ */
+export function ComboMark({ className = 'w-3 h-3' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-label="combinada">
+      <circle cx="8.5" cy="7.5" r="3.4" />
+      <path d="M2.5 19c0-3.4 2.7-5.6 6-5.6s6 2.2 6 5.6v1h-12z" />
+      <circle cx="16.5" cy="7.5" r="2.8" opacity="0.72" />
+      <path d="M14.6 13.7c2.9.3 5 2.4 5 5.3v1h-4.4v-1c0-2-.6-3.9-1.7-5.1z" opacity="0.72" />
+    </svg>
+  )
+}
+
 export function TechniqueBadge({
   tech, size = 44, className = '', holder, silent,
 }: {
@@ -328,7 +344,7 @@ export function TechniqueBadge({
         e.preventDefault()
         useTechSheet.getState().open(tech, holder)
       }}
-      className={`shrink-0 grid place-items-center overflow-hidden rounded-lg border ${silent ? '' : 'cursor-pointer active:scale-95 transition'} ${className}`}
+      className={`relative shrink-0 grid place-items-center overflow-hidden rounded-lg border ${silent ? '' : 'cursor-pointer active:scale-95 transition'} ${className}`}
       style={{ width: size, height: size, borderColor: `${info.color}66`, background: `${info.color}1a` }}
     >
       <ImgFallback
@@ -337,6 +353,12 @@ export function TechniqueBadge({
         className="w-full h-full object-cover"
         fallback={<Icon name={ELEMENT_ICON[tech.element]} className="w-1/2 h-1/2" style={{ color: info.color }} />}
       />
+      {/* Insignia de COMBINADA, en la esquina. */}
+      {comboOf(tech.id) && (
+        <span className="absolute bottom-0 right-0 grid place-items-center rounded-tl-md bg-amber-500/90 text-slate-950" style={{ width: size * 0.38, height: size * 0.38 }}>
+          <ComboMark className="w-[72%] h-[72%]" />
+        </span>
+      )}
     </span>
   )
 }

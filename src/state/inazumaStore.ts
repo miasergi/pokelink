@@ -426,6 +426,8 @@ interface InazumaState {
   useConsumable: (itemId: string, uid: string, choiceId?: string) => void
   /** ARMA una filosofía ganada: la que podrás encender en el partido. */
   armTactic: (id: string) => void
+  /** Elige los COMPAÑEROS preferidos de una técnica combinada. */
+  setComboPartner: (techniqueId: string, uids: string[]) => void
   /** Fichaje estrella: gasta el objeto y ficha al jugador EXACTO elegido. */
   useFichajeEstrella: (baseId: string) => void
   /** Convierte técnicas sueltas de partidas viejas en Manuales avanzados. */
@@ -1776,6 +1778,14 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const next = { ...save, armedTactic: id }
     play('energia')
     set({ save: next, message: `Filosofía armada: ${getTactic(id)?.name ?? id}.` })
+    void persist(next, get().phase)
+  },
+
+  setComboPartner: (techniqueId, uids) => {
+    const { save } = get()
+    if (!save) return
+    const next = { ...save, comboPartners: { ...save.comboPartners, [techniqueId]: uids } }
+    set({ save: next })
     void persist(next, get().phase)
   },
 

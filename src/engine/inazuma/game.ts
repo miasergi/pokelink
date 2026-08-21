@@ -230,6 +230,9 @@ export function startMatch(
   // en el partido con la barra de Ruptura. Sin armar, la primera ganada.
   const armed = save.armedTactic ?? save.tactics?.[0]
   home.tactics = armed ? [armed] : []
+  // Las PAREJAS DE COMBO del vestuario viajan al campo (el motor auto-ajusta
+  // si el elegido no está sobre el césped).
+  home.comboPartners = save.comboPartners
   const away = sideFromActors(team.name, team.color, team.element, false, rivals.map(actorFromRival))
   // El RIVAL también juega con identidad: su filosofía canónica de instituto.
   away.tactics = team.tactic ? [team.tactic] : []

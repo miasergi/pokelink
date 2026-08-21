@@ -8,7 +8,9 @@ import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { KIND_LABEL } from '@/data/inazuma/techniques'
 import { TECH_LEVEL_BONUS, techniqueCostFor } from '@/engine/inazuma/roster'
-import { ELEMENT_ICON, KindIcon, techniqueImage, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { COMBO_COST_MULT, COMBO_MULT, COMBO_MULT_AFINIDAD, comboOf } from '@/data/inazuma/combos'
+import { getPlayerBase } from '@/data/inazuma/players'
+import { ComboMark, ELEMENT_ICON, KindIcon, techniqueImage, useTechSheet } from '@/ui/inazuma/Glyphs'
 
 export default function TechniqueSheet() {
   const { tech, holder, close } = useTechSheet()
@@ -73,6 +75,27 @@ export default function TechniqueSheet() {
             {lv > 0 && cost !== tech.cost && <span className="text-[10px] text-slate-500">(base {tech.cost})</span>}
           </Stat>
         </div>
+
+        {/* TÉCNICA COMBINADA: con quién se lanza y el plus de AFINIDAD. */}
+        {(() => {
+          const combo = comboOf(tech.id)
+          if (!combo) return null
+          const canon = combo.members.map((m) => getPlayerBase(m).name).join(' + ')
+          return (
+            <div className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-2.5 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-amber-200">
+                <ComboMark className="w-4 h-4" /> TÉCNICA COMBINADA ({combo.members.length} jugadores)
+              </div>
+              <p className="mt-1 text-[10px] text-amber-100/80 leading-snug">
+                Se lanza con CUALQUIER compañero del campo (+{Math.round((COMBO_MULT - 1) * 100)} % de potencia).
+                Con sus canónicos — <b>{canon}</b> — la AFINIDAD la sube al máximo
+                (+{Math.round((COMBO_MULT_AFINIDAD - 1) * 100)} %). El coste total es un {Math.round((COMBO_COST_MULT - 1) * 100)} %
+                mayor y SE REPARTE entre los que la lanzan (todos pagan su parte).
+                La pareja preferida se elige en el vestuario.
+              </p>
+            </div>
+          )
+        })()}
 
         <p className="mt-2 text-[10px] text-slate-500 leading-snug text-center">
           En el duelo, la potencia multiplica el atributo del jugador que la lanza

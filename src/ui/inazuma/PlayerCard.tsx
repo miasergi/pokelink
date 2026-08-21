@@ -10,7 +10,8 @@
 // convertirlos, y un PNG con extensión .webp NO se decodifica (GitHub Pages
 // sirve el Content-Type por extensión).
 import { ImgFallback } from '@/ui/components/kit'
-import { rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
+import { ComboMark, rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
+import { comboOf } from '@/data/inazuma/combos'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon, TechIcons, useTechSheet } from '@/ui/inazuma/Glyphs'
@@ -161,6 +162,7 @@ export function PlayerCard({
                   style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
                 >
                   <TechIcons tech={t} className="w-2.5 h-2.5" />
+                  {comboOf(t.id) && <ComboMark className="w-2.5 h-2.5 text-amber-300" />}
                   {t.name} <span className="opacity-60">{techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT</span>
                 </span>
               )

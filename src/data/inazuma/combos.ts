@@ -41,27 +41,53 @@ export const COMBOS: Combo[] = [
   },
 ]
 
-/** Bono de potencia por combinarse: son varias piernas empujando. */
-export const COMBO_MULT = 1.25
+/**
+ * Bonos de potencia por combinarse: son varias piernas empujando. Con
+ * CUALQUIER compañero ya empuja más que en solitario; con los compañeros
+ * CANÓNICOS de la serie, la AFINIDAD la lleva a su máximo.
+ */
+export const COMBO_MULT = 1.15
+export const COMBO_MULT_AFINIDAD = 1.35
 
 /**
- * Combos que este jugador puede LANZAR ahora mismo: él es miembro, todos los
- * miembros están en el campo y alguno ha DESPERTADO la técnica (aprendida por
- * cadena, casilla o manual — por eso no es un regalo).
+ * Coste TOTAL del combo respecto a la técnica base (se reparte a partes
+ * iguales entre los que la lanzan). Más caro que una individual a propósito:
+ * es la artillería de emergencia, no el botón por defecto.
  */
-export function availableCombos(
+export const COMBO_COST_MULT = 1.6
+
+/** Aguante que paga CADA compañero que entra al combo (el que lanza ya paga
+ * el del duelo). */
+export const COMBO_PARTNER_STAMINA = 8
+
+export const COMBO_BY_TECHNIQUE = new Map(COMBOS.map((c) => [c.techniqueId, c]))
+
+/**
+ * Combos que este jugador puede LANZAR: la técnica está DESPERTADA (la sabe
+ * él, o es miembro canónico y la sabe alguien del campo — no es un regalo) y
+ * hay compañeros suficientes sobre el césped. La PAREJA ya no exige a los
+ * canónicos: cualquiera vale (con ellos, plus de AFINIDAD).
+ */
+export function launchableCombos(
   actorBaseId: string,
   onPitch: { baseId: string; techniques: string[] }[],
 ): Combo[] {
-  const ids = new Set(onPitch.map((a) => a.baseId))
-  return COMBOS.filter((c) =>
-    c.members.includes(actorBaseId)
-    && c.members.every((m) => ids.has(m))
-    && onPitch.some((a) => c.members.includes(a.baseId) && a.techniques.includes(c.techniqueId)))
+  const actor = onPitch.find((a) => a.baseId === actorBaseId)
+  if (!actor) return []
+  return COMBOS.filter((c) => {
+    if (onPitch.length < c.members.length) return false
+    const knows = (a: { techniques: string[] }) => a.techniques.includes(c.techniqueId)
+    return knows(actor) || (c.members.includes(actorBaseId) && onPitch.some(knows))
+  })
 }
 
-/** La técnica del combo, ya con el bono aplicado. */
-export function comboTechnique(id: string): Technique | undefined {
+/** ¿Es una técnica combinada? Para la insignia de la UI. */
+export function comboOf(techniqueId: string): Combo | undefined {
+  return COMBO_BY_TECHNIQUE.get(techniqueId)
+}
+
+/** La técnica del combo con el bono que toque (afinidad = canónicos). */
+export function comboTechnique(id: string, afinidad = false): Technique | undefined {
   const t = getTechnique(id)
-  return t ? { ...t, power: Math.round(t.power * COMBO_MULT) } : undefined
+  return t ? { ...t, power: Math.round(t.power * (afinidad ? COMBO_MULT_AFINIDAD : COMBO_MULT)) } : undefined
 }

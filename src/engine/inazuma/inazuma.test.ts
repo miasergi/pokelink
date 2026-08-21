@@ -18,7 +18,7 @@ import {
   learnSignature, recordMatchStats, signatureNext, startMatch, startPachanga,
 } from './game'
 import { EVENTS, getEvent } from '@/data/inazuma/events'
-import { availableCombos } from '@/data/inazuma/combos'
+import { launchableCombos, type Combo } from '@/data/inazuma/combos'
 import { nextRound, shoot } from './pachanga'
 import { availableSignings, buildDraft, buildScoutOffer, buildSingleReward, signingLevel } from './rewards'
 import {
@@ -1408,15 +1408,22 @@ describe('coherencia', () => {
       const pl = createPlayer(id, 5)
       return { baseId: pl.baseId, techniques: pl.techniques }
     })
-    expect(availableCombos('axel-blaze', raw).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
+    const hasCombo = (list: Combo[]) => list.some((c) => c.techniqueId === 'dragon-tornado')
+    expect(hasCombo(launchableCombos('axel-blaze', raw))).toBe(false)
     // Kevin despierta el Tornado de Dragón (2º paso de su cadena) → combo.
     const conCadena = raw.map((a) => (a.baseId === 'kevin-dragonfly'
       ? { ...a, techniques: ['dragon-crash', 'dragon-tornado'] }
       : a))
-    expect(availableCombos('axel-blaze', conCadena).some((c) => c.techniqueId === 'dragon-tornado')).toBe(true)
-    // Sin Kevin en el campo, no hay combo por muy despierta que esté.
+    expect(hasCombo(launchableCombos('axel-blaze', conCadena))).toBe(true)
+    // Sin Kevin (el que la sabe) y sin saberla Axel, sigue sin haber combo.
     const sinKevin = conCadena.filter((a) => a.baseId !== 'kevin-dragonfly')
-    expect(availableCombos('axel-blaze', sinKevin).some((c) => c.techniqueId === 'dragon-tornado')).toBe(false)
+    expect(hasCombo(launchableCombos('axel-blaze', sinKevin))).toBe(false)
+    // REGLA NUEVA: si el PROPIO Axel la tiene despertada, la lanza con
+    // CUALQUIER compañero — Kevin ya no es requisito (solo da la afinidad).
+    const axelSabe = sinKevin.map((a) => (a.baseId === 'axel-blaze'
+      ? { ...a, techniques: [...a.techniques, 'dragon-tornado'] }
+      : a))
+    expect(hasCombo(launchableCombos('axel-blaze', axelSabe))).toBe(true)
 
     // Y en partido real: con las cadenas despiertas (nivel 25 cruza el
     // segundo umbral), alguna decisión acaba ofreciendo un combo.

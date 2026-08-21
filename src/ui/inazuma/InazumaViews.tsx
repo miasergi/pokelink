@@ -15,7 +15,7 @@ import { MedalHint } from '@/ui/inazuma/BagView'
 import { StatsBoard } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -769,6 +769,8 @@ export function SquadView() {
             </p>
           </div>
         )}
+
+        <ComboPartnersCard />
 
         {tab === 'campo' && (
           <PitchView
@@ -1613,6 +1615,75 @@ export function EndView({ won }: { won: boolean }) {
           </span>
         </Button>
         <Button variant="ghost" full onClick={exitInazuma}>Volver al inicio</Button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * PAREJAS DE COMBO del vestuario: por cada técnica combinada que alguien de
+ * la plantilla tenga despertada, eliges con QUIÉN se lanza por defecto. Si el
+ * elegido no está en el campo (cambios, lesiones de aguante…), el motor
+ * auto-ajusta solo: canónico presente y, si no, el mejor disponible.
+ */
+function ComboPartnersCard() {
+  const { save, setComboPartner } = useInazuma()
+  if (!save) return null
+  const relevant = COMBOS.filter((c) => save.roster.some((p) => p.techniques.includes(c.techniqueId)))
+  if (!relevant.length) return null
+
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
+        <ComboMark className="w-3.5 h-3.5 text-amber-300" /> Parejas de combo
+      </div>
+      <div className="flex flex-col gap-2">
+        {relevant.map((c) => {
+          const t = getTechnique(c.techniqueId)
+          if (!t) return null
+          const needed = c.members.length - 1
+          const chosen = save.comboPartners?.[c.techniqueId] ?? []
+          const toggle = (uid: string) => {
+            const next = chosen.includes(uid)
+              ? chosen.filter((u) => u !== uid)
+              : [...chosen, uid].slice(-needed)
+            setComboPartner(c.techniqueId, next)
+          }
+          return (
+            <div key={c.techniqueId} className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-2">
+              <div className="flex items-center gap-1.5">
+                <TechniqueBadge tech={t} size={26} />
+                <span className="text-[12px] font-extrabold">{t.name}</span>
+                <span className="ml-auto text-[9px] text-slate-500">{needed === 1 ? '1 compañero' : `${needed} compañeros`}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {save.roster.map((p) => {
+                  const base = getPlayerBase(p.baseId)
+                  const canon = c.members.includes(p.baseId)
+                  const on = chosen.includes(p.uid)
+                  return (
+                    <button
+                      key={p.uid}
+                      onClick={() => toggle(p.uid)}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold transition active:scale-95 ${
+                        on
+                          ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
+                          : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      }`}
+                    >
+                      {canon && <span className="text-amber-300">★</span>}
+                      {base.name.split(' ')[0]}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-1 text-[9px] text-slate-500 leading-snug">
+                ★ = canónico de la serie: con ellos hay plus de AFINIDAD (potencia máxima).
+                Si tu elegido no está en el campo, se ajusta solo.
+              </p>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

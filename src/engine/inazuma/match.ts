@@ -18,7 +18,8 @@ import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier, tacticEffects } from './roster'
 import { getTactic } from '@/data/inazuma/tactics'
 import type { TacticEffect } from '@/data/inazuma/tactics'
-import { availableCombos, comboTechnique } from '@/data/inazuma/combos'
+import { COMBO_BY_TECHNIQUE, COMBO_COST_MULT, COMBO_PARTNER_STAMINA, comboTechnique, launchableCombos, type Combo } from '@/data/inazuma/combos'
+import { getTechnique } from '@/data/inazuma/techniques'
 import type {
   Actor, ChainStep, Decision, DecisionMode, DecisionOption, Element, MatchEvent, MatchSide,
   MatchState, Position, ShootoutState, Side, Technique,
@@ -723,7 +724,49 @@ function costFor(side: MatchSide, t: Technique): number {
 }
 
 function spend(a: Actor, t: Technique | undefined, free: boolean, side?: MatchSide): void {
-  if (t && !free) a.pt = Math.max(0, a.pt - (side ? costFor(side, t) : t.cost))
+  // `cost: 0` = ya pagada por fuera (el reparto de un combo): no se recobra.
+  if (t && !free && t.cost > 0) a.pt = Math.max(0, a.pt - (side ? costFor(side, t) : t.cost))
+}
+
+/** Lo que paga CADA participante de un combo (coste total 1.6×, repartido). */
+function comboShare(side: MatchSide, baseTech: Technique, participants: number): number {
+  return Math.max(1, Math.round((costFor(side, baseTech) * COMBO_COST_MULT) / participants))
+}
+
+/**
+ * Los COMPAÑEROS del combo para este lance: primero los elegidos en el
+ * vestuario (si están en el campo), luego los canónicos presentes, y de
+ * relleno el mejor compañero disponible en la stat de la clase. `null` si no
+ * hay gente suficiente sobre el césped (equipo mermado).
+ */
+function pickComboPartners(side: MatchSide, actor: Actor, combo: Combo, pitch: Actor[]): Actor[] | null {
+  const needed = combo.members.length - 1
+  const pool = pitch.filter((a) => a.uid !== actor.uid)
+  if (pool.length < needed) return null
+  const partners: Actor[] = []
+  for (const uid of side.comboPartners?.[combo.techniqueId] ?? []) {
+    if (partners.length >= needed) break
+    const a = pool.find((x) => x.uid === uid && !partners.includes(x))
+    if (a) partners.push(a)
+  }
+  for (const mId of combo.members) {
+    if (partners.length >= needed) break
+    if (mId === actor.baseId) continue
+    const a = pool.find((x) => x.baseId === mId && !partners.includes(x))
+    if (a) partners.push(a)
+  }
+  const statKey = combo && getTechnique(combo.techniqueId)?.kind === 'regate' ? 'control' : 'tiro'
+  for (const a of [...pool].sort((x, y) => y.stats[statKey] - x.stats[statKey])) {
+    if (partners.length >= needed) break
+    if (!partners.includes(a)) partners.push(a)
+  }
+  return partners.length >= needed ? partners : null
+}
+
+/** AFINIDAD: el que lanza y sus compañeros son EXACTAMENTE los de la serie. */
+function comboAfinidad(actor: Actor, partners: Actor[], combo: Combo): boolean {
+  return combo.members.every((mId) => mId === actor.baseId || partners.some((p) => p.baseId === mId))
+    && combo.members.includes(actor.baseId)
 }
 
 function addBurst(s: MatchSide, amount: number): void {
@@ -807,20 +850,37 @@ function buildDecision(
     options.push(opt)
   }
 
-  // 3) Técnicas COMBINADAS: no se aprenden, se desbloquean teniendo a los
-  //    compañeros de la serie sobre el campo. Puede lanzarlas cualquiera de
-  //    sus miembros cuando le toca decidir.
+  // 3) Técnicas COMBINADAS: se lanzan CON CUALQUIER COMPAÑERO del campo — la
+  //    pareja elegida en el vestuario si está, el canónico de la serie si no,
+  //    y el mejor disponible como último recurso. Con los compañeros
+  //    CANÓNICOS hay plus de AFINIDAD (potencia máxima). El coste total es
+  //    mayor que el de una individual y se REPARTE entre los que la lanzan:
+  //    todos pagan su parte (y los compañeros, un poco de aguante).
   if (mode === 'ataque') {
-    const onPitch = [atkSide.keeper, ...atkSide.defs, ...atkSide.mids, ...atkSide.fwds]
-      .map((a) => ({ baseId: a.baseId, techniques: a.techniques }))
-    for (const combo of availableCombos(actor.baseId, onPitch)) {
-      const t = comboTechnique(combo.techniqueId)
-      if (!t || t.kind !== kind) continue
-      const cost = free ? 0 : t.cost
+    const pitch = [atkSide.keeper, ...atkSide.defs, ...atkSide.mids, ...atkSide.fwds]
+    for (const combo of launchableCombos(actor.baseId, pitch)) {
+      const t0 = getTechnique(combo.techniqueId)
+      if (!t0 || t0.kind !== kind) continue
+      const partners = pickComboPartners(atkSide, actor, combo, pitch)
+      if (!partners) continue
+      const afinidad = comboAfinidad(actor, partners, combo)
+      const t = comboTechnique(combo.techniqueId, afinidad)!
+      const participants = 1 + partners.length
+      const share = free ? 0 : comboShare(atkSide, t0, participants)
+      const names = partners.map((p) => p.name.split(' ')[0]).join(' y ')
       const opt = buildOption(m, step, mode, attacker, defender, momentum, {
-        id: `combo:${combo.techniqueId}`, label: `${t.name} (${combo.label})`, tech: t, cost,
+        id: `combo:${combo.techniqueId}:${partners.map((p) => p.uid).join('+')}`,
+        label: `${t.name} (con ${names}${afinidad ? ' · AFINIDAD' : ''} · ${share} PT cada uno)`,
+        tech: t,
+        cost: share,
       })
-      if (!free && cost > actor.pt) opt.disabled = `Necesitas ${cost} PT`
+      if (!free) {
+        if (share > actor.pt) opt.disabled = `Necesitas ${share} PT`
+        else {
+          const pobre = partners.find((p) => p.pt < share)
+          if (pobre) opt.disabled = `${pobre.name.split(' ')[0]} no puede pagar sus ${share} PT`
+        }
+      }
       options.push(opt)
     }
   }
@@ -1204,8 +1264,33 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     // Se resuelve contra el actor que la lanza para aplicar sus Mejoras.
     myTech = actorTechnique(d.mode === 'ataque' ? attacker : defender, optionId.slice(5))
   } else if (optionId.startsWith('combo:')) {
-    // Combinada: ya viene con su bono; no pasa por las Mejoras individuales.
-    myTech = comboTechnique(optionId.slice(6))
+    // Combinada `combo:<tecnica>:<uid+uid>`: el bono depende de la AFINIDAD
+    // (compañeros canónicos) y el coste se REPARTE — se cobra aquí a todos
+    // (por eso viaja con cost: 0, para que el duelo no recobre al que lanza).
+    const [, techId, uidsRaw] = optionId.split(':')
+    const combo = COMBO_BY_TECHNIQUE.get(techId)
+    const partners = (uidsRaw ?? '').split('+').filter(Boolean)
+      .map((uid) => allActors(atkSide).find((a) => a.uid === uid))
+      .filter((a): a is Actor => !!a)
+    const afinidad = combo ? comboAfinidad(attacker, partners, combo) : false
+    const base = getTechnique(techId)
+    const share = base ? comboShare(atkSide, base, 1 + partners.length) : 0
+    const freeBurst = atkSide.burstTurns > 0
+    if (!freeBurst) {
+      attacker.pt = Math.max(0, attacker.pt - share)
+      for (const p of partners) p.pt = Math.max(0, p.pt - share)
+    }
+    for (const p of partners) p.stamina = Math.max(0, p.stamina - COMBO_PARTNER_STAMINA)
+    myTech = comboTechnique(techId, afinidad)
+    if (myTech) myTech = { ...myTech, cost: 0 }
+    if (partners.length) {
+      m.events.push({
+        kind: 'possession',
+        minute: m.minute,
+        side: chain.side,
+        text: `¡${attacker.name} y ${partners.map((p) => p.name).join(' y ')} se juntan para combinar${afinidad ? '! ¡La afinidad de siempre!' : '!'}`,
+      })
+    }
   } else if (optionId === 'longshot') {
     // La MISMA elección determinista con la que se calcularon las estrellas
     // del botón (mejor tiro pagable contra el elemento del portero).
