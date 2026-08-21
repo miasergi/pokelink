@@ -15,7 +15,7 @@ import { MedalHint } from '@/ui/inazuma/BagView'
 import { StatsBoard } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { CoinPrice, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, CoinText, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -425,7 +425,7 @@ export function PreviewView() {
           <div className="mt-1.5 flex justify-center"><ElementChip element={team.element} /></div>
           {isBoss
             ? <p className="text-[12px] italic text-slate-400 mt-2">«{team.taunt}»</p>
-            : <p className="text-[12px] text-slate-500 mt-2">{matchNode.reward}</p>}
+            : <p className="text-[12px] text-slate-500 mt-2"><CoinText text={matchNode.reward ?? ''} coin="w-3 h-3" /></p>}
         </div>
 
         {/* Aviso de emparejamiento elemental: es LA decisión táctica del modo */}
@@ -1510,7 +1510,7 @@ export function DraftView() {
                 />
               )}
               <div className="min-w-0 flex-1">
-                <div className="font-extrabold text-sm">{o.title}</div>
+                <div className="font-extrabold text-sm"><CoinText text={o.title} /></div>
                 {/* En los fichajes: llega en NORMAL (la rareza la subes tú) y
                     su elemento, antes de decidir. */}
                 {o.kind === 'fichaje' && (
@@ -1521,7 +1521,7 @@ export function DraftView() {
                     <ElementChip element={getPlayerBase(o.playerId).element} />
                   </div>
                 )}
-                <div className="text-[11px] text-slate-400">{o.desc}</div>
+                <div className="text-[11px] text-slate-400"><CoinText text={o.desc} coin="w-3 h-3" /></div>
               </div>
               {/* Cartas de PAGO: el precio a la vista, y en rojo si no llega. */}
               {o.kind === 'objeto' && o.cost ? (
@@ -1806,7 +1806,7 @@ export function Toast() {
         onClick={clearMessage}
         className="pointer-events-auto rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-[12px] text-slate-100 shadow-xl"
       >
-        {message}
+        <CoinText text={message} />
       </button>
     </div>
   )

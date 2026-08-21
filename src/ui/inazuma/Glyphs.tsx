@@ -335,6 +335,23 @@ export function IECoin({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 /**
+ * TEXTO CON MONEDAS: los mensajes del store y las recompensas viajan como
+ * strings («+800 IEcoins»); aquí la palabra se convierte SIEMPRE en la
+ * moneda SVG — «IEcoins» no se lee jamás en pantalla.
+ */
+export function CoinText({ text, coin = 'w-3.5 h-3.5' }: { text: string; coin?: string }) {
+  const parts = text.split(/(IEcoins)/g)
+  if (parts.length === 1) return <>{text}</>
+  return (
+    <>
+      {parts.map((p, i) => (p === 'IEcoins'
+        ? <IECoin key={i} className={`${coin} -mt-0.5 mx-0.5`} />
+        : <span key={i}>{p}</span>))}
+    </>
+  )
+}
+
+/**
  * PRECIO EN IECOINS: número + moneda, el átomo que sustituye al «₽» heredado
  * de los pokédolares en todo el modo Inazuma.
  */

@@ -1,7 +1,7 @@
 // SITUACIÓN: la casilla de evento. Una escena, dos o tres opciones, y a veces
 // una tirada de suerte. Es la fuente de variedad del recorrido.
 import { useInazuma } from '@/state/inazumaStore'
-import { CoinPrice, Pic } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, CoinText, Pic } from '@/ui/inazuma/Glyphs'
 import { getEvent } from '@/data/inazuma/events'
 
 export default function EventView() {
@@ -45,7 +45,7 @@ export default function EventView() {
               disabled={tooPoor}
               className="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2.5 text-left transition active:scale-[0.98] disabled:opacity-40"
             >
-              <div className="font-bold text-[13px]">{o.label}</div>
+              <div className="font-bold text-[13px]"><CoinText text={o.label} coin="w-3 h-3" /></div>
               <div className="text-[10px] text-slate-400">
                 {tooPoor
                   ? 'No te llega el presupuesto'

@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
-import { ELEMENT_ICON, NODE_ICON, Pic } from '@/ui/inazuma/Glyphs'
+import { CoinText, ELEMENT_ICON, NODE_ICON, Pic } from '@/ui/inazuma/Glyphs'
 import { availableNextNodes, mapSegments, segmentForLayer } from '@/engine/inazuma/tournament'
 import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import type { InazumaSave, NodeKind, TournamentNode } from '@/engine/inazuma/types'
@@ -280,7 +280,7 @@ export function NodePreview({
         )}
 
         <div className="mt-3 rounded-xl bg-slate-800/70 border border-slate-700 px-3 py-2 text-[12px] text-emerald-300">
-          <Icon name="gift" className="w-3.5 h-3.5 inline-block mr-1 align-[-2px]" />{node.reward}
+          <Icon name="gift" className="w-3.5 h-3.5 inline-block mr-1 align-[-2px]" /><CoinText text={node.reward ?? ''} coin="w-3 h-3" />
         </div>
         {team?.taunt && <p className="mt-2 text-[11px] italic text-slate-500">«{team.taunt}»</p>}
 
