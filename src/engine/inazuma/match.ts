@@ -1047,6 +1047,20 @@ function interceptLongShot(
   def.boost = (def.boost ?? 1) * INTERCEPT_BIAS
   const r = resolveDuel('definicion', atk, def, rng)
 
+  // PRIMERO EL CHUT, LUEGO EL CRUCE: es el orden en que pasa de verdad. El
+  // duelo del bloqueo se resuelve aquí igualmente (su resultado modula la
+  // potencia del tiro), pero se CUENTA después del disparo — antes salía «X
+  // bloquea» y acto seguido «X dispara», al revés de la realidad.
+  out.push({
+    kind: 'longshotKick',
+    minute: m.minute,
+    side: m.chain!.side,
+    shooter: shooter.name,
+    shooterUid: shooter.uid,
+    technique: shotTech?.name,
+    element: shotTech?.element ?? shooter.element,
+    text: `¡${shooter.name} arma la pierna desde lejos${shotTech ? ` con ${shotTech.name}` : ''}!`,
+  })
   out.push({
     kind: 'duel',
     minute: m.minute,

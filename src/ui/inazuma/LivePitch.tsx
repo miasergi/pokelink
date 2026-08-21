@@ -180,10 +180,18 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // el número de eventos: si se reinicia con cada línea de narración, el
   // bloque pega un tirón hacia atrás cada dos por tres — eso era buena parte
   // de los «movimientos antinaturales».
+  // Última posición MOSTRADA del balón (en coords lógicas de campo). Vive
+  // aquí arriba porque el arranque de jugada (justo debajo) la captura.
+  const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
+
   const playKey = `${shown?.side ?? '-'}|${shown?.step ?? '-'}|${rawCarrierUid ?? '-'}|${rawMarkerUid ?? '-'}`
-  const startedAt = useRef({ key: '', t: 0 })
+  // Se captura DÓNDE estaba el balón al arrancar la jugada: es el punto de
+  // partida del avance — sin él, cada jugada nueva empezaba en el borde
+  // trasero de su zona y el balón daba un tirón HACIA ATRÁS antes de avanzar
+  // (el «va para atrás y luego para alante» del playtest).
+  const startedAt = useRef({ key: '', t: 0, fromX: 50 })
   if (startedAt.current.key !== playKey) {
-    startedAt.current = { key: playKey, t: Date.now() }
+    startedAt.current = { key: playKey, t: Date.now(), fromX: lastBallLogical.current.x }
   }
   const elapsed = Date.now() - startedAt.current.t
   // `now` solo está para forzar el re-render del reloj; el valor real es el
@@ -197,7 +205,6 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   // corría 2.6 veces más lenta de lo diseñado.
   const holdSec = Math.max(0, (elapsed - PHASE_MS) / 1000)
 
-  const lastBallLogical = useRef<Spot>({ x: 50, y: 50 })
   // ATURDIMIENTO tras perder un duelo: de uid a su ventana de recuperación.
   const stunRef = useRef(new Map<string, { from: number; until: number }>())
   if (stunRef.current.size > 24) {
@@ -254,6 +261,14 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
           const at = shownPos.current.get(last.keeperUid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
           techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.keeperUid, at: { ...at } }
         }
+      } else if (last?.kind === 'longshotKick' && last.technique) {
+        // El CHUT lejano: la placa de la técnica brota sobre el tirador
+        // ANTES de que el defensa se cruce — el orden real del fútbol.
+        const t = techniqueByName(last.technique)
+        if (t) {
+          const at = shownPos.current.get(last.shooterUid) ?? shownPos.current.get('ball') ?? { x: 50, y: 50 }
+          techTag.current = { key: feed.length, until: nowMs + 1300, name: t.name, power: t.power, color: ELEMENT_INFO[t.element].color, uid: last.shooterUid, at: { ...at } }
+        }
       } else if (last?.kind === 'keeperTry') {
         // El MOMENTO del portero: su placa brota ANTES del veredicto, con el
         // mismo compás pare o encaje.
@@ -270,7 +285,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       }
       // CUALQUIER evento sin técnica RECOGE la placa anterior: cinturón y
       // tirantes contra placas que se quedaran pintadas en el césped.
-      if (last && last.kind !== 'duel' && last.kind !== 'keeperTry'
+      if (last && last.kind !== 'duel' && last.kind !== 'keeperTry' && last.kind !== 'longshotKick'
         && !(last.kind === 'save' && last.technique)) {
         techTag.current = null
       }
@@ -505,7 +520,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const zone = step == null ? 50 : longShot && step === 'definicion' ? STEP_X.penetracion : STEP_X[step]
   const zoneFrom = step != null ? zone - ZONE_RUN : 50
   const zoneTo = step != null ? zone + ZONE_RUN : 50
-  const rawBallX = zoneFrom + (zoneTo - zoneFrom) * progress
+  // ARRANQUE SIN RETROCESO: la jugada avanza desde donde el balón ESTÁ (si
+  // ya iba por delante del borde trasero de la zona) — nada de recular tras
+  // una supertécnica para volver a avanzar.
+  const startLogical = iAttack ? startedAt.current.fromX : 100 - startedAt.current.fromX
+  const runFrom = step != null ? Math.min(zoneTo - 2, Math.max(zoneFrom, startLogical)) : 50
+  const rawBallX = runFrom + (zoneTo - runFrom) * progress
   let ballX = step == null ? 50 : iAttack ? rawBallX : 100 - rawBallX
   if (rondoBall) {
     // Rondo: el balón está donde está — todo lo demás bascula siguiéndolo.

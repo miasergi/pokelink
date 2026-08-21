@@ -147,6 +147,8 @@ function holdFor(e: MatchEvent): number {
     // dura lo mismo acabe en parada o en gol. A 1.5 s el veredicto pisaba a
     // la técnica — con 2.2 s la imagen (2.6 s) casi termina antes del fallo.
     case 'keeperTry': return 2200
+    // El CHUT del tiro lejano: la técnica se materializa antes del cruce.
+    case 'longshotKick': return 1600
     case 'tactic': return 1800
     case 'burst':
     case 'stage': return 1100
@@ -168,6 +170,7 @@ function soundFor(e: MatchEvent): void {
       else if (e.technique || e.counter) play('supertecnica')
       else play('hit')
       break
+    case 'longshotKick': play(e.technique ? 'supertecnica' : 'kick'); break
     case 'keeperTry':
     case 'tactic':
     case 'burst': play('supertecnica'); break

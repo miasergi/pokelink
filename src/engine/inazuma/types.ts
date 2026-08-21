@@ -221,6 +221,9 @@ export type MatchEvent =
   /** EL MOMENTO DEL PORTERO: saca su técnica ANTES de saberse el veredicto.
       Se emite con el mismo compás pare o encaje — cero spoilers por ritmo. */
   | { kind: 'keeperTry'; minute: number; side: Side; keeper: string; keeperUid: string; technique: string; text: string }
+  /** EL CHUT del tiro lejano, contado ANTES del cruce de la defensa: primero
+      se dispara, luego el defensa se cruza — el orden en que pasa de verdad. */
+  | { kind: 'longshotKick'; minute: number; side: Side; shooter: string; shooterUid: string; technique?: string; element?: Element; text: string }
   | {
     kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string
     /** Para el plano del paradón en la tele (`inazuma/keepers/<baseId>.png`). */

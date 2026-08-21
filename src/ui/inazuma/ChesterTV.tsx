@@ -31,6 +31,11 @@ function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
     }
     // El portero SACA su técnica: aún no se sabe si basta. Puro drama.
     case 'keeperTry': return { text: `¡${first(e.keeper)} saca su ${e.technique}!`, mood: 'drama' }
+    // El CHUT lejano se canta ANTES del cruce de la defensa.
+    case 'longshotKick': return {
+      text: e.technique ? `¡${first(e.shooter)} dispara desde lejos con ${e.technique}!` : `¡${first(e.shooter)} lo intenta desde lejos!`,
+      mood: 'tension',
+    }
     case 'save': return {
       text: e.technique
         // La técnica ya se contó en su momento (keeperTry): esto es el
@@ -110,12 +115,17 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
       ? (grazedPrev ? undefined : e.step === 'definicion' && !e.intercept
         ? e.technique
         : e.intercept
-          ? (e.success ? e.technique : e.counter ?? e.technique)
+          // El chut ya enseñó su imagen (longshotKick): en el cruce solo
+          // corta al BLOQUEO si lo hay; el roce se queda con Chester.
+          ? (e.success ? undefined : e.counter)
           : (e.success ? e.technique ?? e.counter : e.counter ?? e.technique))
       // El MOMENTO del portero: su técnica en imagen ANTES del veredicto.
       // La parada posterior ya no re-corta (la imagen sería la misma).
       : e?.kind === 'keeperTry'
         ? e.technique
+        // El CHUT lejano: la imagen del tiro sale al chutar, no al cruce.
+        : e?.kind === 'longshotKick'
+          ? e.technique
         : e?.kind === 'save'
           ? (prev?.kind === 'keeperTry' ? undefined : e.technique)
           : e?.kind === 'penalty'
