@@ -963,8 +963,8 @@ function buildDecision(
     if (t) {
       options.push({
         id: 'tactic',
-        label: `¡${t.name.toUpperCase()}!`,
-        detail: `Filosofía · ${TACTIC_DURATION} acciones encendida`,
+        label: `¡ENCIENDE ${t.name.toUpperCase()}!`,
+        detail: `Gasta la Ruptura · tu filosofía activa ${TACTIC_DURATION} acciones`,
         odds: 3,
         chance: 1,
         cost: 0,
@@ -977,7 +977,7 @@ function buildDecision(
     options.push({
       id: 'burst',
       label: '¡SUPERVIBRACIÓN!',
-      detail: `${BURST_DURATION} acciones sin gastar PT y con potencia ×1.4`,
+      detail: `Gasta la Ruptura · ${BURST_DURATION} acciones sin pagar PT y potencia ×1.4`,
       odds: 3,
       chance: 1,
       cost: 0,

@@ -723,11 +723,17 @@ export function SquadView() {
 
         {/* FILOSOFÍAS: aquí se ARMA la que llevas al partido. La armada se
             ENCIENDE durante el juego con la barra de Ruptura (compite con la
-            Supervibración por la misma barra). */}
+            Supervibración por la misma barra). PLEGABLE: el vestuario estaba
+            creciendo y estas secciones se consultan, no se miran siempre. */}
         {!!(save.tactics ?? []).length && (
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-2.5">
+          <Foldout
+            icon={<Icon name="flame" className="w-3.5 h-3.5 text-amber-300" />}
+            title="Filosofía"
+            summary={getTactic(save.armedTactic ?? save.tactics![0])?.name ?? '—'}
+          >
+          <div className="rounded-b-2xl border-x border-b border-slate-700 bg-slate-800/50 p-2.5">
             <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
-              Filosofías · toca una para ARMARLA
+              Toca una para ARMARLA
             </div>
             <div className="flex flex-col gap-1.5">
               {(save.tactics ?? []).map((id) => {
@@ -764,10 +770,12 @@ export function SquadView() {
               })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-              La ARMADA se enciende en pleno partido gastando la barra de Ruptura
-              (o guardas la barra para la Supervibración: tú eliges el momento).
+              La ARMADA se enciende en pleno partido: cuando la barra de Ruptura
+              llega a 100, en tu siguiente jugada clave te sale el botón para
+              encenderla (o gastas la barra en la Supervibración: tú eliges).
             </p>
           </div>
+          </Foldout>
         )}
 
         <ComboPartnersCard />
@@ -1633,16 +1641,22 @@ function ComboPartnersCard() {
   if (!relevant.length) return null
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
-        <ComboMark className="w-3.5 h-3.5 text-amber-300" /> Parejas de combo
-      </div>
+    <Foldout
+      icon={<ComboMark className="w-3.5 h-3.5 text-amber-300" />}
+      title="Combos"
+      summary={`${relevant.length} ${relevant.length === 1 ? 'técnica' : 'técnicas'}`}
+    >
+    <div className="rounded-b-2xl border-x border-b border-slate-700 bg-slate-800/50 p-2.5">
       <div className="flex flex-col gap-2">
         {relevant.map((c) => {
           const t = getTechnique(c.techniqueId)
           if (!t) return null
           const needed = c.members.length - 1
-          const chosen = save.comboPartners?.[c.techniqueId] ?? []
+          // El PRINCIPAL: quien tiene la técnica despertada — él la lanza, así
+          // que no tiene sentido ofrecerlo también como compañero.
+          const principals = save.roster.filter((p) => p.techniques.includes(c.techniqueId))
+          const principalUids = new Set(principals.map((p) => p.uid))
+          const chosen = (save.comboPartners?.[c.techniqueId] ?? []).filter((u) => !principalUids.has(u))
           const toggle = (uid: string) => {
             const next = chosen.includes(uid)
               ? chosen.filter((u) => u !== uid)
@@ -1653,11 +1667,16 @@ function ComboPartnersCard() {
             <div key={c.techniqueId} className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-2">
               <div className="flex items-center gap-1.5">
                 <TechniqueBadge tech={t} size={26} />
-                <span className="text-[12px] font-extrabold">{t.name}</span>
-                <span className="ml-auto text-[9px] text-slate-500">{needed === 1 ? '1 compañero' : `${needed} compañeros`}</span>
+                <div className="min-w-0">
+                  <div className="text-[12px] font-extrabold truncate">{t.name}</div>
+                  <div className="text-[9px] text-slate-400">
+                    Principal: <b className="text-slate-200">{principals.map((p) => getPlayerBase(p.baseId).name.split(' ')[0]).join(', ') || '—'}</b>
+                  </div>
+                </div>
+                <span className="ml-auto shrink-0 text-[9px] text-slate-500">{needed === 1 ? '+1 compañero' : `+${needed} compañeros`}</span>
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
-                {save.roster.map((p) => {
+                {save.roster.filter((p) => !principalUids.has(p.uid)).map((p) => {
                   const base = getPlayerBase(p.baseId)
                   const canon = c.members.includes(p.baseId)
                   const on = chosen.includes(p.uid)
@@ -1678,13 +1697,44 @@ function ComboPartnersCard() {
                 })}
               </div>
               <p className="mt-1 text-[9px] text-slate-500 leading-snug">
-                ★ = canónico de la serie: con ellos hay plus de AFINIDAD (potencia máxima).
+                ★ = canónico de la serie: con él hay plus de AFINIDAD (potencia máxima).
                 Si tu elegido no está en el campo, se ajusta solo.
               </p>
             </div>
           )
         })}
       </div>
+    </div>
+    </Foldout>
+  )
+}
+
+/**
+ * SECCIÓN PLEGABLE del vestuario: cabecera con resumen siempre visible y el
+ * contenido bajo demanda — la pantalla de plantilla estaba creciendo sin
+ * freno y estas secciones se consultan de vez en cuando, no en cada visita.
+ */
+function Foldout({ icon, title, summary, children }: {
+  icon: React.ReactNode
+  title: string
+  summary?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`w-full flex items-center gap-2 border border-slate-700 bg-slate-800/70 px-2.5 py-2 text-left transition active:scale-[0.99] ${
+          open ? 'rounded-t-2xl' : 'rounded-2xl'
+        }`}
+      >
+        {icon}
+        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-300">{title}</span>
+        {summary && <span className="min-w-0 truncate text-[11px] text-slate-500">· {summary}</span>}
+        <Icon name="arrowRight" className={`ml-auto w-3.5 h-3.5 text-slate-500 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && children}
     </div>
   )
 }

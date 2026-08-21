@@ -670,7 +670,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
       <div className="mt-1.5 flex items-center gap-2">
         <BurstBar value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} color="#f59e0b" />
         <span className={`text-[9px] uppercase tracking-widest shrink-0 ${
-          burst.mineTurns > 0 || burst.theirsTurns > 0 || burst.mineTactic || burst.theirsTactic
+          burst.mineTurns > 0 || burst.theirsTurns > 0 || burst.mineTactic || burst.theirsTactic || burst.mine >= 100
             ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
         }`}>
           {burst.mineTactic
@@ -681,7 +681,11 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
                 ? `Rival: ${getTactic(burst.theirsTactic.id)?.name ?? 'filosofía'} · ${burst.theirsTactic.turns}`
                 : burst.theirsTurns > 0
                   ? `Rival vibrando · ${burst.theirsTurns}`
-                  : 'Ruptura'}
+                  // LLENA: se dice claro qué toca hacer — era el gran «¿y esto
+                  // para qué sirve?» del playtest.
+                  : burst.mine >= 100
+                    ? '¡Ruptura LISTA! Elige en tu próxima jugada'
+                    : 'Ruptura'}
         </span>
         <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
       </div>
@@ -714,15 +718,19 @@ function BurstBar({ value, turns, tactic, color, flip }: {
   const fire = !!tactic
   // Ardiendo, la barra se VACÍA con los usos que quedan: se ve consumirse.
   const width = fire ? (tactic!.turns / 7) * 100 : active ? 100 : value
+  // LLENA y sin gastar: parpadea — en tu siguiente jugada clave saldrán los
+  // botones para quemarla (Supervibración o tu Filosofía). Antes no había
+  // ninguna señal y la barra «no se entendía».
+  const ready = !active && !fire && value >= 100
   return (
     <div className={`flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden ${flip ? 'rotate-180' : ''}`}>
       <div
-        className={`h-full rounded-full transition-all ${active || fire ? 'animate-flame-flicker' : ''}`}
+        className={`h-full rounded-full transition-all ${active || fire || ready ? 'animate-flame-flicker' : ''}`}
         style={{
           width: `${width}%`,
           background: fire
             ? 'linear-gradient(90deg, #f97316, #ef4444, #fbbf24)'
-            : active ? '#fbbf24' : color,
+            : active || ready ? '#fbbf24' : color,
         }}
       />
     </div>

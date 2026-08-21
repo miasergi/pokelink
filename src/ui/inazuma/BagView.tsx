@@ -12,14 +12,14 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, realTechniquePower, techLevel, techniqueCostFor } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
 import { getTechnique, KIND_LABEL } from '@/data/inazuma/techniques'
 import { getPlayerBase, PLAYERS, TEAM_NAMES } from '@/data/inazuma/players'
-import { TEAM_BY_ID } from '@/data/inazuma/teams'
-import type { PlayerInstance } from '@/engine/inazuma/types'
+import { TEAM_BY_ID, TEAMS } from '@/data/inazuma/teams'
+import type { Element as InazumaElement, PlayerInstance, Position } from '@/engine/inazuma/types'
 
 /** Nombre visible del equipo de origen (institutos, extras o agente libre). */
 const TEAM_LABEL = (teamId: string): string =>
@@ -45,8 +45,12 @@ export default function BagView() {
       useInazuma.setState({ fichajeAutoOpen: false })
     }
   }, [fichajeAutoOpen])
-  // Buscador del Fichaje estrella.
+  // Buscador del Fichaje estrella, con sus FILTROS: equipo (escudos),
+  // demarcación y elemento. Cada uno es un toggle: tocar de nuevo lo quita.
   const [query, setQuery] = useState('')
+  const [fTeam, setFTeam] = useState<string | null>(null)
+  const [fPos, setFPos] = useState<Position | null>(null)
+  const [fEl, setFEl] = useState<InazumaElement | null>(null)
   if (!save) return null
 
   const empty = !save.bag.length && !save.techniqueBag.length
@@ -184,16 +188,30 @@ export default function BagView() {
               // FICHAJE ESTRELLA: buscador sobre el catálogo entero. Se filtra
               // por NOMBRE (los tuyos no salen NI con otro id) y cada persona
               // aparece UNA vez aunque esté en varias plantillas del catálogo.
+              // OJO al filtro por equipo: ahí cada uno cuenta en SU plantilla,
+              // así que el dedupe por nombre respeta al del equipo filtrado.
               const ownedNames = new Set(save.roster.map((p) => getPlayerBase(p.baseId).name))
               const q = query.trim().toLowerCase()
               const vistos = new Set<string>()
               const pool = PLAYERS.filter((b) => {
-                // Los agentes libres también se fichan (Scor Nelles y cía).
-                if (ownedNames.has(b.name) || vistos.has(b.name)) return false
+                if (ownedNames.has(b.name)) return false
+                if (fTeam && b.team !== fTeam) return false
+                if (vistos.has(b.name)) return false
                 vistos.add(b.name)
                 return true
               })
-              const hits = (q ? pool.filter((b) => b.name.toLowerCase().includes(q)) : pool).slice(0, 30)
+              const filtered = pool.filter((b) =>
+                (!q || b.name.toLowerCase().includes(q))
+                && (!fPos || b.position === fPos)
+                && (!fEl || b.element === fEl))
+              // Con equipo elegido se ve la PLANTILLA ENTERA (el orden del
+              // catálogo ya es el once titular primero).
+              const hits = filtered.slice(0, fTeam ? 40 : 30)
+              // Equipos con gente en el catálogo, en el orden del modo (las
+              // sagas ya vienen agrupadas) + «Resto del mundo» (los libres).
+              const teamsWithPlayers = TEAMS.filter((t) => t.id !== 'libre' && PLAYERS.some((b) => b.team === t.id))
+              const POS: Position[] = ['POR', 'DEF', 'MED', 'DEL']
+              const ELS: InazumaElement[] = ['fuego', 'bosque', 'aire', 'montana']
               return (
                 <>
                   <div className="font-extrabold text-center">Fichaje estrella</div>
@@ -205,8 +223,72 @@ export default function BagView() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Nombre del jugador…"
-                    className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-[13px] outline-none focus:border-amber-500/60"
+                    className="mb-1.5 w-full rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-[13px] outline-none focus:border-amber-500/60"
                   />
+                  {/* EQUIPOS: tira de escudos (toca para filtrar, re-toca para
+                      quitar). Al final, los agentes libres. */}
+                  <div className="mb-1.5 flex gap-1 overflow-x-auto pb-1">
+                    {teamsWithPlayers.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setFTeam(fTeam === t.id ? null : t.id)}
+                        title={t.name}
+                        className={`shrink-0 grid place-items-center w-9 h-9 rounded-xl border transition active:scale-95 ${
+                          fTeam === t.id ? 'border-amber-500/80 bg-amber-500/15' : 'border-slate-700 bg-slate-800/60 opacity-75'
+                        }`}
+                      >
+                        <Crest teamId={t.id} className="w-6 h-6" />
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setFTeam(fTeam === 'libre' ? null : 'libre')}
+                      className={`shrink-0 px-2 h-9 rounded-xl border text-[9px] font-bold leading-tight transition active:scale-95 ${
+                        fTeam === 'libre' ? 'border-amber-500/80 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      }`}
+                    >
+                      Resto del<br />mundo
+                    </button>
+                  </div>
+                  {/* DEMARCACIÓN y ELEMENTO, en una sola fila compacta. */}
+                  <div className="mb-2 flex items-center gap-1">
+                    {POS.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setFPos(fPos === p ? null : p)}
+                        className={`rounded-lg border px-1.5 py-1 text-[10px] font-extrabold transition active:scale-95 ${
+                          fPos === p ? 'border-amber-500/80 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <span className="mx-0.5 h-5 w-px bg-slate-700" />
+                    {ELS.map((el) => (
+                      <button
+                        key={el}
+                        onClick={() => setFEl(fEl === el ? null : el)}
+                        title={ELEMENT_INFO[el].label}
+                        className={`grid place-items-center w-7 h-7 rounded-lg border transition active:scale-95 ${
+                          fEl === el ? 'border-amber-500/80 bg-amber-500/15' : 'border-slate-700 bg-slate-800/60 opacity-75'
+                        }`}
+                      >
+                        <Icon name={ELEMENT_ICON[el]} className="w-4 h-4" style={{ color: ELEMENT_INFO[el].color }} />
+                      </button>
+                    ))}
+                    {(fTeam || fPos || fEl || q) && (
+                      <button
+                        onClick={() => { setFTeam(null); setFPos(null); setFEl(null); setQuery('') }}
+                        className="ml-auto text-[10px] font-bold text-slate-500 underline"
+                      >
+                        limpiar
+                      </button>
+                    )}
+                  </div>
+                  {fTeam && (
+                    <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">
+                      {fTeam === 'libre' ? 'Resto del mundo' : TEAM_LABEL(fTeam)} · {filtered.length} jugadores
+                    </div>
+                  )}
                   <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1.5">
                     {hits.map((b) => {
                       const info = ELEMENT_INFO[b.element]
