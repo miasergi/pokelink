@@ -1,7 +1,7 @@
 // SITUACIÓN: la casilla de evento. Una escena, dos o tres opciones, y a veces
 // una tirada de suerte. Es la fuente de variedad del recorrido.
 import { useInazuma } from '@/state/inazumaStore'
-import { Pic } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, Pic } from '@/ui/inazuma/Glyphs'
 import { getEvent } from '@/data/inazuma/events'
 
 export default function EventView() {
@@ -15,7 +15,7 @@ export default function EventView() {
         <Pic name="node-evento" className="w-5 h-5" />
         <div className="font-extrabold text-sm">Situación</div>
         <span className="ml-auto text-sm font-bold text-amber-300 tabular-nums">
-          {save.coins.toLocaleString('es-ES')} ₽
+          <CoinPrice amount={save.coins} />
         </span>
       </div>
 

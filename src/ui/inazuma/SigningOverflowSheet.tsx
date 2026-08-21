@@ -8,7 +8,7 @@ import { Button, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow, portraitUrl, ElementChip } from '@/ui/inazuma/PlayerCard'
-import { ItemIcon, rarityBorder } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, ItemIcon, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { MAX_RARITY, RARITY_LABEL, rarityOf, transferValue } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 
@@ -55,7 +55,7 @@ export default function SigningOverflowSheet() {
         {/* Opción A: venderlo a ÉL. */}
         <Button variant="secondary" full className="mt-2" onClick={resolveSigningSell}>
           <span className="inline-flex items-center justify-center gap-1.5 text-[13px]">
-            Venderlo sin fichar · {inFee.toLocaleString('es-ES')} ₽ + {tier}×
+            Venderlo sin fichar · <CoinPrice amount={inFee} coin="w-3 h-3" /> + {tier}×
             <ItemIcon itemId="medalla-rareza" className="w-4 h-4" />
           </span>
         </Button>
@@ -75,7 +75,7 @@ export default function SigningOverflowSheet() {
                 onClick={() => setPick(pick === p.uid ? null : p.uid)}
                 right={
                   <span className="text-[9px] text-right leading-tight text-amber-300 font-bold inline-flex flex-col items-end">
-                    <span>{fee.toLocaleString('es-ES')} ₽</span>
+                    <span><CoinPrice amount={fee} coin="w-3 h-3" /></span>
                     <span className="inline-flex items-center gap-0.5">+{medals}×<ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" /></span>
                   </span>
                 }

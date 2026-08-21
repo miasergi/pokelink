@@ -12,7 +12,7 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { Crest, ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, Crest, ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
 import { signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, realTechniquePower, techLevel, techniqueCostFor } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
@@ -107,7 +107,7 @@ export default function BagView() {
         <Icon name="bag" className="w-5 h-5 text-amber-300" />
         <div className="font-extrabold text-sm">Mochila</div>
         <span className="ml-auto text-sm font-bold text-amber-300 tabular-nums">
-          {save.coins.toLocaleString('es-ES')} ₽
+          <CoinPrice amount={save.coins} />
         </span>
       </div>
 

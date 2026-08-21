@@ -93,7 +93,7 @@ export const EVENTS: InazumaEvent[] = [
     text: 'Da el doble de lo que pides. También podría tragarse las monedas y no dar nada.',
     options: [
       {
-        label: 'Probar suerte (300 ₽)',
+        label: 'Probar suerte (300 IEcoins)',
         cost: 300,
         outcome: '¡Cae un montón de bebida! Todo el equipo repone.',
         effect: { kind: 'stamina', amount: 40 },
@@ -124,7 +124,7 @@ export const EVENTS: InazumaEvent[] = [
     text: 'Un mal apoyo en el calentamiento. No parece grave, pero cojea.',
     options: [
       {
-        label: 'Pagar al fisio (500 ₽)',
+        label: 'Pagar al fisio (500 IEcoins)',
         cost: 500,
         outcome: 'Como nuevo. Y de paso repasa a todo el equipo.',
         effect: { kind: 'rest' },
@@ -139,7 +139,7 @@ export const EVENTS: InazumaEvent[] = [
     text: 'Unos exjugadores del barrio os desafían a un concurso de tiros. Apuestan dinero.',
     options: [
       {
-        label: 'Aceptar la apuesta (400 ₽)',
+        label: 'Aceptar la apuesta (400 IEcoins)',
         cost: 400,
         outcome: '¡Ganado! Se llevan una lección y vosotros el bote.',
         effect: { kind: 'coins', amount: 1400 },
@@ -200,7 +200,7 @@ export const EVENTS: InazumaEvent[] = [
     text: 'Está vacío y la puerta abierta. Hay pesas, cintas y una máquina de bebidas que funciona.',
     options: [
       {
-        label: 'Sesión de fuerza (250 ₽)',
+        label: 'Sesión de fuerza (250 IEcoins)',
         cost: 250,
         outcome: 'Trabajo duro: +1 nivel a la plantilla.',
         effect: { kind: 'levels', amount: 1 },

@@ -313,6 +313,45 @@ export const useTechSheet = create<TechSheetState>((set) => ({
  * que enseñe potencia y coste efectivos de ese dueño; `silent` la apaga).
  */
 /**
+ * IECOIN: la moneda del modo — dorada, con su anillo interior y el RAYO de
+ * Inazuma troquelado en dorado oscuro. Dibujada a mano (nada de stock):
+ * plana y nítida a cualquier tamaño, como el resto de iconos del modo.
+ */
+export function IECoin({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`inline-block shrink-0 ${className}`} aria-label="IEcoins">
+      {/* el canto de la moneda, un pelín más oscuro que la cara */}
+      <circle cx="12" cy="12" r="11" fill="#d99a26" />
+      {/* la cara */}
+      <circle cx="12" cy="12" r="10.1" fill="#f2b737" />
+      {/* anillo interior troquelado */}
+      <circle cx="12" cy="12" r="8.1" fill="none" stroke="#d99a26" strokeWidth="1.1" />
+      {/* brillo superior sutil */}
+      <path d="M4.6 9.2A8.4 8.4 0 0 1 12 3.9a8.4 8.4 0 0 1 7.4 5.3 9.4 9.4 0 0 0-14.8 0Z" fill="#f8cf6b" opacity="0.75" />
+      {/* EL RAYO, troquelado en la cara */}
+      <path d="M13.6 5.6 7.9 13.2h3.1l-1.3 5.6 6.4-8.2h-3.3l2.4-5Z" fill="#b97f1c" />
+    </svg>
+  )
+}
+
+/**
+ * PRECIO EN IECOINS: número + moneda, el átomo que sustituye al «₽» heredado
+ * de los pokédolares en todo el modo Inazuma.
+ */
+export function CoinPrice({ amount, className = '', coin = 'w-3.5 h-3.5' }: {
+  amount: number
+  className?: string
+  coin?: string
+}) {
+  return (
+    <span className={`inline-flex items-center gap-1 tabular-nums ${className}`}>
+      {amount.toLocaleString('es-ES')}
+      <IECoin className={coin} />
+    </span>
+  )
+}
+
+/**
  * MARCA DE COMBO: dos siluetas juntas — la insignia de las técnicas
  * combinadas allá donde salgan (estampas, chips, visor).
  */

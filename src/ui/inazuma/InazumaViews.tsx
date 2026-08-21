@@ -15,7 +15,7 @@ import { MedalHint } from '@/ui/inazuma/BagView'
 import { StatsBoard } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
@@ -87,7 +87,7 @@ export function TitleView() {
               </span>
             </Button>
             <div className="text-center text-[11px] text-slate-500">
-              {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.roster.length} jugadores · {save.coins.toLocaleString('es-ES')} ₽
+              {save.record[0]}V {save.record[1]}E {save.record[2]}D · {save.roster.length} jugadores · <CoinPrice amount={save.coins} coin="w-3 h-3" />
             </div>
           </>
         )}
@@ -353,7 +353,7 @@ function SaveHeader({ save }: { save: InazumaSave }) {
         </div>
       </div>
       <span className="text-[13px] font-bold text-amber-300 tabular-nums shrink-0">
-        {save.coins.toLocaleString('es-ES')} ₽
+        <CoinPrice amount={save.coins} />
       </span>
       <GuideButton />
       <SettingsButton />
@@ -1275,7 +1275,7 @@ function PlayerDetail({
           {!blocked && !confirmSale && (
             <Button variant="danger" full onClick={() => setConfirmSale(true)}>
               <span className="inline-flex items-center justify-center gap-1.5">
-                Vender · {fee.toLocaleString('es-ES')} ₽ + {rarityOf(player)}×
+                Vender · <CoinPrice amount={fee} coin="w-3 h-3" /> + {rarityOf(player)}×
                 <ItemIcon itemId="medalla-rareza" className="w-4 h-4" />
               </span>
             </Button>
@@ -1285,7 +1285,7 @@ function PlayerDetail({
           <div className="mt-2 rounded-xl border border-rose-600/60 bg-rose-500/10 p-3">
             <p className="text-[12px] text-rose-200 mb-2">
               ¿Seguro? {base.name} se va para siempre. Te llevas{' '}
-              <b>{fee.toLocaleString('es-ES')} ₽</b> y{' '}
+              <b><CoinPrice amount={fee} coin="w-3 h-3" /></b> y{' '}
               <b className="inline-flex items-center gap-1">
                 {rarityOf(player)}× <ItemIcon itemId="medalla-rareza" className="w-3.5 h-3.5" /> Medalla de talento
               </b>{' '}(una por rareza).
@@ -1384,7 +1384,7 @@ export function ShopView() {
                         <div className="text-[11px] text-slate-400">{t.desc}</div>
                       </div>
                       <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
-                        {TACTIC_PRICE.toLocaleString('es-ES')} ₽
+                        <CoinPrice amount={TACTIC_PRICE} />
                       </span>
                     </div>
                   </Card>
@@ -1412,7 +1412,7 @@ export function ShopView() {
                   <div className="text-[11px] text-slate-400">{item.desc}</div>
                 </div>
                 <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">
-                  {item.price.toLocaleString('es-ES')} ₽
+                  <CoinPrice amount={item.price} />
                 </span>
               </div>
             </Card>
@@ -1532,7 +1532,7 @@ export function DraftView() {
                       : 'text-rose-300 border-rose-400/50 bg-rose-500/10'
                   }`}
                 >
-                  −{o.cost.toLocaleString('es-ES')} ₽
+                  −<CoinPrice amount={o.cost} />
                 </span>
               ) : null}
               <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />

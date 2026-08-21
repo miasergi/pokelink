@@ -182,7 +182,7 @@ export function generateMap(
       title: team.name,
       subtitle: `${entry.name} · nivel medio ${Math.min(99, RIVAL_LEVELS[seg] + levelBonus)}`,
       // La recompensa dejó de ser un menú de tres cartas: ahora cae una al azar.
-      reward: `${prizeMoney(seg)} ₽ + una recompensa`,
+      reward: `${prizeMoney(seg)} IEcoins + una recompensa`,
       next: [],
     }
     nodes[boss.id] = boss
@@ -267,7 +267,7 @@ function buildRouteNode(
         teamId: bracket[seg].teamId,
         title: risky ? `${rival.name} · a cara de perro` : rival.name,
         subtitle: `Pachanga · nivel ${level}`,
-        reward: risky ? '+3 niveles y 300 ₽ si ganas' : '+2 niveles si ganas',
+        reward: risky ? '+3 niveles y 300 IEcoins si ganas' : '+2 niveles si ganas',
       }
     }
     case 'objeto': {

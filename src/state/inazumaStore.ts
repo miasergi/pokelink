@@ -1092,7 +1092,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       }
       if (momentos.length) {
         next.coins += 250 * momentos.length
-        momentoMsg = ` · Momentos Chester: ${momentos.join(' ')} +${250 * momentos.length} ₽`
+        momentoMsg = ` · Momentos Chester: ${momentos.join(' ')} +${250 * momentos.length} IEcoins`
       }
     }
 
@@ -1127,7 +1127,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     set({
       save: next,
       pendingSigning: null,
-      message: `${base.name} traspasado sin llegar a debutar: +${fee.toLocaleString('es-ES')} ₽ y ${medals} medalla${medals > 1 ? 's' : ''}.`,
+      message: `${base.name} traspasado sin llegar a debutar: +${fee.toLocaleString('es-ES')} IEcoins y ${medals} medalla${medals > 1 ? 's' : ''}.`,
     })
     void persist(next, get().phase)
   },
@@ -1155,7 +1155,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     set({
       save: next,
       pendingSigning: null,
-      revealPlayer: { uid: nuevo.uid, title: `${outBase.name} se marcha (+${fee.toLocaleString('es-ES')} ₽, ${medals} medalla${medals > 1 ? 's' : ''}). ¡Y llega…!` },
+      revealPlayer: { uid: nuevo.uid, title: `${outBase.name} se marcha (+${fee.toLocaleString('es-ES')} IEcoins, ${medals} medalla${medals > 1 ? 's' : ''}). ¡Y llega…!` },
     })
     void persist(next, get().phase)
   },
@@ -1215,7 +1215,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // Cartas de PAGO (la agenda del ojeador): si no llega el dinero, la
       // carta no se gasta — se avisa y se sigue eligiendo.
       if (opt.cost && next.coins < opt.cost) {
-        set({ message: `Te faltan ${(opt.cost - next.coins).toLocaleString('es-ES')} ₽ para eso.` })
+        set({ message: `Te faltan ${(opt.cost - next.coins).toLocaleString('es-ES')} IEcoins para eso.` })
         return
       }
       if (opt.cost) next.coins -= opt.cost
@@ -1229,11 +1229,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         return
       }
       message = opt.cost
-        ? `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila (−${opt.cost.toLocaleString('es-ES')} ₽).`
+        ? `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila (−${opt.cost.toLocaleString('es-ES')} IEcoins).`
         : `${getItem(opt.itemId)?.name ?? 'Objeto'} a la mochila.`
     } else if (opt.kind === 'dinero') {
       next.coins += opt.amount
-      message = `+${opt.amount.toLocaleString('es-ES')} ₽`
+      message = `+${opt.amount.toLocaleString('es-ES')} IEcoins`
     } else if (opt.kind === 'descanso') {
       fullRest(next)
       message = 'Plantilla recuperada al completo.'
@@ -1965,7 +1965,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     }
     set({
       save: next,
-      message: `${getPlayerBase(p.baseId).name} traspasado por ${fee.toLocaleString('es-ES')} ₽ y ${medals} medalla${medals > 1 ? 's' : ''}.`,
+      message: `${getPlayerBase(p.baseId).name} traspasado por ${fee.toLocaleString('es-ES')} IEcoins y ${medals} medalla${medals > 1 ? 's' : ''}.`,
     })
     void persist(next, get().phase)
   },

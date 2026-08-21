@@ -212,7 +212,7 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
       kind: 'objeto',
       id: 'scout-custom',
       title: 'Fichaje personalizado',
-      desc: `Busca y ficha al jugador EXACTO que quieras del catálogo. Cuesta ${SCOUT_STAR_PRICE.toLocaleString('es-ES')} ₽.`,
+      desc: `Busca y ficha al jugador EXACTO que quieras del catálogo. Cuesta ${SCOUT_STAR_PRICE.toLocaleString('es-ES')} IEcoins.`,
       itemId: 'fichaje-estrella',
       // A diferencia del resto de cartas, ESTA se paga: elegir tú al jugador
       // que quieras del catálogo entero es demasiado como para salir gratis.
@@ -291,14 +291,14 @@ export function buildDraft(save: InazumaSave, rng: RNG): DraftOption[] {
     if (item) out.push({ kind: 'objeto', id: `draft-item-${item.id}`, title: item.name, desc: item.desc, itemId: item.id })
   } else if (roll < 0.8) {
     const amount = 500 + prog * 210
-    out.push({ kind: 'dinero', id: 'draft-cash', title: `${amount.toLocaleString('es-ES')} ₽`, desc: 'Taquilla y patrocinadores', amount })
+    out.push({ kind: 'dinero', id: 'draft-cash', title: `${amount.toLocaleString('es-ES')} IEcoins`, desc: 'Taquilla y patrocinadores', amount })
   } else {
     out.push({ kind: 'descanso', id: 'draft-rest', title: 'Recuperación completa', desc: 'Toda la plantilla recupera aguante y PT' })
   }
 
   // Relleno defensivo: si algo devolvió `null`, completa con dinero.
   while (out.length < 3) {
-    out.push({ kind: 'dinero', id: `draft-cash-${out.length}`, title: '800 ₽', desc: 'Recaudación del partido', amount: 800 })
+    out.push({ kind: 'dinero', id: `draft-cash-${out.length}`, title: '800 IEcoins', desc: 'Recaudación del partido', amount: 800 })
   }
   return out
 }
