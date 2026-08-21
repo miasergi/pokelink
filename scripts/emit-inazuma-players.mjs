@@ -287,11 +287,20 @@ const slugTech = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 function signatureFor(all, name, position, element, rarity, hissatsu = [], fillPool = all, playerEra = 'clasica') {
   const kind = KIND[position] ?? 'regate'
   const byId = new Map(all.map((t) => [t.id, t]))
+  // ALIAS de nombre corto: los movesets nombran las técnicas de espíritu
+  // guerrero por su apodo («Lancelot»), pero el catálogo (deduplicado) las
+  // guarda por su título completo («kensei-lancelot»). Si el sufijo casa con
+  // UNA sola técnica, es ella.
+  const resolveId = (id) => {
+    if (byId.has(id)) return id
+    const hits = all.filter((t) => t.id.endsWith(`-${id}`))
+    return hits.length === 1 ? hits[0].id : id
+  }
   // Puesto que ocupa cada técnica en SU moveset: es el orden en que las
   // aprende en el juego, y es lo que manda al ordenar la cadena.
   const canonRank = new Map()
   hissatsu.forEach((h, i) => {
-    const id = slugTech(h)
+    const id = resolveId(slugTech(h))
     if (!canonRank.has(id)) canonRank.set(id, i)
   })
 
@@ -309,7 +318,7 @@ function signatureFor(all, name, position, element, rarity, hissatsu = [], fillP
   // técnica de siempre. La cadena se ordena por potencia igualmente al final
   // (`sortSameKindAscending`), que es donde importa.
   const real = hissatsu
-    .map(slugTech)
+    .map((h) => resolveId(slugTech(h)))
     .filter((id, i, arr) => arr.indexOf(id) === i)
     .filter((id) => kinds.includes(byId.get(id)?.kind) && !curated.includes(id))
     // Personaje de VARIAS épocas: una técnica con época declarada solo la

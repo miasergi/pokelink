@@ -337,6 +337,161 @@ const ES = {
   'God Knows': 'Solo Dios Sabe',
   'Twin Boost F': 'Doble Impulso F',
   'Double Tornado': 'Tornado Doble',
+  // --- INAZUMA ELEVEN GO (Holy Road). Oficiales del juego donde los hay;
+  //     el resto, traducción fiel del nombre del doblaje inglés.
+  'Almighty Cannon': 'Cañón Todopoderoso',
+  'Anchors Aweigh': 'Levar Anclas',
+  'Armoured Cavalry Black Knight': 'Caballo Negro Acorazado',
+  'Armoured Cavalry White Knight': 'Caballo Blanco Acorazado',
+  "Athena's Anthem": 'Himno de Atenea',
+  'Atomic Harmonic': 'Armonía Atómica',
+  'Back Slash': 'Tajo Invertido',
+  'Ball Lightning': 'Balón Relámpago',
+  'Ballista Barrage': 'Lluvia de Balista',
+  'Big Ball Trick': 'Truco del Balón Gigante',
+  'Black Ash': 'Ceniza Negra',
+  'Black Briars': 'Zarzas Negras',
+  'Blast Mine': 'Mina Explosiva',
+  'Boomerang Bluff': 'Amago Bumerán',
+  'Brave Samurai Musashi': 'Samurái Valiente Musashi',
+  'Bridge to Nowhere': 'Puente a Ninguna Parte',
+  'Brimstone Rain': 'Lluvia de Azufre',
+  'Bringer of Dreams Sand Man': 'Señor de los Sueños Sandman',
+  'Bushin Blades': 'Hojas Gemelas',
+  'Capable Hands': 'Manos Seguras',
+  'Card Shark': 'Tahúr',
+  Checkmate: 'Jaque Mate',
+  'Close Counter': 'Contraataque Cercano',
+  'Combustion Catch': 'Parada Ígnea',
+  'Crimson Sphere': 'Esfera Carmesí',
+  'Criss-Cross': 'Zigzag Cruzado',
+  'Crown Fire': 'Corona de Fuego',
+  'Dark Space': 'Espacio Oscuro',
+  'Defender of Earth Atlas': 'Guardián de la Tierra Atlas',
+  'Destrier Charge': 'Carga del Corcel',
+  'Dicey Dicer Lot': 'Dado del Destino Lot',
+  'Dinosaur Roar': 'Rugido de Dinosaurio',
+  'Divine Messenger Black Bishop': 'Alfil Negro Divino',
+  'Divine Messenger White Bishop': 'Alfil Blanco Divino',
+  'Doom Break': 'Ruptura Fatal',
+  'Doom Dive Drive': 'Caída Fatal',
+  'Doomsword Slash': 'Tajo Mortal',
+  'Dragon Storm': 'Tormenta de Dragones',
+  Dragster: 'Bólido',
+  'Drake Chevalier Dragoon': 'Caballero Dragón Dragoon',
+  'Easy Breezy': 'Brisa Ligera',
+  'Emperor Penguin 7': 'Pingüino Emperador Nº 7',
+  "Executioner's Axe": 'Hacha del Verdugo',
+  'Faster Than Light Tachyon': 'Más Veloz que la Luz Taquión',
+  'Feathers of Flames Firebird': 'Plumas de Fuego Fénix',
+  'Femme Fatale Sirena': 'Mujer Fatal Sirena',
+  'Ferocious Bird of Fable Roc': 'Ave Legendaria Roc',
+  'Fingers of Gaia': 'Dedos de Gaia',
+  'Fire Jotun Surtr': 'Gigante de Fuego Surtr',
+  'Fire Tornado DD': 'Tornado de Fuego DD',
+  Flamberge: 'Flamberga',
+  'Flapjack Defence': 'Defensa Tortita',
+  'Fortissimo Foot': 'Pie Fortissimo',
+  'Frenzied Fighter Berserker': 'Guerrero Frenético Berserker',
+  'Front-Line Fighter Black Pawn': 'Peón Negro de Vanguardia',
+  'Front-Line Fighter White Pawn': 'Peón Blanco de Vanguardia',
+  Frosticle: 'Carámbano',
+  'Fugue Wave': 'Onda de Fuga',
+  'Future Eye': 'Ojo del Futuro',
+  'Giant Usurper Gigante': 'Usurpador Gigante',
+  'Giga Knuckle Sandwich': 'Puñetazo Gigante',
+  'Gigantic Garrison Gargantua': 'Guarnición Gigante Gargantúa',
+  'God Hand V': 'Mano Celestial V',
+  'Grand Finale': 'Gran Final',
+  'Grand Inquisitor Judge': 'Gran Inquisidor Judge',
+  'Great Wall': 'Gran Muralla',
+  Headbanger: 'Cabezazo Salvaje',
+  'Heavenly Horse Arch Pegasus': 'Corcel Celestial Arco Pegaso',
+  'Heroic Swordsman Lancelot': 'Espadachín Heroico Lancelot',
+  'Hey Presto': '¡Tachán!',
+  'High Roller Las Vega': 'Gran Apostador Las Vega',
+  "Hunter's Net": 'Red de Cazador',
+  Hyperdrive: 'Hipervelocidad',
+  'Hypersonic Fighter Scramjet': 'Caza Hipersónico Scramjet',
+  'Icicle Road': 'Camino Helado',
+  'Infernal Dragon Lord Koro-Koro-Gon': 'Señor Dragón Infernal Korogon',
+  'Inferno Fist': 'Puño Infernal',
+  'Jumbo Sandwich': 'Sándwich Gigante',
+  'Jumping Jack': 'Muelle Saltarín',
+  'Katana Kick': 'Patada Katana',
+  'Killer Whale': 'Orca Asesina',
+  'King of Beasts Leon': 'Rey de las Bestias León',
+  'Lancelot Lunge': 'Estocada de Lancelot',
+  'Living Nightmare Phantasma': 'Pesadilla Viviente Fantasma',
+  'Log Roll': 'Rodillo de Tronco',
+  'Lord of All Waters Neptune': 'Señor de las Aguas Neptuno',
+  'Lord of Birds and Beasts Griffin': 'Señor de Aves y Bestias Grifo',
+  'Lucky Dice': 'Dados de la Suerte',
+  "Magician's Box": 'Caja del Mago',
+  'Majin the Great': 'Majin el Grande',
+  'Master Conductor Maestro': 'Director de Orquesta Maestro',
+  'Master Magician Trickster': 'Mago Supremo Trickster',
+  'Metal Mammoth Behemoth': 'Mamut de Metal Behemot',
+  'Mystifying Mist': 'Niebla Desconcertante',
+  'Optimal Trajectory': 'Trayectoria Óptima',
+  'Ozone Flayer': 'Desgarrador de Ozono',
+  'Pegasus Bolt': 'Rayo Pegaso',
+  'Pegasus Punch': 'Puño Pegaso',
+  'Pincer Pinch': 'Pinza Tenaza',
+  'Power Spike': 'Remate Potente',
+  Pyroclastic: 'Piroclasto',
+  Pyrokinetic: 'Piroquinesis',
+  'Rainbow Bubble Burst': 'Burbujas Arcoíris',
+  'Rat-a-Tat Pass': 'Pase Metralleta',
+  'Rising Dragon': 'Dragón Ascendente',
+  'Roc and Roll': 'Vuelo del Roc',
+  'Royal Enchantress Black Queen': 'Reina Negra Hechicera',
+  'Royal Enchantress White Queen': 'Reina Blanca Hechicera',
+  'Ruler of the Seven Seas Poseidon': 'Señor de los Siete Mares Poseidón',
+  'Runaway Train': 'Tren Desbocado',
+  'Sacred Serpent White Wyvern': 'Sierpe Sagrada Guiverno Blanco',
+  Scattershot: 'Perdigonada',
+  'Seal Matrix': 'Matriz de Sellado',
+  'Shadow Catch': 'Parada Sombría',
+  'Shadow Shooter Trigger': 'Tirador de las Sombras Trigger',
+  'Shot Stopper': 'Paradón Total',
+  Sidewinder: 'Crótalo',
+  'Slice and Dice': 'Corte y Recorte',
+  Snakebite: 'Mordedura de Serpiente',
+  'Snow Nymph Chione': 'Ninfa de las Nieves Quíone',
+  'Snowstorm Leopard': 'Leopardo de la Ventisca',
+  'Solar Flare': 'Llamarada Solar',
+  'Solar Surprise': 'Sorpresa Solar',
+  'Somersault Stamp': 'Voltereta Aplastante',
+  'Sonic Shot': 'Tiro Sónico',
+  'Spatial Portal': 'Portal Espacial',
+  'Sun Deity Apollo': 'Dios del Sol Apolo',
+  'Supernatural Strike': 'Golpe Sobrenatural',
+  'Supernatural Wingman Thunderbird': 'Ave del Trueno Thunderbird',
+  'Tale of the Dragon': 'Leyenda del Dragón',
+  'The Great Genie Majin': 'Gran Genio Majin',
+  "Thief's Eye": 'Ojo de Ladrón',
+  Thunderclaw: 'Garra de Trueno',
+  'Tin Titan Goliath': 'Titán de Hojalata Goliat',
+  'Titanic Shield': 'Escudo Titánico',
+  'Titanic Slam': 'Golpe Titánico',
+  'Triangle Double Z': 'Triángulo ZZ',
+  'Trident Torpedo': 'Torpedo Tridente',
+  'Triple Threat': 'Triple Amenaza',
+  Ultrasonic: 'Ultrasónico',
+  'Wall of Atlantis': 'Muralla de la Atlántida',
+  Warhead: 'Ojiva',
+  'Watchtower Sentinel Black Rook': 'Torre Negra Vigía',
+  'Watchtower Sentinel White Rook': 'Torre Blanca Vigía',
+  'Whip Crack': 'Latigazo',
+  Whirlpool: 'Remolino',
+  'White Breath': 'Aliento Blanco',
+  'White Hurricane': 'Huracán Blanco',
+  "Will-o'-the-Wisp Shot": 'Tiro Fuego Fatuo',
+  'Winged Steed Pegasus': 'Corcel Alado Pegaso',
+  'Wise Monarch Black King': 'Rey Negro Sabio',
+  'Wise Monarch White King': 'Rey Blanco Sabio',
+  'Zephyr Shot': 'Tiro Céfiro',
 }
 
 
@@ -451,6 +606,9 @@ function dubName(wikitext, fallback) {
   const clean = first
     // Bastantes fichas ponen {{PAGENAME}} en vez de repetir el nombre.
     .replace(/\{\{PAGENAME\}\}/gi, fallback)
+    // Y alguna mete {{Hover|texto|tooltip}}: se queda el texto visible
+    // («Triangle {{Hover|Double Z|ZZ}}» → «Triangle Double Z»).
+    .replace(/\{\{Hover\|([^}|]*)\|[^}]*\}\}/gi, '$1')
     .replace(/''.*?''/g, '')
     .replace(/\s*\([^)]*\)\s*$/, '')
     .trim()
@@ -667,8 +825,21 @@ async function emit(found) {
 
   // SIN DUPLICADOS: las repescas encadenadas apilaban la misma técnica en el
   // caché (mismo título varias veces) y el catálogo salía con ids repetidos.
+  // Y DEDUPE POR NOMBRE: la repesca guardaba las técnicas de espíritu
+  // guerrero bajo su nombre CORTO de moveset («Lancelot») además del título
+  // completo («Kensei Lancelot») — misma técnica dos veces, y la corta sin
+  // imagen. Gana la que tiene imagen (o el título más largo, que es el
+  // canónico); el alias del emisor de jugadores resuelve el nombre corto.
+  const byNameKey = new Map()
+  for (const t of list) {
+    const key = `${slug(t.name)}|${t.type}|${t.element}`
+    const prev = byNameKey.get(key)
+    if (!prev || (!prev.thumb && t.thumb) || (Boolean(t.thumb) === Boolean(prev.thumb) && t.title.length > prev.title.length)) {
+      byNameKey.set(key, t)
+    }
+  }
   const seenIds = new Set()
-  const deduped = balance([...new Set(list)]).filter((t) => {
+  const deduped = balance([...new Set([...byNameKey.values()])]).filter((t) => {
     const id = slug(t.title)
     if (seenIds.has(id)) return false
     seenIds.add(id)
@@ -734,8 +905,10 @@ async function emit(found) {
     // El id sale del TÍTULO de la wiki, que es único; el nombre puede repetirse
     // entre variantes y dejaba dos técnicas con la misma clave.
     const id = slug(t.title)
-    const name = ES[t.name] ?? ES[t.title] ?? t.name
-    const desc = DESC[t.name] ?? DESC[t.title] ?? GENERIC[t.type][t.element]
+    // El caché puede traer nombres con {{Hover|..}} de pasadas viejas.
+    const raw = t.name.replace(/\{\{Hover\|([^}|]*)\|[^}]*\}\}/gi, '$1')
+    const name = ES[raw] ?? ES[t.title] ?? raw
+    const desc = DESC[raw] ?? DESC[t.title] ?? GENERIC[t.type][t.element]
     // `era` solo en las de otra época (VR y GO): las clásicas se quedan sin
     // el campo, que son la inmensa mayoría.
     const era = t.era === 'vr' ? ", era: 'vr'" : t.era === 'go' ? ", era: 'go'" : ''

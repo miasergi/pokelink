@@ -4257,14 +4257,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'blaine-westbrook', name: 'Blaine Westbrook', team: 'keizen-arashiyama', position: 'DEL', element: 'aire', fame: 4,
     stats: { tiro: 99, control: 68, fisico: 51, defensa: 31, velocidad: 52, aguante: 33 },
-    techniques: ['clara-bunny', 'masou-kensei-clara-bunny'],
-    signature: ['clara-bunny', 'masou-kensei-clara-bunny', 'blackmail', 'onryou'],
+    techniques: ['masou-kensei-clara-bunny', 'blackmail'],
+    signature: ['masou-kensei-clara-bunny', 'blackmail', 'onryou', 'killer-fields'],
   },
   {
     id: 'govin-castlehoven', name: 'Govin Castlehoven', team: 'keizen-arashiyama', position: 'DEF', element: 'aire', fame: 3,
     stats: { tiro: 28, control: 42, fisico: 67, defensa: 75, velocidad: 33, aguante: 40 },
-    techniques: ['warborg'],
-    signature: ['warborg', 'harvest', 'dark-phoenix', 'blackmail'],
+    techniques: ['jouheki-kyohei-warborg'],
+    signature: ['jouheki-kyohei-warborg', 'harvest', 'dark-phoenix', 'blackmail'],
   },
   {
     id: 'alistar-montero', name: 'Alistar Montero', team: 'keizen-arashiyama', position: 'MED', element: 'montana', fame: 3,
@@ -4671,13 +4671,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'riccardo-di-rigo', name: 'Riccardo Di Rigo', team: 'raimon-go', position: 'MED', element: 'bosque', fame: 5,
     stats: { tiro: 52, control: 101, fisico: 51, defensa: 58, velocidad: 63, aguante: 49 },
     techniques: ['presto-turn', 'olympus-harmony'],
-    signature: ['presto-turn', 'olympus-harmony', 'maestro', 'heaven-s-time'],
+    signature: ['presto-turn', 'olympus-harmony', 'sousha-maestro', 'heaven-s-time'],
   },
   {
     id: 'victor-blade', name: 'Victor Blade', team: 'raimon-go', position: 'DEL', element: 'fuego', fame: 5,
     stats: { tiro: 111, control: 76, fisico: 49, defensa: 27, velocidad: 61, aguante: 40 },
     techniques: ['death-sword', 'death-drop'],
-    signature: ['death-sword', 'death-drop', 'fire-tornado-dd', 'lancelot'],
+    signature: ['death-sword', 'death-drop', 'fire-tornado-dd', 'kensei-lancelot'],
   },
   {
     id: 'samguk-han', name: 'Samguk Han', team: 'raimon-go', position: 'POR', element: 'fuego', fame: 4,
@@ -4695,7 +4695,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'ryoma-nishiki', name: 'Ryoma Nishiki', team: 'raimon-go', position: 'MED', element: 'montana', fame: 4,
     stats: { tiro: 47, control: 94, fisico: 43, defensa: 55, velocidad: 54, aguante: 41 },
     techniques: ['nobori-ryuu', 'denrai-houtou'],
-    signature: ['nobori-ryuu', 'denrai-houtou', 'musashi', 'dragon-cannon'],
+    signature: ['nobori-ryuu', 'denrai-houtou', 'sengoku-bushin-musashi', 'dragon-cannon'],
   },
   {
     id: 'gabriel-garcia', name: 'Gabriel Garcia', team: 'raimon-go', position: 'DEF', element: 'bosque', fame: 3,
@@ -4749,8 +4749,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'aum-nirvana', name: 'Aum Nirvana', team: 'mannouzaka', position: 'POR', element: 'aire', fame: 4,
     stats: { tiro: 27, control: 41, fisico: 57, defensa: 101, velocidad: 45, aguante: 64 },
-    techniques: ['storm-rider', 'gareus'],
-    signature: ['storm-rider', 'gareus', 'big-spider', 'bat-attack'],
+    techniques: ['storm-rider', 'kikai-hei-gareus'],
+    signature: ['storm-rider', 'kikai-hei-gareus', 'big-spider', 'bat-attack'],
   },
   {
     id: 'adamant-walhalla', name: 'Adamant Walhalla', team: 'mannouzaka', position: 'DEF', element: 'aire', fame: 3,
@@ -4773,8 +4773,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'maxim-millennium', name: 'Maxim Millennium', team: 'mannouzaka', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 73, control: 46, fisico: 37, defensa: 18, velocidad: 40, aguante: 22 },
-    techniques: ['purim'],
-    signature: ['purim', 'maboroshi-shot', 'boomerang-feint', 'kijutsu-ma-purim'],
+    techniques: ['kijutsu-ma-purim'],
+    signature: ['kijutsu-ma-purim', 'maboroshi-shot', 'boomerang-feint', 'zanzou'],
   },
   {
     id: 'omega-elysium', name: 'Omega Elysium', team: 'mannouzaka', position: 'DEF', element: 'montana', fame: 1,
@@ -4920,7 +4920,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'yang', name: 'Yang', team: 'gassan-kunimitsu', position: 'DEL', element: 'montana', fame: 2,
     stats: { tiro: 75, control: 48, fisico: 38, defensa: 20, velocidad: 40, aguante: 22 },
     techniques: ['death-drop'],
-    signature: ['death-drop', 'eternal-blizzard', 'britannia-cross', 'rook-w'],
+    signature: ['death-drop', 'eternal-blizzard', 'britannia-cross', 'bannin-no-tou-rook-w'],
   },
   {
     id: 'otto-bismark', name: 'Otto Bismark', team: 'gassan-kunimitsu', position: 'DEF', element: 'bosque', fame: 2,
@@ -4993,7 +4993,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'njord-snio', name: 'Njord Snio', team: 'hakuren-go', position: 'DEL', element: 'aire', fame: 2,
     stats: { tiro: 74, control: 55, fisico: 36, defensa: 18, velocidad: 44, aguante: 27 },
     techniques: ['panther-blizzard'],
-    signature: ['panther-blizzard', 'saia', 'white-blade', 'eternal-blizzard'],
+    signature: ['panther-blizzard', 'gousetsu-no-saia', 'white-blade', 'eternal-blizzard'],
   },
   {
     id: 'suno-aisu', name: 'Suno Aisu', team: 'hakuren-go', position: 'POR', element: 'montana', fame: 2,
@@ -5022,8 +5022,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'bob-sled', name: 'Bob Sled', team: 'hakuren-go', position: 'MED', element: 'fuego', fame: 1,
     stats: { tiro: 34, control: 52, fisico: 30, defensa: 34, velocidad: 38, aguante: 22 },
-    techniques: ['pawn-w'],
-    signature: ['pawn-w', 'white-blade', 'northern-impact', 'ice-ground'],
+    techniques: ['seiei-hei-pawn-w'],
+    signature: ['seiei-hei-pawn-w', 'white-blade', 'northern-impact', 'ice-ground'],
   },
   {
     id: 'blain-chills', name: 'Blain Chills', team: 'hakuren-go', position: 'MED', element: 'fuego', fame: 1,
@@ -5059,14 +5059,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'dakkar-nemo', name: 'Dakkar Nemo', team: 'kaiou-gakuen', position: 'MED', element: 'aire', fame: 4,
     stats: { tiro: 52, control: 94, fisico: 47, defensa: 50, velocidad: 56, aguante: 37 },
-    techniques: ['varius', 'britannia-cross'],
-    signature: ['varius', 'britannia-cross', 'sonic-shot', 'sargasso'],
+    techniques: ['onsoku-no-varius', 'britannia-cross'],
+    signature: ['onsoku-no-varius', 'britannia-cross', 'sonic-shot', 'sargasso'],
   },
   {
     id: 'octavus-kraken', name: 'Octavus Kraken', team: 'kaiou-gakuen', position: 'DEF', element: 'fuego', fame: 3,
     stats: { tiro: 23, control: 40, fisico: 73, defensa: 78, velocidad: 35, aguante: 38 },
     techniques: ['sargasso'],
-    signature: ['sargasso', 'spinning-cut', 'pawn-w', 'big-scissors'],
+    signature: ['sargasso', 'spinning-cut', 'seiei-hei-pawn-w', 'big-scissors'],
   },
   {
     id: 'ishmael-ahab', name: 'Ishmael Ahab', team: 'kaiou-gakuen', position: 'POR', element: 'aire', fame: 2,
@@ -5144,8 +5144,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'harrold-houdini', name: 'Harrold Houdini', team: 'genei-gakuen', position: 'MED', element: 'bosque', fame: 4,
     stats: { tiro: 48, control: 92, fisico: 44, defensa: 50, velocidad: 60, aguante: 38 },
-    techniques: ['illusion-ball', 'dalamanglass'],
-    signature: ['illusion-ball', 'dalamanglass', 'maboroshi-shot', 'dimension-cut'],
+    techniques: ['illusion-ball', 'genei-no-dalamanglass'],
+    signature: ['illusion-ball', 'genei-no-dalamanglass', 'maboroshi-shot', 'dimension-cut'],
   },
   {
     id: 'hocus-sesame', name: 'Hocus Sesame', team: 'genei-gakuen', position: 'DEL', element: 'fuego', fame: 3,
@@ -5175,7 +5175,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'abram-cadabra', name: 'Abram Cadabra', team: 'genei-gakuen', position: 'POR', element: 'montana', fame: 1,
     stats: { tiro: 22, control: 27, fisico: 31, defensa: 56, velocidad: 28, aguante: 37 },
     techniques: ['kage-tsukami'],
-    signature: ['kage-tsukami', 'diceman', 'serpent-fang', 'colosseo-guard'],
+    signature: ['kage-tsukami', 'shoubushi-diceman', 'serpent-fang', 'colosseo-guard'],
   },
   {
     id: 'jaymes-randie', name: 'Jaymes Randie', team: 'genei-gakuen', position: 'DEF', element: 'bosque', fame: 1,
@@ -5223,8 +5223,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'sol-daystar', name: 'Sol Daystar', team: 'arakumo-gakuen', position: 'DEL', element: 'fuego', fame: 5,
     stats: { tiro: 117, control: 79, fisico: 54, defensa: 29, velocidad: 69, aguante: 36 },
-    techniques: ['ryuusei-blade', 'apollo'],
-    signature: ['ryuusei-blade', 'apollo', 'the-ikaros', 'crazy-sunlight'],
+    techniques: ['ryuusei-blade', 'taiyou-shin-apollo'],
+    signature: ['ryuusei-blade', 'taiyou-shin-apollo', 'the-ikaros', 'crazy-sunlight'],
   },
   {
     id: 'auberon-ouranos', name: 'Auberon Ouranos', team: 'arakumo-gakuen', position: 'DEF', element: 'bosque', fame: 3,
@@ -5236,13 +5236,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'triton-nettuno', name: 'Triton Nettuno', team: 'arakumo-gakuen', position: 'DEL', element: 'aire', fame: 3,
     stats: { tiro: 89, control: 58, fisico: 40, defensa: 23, velocidad: 51, aguante: 24 },
     techniques: ['ryuusei-blade'],
-    signature: ['ryuusei-blade', 'neptune', 'presto-turn', 'the-typhoon'],
+    signature: ['ryuusei-blade', 'kaitei-neptune', 'presto-turn', 'the-typhoon'],
   },
   {
     id: 'ringo-saturn', name: 'Ringo Saturn', team: 'arakumo-gakuen', position: 'POR', element: 'montana', fame: 2,
     stats: { tiro: 22, control: 34, fisico: 46, defensa: 70, velocidad: 28, aguante: 47 },
     techniques: ['burai-hand'],
-    signature: ['burai-hand', 'giga-doon', 'serpent-fang', 'god-hand'],
+    signature: ['burai-hand', 'teppeki-no-giga-doon', 'serpent-fang', 'god-hand'],
   },
   {
     id: 'neith-venus', name: 'Neith Venus', team: 'arakumo-gakuen', position: 'MED', element: 'bosque', fame: 2,
@@ -5315,7 +5315,7 @@ export const PLAYERS: PlayerBase[] = [
     id: 'cronus-fourseasons', name: 'Cronus Fourseasons', team: 'seidouzan', position: 'MED', element: 'fuego', fame: 4,
     stats: { tiro: 54, control: 87, fisico: 48, defensa: 52, velocidad: 54, aguante: 37 },
     techniques: ['round-spark', 'ballista-shot'],
-    signature: ['round-spark', 'ballista-shot', 'air-bullet', 'gazard'],
+    signature: ['round-spark', 'ballista-shot', 'air-bullet', 'enma-gazard'],
   },
   {
     id: 'theo-divine', name: 'Theo Divine', team: 'seidouzan', position: 'POR', element: 'montana', fame: 3,
@@ -5388,43 +5388,43 @@ export const PLAYERS: PlayerBase[] = [
     id: 'quentin-cinquedea', name: 'Quentin Cinquedea', team: 'dragonlink', position: 'POR', element: 'fuego', fame: 4,
     stats: { tiro: 29, control: 42, fisico: 61, defensa: 100, velocidad: 39, aguante: 57 },
     techniques: ['power-shield', 'shoot-break'],
-    signature: ['power-shield', 'shoot-break', 'god-hand-x', 'king-burn-w'],
+    signature: ['power-shield', 'shoot-break', 'god-hand-x', 'kenou-king-burn-w'],
   },
   {
     id: 'eljas-viisi', name: 'Eljas Viisi', team: 'dragonlink', position: 'DEF', element: 'aire', fame: 3,
     stats: { tiro: 30, control: 42, fisico: 70, defensa: 75, velocidad: 38, aguante: 45 },
-    techniques: ['rook-w'],
-    signature: ['rook-w', 'air-bullet', 'head-bazooka', 'dash-storm'],
+    techniques: ['bannin-no-tou-rook-w'],
+    signature: ['bannin-no-tou-rook-w', 'air-bullet', 'head-bazooka', 'dash-storm'],
   },
   {
     id: 'erik-pentona', name: 'Erik Pentona', team: 'dragonlink', position: 'DEL', element: 'montana', fame: 3,
     stats: { tiro: 84, control: 62, fisico: 39, defensa: 26, velocidad: 49, aguante: 27 },
     techniques: ['ballista-shot'],
-    signature: ['ballista-shot', 'reflect-buster', 'pawn-w', 'atlantis-wall'],
+    signature: ['ballista-shot', 'reflect-buster', 'seiei-hei-pawn-w', 'atlantis-wall'],
   },
   {
     id: 'aime-quintet', name: 'Aimé Quintet', team: 'dragonlink', position: 'DEF', element: 'aire', fame: 2,
     stats: { tiro: 21, control: 38, fisico: 53, defensa: 69, velocidad: 32, aguante: 34 },
     techniques: ['air-bullet'],
-    signature: ['air-bullet', 'shinkuuma', 'queen-redia-w', 'fuujin-no-mai'],
+    signature: ['air-bullet', 'shinkuuma', 'majo-queen-redia-w', 'fuujin-no-mai'],
   },
   {
     id: 'pentra-chek', name: 'Pentra Chek', team: 'dragonlink', position: 'MED', element: 'montana', fame: 2,
     stats: { tiro: 36, control: 62, fisico: 28, defensa: 43, velocidad: 40, aguante: 26 },
     techniques: ['nobori-ryuu'],
-    signature: ['nobori-ryuu', 'ballista-shot', 'bishop-w', 'twin-mixer'],
+    signature: ['nobori-ryuu', 'ballista-shot', 'ma-saishou-bishop-w', 'twin-mixer'],
   },
   {
     id: 'federigo-cinco', name: 'Federigo Cinco', team: 'dragonlink', position: 'MED', element: 'bosque', fame: 2,
     stats: { tiro: 35, control: 70, fisico: 28, defensa: 36, velocidad: 37, aguante: 30 },
     techniques: ['presto-turn'],
-    signature: ['presto-turn', 'maboroshi-shot', 'bishop-w', 'dimension-cut'],
+    signature: ['presto-turn', 'maboroshi-shot', 'ma-saishou-bishop-w', 'dimension-cut'],
   },
   {
     id: 'quinque-flores', name: 'Quinque Flores', team: 'dragonlink', position: 'DEL', element: 'fuego', fame: 2,
     stats: { tiro: 77, control: 52, fisico: 31, defensa: 18, velocidad: 38, aguante: 26 },
     techniques: ['round-spark'],
-    signature: ['round-spark', 'pawn-w', 'white-blade', 'britannia-cross'],
+    signature: ['round-spark', 'seiei-hei-pawn-w', 'white-blade', 'britannia-cross'],
   },
   {
     id: 'hilary-prentice', name: 'Hilary Prentice', team: 'dragonlink', position: 'MED', element: 'aire', fame: 2,
@@ -5436,13 +5436,13 @@ export const PLAYERS: PlayerBase[] = [
     id: 'fivier-saviola', name: 'Fivier Saviola', team: 'dragonlink', position: 'MED', element: 'bosque', fame: 2,
     stats: { tiro: 38, control: 63, fisico: 31, defensa: 40, velocidad: 37, aguante: 26 },
     techniques: ['round-spark'],
-    signature: ['round-spark', 'knight-w', 'dimension-cut', 'joker-rains'],
+    signature: ['round-spark', 'tekki-hei-knight-w', 'dimension-cut', 'joker-rains'],
   },
   {
     id: 'david-quintola', name: 'David Quintola', team: 'dragonlink', position: 'DEL', element: 'montana', fame: 2,
     stats: { tiro: 70, control: 52, fisico: 38, defensa: 24, velocidad: 45, aguante: 21 },
     techniques: ['ballista-shot'],
-    signature: ['ballista-shot', 'megaton-head', 'pawn-w', 'kattobi-defense'],
+    signature: ['ballista-shot', 'megaton-head', 'seiei-hei-pawn-w', 'kattobi-defense'],
   },
   {
     id: 'leonidas-epsilon', name: 'Leonidas Epsilon', team: 'dragonlink', position: 'POR', element: 'fuego', fame: 2,
@@ -5472,14 +5472,14 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'langford-ash', name: 'Langford Ash', team: 'kidokawa-go', position: 'DEL', element: 'montana', fame: 4,
     stats: { tiro: 98, control: 72, fisico: 44, defensa: 28, velocidad: 59, aguante: 31 },
-    techniques: ['sidewinder', 'knight-w'],
-    signature: ['sidewinder', 'knight-w', 'claymore', 'denrai-houtou'],
+    techniques: ['sidewinder', 'tekki-hei-knight-w'],
+    signature: ['sidewinder', 'tekki-hei-knight-w', 'claymore', 'denrai-houtou'],
   },
   {
     id: 'strom-boojum', name: 'Strom Boojum', team: 'kidokawa-go', position: 'POR', element: 'montana', fame: 3,
     stats: { tiro: 26, control: 33, fisico: 48, defensa: 87, velocidad: 35, aguante: 50 },
     techniques: ['fence-of-gaia'],
-    signature: ['fence-of-gaia', 'baron', 'gigant-wall', 'power-shield'],
+    signature: ['fence-of-gaia', 'juuki-hei-baron', 'gigant-wall', 'power-shield'],
   },
   {
     id: 'river-willows', name: 'River Willows', team: 'kidokawa-go', position: 'MED', element: 'aire', fame: 3,
@@ -5557,8 +5557,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'bailong', name: 'Bailong', team: 'unlimited-shining', position: 'DEL', element: 'aire', fame: 5,
     stats: { tiro: 114, control: 82, fisico: 48, defensa: 34, velocidad: 65, aguante: 34 },
-    techniques: ['white-hurricane', 'shining-dragon'],
-    signature: ['white-hurricane', 'shining-dragon', 'fuujin-no-mai', 'air-bullet'],
+    techniques: ['white-hurricane', 'seijuu-shining-dragon'],
+    signature: ['white-hurricane', 'seijuu-shining-dragon', 'fuujin-no-mai', 'air-bullet'],
   },
   {
     id: 'albion-lumina', name: 'Albion Lumina', team: 'unlimited-shining', position: 'POR', element: 'montana', fame: 3,
@@ -5569,8 +5569,8 @@ export const PLAYERS: PlayerBase[] = [
   {
     id: 'dawntavius-spectrum', name: 'Dawntavius Spectrum', team: 'unlimited-shining', position: 'MED', element: 'fuego', fame: 3,
     stats: { tiro: 43, control: 75, fisico: 33, defensa: 43, velocidad: 45, aguante: 37 },
-    techniques: ['pawn-w'],
-    signature: ['pawn-w', 'southern-crosscut', 'rocket-head', 'volcano-cut'],
+    techniques: ['seiei-hei-pawn-w'],
+    signature: ['seiei-hei-pawn-w', 'southern-crosscut', 'rocket-head', 'volcano-cut'],
   },
   {
     id: 'candido-glow', name: 'Candido Glow', team: 'unlimited-shining', position: 'DEF', element: 'bosque', fame: 2,
