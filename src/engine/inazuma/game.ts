@@ -2,8 +2,8 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { formationFor, getPlayerBase, startingSquad } from '@/data/inazuma/players'
-import { type RegionId, getTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
+import { type RegionId, getTeam, regionOfTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
@@ -73,7 +73,20 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
   // DE LA NADA AL FRONTIER: se empieza con UN solo jugador (tu inicial) y el
   // resto se recluta por el mapa. El bombo viejo (14 al azar) queda retirado;
   // sin inicial explícito (saves de tests), arranca Mark Evans.
-  const squadIds = [opts.starterId ?? 'mark-evans']
+  // INICIAL AL AZAR (randomizador): se sortea del catálogo de las épocas
+  // marcadas, sin clones por nombre — y ni tú sabes con quién arrancas.
+  let starterId = opts.starterId ?? 'mark-evans'
+  if (opts.random?.inicial) {
+    const eras = new Set<RegionId>(opts.pools?.length ? opts.pools : [(opts.saga ?? 'ff') as RegionId])
+    const vistos = new Set<string>()
+    const pool = PLAYERS.filter((b) => {
+      if (!eras.has(regionOfTeam(b.team)) || vistos.has(b.name)) return false
+      vistos.add(b.name)
+      return true
+    })
+    if (pool.length) starterId = pool[rng.int(0, pool.length - 1)].id
+  }
+  const squadIds = [starterId]
   const roster = squadIds.map((id) => createPlayer(id, START_LEVEL))
   // EL BRAZALETE DE CAPITÁN: único en todo el torneo, y es de TU INICIAL —
   // es tu capitán desde el día uno (+25 % a todo; se puede reequipar).
@@ -93,7 +106,7 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     // Las épocas del pool: si no se elige nada, la de la saga que juegas.
     pools: opts.pools?.length ? opts.pools : undefined,
     random: opts.random && Object.values(opts.random).some(Boolean) ? opts.random : undefined,
-    starterBaseId: opts.starterId ?? 'mark-evans',
+    starterBaseId: starterId,
     // Nombre y escudo SIEMPRE tuyos: el equipo lo fundas tú.
     customName: opts.customName?.trim() || 'Nuevo Raimon',
     customCrest: opts.customCrest,

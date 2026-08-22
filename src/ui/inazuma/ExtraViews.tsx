@@ -8,7 +8,7 @@ import { portraitUrl } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_ICON } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
-import { getTeam, TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId, type SagaId } from '@/data/inazuma/teams'
+import { TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId, type SagaId } from '@/data/inazuma/teams'
 import { STARTERS_BY_SAGA } from '@/data/inazuma/starters'
 import { uniqueByName } from '@/engine/inazuma/rewards'
 import { loadMeta } from '@/persistence/db'
@@ -355,7 +355,7 @@ export function TeamSelectView() {
     if (!poolsTouched.current) setPools([saga as RegionId])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saga])
-  const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean }>({})
+  const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean; inicial?: boolean }>({})
   // TU CLUB: lo fundas tú — nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
   const [customCrest, setCustomCrest] = useState<string | null>(null)
@@ -479,6 +479,7 @@ export function TeamSelectView() {
             {([
               { k: 'plantillas' as const, t: 'Plantillas rivales al azar', d: 'Cada instituto sale con un once sorteado. Su escudo y su dificultad no cambian: no sabes con quién juega.' },
               { k: 'cuadro' as const, t: 'Cuadro mezclado', d: 'Los institutos del torneo salen de cualquiera de los juegos marcados arriba, ordenados por dificultad.' },
+              { k: 'inicial' as const, t: 'Tu inicial al azar', d: 'Arrancas con un jugador sorteado de las épocas marcadas, y el ojeador solo trae 3 al azar (sin canon del club ni Fichaje personalizado).' },
             ]).map(({ k, t, d }) => (
               <button
                 key={k}
@@ -522,6 +523,15 @@ export function TeamSelectView() {
         {/* TU INICIAL: como el de Pokémon — empiezas con UNO y a reclutar. */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-3">
           <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Tu inicial</div>
+          {/* Con «Tu inicial al azar» no hay nada que elegir: se sortea. */}
+          {random.inicial ? (
+            <div className="rounded-xl border border-fuchsia-500/50 bg-fuchsia-500/10 px-3 py-2.5 text-[12px] text-fuchsia-200 font-bold">
+              Se sortea al empezar
+              <span className="block text-[10px] text-slate-400 font-normal leading-snug">
+                Cualquiera del catálogo de las épocas marcadas. Lo descubres al fundar el club.
+              </span>
+            </div>
+          ) : (<>
           <div className="grid grid-cols-4 gap-1.5">
             {STARTERS_BY_SAGA[saga].map((id) => {
               const b = getPlayerBase(id)
@@ -570,7 +580,7 @@ export function TeamSelectView() {
                 <span className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 grid place-items-center shrink-0">
                   <ImgFallback src={portraitUrl(b.id)} className="w-full h-full object-cover object-top" fallback={<span className="text-[10px] font-bold">{b.name[0]}</span>} />
                 </span>
-                <div className="text-[12px] font-bold">{b.name} <span className="text-[10px] text-slate-400 font-normal">{b.position} · {getTeam(b.team).name}</span></div>
+                <div className="text-[12px] font-bold">{b.name} <span className="text-[10px] text-slate-400 font-normal">{b.position} · {TEAM_BY_ID.get(b.team)?.name ?? 'Resto del mundo'}</span></div>
               </div>
             )
           })()}
@@ -593,13 +603,14 @@ export function TeamSelectView() {
                       <ImgFallback src={portraitUrl(b.id)} className="w-full h-full object-cover object-top" fallback={<span className="text-[9px] font-bold">{b.name[0]}</span>} />
                     </span>
                     <span className="text-[12px] font-bold truncate">{b.name}</span>
-                    <span className="ml-auto text-[10px] text-slate-500 shrink-0">{b.position} · {getTeam(b.team).name}</span>
+                    <span className="ml-auto text-[10px] text-slate-500 shrink-0">{b.position} · {TEAM_BY_ID.get(b.team)?.name ?? 'Resto del mundo'}</span>
                   </button>
                 ))}
                 {!results.length && <p className="text-[11px] text-slate-500 px-1 py-2">Nadie con ese nombre en las épocas marcadas.</p>}
               </div>
             </div>
           )}
+          </>)}
           <p className="text-[10px] text-slate-500 mt-1.5">
             Empiezas SOLO con él (y el brazalete de capitán). Al resto los reclutas por el camino: ojeadores, rivales caídos, intercambios…
           </p>

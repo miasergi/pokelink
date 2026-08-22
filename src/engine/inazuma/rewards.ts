@@ -162,7 +162,7 @@ export const SCOUT_STAR_PRICE = 1000
 /** El EQUIPO CANON de la run: el del ESCUDO elegido al fundar el club (si
  * ese club tiene plantilla en el catálogo); si no, el equipo de tu inicial. */
 export function canonTeamOf(save: InazumaSave): string | null {
-  if (save.random?.plantillas) return null
+  if (save.random?.plantillas || save.random?.inicial) return null
   if (save.customCrest && playersOfTeam(save.customCrest).length) return save.customCrest
   const starterId = save.starterBaseId ?? save.roster.find((p) => p.bond != null)?.baseId
   return starterId ? getPlayerBase(starterId).team : null
@@ -207,7 +207,7 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
   // Y SIEMPRE, la cuarta carta: el FICHAJE PERSONALIZADO — pagas 1.000 ₽ y
   // eliges EXACTAMENTE a quién fichar del catálogo. En una run random
   // (plantillas al azar) el ojeador no la ofrece: ahí manda el caos.
-  if (out.length && !save.random?.plantillas) {
+  if (out.length && !save.random?.plantillas && !save.random?.inicial) {
     out.push({
       kind: 'objeto',
       id: 'scout-custom',

@@ -608,6 +608,9 @@ export interface RandomFlags {
   plantillas?: boolean
   /** El cuadro del torneo mezcla institutos de CUALQUIER época elegida. */
   cuadro?: boolean
+  /** TU inicial se sortea del pool, y el ojeador trae solo 3 al azar (ni
+   * canon del club ni Fichaje personalizado): caos también en tu lado. */
+  inicial?: boolean
 }
 
 export interface InazumaSave {
