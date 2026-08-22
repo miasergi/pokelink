@@ -134,6 +134,10 @@ export interface PlayerInstance {
   techLevels?: Record<string, number>
   /** Capitán: no se puede traspasar ni sacar del once. */
   captain?: boolean
+  /** LESIONADO: no puede jugar ni subir de nivel hasta pasar por el fisio
+   * (objeto/casilla) o terminar un partido oficial. La regla que lesiona es
+   * una sola: AGOTARSE — quedarse a 0 de aguante, entrenando o jugando. */
+  injured?: boolean
   /**
    * VÍNCULO del INICIAL: % extra a todos los atributos, que crece +1 por
    * partido jugado (tope 15). Solo lo tiene el jugador con el que fundaste
@@ -233,6 +237,9 @@ export type MatchEvent =
   | { kind: 'burst'; minute: number; side: Side; text: string }
   | { kind: 'tactic'; minute: number; side: Side; tactic: string; name: string; text: string }
   | { kind: 'exhausted'; minute: number; player: string; text: string }
+  /** LESIÓN en pleno partido: el jugador queda fuera de los lances (a la
+      banda con su cruz); al descanso, fisio o cambio. */
+  | { kind: 'injury'; minute: number; side: Side; player: string; playerUid: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
   | { kind: 'stage'; minute: number; stage: MatchStage; text: string }
   | { kind: 'penalty'; minute: number; side: Side; shooter: string; shooterUid: string; keeper: string; keeperUid: string; technique?: string; scored: boolean; text: string; shootout: [number, number] }
@@ -324,6 +331,8 @@ export interface Actor {
   ptMax: number
   /** Ids de técnica; se resuelven con `actorTechnique`. */
   techniques: string[]
+  /** Se ha LESIONADO en este partido: fuera del césped, no disputa lances. */
+  injured?: boolean
   /** Mejoras del objeto «Mejora», por id de técnica. Solo las tuyas. */
   techLevels?: Record<string, number>
 }

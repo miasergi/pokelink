@@ -10,7 +10,7 @@
 // convertirlos, y un PNG con extensión .webp NO se decodifica (GitHub Pages
 // sirve el Content-Type por extensión).
 import { ImgFallback } from '@/ui/components/kit'
-import { ComboMark, rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
+import { ComboMark, InjuryCross, rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
 import { comboOf } from '@/data/inazuma/combos'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
@@ -128,6 +128,7 @@ export function PlayerCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-extrabold text-sm leading-tight truncate flex items-center gap-1">
+            {player.injured && <InjuryCross className="w-4 h-4" />}
             <span className="truncate">{base.name}</span>
             {/* Elemento y demarcación SIEMPRE junto al nombre. */}
             <Icon name={ELEMENT_ICON[base.element]} className="w-3.5 h-3.5 shrink-0" style={{ color: info.color }} />
@@ -245,6 +246,7 @@ export function PlayerRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={`rounded px-1 text-[9px] font-extrabold border ${POSITION_COLOR[base.position]}`}>{base.position}</span>
+          {player.injured && <InjuryCross className="w-3.5 h-3.5" />}
           <span className="font-bold text-[13px] truncate">{base.name}</span>
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>

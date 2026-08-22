@@ -14,7 +14,7 @@ import { TEAM_BY_ID } from '@/data/inazuma/teams'
 import { useSettings } from '@/state/settingsStore'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
-import { rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
+import { InjuryCross, rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
 import { techniqueByName } from '@/ui/inazuma/DuelStage'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
@@ -395,7 +395,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
       const anchorsOf = posMineSide ? myAnchor : theirAnchor
       const laneOf = (a: Actor) => anchorsOf.get(a.uid)?.y ?? 50
       const porBandas = (line: Actor[], invertir: boolean) =>
-        [...line].sort((a, b) => (invertir ? laneOf(b) - laneOf(a) : laneOf(a) - laneOf(b)))
+        line.filter((x) => !x.injured).sort((a, b) => (invertir ? laneOf(b) - laneOf(a) : laneOf(a) - laneOf(b)))
       const defsW = porBandas(posSide.defs, false)
       const midsW = porBandas(posSide.mids, true)
       const fwdsW = porBandas(posSide.fwds, false)
@@ -427,7 +427,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         // después de ganar un regate, que agobiaba.
         const anchorW = anchorsOf.get(wA.uid) ?? { x: 50, y: 50 }
         const apoyos = [...posSide.defs, ...posSide.mids, ...posSide.fwds]
-          .filter((a) => a.uid !== wA.uid)
+          .filter((a) => a.uid !== wA.uid && !a.injured)
           .map((a) => {
             const an = anchorsOf.get(a.uid) ?? { x: 50, y: 50 }
             const haciaDelante = posMineSide ? an.x - anchorW.x : anchorW.x - an.x
@@ -647,6 +647,11 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   /** Posición FINAL de un jugador este instante. */
   const spotOf = (a: Actor, isMine: boolean): Spot => {
     const base = (isMine ? myAnchor : theirAnchor).get(a.uid) ?? { x: 50, y: 50 }
+    // LESIONADO: fuera del césped — sentado en su banda con la cruz al lado,
+    // sin disputar nada (el motor tampoco lo elige para los lances).
+    if (a.injured && a.position !== 'POR') {
+      return { x: Math.max(6, Math.min(94, base.x)), y: 2.5 }
+    }
     if (a.uid === carrierUid) {
       if (a.position === 'POR') return base
       // En el RONDO cada uno recibe EN SU SITIO (un paso al frente): así los
@@ -1096,7 +1101,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         zIndex: active ? 20 : 10,
-        opacity: stunned ? 0.55 : dim ? 0.4 : 1,
+        opacity: actor.injured ? 0.75 : stunned ? 0.55 : dim ? 0.4 : 1,
         filter: stunned ? 'grayscale(.8)' : dim ? 'grayscale(.6)' : undefined,
         transition: 'left 80ms linear, top 80ms linear, opacity .3s ease, filter .3s ease',
       }}
@@ -1132,6 +1137,8 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
           {actor.rarity === 4 && <span className="mc-ring rounded-full" />}
         </div>
       </div>
+      {/* LA CRUZ DE LESIÓN, pegada a la ficha del caído. */}
+      {actor.injured && <InjuryCross className="absolute -top-1 -right-1 w-3.5 h-3.5" />}
       {/* SOLO el nombre, y solo si lo pides en Ajustes (o eres protagonista
           del lance). El icono de elemento se quitó: era ruido — el color ya
           vive en el anillo y en las fichas, y así el partido se LEE mejor. */}

@@ -20,6 +20,7 @@ import type { Actor } from '@/engine/inazuma/types'
  * (Se quedó la lista antigua al estandarizar los objetos y el descanso decía
  * «Sin consumibles» con la mochila llena de pociones.) */
 const HALFTIME_ITEMS = new Set([
+  'fisio-especial',
   'pocion-pt', 'superpocion-pt', 'pocion-pt-max',
   'pocion-aguante', 'superpocion-aguante', 'pocion-aguante-max',
   'bebida-isotonica', 'bebida-doble', 'masaje', 'ramen-rai-rai', 'ramen-especial',
@@ -36,7 +37,8 @@ export default function HalftimePanel() {
   const onPitchUids = new Set(onPitch.map((a) => a.uid))
   // El SUSTITUIDO no vuelve: fuera de la lista de cambios (regla de fútbol).
   const subbedOut = new Set(match.subbedOut ?? [])
-  const bench = save.roster.filter((p) => !onPitchUids.has(p.uid) && !subbedOut.has(p.uid))
+  // Un LESIONADO de la ruta no puede entrar de cambio.
+  const bench = save.roster.filter((p) => !onPitchUids.has(p.uid) && !subbedOut.has(p.uid) && !p.injured)
   // Agrupados con contador, igual que en la mochila: cada uso gasta UNO.
   const items: { id: string; count: number }[] = []
   for (const id of save.bag) {
@@ -114,7 +116,7 @@ export default function HalftimePanel() {
               if (!inst) return <div className="text-[12px] font-extrabold mb-1">{target.name}</div>
               return (
                 <div className="mb-2">
-                  <PlayerCard player={{ ...inst, pt: target.pt, stamina: target.stamina }} />
+                  <PlayerCard player={{ ...inst, pt: target.pt, stamina: target.stamina, injured: target.injured || inst.injured }} />
                 </div>
               )
             })()}

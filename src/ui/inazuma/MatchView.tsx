@@ -127,6 +127,9 @@ export default function MatchView() {
           1900,
         )
       }
+    } else if (last.kind === 'injury') {
+      // ¡LESIÓN! Rótulo rojo en el campo — y el césped lo saca a la banda.
+      setFlash({ key: feed.length, text: `¡LESIÓN DE ${last.player.split(' ')[0].toUpperCase()}!`, color: '#f87171' })
     } else if (last.kind === 'tactic') {
       // Filosofía ENCENDIDA: su cinemática de activación.
       setTacticFx({ key: feed.length, id: last.tactic, name: last.name, mine: last.side === mine })

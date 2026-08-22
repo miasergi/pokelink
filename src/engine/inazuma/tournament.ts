@@ -42,7 +42,7 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // criterio (que ya gasta sus medallas de rareza) gana 5/150 y cae en la
 // eliminatoria 3 de media; el humano, con sprint, filosofías y fichajes
 // dirigidos, va por encima. El básico no gana nunca.
-export const RIVAL_LEVELS = [5, 11, 19, 28, 37, 46, 55, 64]
+export const RIVAL_LEVELS = [5, 9, 15, 21, 27, 33, 39, 45]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

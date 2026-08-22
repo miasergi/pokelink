@@ -65,6 +65,8 @@ function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
         mood: 'calma',
       }
     }
+    // Una LESIÓN: mala noticia, cara de circunstancias.
+    case 'injury': return { text, mood: 'drama' }
     case 'halftime': return { text: 'Descanso. Un respiro, que falta hace.', mood: 'calma' }
     case 'fulltime': return { text: '¡Y hasta aquí el partido, amigos!', mood: 'calma' }
     case 'tactic': return { text, mood: 'tension' }

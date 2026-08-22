@@ -137,7 +137,9 @@ function toDuelist(
     stamina: a.stamina,
     technique: tech,
     burst,
-    boost: streakBoost(a) * (sprint && sprint.uid === a.uid ? 1.2 : 1),
+    // LESIONADO en juego (el portero, que no puede irse; o un roto al que no
+    // queda más remedio que sacar): juega, pero a medio gas.
+    boost: streakBoost(a) * (sprint && sprint.uid === a.uid ? 1.2 : 1) * (a.injured ? 0.55 : 1),
   }
 }
 
@@ -333,20 +335,49 @@ function pickRotating(pool: Actor[], rng: RNG): Actor {
   return pick
 }
 
+/** Sin LESIONADOS: un jugador roto no disputa lances (está en la banda). */
+const sanos = (pool: Actor[]): Actor[] => {
+  const ok = pool.filter((a) => !a.injured)
+  return ok.length ? ok : pool
+}
+
 /** Escoge al defensor que corresponde al eslabón actual. */
 function defenderFor(step: ChainStep, def: MatchSide, rng: RNG): Actor {
   if (step === 'definicion') return def.keeper
-  const pool = step === 'construccion'
+  const pool = sanos(step === 'construccion'
     ? (def.mids.length ? def.mids : def.defs)
-    : (def.defs.length ? def.defs : def.mids)
+    : (def.defs.length ? def.defs : def.mids))
   return pool.length ? pickRotating(pool, rng) : def.keeper
 }
 
 /** Escoge al que recibe el balón para atacar el área. */
 function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
-  if (step === 'construccion') return pickRotating(atk.mids.length ? atk.mids : allActors(atk), rng)
-  const pool = atk.fwds.length ? atk.fwds : atk.mids
+  if (step === 'construccion') return pickRotating(sanos(atk.mids.length ? atk.mids : allActors(atk)), rng)
+  const pool = sanos(atk.fwds.length ? atk.fwds : atk.mids)
   return pool.length ? pickRotating(pool, rng) : atk.keeper
+}
+
+/**
+ * LESIÓN POR LANCE: el riesgo crece según se vacía el aguante (1 % fresco →
+ * 8 % fundido), y quedarse a CERO lesiona seguro — la misma regla que en los
+ * entrenamientos: agotarse es romperse. El portero no abandona la portería
+ * (no hay cambios en juego): sigue, pero jugando roto (ver `toDuelist`).
+ */
+function injuryCheck(m: MatchState, out: MatchEvent[], a: Actor, side: Side, rng: RNG): void {
+  if (a.injured) return
+  const p = a.stamina <= 0 ? 1 : 0.01 + 0.07 * (1 - a.stamina / 100)
+  if (!rng.chance(p)) return
+  a.injured = true
+  out.push({
+    kind: 'injury',
+    minute: m.minute,
+    side,
+    player: a.name,
+    playerUid: a.uid,
+    text: a.position === 'POR'
+      ? `¡${a.name} se ha hecho daño! Aguanta en la portería como puede.`
+      : `¡${a.name} se ha lesionado! Se retira a la banda.`,
+  })
 }
 
 function resolveStep(m: MatchState, rng: RNG, out: MatchEvent[]): void {
@@ -447,6 +478,10 @@ function executeDuel(
   spend(defender, defTech, defBurst, defSide)
   attacker.stamina = Math.max(0, attacker.stamina - STAMINA_PER_DUEL * (fx(atkSide).staminaDrain ?? 1))
   defender.stamina = Math.max(0, defender.stamina - STAMINA_PER_DUEL * (fx(defSide).staminaDrain ?? 1))
+  // LESIONES POR LANCE: se tira DESPUÉS del desgaste — cuanto más vacío
+  // llegas al choque, más fácil romperse. Ambos lados: el fútbol no perdona.
+  injuryCheck(m, out, attacker, chain.side, rng)
+  injuryCheck(m, out, defender, otherSide(chain.side), rng)
   if (atkBurst) atkSide.burstTurns -= 1
   if (defBurst) defSide.burstTurns -= 1
   // La filosofía encendida también se consume acción a acción.

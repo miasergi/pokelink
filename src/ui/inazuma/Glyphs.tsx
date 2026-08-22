@@ -369,6 +369,19 @@ export function CoinPrice({ amount, className = '', coin = 'w-3.5 h-3.5' }: {
 }
 
 /**
+ * LA CRUZ DE LESIÓN: círculo rojo con cruz blanca — el marcador universal
+ * del lesionado (fichas, once, césped, descanso).
+ */
+export function InjuryCross({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`inline-block shrink-0 ${className}`} aria-label="lesionado">
+      <circle cx="12" cy="12" r="11" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1.4" />
+      <path d="M10 5h4v5h5v4h-5v5h-4v-5H5v-4h5z" fill="#fff" />
+    </svg>
+  )
+}
+
+/**
  * MARCA DE COMBO: dos siluetas juntas — la insignia de las técnicas
  * combinadas allá donde salgan (estampas, chips, visor).
  */

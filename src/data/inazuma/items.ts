@@ -41,6 +41,9 @@ export const ITEMS: InazumaItem[] = [
   { id: 'pocion-aguante', name: 'Poción de Aguante', kind: 'consumible', desc: 'Recupera el 25 % del aguante a un jugador.', price: 300, consumable: true },
   { id: 'superpocion-aguante', name: 'Superpoción de Aguante', kind: 'consumible', desc: 'Recupera el 50 % del aguante a un jugador.', price: 500, consumable: true },
   { id: 'pocion-aguante-max', name: 'Poción Máxima de Aguante', kind: 'consumible', desc: 'Aguante al MÁXIMO a un jugador.', price: 900, consumable: true },
+  // El FISIO: lo único (junto a la casilla de fisio y el final de un partido
+  // oficial) que recupera a un LESIONADO. También en el descanso.
+  { id: 'fisio-especial', name: 'Fisio especial', kind: 'consumible', desc: 'Recupera a un jugador LESIONADO (y le deja algo de aguante).', price: 600, consumable: true },
   { id: 'elixir-equipo', name: 'Elixir de equipo', kind: 'consumible', desc: 'Recupera un 33 % de PT y de aguante a TODA la plantilla.', price: 1500, consumable: true },
   { id: 'plan-entrenamiento', name: 'Plan de entrenamiento', kind: 'consumible', desc: 'Sube 2 niveles a un jugador.', price: 1800, consumable: true },
   { id: 'plan-intensivo', name: 'Plan intensivo', kind: 'consumible', desc: 'Sube 4 niveles a un jugador.', price: 3400, consumable: true },

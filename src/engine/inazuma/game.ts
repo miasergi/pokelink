@@ -6,7 +6,7 @@ import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inaz
 import { type RegionId, getTeam, regionOfTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
-  autoLineup, buildLineup, buildRivalTeam, canUpgradeTechnique, createPlayer, effectiveStats,
+  autoLineup, buildLineup, buildRivalTeam, padLineup, canUpgradeTechnique, createPlayer, effectiveStats,
   levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
   rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
@@ -216,12 +216,33 @@ function nodeRng(save: InazumaSave, node: TournamentNode): RNG {
   return new RNG(h)
 }
 
+
+/**
+ * El ONCE DE SANOS: los titulares lesionados se caen y sus huecos los cubre
+ * el banquillo sano (por demarcación si se puede). Con menos de cinco sanos
+ * se juega en inferioridad, como siempre. Lo usan partido y pachanga.
+ */
+function lineupSanos(save: InazumaSave) {
+  const sanosRoster = save.roster.filter((p) => !p.injured)
+  const heridos = new Set(save.roster.filter((p) => p.injured).map((p) => p.uid))
+  const lineupIds = padLineup(save.lineup, save.roster).map((u) => (heridos.has(u) ? '' : u))
+  const enCinco = new Set(lineupIds.filter(Boolean))
+  const banquillo = sanosRoster.filter((p) => !enCinco.has(p.uid))
+  for (let i = 0; i < lineupIds.length && banquillo.length; i++) {
+    if (lineupIds[i]) continue
+    const pos = slotRole(save.formation, i)
+    const bi = banquillo.findIndex((p) => getPlayerBase(p.baseId).position === pos)
+    lineupIds[i] = banquillo.splice(bi >= 0 ? bi : 0, 1)[0].uid
+  }
+  return buildLineup(sanosRoster, lineupIds, save.formation)
+}
+
 export function startMatch(
   save: InazumaSave,
   node: TournamentNode,
   decisionMode: DecisionMode = 'dinamico',
 ): MatchSetup | { error: string } {
-  const lineup = buildLineup(save.roster, save.lineup, save.formation)
+  const lineup = lineupSanos(save)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
   const rng = nodeRng(save, node)
@@ -277,7 +298,7 @@ export interface PachangaSetup {
  * salvaje.
  */
 export function startPachanga(save: InazumaSave, node: TournamentNode): PachangaSetup | { error: string } {
-  const lineup = buildLineup(save.roster, save.lineup, save.formation)
+  const lineup = lineupSanos(save)
   if (!lineup) return { error: 'Tu once no es válido. Revisa la plantilla.' }
 
   const rng = nodeRng(save, node)
@@ -387,6 +408,11 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   const xiAvg = xiLevels.length ? xiLevels.reduce((x, y) => x + y, 0) / xiLevels.length : 0
 
   save.roster = save.roster.map((p) => {
+    // LESIONADO de la ruta: no jugó y NO sube de nivel — pero el partido
+    // oficial cierra ciclo y el médico del club lo recupera al pitido final.
+    if (p.injured) {
+      return { ...p, injured: undefined, stamina: 100, pt: ptMax(p) }
+    }
     const a = played.has(p.uid)
     // El banquillo también progresa, pero MENOS que quien juega: si no
     // subiera nada, rotar te diluiría la plantilla y el banquillo sería una
@@ -670,6 +696,9 @@ export function applyConsumable(
 
   switch (itemId) {
     // --- Pociones ESTÁNDAR, en porcentaje. ---
+    case 'fisio-especial':
+      one((p) => ({ ...p, injured: undefined, stamina: Math.max(40, p.stamina) }))
+      return spend('Recuperado de la lesión')
     case 'pocion-pt':
       one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.25)) }))
       return spend('+25 % del depósito de PT')
@@ -783,6 +812,10 @@ export function subActor(save: InazumaSave, uid: string, role: Position): Actor 
  */
 export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean; message: string } {
   switch (itemId) {
+    case 'fisio-especial':
+      a.injured = undefined
+      a.stamina = Math.max(40, a.stamina)
+      return { ok: true, message: 'Recuperado de la lesión' }
     case 'pocion-pt':
       a.pt = Math.min(a.ptMax, a.pt + Math.round(a.ptMax * 0.25))
       return { ok: true, message: '+25 % de PT' }

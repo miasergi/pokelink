@@ -77,6 +77,9 @@ export default function BagView() {
     if (pending.id === 'manual-avanzado') {
       return signatureNext(p) ? null : 'Cadena completa'
     }
+    if (pending.id === 'fisio-especial') {
+      return p.injured ? null : 'No está lesionado'
+    }
     if (pending.id === 'medalla-rareza') {
       if (rarityOf(p) >= MAX_RARITY) return 'Ya es Legendario'
       const need = rarityOf(p)

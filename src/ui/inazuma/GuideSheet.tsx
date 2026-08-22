@@ -91,6 +91,20 @@ const SECTIONS: Section[] = [
     ),
   },
   {
+    icon: 'warning',
+    title: 'Lesiones — agotarse es romperse',
+    body: (
+      <>
+        La regla es una: quien se queda a CERO de aguante, se lesiona — entrenando o
+        jugando (y en el campo, cuanto más vacío llegas al choque, más fácil romperte).
+        Un lesionado lleva su <B>cruz roja</B>: no juega, no entrena y no sube de nivel.
+        Lo recupera el <B>Fisio especial</B> (plan de la rueda, objeto de tienda o en el
+        descanso) o el final del próximo <B>partido oficial</B>. Y ojo: si la enfermería
+        te deja sin poder alinear, el club se retira — la run muere ahí mismo.
+      </>
+    ),
+  },
+  {
     icon: 'sparkle',
     title: 'La barra de Táctica especial',
     body: (

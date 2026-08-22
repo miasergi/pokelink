@@ -31,7 +31,8 @@ import {
   availableNextNodes, bossIndexForLayer, currentOffer, generateMap, mapSegments,
   RIVAL_LEVELS, ROUTE_LAYERS_PER_SEGMENT, TOTAL_LAYERS,
 } from './tournament'
-import { ROSTER_MAX, SQUAD_SIZE, type InazumaSave, type MatchState, type TournamentNode } from './types'
+import { ROSTER_MAX, SQUAD_SIZE, type InazumaSave, type MatchState, type PlayerInstance, type TournamentNode } from './types'
+import type { Element as InazumaElement } from './types'
 
 describe('elementos', () => {
   it('forma un ciclo cerrado sin elemento dominante', () => {
@@ -655,6 +656,10 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         // que hay que mirar para tocar `RIVAL_LEVELS`, porque lo que decide un
         // partido es la diferencia, no el número.
         const seg = bossIndexForLayer(save.layer)
+        // WIPE POR COLAPSO (la regla del store): sin poder alinear, el club
+        // se retira — la run muere FUERA del partido, como en Pokémon.
+        const sanosAlLlegar = save.roster.filter((p) => !p.injured).length
+        if (sanosAlLlegar < Math.min(2, save.roster.length)) return report(false)
         const lvl = save.roster.filter((p) => save.lineup.includes(p.uid))
           .reduce((a, p) => a + p.level, 0) / Math.max(1, save.lineup.length)
         ;(arrivals[seg] ??= []).push(lvl)
@@ -676,14 +681,55 @@ function playTournament(seed: number, style: 'dumb' | 'smart'): RunReport {
         break
       }
       case 'entrenamiento': {
-        // La rueda: el listo recupera si va fundido y si no carga niveles al
-        // equipo entero; el tonto rueda suave siempre.
+        // La rueda CON DIENTES (mismas reglas que resolveEntreno): entrenar
+        // cansa y agotarse (o el dado) LESIONA; el lesionado no entrena. El
+        // listo pasa por el fisio si hay heridos, recupera si va fundido y si
+        // no hace el entrenamiento de equipo; el tonto entrena siempre.
+        let sanosQueQuedan = save.roster.filter((p) => !p.injured).length
+        const drena = (p: PlayerInstance, lv: number, drain: number, riesgo: number): PlayerInstance => {
+          if (p.injured) return p
+          let st = Math.max(0, p.stamina - drain)
+          let lesion = st <= 0 || rng.chance(riesgo)
+          // La misma válvula que el store: el último sano no se rompe.
+          if (lesion && sanosQueQuedan <= 1) { lesion = false; st = Math.max(1, st) }
+          if (lesion) sanosQueQuedan--
+          return { ...levelUp(p, lv), stamina: st, injured: lesion || undefined }
+        }
+        const heridos = save.roster.filter((p) => p.injured)
         if (!smart) {
-          save.roster = save.roster.map((p) => levelUp(p, 1))
+          save.roster = save.roster.map((p) => drena(p, 1, rng.int(10, 20), 0.05))
+        } else if (heridos.length) {
+          // Fisio al mejor herido: recuperar manda sobre entrenar.
+          const peor = heridos.sort((a, b) => b.level - a.level)[0]
+          save.roster = save.roster.map((p) => (p.uid === peor.uid
+            ? { ...p, injured: undefined, stamina: Math.max(40, p.stamina) }
+            : p))
         } else if (tired < 70) {
           fullRest(save)
+        } else if ((() => {
+          const star = [...save.roster].filter((p) => !p.injured).sort((a, b) => b.level - a.level)[0]
+          return star && star.stamina >= 55
+        })()) {
+          // INTENSIVO A UNO sobre la estrella fresca: +5 concentrados, que es
+          // como lo juega una persona antes de un jefe.
+          const star = [...save.roster].filter((p) => !p.injured).sort((a, b) => b.level - a.level)[0]
+          save.roster = save.roster.map((p) => (p.uid === star.uid ? drena(p, 5, 50, 0) : p))
         } else {
-          save.roster = save.roster.map((p) => ({ ...levelUp(p, 2), stamina: Math.max(0, p.stamina - 25) }))
+          // El listo hace el INTENSIVO EXPERTO del elemento dominante de su
+          // plantilla: máximo +2 sin riesgo para los suyos, y asume el dado
+          // en los demás — que es exactamente como lo jugaría una persona.
+          const cuenta = new Map<string, number>()
+          for (const p of save.roster) {
+            const el = getPlayerBase(p.baseId).element
+            cuenta.set(el, (cuenta.get(el) ?? 0) + 1)
+          }
+          const dominante = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0][0] as InazumaElement
+          save.roster = save.roster.map((p) => {
+            const el = getPlayerBase(p.baseId).element
+            const mismo = el === dominante
+            const desfavorable = elementMultiplier(dominante, el) > 1
+            return drena(p, mismo ? 2 : 1, rng.int(20, 35), mismo ? 0 : desfavorable ? 0.2 : 0.1)
+          })
         }
         break
       }

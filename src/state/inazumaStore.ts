@@ -28,6 +28,7 @@ import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
 import { availableSignings, buildScoutOffer, signingLevel } from '@/engine/inazuma/rewards'
 import { getTactic, TACTIC_PRICE } from '@/data/inazuma/tactics'
 import { teamDisplay, TEAM_BY_ID } from '@/data/inazuma/teams'
+import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
   MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalRarityMap, slotRole, transferValue, upgradeTechnique,
@@ -36,7 +37,7 @@ import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazu
 import { getFormation } from '@/data/inazuma/formations'
 import {
   ROSTER_MAX, SQUAD_SIZE, TECHNIQUE_SLOTS,
-  type DecisionOption, type DraftOption, type InazumaPhase, type InazumaSave, type MatchEvent,
+  type DecisionOption, type DraftOption, type Element as InazumaElement, type InazumaPhase, type InazumaSave, type MatchEvent,
   type MatchPhase, type MatchState, type PlayerInstance, type TournamentNode,
 } from '@/engine/inazuma/types'
 
@@ -143,6 +144,8 @@ function holdFor(e: MatchEvent): number {
       // cuenta de quién contra quién. Ahora respira y la CHISPA del césped
       // tiene su momento.
       return 1500
+    // Una LESIÓN para el partido un instante: hay que ver quién cae.
+    case 'injury': return 2000
     // El portero saca su técnica y el estadio contiene el aire: su momento
     // dura lo mismo acabe en parada o en gol. A 1.5 s el veredicto pisaba a
     // la técnica — con 2.2 s la imagen (2.6 s) casi termina antes del fallo.
@@ -165,6 +168,7 @@ function soundFor(e: MatchEvent): void {
     case 'goal': play('gol'); break
     case 'penalty': play(e.scored ? 'gol' : 'parada'); break
     case 'save': play('parada'); break
+    case 'injury': play('error'); break
     case 'duel':
       if (e.step === 'definicion') play('kick')
       else if (e.technique || e.counter) play('supertecnica')
@@ -414,7 +418,7 @@ interface InazumaState {
    *  - 'suave'        → +1 nivel a todos, sin cansancio
    *  - 'recuperacion' → aguante y PT al máximo para todos
    */
-  resolveEntreno: (plan: 'uno' | 'equipo' | 'suave' | 'recuperacion', uid?: string) => void
+  resolveEntreno: (plan: 'uno' | 'experto' | 'normal' | 'recuperacion' | 'fisio', uid?: string, element?: InazumaElement) => void
 
   // plantilla
   setLineup: (uids: string[]) => void
@@ -739,6 +743,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       set({ pachanga: { ...setup.pachanga }, phase: 'pachanga' })
       // Simulación instantánea (ajustes): directo al resultado.
       if (useSettings.getState().inazumaSimPachanga) get().simulatePachanga()
+      return
+    }
+
+    // WIPE POR COLAPSO: si las lesiones te han dejado sin poder alinear ni a
+    // DOS, el club se retira del torneo — la run muere FUERA de un partido,
+    // como en Pokémon cuando cae el equipo entero.
+    if (save.roster.filter((p) => !p.injured).length < Math.min(2, save.roster.length)) {
+      const next = { ...save }
+      set({ save: next, phase: 'gameover', match: null, matchNode: null,
+        message: 'La enfermería está llena: no puedes ni alinear un dos. El club se retira del torneo.' })
+      void persist(next, 'gameover')
       return
     }
 
@@ -1492,36 +1507,72 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   learnFx: [],
   clearLearnFx: () => set({ learnFx: get().learnFx.slice(1) }),
 
-  resolveEntreno: (plan, uid) => {
+  resolveEntreno: (plan, uid, element) => {
     const { save, matchNode } = get()
     if (!save || matchNode?.kind !== 'entrenamiento') return
+    const rng = getRng(save)
+    // LA REGLA ÚNICA DE LESIÓN: agotarse es romperse. Si el desgaste deja a
+    // alguien a 0 de aguante, cae lesionado — y en el experto además se
+    // tira el dado por elemento. Un LESIONADO no entrena ni sube de nivel.
+    const rotos: string[] = []
+    // VÁLVULA: el ÚLTIMO sano no se rompe entrenando («se muerde los
+    // dientes») — sin ella, una lesión tonta con plantilla de arranque
+    // liquidaba la run sin partido de por medio.
+    let sanosQueQuedan = save.roster.filter((p) => !p.injured).length
+    const drena = (p: PlayerInstance, drain: number, riesgo: number): PlayerInstance => {
+      let stamina = Math.max(0, p.stamina - drain)
+      let lesion = stamina <= 0 || (riesgo > 0 && rng.chance(riesgo))
+      if (lesion && sanosQueQuedan <= 1) { lesion = false; stamina = Math.max(1, stamina) }
+      if (lesion) { rotos.push(getPlayerBase(p.baseId).name); sanosQueQuedan-- }
+      return { ...p, stamina, injured: lesion || undefined }
+    }
     // OJO: `levelUp` DEVUELVE al jugador subido (no muta) — la primera
     // versión tiraba el resultado y el intensivo «cansaba pero no subía».
     let roster = save.roster.map((p) => ({ ...p }))
     let message: string
     if (plan === 'uno') {
       const target = roster.find((x) => x.uid === uid)
-      if (!target) return
-      roster = roster.map((p) => (p.uid === uid
-        ? { ...levelUp(p, 5), stamina: Math.max(0, p.stamina - 50) }
-        : p))
+      if (!target || target.injured) return
+      roster = roster.map((p) => (p.uid === uid ? drena(levelUp(p, 5), 50, 0) : p))
       message = `Entrenamiento intensivo: ${getPlayerBase(target.baseId).name} sube 5 niveles (y acaba reventado).`
       play('energia')
-    } else if (plan === 'equipo') {
-      roster = roster.map((p) => ({ ...levelUp(p, 2), stamina: Math.max(0, p.stamina - 25) }))
-      message = 'Intensivo de equipo: +2 niveles a todos, a cambio de sudor.'
+    } else if (plan === 'experto') {
+      // EXPERTO ELEMENTAL: +1 a todos y +1 extra a los del elemento del
+      // entrenamiento. Los suyos no se rompen (0 %), los neutros arriesgan un
+      // 10 % y el elemento DESFAVORABLE un 20 % — tú eliges a quién expones.
+      if (!element) return
+      roster = roster.map((p) => {
+        if (p.injured) return p
+        const el = getPlayerBase(p.baseId).element
+        const mismo = el === element
+        const desfavorable = elementMultiplier(element, el) > 1
+        const riesgo = mismo ? 0 : desfavorable ? 0.2 : 0.1
+        return drena(levelUp(p, mismo ? 2 : 1), rng.int(20, 35), riesgo)
+      })
+      message = `Intensivo experto de ${ELEMENT_INFO[element].label}: +1 a todos (+1 extra a los suyos).`
       play('energia')
-    } else if (plan === 'suave') {
-      roster = roster.map((p) => levelUp(p, 1))
-      message = 'Rondo suave: +1 nivel a todos, sin cansar a nadie.'
+    } else if (plan === 'normal') {
+      roster = roster.map((p) => (p.injured ? p : drena(levelUp(p, 1), rng.int(10, 20), 0.05)))
+      message = 'Entrenamiento de equipo: +1 nivel a todos.'
       play('levelup')
+    } else if (plan === 'fisio') {
+      const target = roster.find((x) => x.uid === uid)
+      if (!target?.injured) return
+      roster = roster.map((p) => (p.uid === uid
+        ? { ...p, injured: undefined, stamina: Math.max(40, p.stamina) }
+        : p))
+      message = `El fisio hace magia: ${getPlayerBase(target.baseId).name} vuelve a estar disponible.`
+      play('heal')
     } else {
-      for (const p of roster) {
-        p.stamina = 100
-        p.pt = ptMax(p)
-      }
+      // Recuperación total: aguante y PT — pero las LESIONES son cosa del
+      // fisio, no de una siesta.
+      roster = roster.map((p) => (p.injured ? p : { ...p, stamina: 100, pt: ptMax(p) }))
       message = 'Jornada de recuperación: aguante y PT al máximo.'
       play('heal')
+    }
+    if (rotos.length) {
+      message += ` · ¡LESIÓN! ${rotos.join(' y ')} — al fisio o a esperar al próximo partido oficial.`
+      play('error')
     }
     const next: InazumaSave = { ...save, roster, cleared: save.cleared.slice() }
     advanceLayer(next, matchNode)

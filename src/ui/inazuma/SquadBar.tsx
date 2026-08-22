@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useInazuma } from '@/state/inazumaStore'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import { rarityBorder } from '@/ui/inazuma/Glyphs'
+import { InjuryCross, rarityBorder } from '@/ui/inazuma/Glyphs'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
@@ -50,6 +50,7 @@ function Chip({ p, label, dragging, onDown, onUp }: {
           />
           {r === 4 && <span className="mc-ring rounded-full" />}
         </span>
+        {p.injured && <InjuryCross className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5" />}
         <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/95 border border-slate-700 px-1 text-[7px] font-bold tabular-nums leading-tight">
           Nv. {p.level}
         </span>
