@@ -365,8 +365,11 @@ function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
  */
 function injuryCheck(m: MatchState, out: MatchEvent[], a: Actor, side: Side, rng: RNG): void {
   if (a.injured) return
-  const p = a.stamina <= 0 ? 1 : 0.01 + 0.07 * (1 - a.stamina / 100)
-  if (!rng.chance(p)) return
+  // Fresco NO te rompes: el dado solo existe por debajo de 60 de aguante
+  // (0 % → 5 % a medida que te vacías), y quedarse a CERO sigue siendo
+  // lesión segura. El calibrado anterior (1-8 % desde fresco) llovía.
+  const p = a.stamina <= 0 ? 1 : a.stamina >= 60 ? 0 : 0.05 * (1 - a.stamina / 60)
+  if (p <= 0 || !rng.chance(p)) return
   a.injured = true
   out.push({
     kind: 'injury',
@@ -478,10 +481,9 @@ function executeDuel(
   spend(defender, defTech, defBurst, defSide)
   attacker.stamina = Math.max(0, attacker.stamina - STAMINA_PER_DUEL * (fx(atkSide).staminaDrain ?? 1))
   defender.stamina = Math.max(0, defender.stamina - STAMINA_PER_DUEL * (fx(defSide).staminaDrain ?? 1))
-  // LESIONES POR LANCE: se tira DESPUÉS del desgaste — cuanto más vacío
-  // llegas al choque, más fácil romperse. Ambos lados: el fútbol no perdona.
-  injuryCheck(m, out, attacker, chain.side, rng)
-  injuryCheck(m, out, defender, otherSide(chain.side), rng)
+  // LESIÓN POR LANCE: se tira DESPUÉS del desgaste, y solo para EL QUE
+  // PIERDE el choque (la entrada la sufre el derribado). El perdedor aún no
+  // se sabe aquí: la tirada va tras resolver el duelo (ver más abajo).
   if (atkBurst) atkSide.burstTurns -= 1
   if (defBurst) defSide.burstTurns -= 1
   // La filosofía encendida también se consume acción a acción.
@@ -518,6 +520,9 @@ function executeDuel(
     if (sprinter) sprinter.stamina = Math.max(0, sprinter.stamina - 15)
     chain.sprint = undefined
   }
+  // El PERDEDOR del choque es quien arriesga el físico.
+  injuryCheck(m, out, r.success ? defender : attacker, r.success ? otherSide(chain.side) : chain.side, rng)
+
   // Rachas: el ganador suma, el perdedor se apaga. A 2 seguidos, EN LLAMAS.
   {
     const winner = r.success ? attacker : defender
@@ -589,9 +594,14 @@ function executeDuel(
     //   · si has pasado a propósito, se queda con ella,
     //   · el que revienta la defensa es el que dispara,
     //   · y solo en el primer relevo se busca a quien ataque el área.
-    const receiver = chain.passed || nextStep === 'definicion'
+    const receiver0 = chain.passed || nextStep === 'definicion'
       ? attacker
       : attackerFor(nextStep, atkSide, rng)
+    // Si el que seguía la jugada acaba de LESIONARSE, el balón pasa a un
+    // compañero sano — el de la banda no vuelve a tocarla.
+    const receiver = receiver0.injured && receiver0.position !== 'POR'
+      ? attackerFor(nextStep, atkSide, rng)
+      : receiver0
     if (receiver.uid !== attacker.uid) {
       out.push({
         kind: 'possession',
@@ -769,7 +779,7 @@ function comboShare(side: MatchSide, baseTech: Technique, participants: number):
  */
 function pickComboPartners(side: MatchSide, actor: Actor, combo: Combo, pitch: Actor[]): Actor[] | null {
   const needed = combo.members.length - 1
-  const pool = pitch.filter((a) => a.uid !== actor.uid)
+  const pool = pitch.filter((a) => a.uid !== actor.uid && !a.injured)
   if (pool.length < needed) return null
   const partners: Actor[] = []
   for (const uid of side.comboPartners?.[combo.techniqueId] ?? []) {
@@ -938,7 +948,7 @@ function buildDecision(
     const cost = free ? 0 : (t?.cost ?? 0)
     // Probabilidad de PASAR la defensa: es el mismo duelo que resolverá
     // `interceptLongShot`, así que el botón puede contarlo de antemano.
-    const blockers = [...defSide.defs, ...defSide.mids]
+    const blockers = [...defSide.defs, ...defSide.mids].filter((a) => !a.injured)
     const blocker = blockers.length
       ? blockers.reduce((best, a) => (a.stats.defensa > best.stats.defensa ? a : best), blockers[0])
       : null
@@ -1039,7 +1049,7 @@ function plainLabel(step: ChainStep, mode: 'ataque' | 'defensa'): string {
  */
 function passCandidates(side: MatchSide, carrier: Actor, rivalElement: Element): Actor[] {
   return [...side.fwds, ...side.mids]
-    .filter((a) => a.uid !== carrier.uid && a.element !== carrier.element)
+    .filter((a) => a.uid !== carrier.uid && a.element !== carrier.element && !a.injured)
     .sort((a, b) =>
       (elementMultiplier(b.element, rivalElement) - elementMultiplier(a.element, rivalElement))
       || (b.stats.control - a.stats.control))
@@ -1104,7 +1114,7 @@ function interceptLongShot(
 ): 'blocked' | number {
   // El que se cruza: el mejor bloqueador de los que están por delante
   // (defensas y medios), con su técnica de bloqueo si puede pagarla.
-  const pool = [...defSide.defs, ...defSide.mids]
+  const pool = [...defSide.defs, ...defSide.mids].filter((a) => !a.injured)
   if (!pool.length) return 1
   const blocker = pool.reduce((best, a) => (a.stats.defensa > best.stats.defensa ? a : best), pool[0])
   const blockTech = pickAiTechnique(
