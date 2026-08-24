@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.66',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: eliges inicial y empiezas solo',
+    changes: [
+      'ELIGES INICIAL COMO EN POKÉMON y empiezas la aventura con UN SOLO luchador. Seis para escoger, cada uno con su carta: atributos comparados en la misma escala, carácter, con qué técnicas empieza y hasta dónde puede llegar a transformarse.',
+      'El equipo se hace por el camino. Para que ir solo no sea una lotería, la PRIMERA casilla siempre ofrece un aliado: la primera decisión de la partida es si peleas ya o buscas compañía.',
+      'EL NIVEL DE CADA LUCHADOR, a la vista sobre su cara en la barra de equipo del mapa. Era el número que más se mira en un rogue y estaba escondido dentro de la pantalla de equipo.',
+      'TODOS LOS RETRATOS CON EL FONDO QUITADO: los 30 recortados con transparencia, así que ya no se ven como recuadros pegados sobre el escenario del combate.',
+      'Rebalanceado el arranque para el nuevo comienzo en solitario: la casilla del prólogo entrena casi como un combate, para que buscar aliado no te descuelgue de la curva de nivel.',
+    ],
+  },
+  {
     version: 'v6.65',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: batallas con escenario, equipo a la vista y objetos claros',

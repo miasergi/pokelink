@@ -30,7 +30,7 @@ const CASILLAS: { kind: NodeKind; desc: string }[] = [
   { kind: 'elite', desc: 'Rival duro: +6 niveles y mejor botín, pero pega de verdad.' },
   { kind: 'jefe', desc: 'Cierra la saga. Tiene varias formas: no cae a la primera.' },
   { kind: 'entreno', desc: 'Niveles sin arriesgar la piel, para el más rezagado.' },
-  { kind: 'reclutar', desc: 'Un luchador nuevo. Si el equipo está lleno, eliges a quién sustituye.' },
+  { kind: 'reclutar', desc: 'Un luchador nuevo. La PRIMERA casilla siempre ofrece uno: empiezas solo.' },
   { kind: 'maestro', desc: 'Enseña una técnica nueva o mejora una que ya sabes (V2, V3…).' },
   { kind: 'tienda', desc: 'Objetos: los de equipo se llevan puestos, los de uso se gastan peleando.' },
   { kind: 'descanso', desc: 'Recupera buena parte de la vida. Los PS NO se curan solos entre casillas.' },
@@ -66,6 +66,10 @@ const PASOS = [
     cuerpo: (
       <>
         <p>
+          Empiezas con <b>un solo luchador</b>, el que elijas. El equipo se hace
+          por el camino, hasta cuatro.
+        </p>
+        <p className="mt-2">
           El combate corre solo y <b>para en lo que importa</b>: la jugada de
           cada asalto, el choque de rayos y el relevo cuando cae alguien.
         </p>

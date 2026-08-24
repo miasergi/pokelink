@@ -1,7 +1,6 @@
 // Vistas del modo salvo el combate y el equipo, que tienen fichero propio:
 // título, intro, mapa, maestro, resumen, tienda, deseo y final.
 import { useState } from 'react'
-import { getFighter, STARTERS } from '@/data/dragon/fighters'
 import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
 import { getItem, ITEMS, itemEffect, itemFamily, itemIcon } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
@@ -11,6 +10,7 @@ import {
 import { afterOutcome, dragonSummary, useDragon } from '@/state/dragonStore'
 import { Avatar, Header, sceneBg, Scouter, TeamStrip, Zeni } from './Bits'
 import MapBoard from './MapBoard'
+import StarterPicker from './StarterPicker'
 import NodePreview from './NodePreview'
 import Icon from '@/ui/components/Icon'
 
@@ -21,39 +21,7 @@ export function TitleView() {
   const [eligiendo, setEligiendo] = useState(false)
 
   if (eligiendo) {
-    return (
-      <div className="flex flex-col flex-1 min-h-0">
-        <Header title="¿Quién te acompaña?" sub="Goku va siempre; el segundo lo eliges tú" onBack={() => setEligiendo(false)} />
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          <p className="text-[12px] text-slate-400">
-            Podrás reclutar hasta {TEAM_MAX} luchadores por el camino, pero con
-            quién empiezas marca las primeras peleas.
-          </p>
-          {STARTERS.map((id) => {
-            const d = getFighter(id)!
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => void newRun(id)}
-                className="w-full flex items-center gap-3 rounded-xl bg-slate-800/70 active:bg-slate-700 p-3 text-left"
-              >
-                <Avatar name={d.name} color={d.color} size={48} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm">{d.name}</div>
-                  <div className="text-[11px] text-slate-400 capitalize">
-                    {d.style} · {d.lineage}
-                  </div>
-                  <div className="text-[11px] text-sky-300 truncate mt-0.5">
-                    {d.techniques.map((t) => getTechnique(t)?.name).filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
+    return <StarterPicker onPick={(id) => void newRun(id)} onBack={() => setEligiendo(false)} />
   }
 
   return (

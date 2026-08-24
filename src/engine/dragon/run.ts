@@ -20,7 +20,15 @@ import type { Battle, Fighter } from './types'
 /** Capas por saga: 5 de camino + el jefe. */
 export const LAYERS_PER_SAGA = 6
 export const BOSS_LAYER = LAYERS_PER_SAGA - 1
-/** Nivel al que empiezas. Bajo a propósito: la subida es la recompensa. */
+/**
+ * Nivel del inicial. Se toca MUY poco a propósito: los rivales de la primera
+ * capa salen a nivel 6, así que cada punto de más aquí desplaza la curva
+ * entera. Con 10 el bot que juega bien ganaba el 80 % de las runs.
+ *
+ * Lo que compensa empezar con un solo luchador NO es el nivel, es el aliado
+ * garantizado de la primera capa: el problema de ir solo es la fragilidad
+ * (un KO acaba la run), no ir corto de atributos.
+ */
 export const START_LEVEL = 6
 /** Tamaño máximo del equipo. Tres es el número de relevos del anime. */
 export const TEAM_MAX = 4
@@ -54,6 +62,8 @@ export interface MapNode {
   recruit?: string
   /** Maestro que espera en esta casilla. */
   master?: string
+  /** Casilla del arranque de la aventura: entrena como un combate. */
+  saga0Prologue?: boolean
   /** Niveles que reparte un nodo de entrenamiento. */
   levels?: number
   /**
@@ -214,6 +224,12 @@ export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
   for (let layer = 0; layer < BOSS_LAYER; layer++) {
     // Siempre un combate (o élite en las capas altas), y luego relleno variado.
     const kinds: NodeKind[] = [layer >= 2 && rng.chance(0.45) ? 'elite' : 'combate']
+    // ARRANQUE DE LA AVENTURA: la primera capa ofrece SIEMPRE un aliado.
+    // Se empieza con un solo luchador (como el inicial de Pokémon) y un KO es
+    // el fin de la run, así que sin esto la primera casilla era una moneda al
+    // aire: medido, el bot moría en las capas 0-3 antes de encontrar a nadie.
+    // Así la primera decisión real es «¿peleo ya o busco compañía?».
+    if (saga === 0 && layer === 0) kinds.push('reclutar')
     const filler: NodeKind[] = ['entreno', 'tienda', 'descanso', 'bola', 'reclutar', 'maestro', 'combate']
     // El descanso y la tienda no aparecen en la primera capa: no hay dinero ni
     // heridas todavía, y ocupaban el sitio de algo útil.
@@ -227,7 +243,11 @@ export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
       kinds.push(k)
     }
     rng.shuffle(kinds)
-    capas.push(kinds.map((k, i) => makeNode(k, layer, saga, rng, i)))
+    capas.push(kinds.map((k, i) => {
+      const n = makeNode(k, layer, saga, rng, i)
+      if (saga === 0 && layer === 0) n.saga0Prologue = true
+      return n
+    }))
   }
   capas.push([makeNode('jefe', BOSS_LAYER, saga, rng, 0)])
 
@@ -255,15 +275,16 @@ export function layerNodes(save: DragonSave, layer = save.layer): MapNode[] {
 // ---------------------------------------------------------------- el save ---
 
 export interface NewRunOptions {
-  /** Compañero con el que empiezas además de Goku. */
-  partner?: string
+  /** El inicial: se empieza SOLO con él, como el inicial de Pokémon. */
+  starter?: string
 }
 
 export function createSave(seed: number, opts: NewRunOptions = {}): DragonSave {
   resetUids()
   const rng = new RNG(seed)
-  const team = [createFighter('goku', START_LEVEL)]
-  if (opts.partner) team.push(createFighter(opts.partner, START_LEVEL))
+  // UN solo luchador para empezar. El equipo se hace por el camino, que es de
+  // donde sale el arco de la aventura: los aliados se ganan, no se regalan.
+  const team = [createFighter(opts.starter ?? 'goku', START_LEVEL)]
   return {
     seed,
     rngState: rng.getState(),
@@ -450,9 +471,21 @@ export function checkAwakenings(save: DragonSave, b: Battle, node: MapNode): str
  */
 export const INTERLUDE_LEVELS = 1
 
-export function applyInterlude(save: DragonSave): void {
+/**
+ * El PRÓLOGO (capa 0 de la primera saga) entrena casi como un combate. Buscar
+ * compañía al empezar no puede costarte la curva: con el +1 de un interludio
+ * normal, el bot llegaba corto al primer jefe y moría ahí 14 de cada 30 veces.
+ *
+ * El 3 está medido y es un filo: con 4, el bot que juega bien se va al 40 % de
+ * runs ganadas; con 3 se queda en el 23 %, que es donde estaba el juego antes
+ * de pasar a empezar con un solo luchador.
+ */
+export const PROLOGUE_LEVELS = 3
+
+export function applyInterlude(save: DragonSave, node?: MapNode): void {
+  const n = node && node.saga0Prologue ? PROLOGUE_LEVELS : INTERLUDE_LEVELS
   for (const f of save.team) {
-    if (f.hp > 0) levelUp(f, INTERLUDE_LEVELS)
+    if (f.hp > 0) levelUp(f, n)
   }
 }
 

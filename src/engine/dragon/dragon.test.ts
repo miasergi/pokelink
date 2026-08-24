@@ -226,8 +226,9 @@ interface RunReport {
 
 function playRun(seed: number, style: BotStyle): RunReport {
   const rng = new RNG(seed ^ 0x9e3779b9)
-  const partner = style === 'listo' ? 'piccolo' : rng.pick([...STARTERS])
-  const save = createSave(seed, { partner })
+  // El bot listo elige al más completo; el tonto, al azar.
+  const starter = style === 'listo' ? 'piccolo' : rng.pick([...STARTERS])
+  const save = createSave(seed, { starter })
   const turns: number[] = []
   let guard = 0
 
@@ -301,19 +302,19 @@ function resolveNode(save: DragonSave, node: MapNode, style: BotStyle, rng: RNG,
       // Al que más lo necesite: el de menor nivel.
       const target = [...save.team].sort((a, c) => a.level - c.level)[0]
       if (target) applyTraining(save, target.uid, node.levels ?? 3)
-      applyInterlude(save)
+      applyInterlude(save, node)
       return true
     }
-    case 'descanso': applyRest(save); applyInterlude(save); return true
+    case 'descanso': applyRest(save); applyInterlude(save, node); return true
     case 'reclutar': {
       const cand = recruitCandidate(save, node, rng)
       if (cand && save.team.length < TEAM_MAX) recruit(save, cand)
-      applyInterlude(save)
+      applyInterlude(save, node)
       return true
     }
     case 'tienda': {
       // El listo compra curas y reparte equipo; el tonto no compra nada.
-      applyInterlude(save)
+      applyInterlude(save, node)
       if (style !== 'listo') return true
       while (save.zeni >= 1100 && (save.bag.semilla_media ?? 0) < 2) {
         save.bag.semilla_media = (save.bag.semilla_media ?? 0) + 1
@@ -330,7 +331,7 @@ function resolveNode(save: DragonSave, node: MapNode, style: BotStyle, rng: RNG,
     }
     case 'bola': {
       save.balls += 1
-      applyInterlude(save)
+      applyInterlude(save, node)
       // Siete bolas, un deseo: el listo pide poder salvo que tenga bajas.
       if (save.balls >= BALLS_FOR_WISH) {
         grantWish(save, save.team.some((f) => f.hp <= 0) ? 'revivir' : 'poder')
@@ -608,7 +609,7 @@ describe('run', () => {
   })
 
   it('el equipo no pasa del máximo y no se ficha dos veces al mismo', () => {
-    const save = createSave(5, { partner: 'krilin' })
+    const save = createSave(5, { starter: 'krilin' })
     expect(recruit(save, 'krilin')).toBeNull()
     recruit(save, 'ten')
     recruit(save, 'piccolo')
@@ -618,7 +619,7 @@ describe('run', () => {
 
   it('los deseos hacen lo que prometen', () => {
     for (const w of WISHES) {
-      const save = createSave(9, { partner: 'krilin' })
+      const save = createSave(9, { starter: 'krilin' })
       save.balls = 7
       save.team[0].hp = 1
       const before = { zeni: save.zeni, lvl: avgLevel(save) }
@@ -632,7 +633,7 @@ describe('run', () => {
   })
 
   it('perder un combate acaba la run', () => {
-    const save = createSave(3, { partner: 'krilin' })
+    const save = createSave(3, { starter: 'krilin' })
     const node = save.map.find((n) => n.kind === 'combate' || n.kind === 'elite')!
     // Un rival desproporcionado: la run tiene que morir aquí.
     node.level = 60
@@ -684,7 +685,7 @@ describe('carácter, vínculos y maestros', () => {
 
   it('las transformaciones forman un árbol: no se salta un escalón', () => {
     const goku = createFighter('goku', 50)
-    const save = createSave(1, { partner: 'krilin' })
+    const save = createSave(1, { starter: 'krilin' })
     save.team = [goku]
     const b = startBattle([goku], [createEnemy('nappa', 50)], { seed: 1, title: 't', scene: 'yermo' })
     b.allies[0].hp = 1 // condición dramática para que despierte algo
@@ -698,7 +699,7 @@ describe('carácter, vínculos y maestros', () => {
   })
 
   it('un maestro enseña algo nuevo y luego lo pule, y se nota en la técnica', () => {
-    const save = createSave(3, { partner: 'krilin' })
+    const save = createSave(3, { starter: 'krilin' })
     const ofertas = masterOffers(save, 'roshi')
     expect(ofertas.length).toBeGreaterThan(0)
     const nueva = ofertas.find((o) => o.kind === 'aprender')!

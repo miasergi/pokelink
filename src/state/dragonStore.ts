@@ -151,7 +151,7 @@ interface DragonState {
 
   initDragon: () => Promise<void>
   exitDragon: () => void
-  newRun: (partner: string) => Promise<void>
+  newRun: (starter: string) => Promise<void>
   continueRun: () => void
   abandonRun: () => Promise<void>
   goTo: (phase: DragonPhase) => void
@@ -228,9 +228,9 @@ export const useDragon = create<DragonState>((set, get) => ({
     useGame.getState().navigate('home')
   },
 
-  newRun: async (partner: string) => {
+  newRun: async (starter: string) => {
     const seed = Math.floor(Math.random() * 0xffffffff)
-    const save = createSave(seed, { partner })
+    const save = createSave(seed, { starter })
     save.startedAt = Date.now()
     rng = new RNG(seed)
     rng.setState(save.rngState)
@@ -372,7 +372,7 @@ export const useDragon = create<DragonState>((set, get) => ({
 
     node.done = true
     save.currentNode = node.id
-    applyInterlude(save)
+    applyInterlude(save, node ?? undefined)
     advanceMap(save, r)
     void persist(save, 'map')
     set({ save: { ...save }, node: null, message, phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map' })
@@ -455,7 +455,7 @@ export const useDragon = create<DragonState>((set, get) => ({
     if (!save) return
     if (node) { node.done = true; save.currentNode = node.id }
     const r = getRng(save)
-    applyInterlude(save)
+    applyInterlude(save, node ?? undefined)
     advanceMap(save, r)
     void persist(save, 'map')
     set({
@@ -479,7 +479,7 @@ export const useDragon = create<DragonState>((set, get) => ({
     }
     if (node) { node.done = true; save.currentNode = node.id }
     const r = getRng(save)
-    applyInterlude(save)
+    applyInterlude(save, node ?? undefined)
     advanceMap(save, r)
     void persist(save, 'map')
     set({
@@ -501,7 +501,7 @@ export const useDragon = create<DragonState>((set, get) => ({
     play('levelup')
     if (node) { node.done = true; save.currentNode = node.id }
     const r = getRng(save)
-    applyInterlude(save)
+    applyInterlude(save, node ?? undefined)
     advanceMap(save, r)
     void persist(save, 'map')
     set({

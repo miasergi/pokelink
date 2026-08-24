@@ -288,13 +288,24 @@ export function TeamStrip({ team, max, onOpen }: {
         return (
           <div key={f.uid} className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <Avatar
-                name={f.name}
-                color={f.color}
-                size={26}
-                baseId={f.baseId}
-                form={f.forms.length ? f.forms[0] : undefined}
-              />
+              <span className="relative shrink-0">
+                <Avatar
+                  name={f.name}
+                  color={f.color}
+                  size={26}
+                  baseId={f.baseId}
+                  form={f.forms.length ? f.forms[0] : undefined}
+                />
+                {/* EL NIVEL, encima de la cara. Es el número que más miras en
+                    un rogue —para saber si te llega para la siguiente casilla—
+                    y estaba escondido dentro de la pantalla de equipo. */}
+                <span
+                  className="absolute -bottom-1 -right-1 rounded px-0.5 text-[7.5px] font-black tabular-nums leading-tight"
+                  style={{ background: '#0b1220', color: f.color, boxShadow: '0 0 0 1px #00000080' }}
+                >
+                  {f.level}
+                </span>
+              </span>
               <span className={`text-[9.5px] font-semibold truncate ${f.hp <= 0 ? 'text-red-400 line-through' : ''}`}>
                 {f.name.replace('Son ', '')}
               </span>

@@ -234,8 +234,25 @@ export function getFighter(id: string): FighterData | undefined {
   return BY_ID.get(id)
 }
 
-/** Con quién puedes empezar una partida (Goku va SIEMPRE, no se elige). */
-export const STARTERS = ['krilin', 'yamcha', 'ten', 'piccolo', 'gohan'] as const
+/**
+ * Los INICIALES: eliges uno y empiezas la aventura solo con él, como el
+ * inicial de Pokémon. Goku ya no viene de serie — si lo quieres, lo eliges.
+ *
+ * Son seis de perfiles distintos a propósito, para que la elección cambie de
+ * verdad cómo se juega el primer tramo: el equilibrado, el rápido, el de ki,
+ * el resistente, el de más pegada y el que apuesta por crecer.
+ */
+export const STARTERS = ['goku', 'krilin', 'ten', 'piccolo', 'yamcha', 'gohan'] as const
+
+/** Por qué elegir a cada uno, en una línea, para la pantalla de selección. */
+export const STARTER_PITCH: Record<string, string> = {
+  goku: 'Equilibrado y sin puntos débiles. La opción segura.',
+  krilin: 'Rápido y con el Disco Destructor, que ignora la guardia.',
+  ten: 'Aguanta el ki como nadie y pega con el Cañón Tri-Haz.',
+  piccolo: 'El más resistente. Se regenera y perfora defensas.',
+  yamcha: 'Escurridizo y de golpes encadenados. Frágil si te atrapan.',
+  gohan: 'Flojo al principio, enorme si sobrevive. Para valientes.',
+}
 
 /** Reclutables que aparecen en los interludios, por saga (0-3). */
 export const RECRUITS: string[][] = [

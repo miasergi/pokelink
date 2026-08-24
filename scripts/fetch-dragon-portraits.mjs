@@ -1,9 +1,10 @@
 // Descarga los retratos de los luchadores de Dragon Ball Rogue desde la wiki de
 // Fandom (dragonball.fandom.com).
 //
-//   node scripts/fetch-dragon-portraits.mjs            (solo los que faltan)
-//   node scripts/fetch-dragon-portraits.mjs --force    (vuelve a bajarlo todo)
+//   node scripts/fetch-dragon-portraits.mjs             (solo los que faltan)
+//   node scripts/fetch-dragon-portraits.mjs --force     (vuelve a bajarlo todo)
 //   node scripts/fetch-dragon-portraits.mjs goku vegeta
+//   node scripts/fetch-dragon-portraits.mjs --no-cutout (no recorta fondos)
 //
 // Guarda en `public/dragon/fighters/<id>.png` miniaturas de 256 px pedidas a la
 // propia API (`pithumbsize` / `iiurlwidth`), así que no hace falta redimensionar
@@ -15,6 +16,30 @@
 // un Content-Type que no se corresponde con el contenido. Nos quedamos con .png
 // y nos aseguramos de que los BYTES también lo sean (ver `asPng`).
 //
+// ---------------------------------------------------------------------------
+// EL FONDO IMPORTA
+// ---------------------------------------------------------------------------
+// Estos retratos se pintan ENCIMA del escenario del combate. Si la imagen trae
+// fondo opaco (blanco, gris de estudio o una captura de anime entera) se ve como
+// una pegatina rectangular y queda fatal. Así que perseguimos PNG con fondo
+// transparente, en este orden:
+//
+//   1. PEDIR EN ORIGEN algo que YA venga recortado. En dragonball.fandom.com los
+//      ficheros "artwork" de los juegos (sobre todo la familia
+//      "Sparking! Zero - <personaje> artwork.png") son renders a cuerpo entero
+//      con alfa, y encima son consistentes entre sí: 29 de los 30 luchadores
+//      tienen uno, así que el roster queda visualmente homogéneo.
+//   2. VERIFICAR DE VERDAD que hay transparencia. Que el color type declare alfa
+//      no basta: media wiki sube capturas guardadas como RGBA con el alfa a 255.
+//      Descargamos, decodificamos y miramos si el marco de la imagen está
+//      realmente vacío (`looksCutOut`).
+//   3. Si no hay nada con alfa, RECORTAR el fondo nosotros con flood fill desde
+//      los bordes (`scripts/png-cutout.mjs`, Node puro, sin dependencias).
+//   4. Y si el recorte sale sospechoso (se come al personaje, o no encuentra
+//      fondo que quitar), dejamos la imagen ORIGINAL y avisamos: mejor un
+//      recuadro feo que un recorte con agujeros — y la UI siempre puede caer a
+//      la carta de iniciales.
+//
 // IMPORTANTE:
 //  - Si un retrato no se encuentra NO pasa nada: la UI pinta la carta generada
 //    con las iniciales del luchador. El juego NUNCA depende de que estas
@@ -23,18 +48,24 @@
 //  - Las imágenes son de Fandom y están sujetas a su licencia (CC-BY-SA para el
 //    texto; las imágenes suelen ser material con copyright de Toei/Bird Studio
 //    usado bajo uso legítimo). Revísalo antes de publicar el juego.
+//  - Para comprobar el resultado: `node scripts/audit-dragon-portraits.mjs`.
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { decodePng, analyze, looksCutOut, cutoutPngBuffer, isPng } from './png-cutout.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = join(ROOT, 'public', 'dragon', 'fighters')
 const SOURCE = join(ROOT, 'src', 'data', 'dragon', 'fighters.ts')
 const API = 'https://dragonball.fandom.com/api.php'
 const THUMB_SIZE = 256
+// Cuántos ficheros llegamos a descargar por personaje antes de rendirnos y tirar
+// del recorte manual. Sin tope, un personaje con 40 imágenes en su artículo nos
+// haría martillear la wiki para nada.
+const MAX_TRIES = 5
 
 // Fandom rechaza el User-Agent por defecto de Node en algunas rutas.
-const UA = 'pokelink-dragon-portraits/1.0 (script de un solo uso; contacto: repo owner)'
+const UA = 'pokelink-dragon-portraits/2.0 (script de un solo uso; contacto: repo owner)'
 
 /**
  * MAPA id → artículo de la wiki. Hace falta SÍ O SÍ por dos motivos:
@@ -45,59 +76,75 @@ const UA = 'pokelink-dragon-portraits/1.0 (script de un solo uso; contacto: repo
  *     dragonball.fandom.com están EN INGLÉS. Buscar "Freezer" allí devuelve
  *     electrodomésticos, no al emperador del universo.
  *
- * `title` es el artículo del personaje: de él sacamos la imagen principal.
- * `file` es un override para los casos en los que el artículo no tiene imagen
- * principal utilizable, o en los que dos ids distintos apuntarían al mismo
- * artículo y queremos que se distingan (Vegeta príncipe vs Vegeta Majin).
+ * `title`  es el artículo del personaje: de él sacamos la imagen principal.
+ * `render` es el fichero de artwork transparente ELEGIDO A MANO. Es el que
+ *          manda, y va primero, porque la búsqueda genérica por "<nombre>
+ *          artwork" no sabe distinguir entre "Goku (Z-Mid)" y "Goku (GT)", ni
+ *          entre "Perfect Cell" y "Cell Max". La forma/época del personaje es
+ *          una decisión de diseño del juego, no algo que deba adivinar un
+ *          buscador.
+ * `file`   es un override para cuando no hay render y la imagen principal del
+ *          artículo tampoco sirve.
  */
 const WIKI = {
   // --- Aliados ---
-  goku: { title: 'Goku' },
-  krilin: { title: 'Krillin' },
-  yamcha: { title: 'Yamcha' },
-  ten: { title: 'Tien Shinhan' },
-  chaoz: { title: 'Chiaotzu' },
-  piccolo: { title: 'Piccolo' },
-  gohan: { title: 'Gohan' },
-  vegeta: { title: 'Vegeta' },
-  trunks: { title: 'Future Trunks' },
-  a18: { title: 'Android 18' },
-  dende: { title: 'Dende' },
-  videl: { title: 'Videl' },
-  yajirobe: { title: 'Yajirobe' },
+  // Goku "Z-Mid": el gi naranja de siempre, la época que cubre el rogue.
+  goku: { title: 'Goku', render: 'Sparking! Zero - Goku (Z-Mid) artwork.png' },
+  krilin: { title: 'Krillin', render: 'Sparking! Zero - Krillin artwork.png' },
+  yamcha: { title: 'Yamcha', render: 'Sparking! Zero - Yamcha artwork.png' },
+  // OJO: el fichero es "Tien", no "Tien Shinhan" como el artículo.
+  ten: { title: 'Tien Shinhan', render: 'Sparking! Zero - Tien artwork.png' },
+  chaoz: { title: 'Chiaotzu', render: 'Sparking! Zero - Chiaotzu artwork.png' },
+  piccolo: { title: 'Piccolo', render: 'Sparking! Zero - Piccolo artwork.png' },
+  // Gohan adolescente: el de la saga de Cell, el más reconocible.
+  gohan: { title: 'Gohan', render: 'Sparking! Zero - Gohan (Teen) artwork.png' },
+  // Vegeta "Z-End": armadura azul de la saga de Buu, ya como aliado.
+  vegeta: { title: 'Vegeta', render: 'Sparking! Zero - Vegeta (Z-End) artwork.png' },
+  trunks: { title: 'Future Trunks', render: 'Sparking! Zero - Future Trunks artwork.png' },
+  a18: { title: 'Android 18', render: 'Sparking! Zero - Android 18 artwork.png' },
+  // Dende es el ÚNICO del roster sin artwork de juego (no es personaje
+  // jugable). "Dende BOG" es un render con alfa de Battle of Gods.
+  dende: { title: 'Dende', file: 'Dende BOG.png' },
+  videl: { title: 'Videl', render: 'Sparking! Zero - Videl artwork.png' },
+  yajirobe: { title: 'Yajirobe', render: 'Sparking! Zero - Yajirobe artwork.png' },
 
   // --- Rivales ---
   // "Saibaman" en singular no es artículo: la wiki los lista en plural.
-  saibaman: { title: 'Saibamen' },
-  raditz: { title: 'Raditz' },
-  nappa: { title: 'Nappa' },
-  // Mismo artículo que `vegeta`, así que forzamos una imagen distinta: la de la
-  // armadura saiyan original, que es como llega a la Tierra en la saga 1.
-  vegeta_saiyan: { title: 'Vegeta', file: 'Vegeta Original Armor.png' },
-  // "Soldado de Freezer" no es un personaje concreto. Appule es EL soldado
-  // genérico de las tropas de Freezer, el morado que sale en toda Namek.
-  soldado: { title: 'Appule' },
-  cui: { title: 'Cui' },
-  dodoria: { title: 'Dodoria' },
-  zarbon: { title: 'Zarbon' },
-  ginyu: { title: 'Captain Ginyu' },
-  recoome: { title: 'Recoome' },
-  freezer: { title: 'Frieza' },
-  a19: { title: 'Android 19' },
-  a17: { title: 'Android 17' },
-  cell: { title: 'Cell' },
-  dabura: { title: 'Dabura' },
-  // No hay artículo propio de "Majin Vegeta" (redirige a la sección de Vegeta),
-  // así que vamos directos al fichero.
-  majin_vegeta: { title: 'Vegeta', file: 'MajinVegeta.png' },
+  saibaman: { title: 'Saibamen', render: 'Sparking! Zero - Saibaman artwork.png' },
+  raditz: { title: 'Raditz', render: 'Sparking! Zero - Raditz artwork.png' },
+  nappa: { title: 'Nappa', render: 'Sparking! Zero - Nappa artwork.png' },
+  // Mismo artículo que `vegeta`, así que forzamos un render distinto:
+  // "Z-Scouter" es justo la armadura saiyan con rastreador con la que llega a
+  // la Tierra en la saga 1.
+  vegeta_saiyan: { title: 'Vegeta', render: 'Sparking! Zero - Vegeta (Z-Scouter) artwork.png' },
+  // "Soldado de Freezer" no es un personaje concreto. En la wiki el artículo
+  // genérico es Appule (el morado de Namek), pero el render bueno se llama
+  // literalmente "Frieza Soldier".
+  soldado: { title: 'Appule', render: 'Sparking! Zero - Frieza Soldier artwork.png' },
+  cui: { title: 'Cui', render: 'Sparking! Zero - Cui artwork.png' },
+  dodoria: { title: 'Dodoria', render: 'Sparking! Zero - Dodoria artwork.png' },
+  zarbon: { title: 'Zarbon', render: 'Sparking! Zero - Zarbon artwork.png' },
+  ginyu: { title: 'Captain Ginyu', render: 'Sparking! Zero - Captain Ginyu artwork.png' },
+  recoome: { title: 'Recoome', render: 'Sparking! Zero - Recoome artwork.png' },
+  // Cuarta forma: el Freezer "de verdad", el que pelea en Namek.
+  freezer: { title: 'Frieza', render: 'Sparking! Zero - 4th Form Frieza (Z) artwork.png' },
+  a19: { title: 'Android 19', render: 'Sparking! Zero - Android 19 artwork.png' },
+  // "(Z)" para no traernos al Nº 17 de Super, que va con otra ropa.
+  a17: { title: 'Android 17', render: 'Sparking! Zero - Android 17 (Z) artwork.png' },
+  // Cell perfecto: el de la saga, no el imperfecto ni el Cell Max de la peli.
+  cell: { title: 'Cell', render: 'Sparking! Zero - Perfect Cell artwork.png' },
+  dabura: { title: 'Dabura', render: 'Sparking! Zero - Dabura artwork.png' },
+  // No hay artículo propio de "Majin Vegeta" (redirige a la sección de Vegeta).
+  majin_vegeta: { title: 'Vegeta', render: 'Sparking! Zero - Majin Vegeta artwork.png' },
   // El artículo "Majin Buu" es el de la ESPECIE y su imagen es un montaje con
-  // todas las formas. Innocent Buu es el Buu gordo, el que el doblaje español
-  // llama simplemente "Majin Buu".
-  buu: { title: 'Innocent Buu' },
+  // todas las formas. En Sparking! Zero "Majin Buu" a secas ES el Buu gordo,
+  // que es el que el doblaje español llama simplemente "Majin Buu".
+  buu: { title: 'Innocent Buu', render: 'Sparking! Zero - Majin Buu artwork.png' },
 }
 
 const args = process.argv.slice(2)
 const force = args.includes('--force')
+const noCutout = args.includes('--no-cutout')
 const only = new Set(args.filter((a) => !a.startsWith('--')))
 
 /** Saca {id, name} de fighters.ts sin compilar TypeScript. */
@@ -123,26 +170,6 @@ async function api(params) {
   return res.json()
 }
 
-function firstThumb(json) {
-  const pages = json?.query?.pages ?? {}
-  for (const key of Object.keys(pages)) {
-    if (key === '-1') continue
-    const src = pages[key]?.thumbnail?.source
-    if (src) return src
-  }
-  return null
-}
-
-function firstImageInfo(json) {
-  const pages = json?.query?.pages ?? {}
-  for (const key of Object.keys(pages)) {
-    if (key === '-1') continue
-    const info = pages[key]?.imageinfo?.[0]
-    if (info) return info.thumburl || info.url || null
-  }
-  return null
-}
-
 /**
  * OJO CON ESTO: el CDN de Fandom (static.wikia.nocookie.net) sirve WEBP por
  * defecto, aunque la URL acabe en `.png` y aunque no mandes `Accept: image/webp`.
@@ -150,10 +177,77 @@ function firstImageInfo(json) {
  * bytes son un RIFF/WEBP — justo la incoherencia extensión ↔ contenido que
  * queríamos evitar. El parámetro `format=png` fuerza al thumbnailer a devolver
  * PNG de verdad, manteniendo el `scale-to-width-down/256`.
+ *
+ * (Y de paso: el thumbnailer de Fandom SÍ conserva el canal alfa al reescalar,
+ * así que un render transparente sigue siéndolo después de la miniatura.)
  */
 function asPng(url) {
   return url + (url.includes('?') ? '&' : '?') + 'format=png'
 }
+
+// ---------------------------------------------------------------------------
+// Puntuación de candidatos
+// ---------------------------------------------------------------------------
+
+// Ficheros que NUNCA son un retrato: logotipos, iconos, cartas de juegos de
+// móvil, portadas, páginas de manga, merchandising...
+const JUNK = /\b(logo|icon|card|sticker|cover|chapter|scan|poster|banner|calendar|stamp|badge|emblem|wallpaper)\b|manga|deformation|chesspiece|figurine|keshi|kesh\b|collection|deagostini|megahouse|irwin|settei|concept art/i
+// Nombres que describen una ESCENA: capturas del anime, seguro con fondo.
+const SCENE = /\bvs\.?\b|\bep\.?\s*\d|episode|screenshot|defeat|attack|fight|battl|punch|kick|kills?\b|flashback|arrives|absorb|reaction|trailer/i
+// Lo que sí promete recorte limpio.
+const RENDER = /\b(artwork|render|art)\b/i
+
+/** ¿El colorType que declara MediaWiki puede llevar transparencia? */
+function alphaCapable(colorType) {
+  if (!colorType) return false
+  return /alpha/i.test(colorType) || /index/i.test(colorType)
+}
+
+/**
+ * Puntúa un fichero candidato SOLO por sus metadatos (nombre y dimensiones),
+ * antes de gastar una descarga en él. Cuanto más alto, antes se prueba.
+ */
+function scoreCandidate(title, info, wantedName) {
+  const name = title.replace(/^File:/, '').replace(/\.[a-z]+$/i, '')
+  let score = 0
+  if (JUNK.test(name)) score -= 60
+  if (SCENE.test(name)) score -= 40
+  if (RENDER.test(name)) score += 30
+  // El nombre del personaje debe salir en el fichero; si no, casi seguro que es
+  // una imagen de grupo o de otro.
+  const key = wantedName.toLowerCase().split(/\s+/)[0]
+  if (key && name.toLowerCase().includes(key)) score += 20
+  else score -= 25
+  if (info) {
+    const { width, height } = info
+    if (width && height) {
+      const ratio = width / height
+      // Un retrato es vertical o cuadrado; 16:9 es una captura de tele.
+      if (ratio > 1.5) score -= 30
+      else if (ratio <= 1.05) score += 15
+      // Miniaturas diminutas: no dan para 256 px.
+      if (Math.max(width, height) < 120) score -= 20
+    }
+    if (info.mime === 'image/png') score += 10
+    else score -= 35 // JPEG no puede tener alfa, ni de broma
+    if (alphaCapable(info.colorType)) score += 40
+  }
+  return score
+}
+
+function metaOf(imageinfo) {
+  const md = Object.fromEntries((imageinfo?.metadata ?? []).map((m) => [m.name, m.value]))
+  return {
+    width: imageinfo?.width,
+    height: imageinfo?.height,
+    mime: imageinfo?.mime,
+    colorType: md.colorType,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Las cuatro fuentes de candidatos
+// ---------------------------------------------------------------------------
 
 /** Resuelve un `File:...` concreto a su miniatura de 256 px. */
 async function fileThumb(file) {
@@ -162,9 +256,14 @@ async function fileThumb(file) {
   const json = await api({
     action: 'query', prop: 'imageinfo', iiprop: 'url',
     iiurlwidth: String(THUMB_SIZE), iiurlheight: String(THUMB_SIZE),
-    titles: `File:${file}`,
+    titles: `File:${file.replace(/^File:/, '')}`,
   })
-  return firstImageInfo(json)
+  for (const [key, page] of Object.entries(json?.query?.pages ?? {})) {
+    if (key === '-1') continue
+    const info = page?.imageinfo?.[0]
+    if (info) return info.thumburl || info.url || null
+  }
+  return null
 }
 
 /** Imagen principal de un artículo por título exacto. */
@@ -173,46 +272,145 @@ async function titleThumb(title) {
     action: 'query', prop: 'pageimages', piprop: 'thumbnail',
     pithumbsize: String(THUMB_SIZE), titles: title,
   })
-  return firstThumb(json)
+  for (const [key, page] of Object.entries(json?.query?.pages ?? {})) {
+    if (key === '-1') continue
+    const src = page?.thumbnail?.source
+    if (src) return src
+  }
+  return null
 }
 
 /**
- * Encuentra la URL del retrato en tres intentos, de más fiable a más
- * desesperado. Cada tier va en su propio try/catch: que un intento reviente no
- * puede impedir que se pruebe el siguiente.
+ * Busca en el espacio de nombres File (namespace 6) ficheros de artwork/render
+ * del personaje. Es la vía que nos da los recortes limpios: en esta wiki los
+ * renders de los juegos se llaman "<Juego> - <Personaje> artwork.png".
  */
-async function findPortrait(entry, fallbackName) {
-  // 1. Fichero elegido a mano en WIKI: manda sobre todo lo demás.
-  if (entry?.file) {
+async function searchRenders(name) {
+  const found = new Map()
+  for (const q of [`${name} artwork`, `${name} render`]) {
     try {
-      const url = await fileThumb(entry.file)
-      if (url) return url
-    } catch { /* seguimos probando */ }
+      const json = await api({ action: 'query', list: 'search', srsearch: q, srnamespace: '6', srlimit: '12' })
+      for (const hit of json?.query?.search ?? []) found.set(hit.title, true)
+    } catch { /* seguimos con la otra consulta */ }
   }
-  // 2. Imagen principal del artículo por título exacto.
+  return [...found.keys()]
+}
+
+/** Todas las imágenes de un artículo, con sus metadatos, en UNA sola petición. */
+async function pageImages(title) {
+  try {
+    const json = await api({
+      action: 'query', generator: 'images', titles: title, gimlimit: '200', redirects: '1',
+      prop: 'imageinfo', iiprop: 'url|size|mime|metadata',
+    })
+    return Object.values(json?.query?.pages ?? {})
+      .filter((p) => p?.imageinfo?.[0])
+      .map((p) => ({ title: p.title, info: metaOf(p.imageinfo[0]) }))
+  } catch { return [] }
+}
+
+/** Metadatos de una lista de ficheros (hasta 50 por petición). */
+async function filesMeta(titles) {
+  const out = new Map()
+  for (let i = 0; i < titles.length; i += 40) {
+    try {
+      const json = await api({
+        action: 'query', titles: titles.slice(i, i + 40).join('|'),
+        prop: 'imageinfo', iiprop: 'url|size|mime|metadata',
+      })
+      for (const page of Object.values(json?.query?.pages ?? {})) {
+        if (page?.imageinfo?.[0]) out.set(page.title, metaOf(page.imageinfo[0]))
+      }
+    } catch { /* lo que no venga, se queda sin metadatos y puntúa peor */ }
+  }
+  return out
+}
+
+/**
+ * Construye la lista ORDENADA de candidatos (títulos `File:...`, más alguna URL
+ * suelta de `pageimages`). De más fiable a más desesperado:
+ *   1. El render elegido a mano.
+ *   2. El override `file` de toda la vida.
+ *   3. Artwork/render encontrado buscando en el namespace File, puntuado.
+ *   4. Las imágenes del propio artículo que declaren alfa, puntuadas.
+ *   5. La imagen principal del artículo (casi siempre una captura: último recurso).
+ */
+async function findCandidates(entry, fallbackName) {
   const title = entry?.title ?? fallbackName
+  const out = []
+  const seen = new Set()
+  const push = (c) => { const k = c.file ?? c.url; if (k && !seen.has(k)) { seen.add(k); out.push(c) } }
+
+  if (entry?.render) push({ file: entry.render, why: 'render elegido a mano' })
+  if (entry?.file) push({ file: entry.file, why: 'fichero elegido a mano' })
+
+  const searched = await searchRenders(title)
+  if (searched.length) {
+    const meta = await filesMeta(searched)
+    searched
+      .map((t) => ({ file: t, info: meta.get(t), score: scoreCandidate(t, meta.get(t), title) }))
+      .filter((c) => c.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .forEach((c) => push({ file: c.file, why: `búsqueda artwork (${c.score})` }))
+  }
+
+  const imgs = await pageImages(title)
+  imgs
+    .filter((c) => alphaCapable(c.info.colorType))
+    .map((c) => ({ ...c, score: scoreCandidate(c.title, c.info, title) }))
+    .filter((c) => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .forEach((c) => push({ file: c.title, why: `imagen del artículo (${c.score})` }))
+
   try {
     const url = await titleThumb(title)
-    if (url) return url
-  } catch { /* seguimos probando */ }
-  // 3. Búsqueda abierta: cogemos el primer artículo que salga y le pedimos su
-  //    imagen principal.
-  try {
-    const search = await api({ action: 'query', list: 'search', srsearch: title, srlimit: '1' })
-    const hit = search?.query?.search?.[0]?.title
-    if (hit) {
-      const url = await titleThumb(hit)
-      if (url) return url
-    }
-  } catch { /* seguimos probando */ }
-  // 4. Último cartucho: búsqueda en el espacio de nombres File (namespace 6).
-  //    Muchos secundarios no tienen artículo pero sí ficheros subidos.
-  try {
-    const search = await api({ action: 'query', list: 'search', srsearch: title, srnamespace: '6', srlimit: '1' })
-    const hit = search?.query?.search?.[0]?.title
-    if (hit) return await fileThumb(hit.replace(/^File:/, ''))
-  } catch { /* nos rendimos */ }
-  return null
+    if (url) push({ url, why: 'imagen principal del artículo' })
+  } catch { /* seguimos */ }
+
+  // Último cartucho: búsqueda abierta de artículo. Solo si no tenemos NADA.
+  if (!out.length) {
+    try {
+      const search = await api({ action: 'query', list: 'search', srsearch: title, srlimit: '1' })
+      const hit = search?.query?.search?.[0]?.title
+      if (hit) {
+        const url = await titleThumb(hit)
+        if (url) push({ url, why: `búsqueda abierta → ${hit}` })
+      }
+    } catch { /* nos rendimos */ }
+  }
+
+  return out
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Descarga un candidato como PNG de 256 px y lo devuelve decodificado.
+ *
+ * REINTENTA a propósito: el CDN de Fandom falla de vez en cuando con un 5xx
+ * suelto, y sin reintento ese tropiezo hace que el script se salte el render
+ * bueno y se conforme con el siguiente candidato — que puede ser un Krilín de
+ * policía en vez del de siempre. Un fallo de red NO debe cambiar el resultado.
+ */
+async function download(candidate, tries = 3) {
+  const url = candidate.url ?? await fileThumb(candidate.file)
+  if (!url) return null
+  let last = null
+  for (let i = 0; i < tries; i++) {
+    if (i) await sleep(500 * i)
+    try {
+      const res = await fetch(asPng(url), { headers: { 'User-Agent': UA } })
+      if (!res.ok) throw new Error(`${res.status}`)
+      const bytes = Buffer.from(await res.arrayBuffer())
+      // Comprobación de la firma PNG (\x89PNG). Si la wiki nos cuela otra cosa
+      // preferimos saltarlo antes que dejar un .png que no es un .png.
+      if (!isPng(bytes)) throw new Error('la respuesta no es un PNG')
+      return { bytes, image: decodePng(bytes) }
+    } catch (err) { last = err }
+  }
+  throw last ?? new Error('descarga fallida')
 }
 
 async function main() {
@@ -227,44 +425,100 @@ async function main() {
   let ok = 0
   let skipped = 0
   const missing = []
+  const carved = []   // los que hemos tenido que recortar a mano
+  const doubtful = [] // los que se han quedado con fondo
 
   for (const { id, name } of targets) {
     const dest = join(OUT_DIR, `${id}.png`)
     if (!force && await exists(dest)) { skipped++; continue }
     const entry = WIKI[id]
     if (!entry) console.log(`  ! ${id} — sin entrada en WIKI, probamos con "${name}" a pelo`)
+
     try {
-      const url = await findPortrait(entry, name)
-      if (!url) {
+      const candidates = await findCandidates(entry, name)
+      if (!candidates.length) {
         missing.push(`${name} (${id})`)
         console.log(`  ✗ ${name} — sin imagen en la wiki`)
         continue
       }
-      const res = await fetch(asPng(url), { headers: { 'User-Agent': UA } })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const bytes = Buffer.from(await res.arrayBuffer())
-      // Comprobación barata de la firma PNG (\x89PNG). Si la wiki nos cuela otra
-      // cosa preferimos saltarlo antes que dejar un .png que no es un .png.
-      if (bytes.length < 8 || bytes[0] !== 0x89 || bytes[1] !== 0x50) {
-        throw new Error('la respuesta no es un PNG')
+
+      let chosen = null   // el que ya viene recortado: se guarda tal cual
+      let fallback = null // el mejor que hemos podido bajar, con fondo y todo
+
+      for (const cand of candidates.slice(0, MAX_TRIES)) {
+        let got = null
+        try {
+          got = await download(cand)
+        } catch (err) {
+          // Que se caiga un candidato elegido A MANO no puede pasar en silencio:
+          // significa que nos vamos a quedar con una imagen peor.
+          if (cand.why.includes('mano')) console.log(`  ! ${name} — no se pudo bajar "${cand.file}": ${err.message}`)
+        }
+        await sleep(250)
+        if (!got) continue
+        if (!fallback) fallback = { ...got, cand }
+        if (looksCutOut(got.image)) { chosen = { ...got, cand }; break }
       }
-      await writeFile(dest, bytes)
-      ok++
-      console.log(`  ✓ ${name} → ${id}.png (${(bytes.length / 1024).toFixed(1)} kB)`)
+
+      if (chosen) {
+        await writeFile(dest, chosen.bytes)
+        ok++
+        const a = analyze(chosen.image)
+        console.log(`  ✓ ${name} → ${id}.png  alfa de origen · ${a.width}x${a.height} · ${(chosen.bytes.length / 1024).toFixed(1)} kB  [${chosen.cand.why}]`)
+        continue
+      }
+
+      if (!fallback) {
+        missing.push(`${name} (${id})`)
+        console.log(`  ✗ ${name} — ningún candidato se pudo descargar`)
+        continue
+      }
+
+      if (noCutout) {
+        await writeFile(dest, fallback.bytes)
+        ok++
+        doubtful.push(`${name} (${id}) — con fondo, --no-cutout`)
+        console.log(`  ~ ${name} → ${id}.png  con fondo (--no-cutout)`)
+        continue
+      }
+
+      // Nadie con alfa: toca recortar el fondo nosotros.
+      const cut = cutoutPngBuffer(fallback.bytes)
+      if (cut.buffer) {
+        await writeFile(dest, cut.buffer)
+        ok++
+        carved.push(`${name} (${id})`)
+        const s = cut.stats
+        console.log(`  ✂ ${name} → ${id}.png  recortado · ${s.width}x${s.height} · ${(s.transparentRatio * 100).toFixed(0)}% transparente · ${(cut.buffer.length / 1024).toFixed(1)} kB`)
+      } else {
+        // El recorte no ha salido: dejamos el original antes que un destrozo.
+        await writeFile(dest, fallback.bytes)
+        ok++
+        doubtful.push(`${name} (${id}) — ${cut.reason}`)
+        console.log(`  ~ ${name} → ${id}.png  SIN recortar (${cut.reason})`)
+      }
     } catch (err) {
       // Un fallo aquí NO aborta la pasada: se anota y a por el siguiente.
       missing.push(`${name} (${id})`)
       console.log(`  ✗ ${name} — ${err.message}`)
     }
     // Cortesía con la wiki: no la martilleamos.
-    await new Promise((r) => setTimeout(r, 350))
+    await sleep(350)
   }
 
   console.log(`\n${ok} descargados · ${skipped} ya estaban · ${missing.length} sin encontrar`)
+  if (carved.length) {
+    console.log(`Recortados a mano (no había artwork con alfa): ${carved.join(', ')}`)
+  }
+  if (doubtful.length) {
+    console.log('DUDOSOS — se han quedado con fondo, revísalos:')
+    for (const d of doubtful) console.log(`  ~ ${d}`)
+  }
   if (missing.length) {
     console.log('Sin retrato (la UI usará la carta con iniciales):')
     console.log('  ' + missing.join(', '))
   }
+  console.log('\nComprueba el resultado con: node scripts/audit-dragon-portraits.mjs')
 }
 
 main().catch((err) => { console.error(err); process.exit(1) })

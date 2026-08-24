@@ -31,13 +31,17 @@ describe('store de Dragon Ball', () => {
     await useDragon.getState().abandonRun()
   })
 
-  it('empieza una aventura con Goku y el compañero elegido', async () => {
+  it('empieza SOLO con el inicial elegido, como en Pokémon', async () => {
     await useDragon.getState().newRun('piccolo')
     const { save, phase } = useDragon.getState()
     expect(phase).toBe('intro')
-    expect(save?.team.map((f) => f.baseId)).toEqual(['goku', 'piccolo'])
+    expect(save?.team.map((f) => f.baseId)).toEqual(['piccolo'])
     expect(save?.saga).toBe(0)
     expect(save?.layer).toBe(0)
+    // Y la primera capa SIEMPRE ofrece compañía: ir solo es frágil (un KO
+    // acaba la run) y sin esto la primera casilla era una moneda al aire.
+    const primera = save!.map.filter((n) => n.layer === 0)
+    expect(primera.some((n) => n.kind === 'reclutar')).toBe(true)
   })
 
   it('se puede jugar una casilla de combate de principio a fin', async () => {
@@ -146,6 +150,7 @@ describe('store de Dragon Ball', () => {
     // Equipo al completo y una casilla de aliado delante.
     recruit(save, 'ten')
     recruit(save, 'yamcha')
+    recruit(save, 'gohan')
     expect(save.team.length).toBe(TEAM_MAX)
     const nodo = save.map.find((n) => n.layer === 0)!
     nodo.kind = 'reclutar'
@@ -157,7 +162,7 @@ describe('store de Dragon Ball', () => {
     expect(st().pendingRecruit?.baseId).toBe('piccolo')
     expect(st().save!.layer).toBe(0)
 
-    const sale = st().save!.team[3]
+    const sale = st().save!.team[TEAM_MAX - 1]
     st().resolveRecruit(sale.uid)
     expect(st().pendingRecruit).toBeNull()
     expect(st().save!.team.map((f) => f.baseId)).toContain('piccolo')
@@ -173,6 +178,7 @@ describe('store de Dragon Ball', () => {
     const save = st().save!
     recruit(save, 'ten')
     recruit(save, 'yamcha')
+    recruit(save, 'gohan')
     const antes = save.team.map((f) => f.uid)
     const nodo = save.map.find((n) => n.layer === 0)!
     nodo.kind = 'reclutar'

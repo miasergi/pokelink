@@ -426,7 +426,7 @@ describe('render de pantallas (smoke)', () => {
    */
   it('Dragon Ball Rogue: cada fase pinta lo suyo y el combate narra lo que pasa', () => {
     useGame.setState({ loaded: true, screen: { name: 'dragon' } })
-    const save = createDragonSave(4242, { partner: 'piccolo' })
+    const save = createDragonSave(4242, { starter: 'piccolo' })
 
     for (const phase of ['title', 'intro', 'map', 'team', 'wish', 'victory', 'gameover'] as const) {
       useDragon.setState({ save, hasSave: true, phase, battle: null, node: null, outcome: null })
@@ -441,11 +441,15 @@ describe('render de pantallas (smoke)', () => {
     // entiende el mapa, que fue justo la queja de la primera versión.
     expect(map).toContain('Tramo 1')
     expect(map).toMatch(/Combate|Aliado|Entreno|Bola|Maestro|Tienda|Descanso/)
+    // La barra de equipo va bajo el mapa con el NIVEL de cada luchador y los
+    // huecos libres, para no tener que entrar a ninguna pantalla a mirarlo.
+    expect(map).toContain('Piccolo')
+    expect(map).toContain('libre')
 
-    // El equipo: los luchadores, el TOPE a la vista y los huecos libres.
+    // El equipo: el inicial (se empieza SOLO con él), el TOPE a la vista y los
+    // huecos libres, que es lo que explica el tope sin contarlo.
     useDragon.setState({ phase: 'team' })
     const team = mount(DragonScreen)
-    expect(team).toContain('Son Goku')
     expect(team).toContain('Piccolo')
     expect(team, 'el tope de equipo tiene que verse').toContain('de 4 luchadores')
     expect(team, 'los huecos libres explican el tope sin contarlo').toContain('Hueco libre')
@@ -474,7 +478,7 @@ describe('render de pantallas (smoke)', () => {
     advanceDragon(battle)
     useDragon.setState({ battle, node: nodo, phase: 'battle', revealed: battle.log.length })
     const fight = mount(DragonScreen)
-    expect(fight).toContain('Son Goku')
+    expect(fight).toContain('Piccolo')
     expect(fight).toContain('Cuerpo a cuerpo')
     expect(fight).toContain('Concentrar ki')
     expect(fight).toContain('Cubrirse')
