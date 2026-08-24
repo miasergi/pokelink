@@ -2,8 +2,11 @@
 import type { RNG } from '@/utils/rng'
 import { getFighter } from '@/data/dragon/fighters'
 import { getForm } from '@/data/dragon/transformations'
+import { getTrait } from '@/data/dragon/personalities'
 import { getItem } from '@/data/dragon/items'
-import type { Combatant, Fighter, FighterData, StatKey, Stats } from './types'
+import { getTechnique } from '@/data/dragon/techniques'
+import { bondsFor, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
+import type { Combatant, Fighter, FighterData, StatKey, Stats, Technique } from './types'
 
 /** Cuánto sube cada atributo por nivel, en fracción de su base. */
 export const GROWTH = 0.085
@@ -122,15 +125,37 @@ export function levelUp(f: Fighter, amount: number): { levels: number; learned: 
   return { levels: f.level - before, learned }
 }
 
+/** Combates ganados que hacen falta para subir un objeto de nivel. */
+export const ITEM_XP_PER_LEVEL = 4
+export const ITEM_LEVEL_MAX = 3
+/** Cuánto se refuerza el efecto del objeto por nivel. */
+export const ITEM_LEVEL_BONUS = 0.4
+
+export function itemLevel(f: Fighter): number {
+  if (!f.item) return 0
+  return Math.min(ITEM_LEVEL_MAX, Math.floor((f.itemXp ?? 0) / ITEM_XP_PER_LEVEL))
+}
+
+/**
+ * Refuerza un multiplicador de objeto según su nivel. Se estira la DISTANCIA
+ * respecto a 1, no el número: así un ×1.2 a nivel 2 es ×1.36, y un ×0.78 de
+ * lastre se vuelve más penalizador, que es lo justo — el lastre también se
+ * «domina» y por eso entrena más.
+ */
+function itemMult(m: number, lvl: number): number {
+  return 1 + (m - 1) * (1 + lvl * ITEM_LEVEL_BONUS)
+}
+
 export function fighterStats(f: Fighter): Stats {
   const d = getFighter(f.baseId)
   if (!d) throw new Error(`Luchador desconocido: ${f.baseId}`)
   const s = statsAt(d.base, f.level, f.zenkai)
   const item = f.item ? getItem(f.item) : undefined
   if (item?.stats) {
+    const lvl = itemLevel(f)
     for (const k of STAT_KEYS) {
       const m = item.stats[k]
-      if (m) s[k] *= m
+      if (m) s[k] *= itemMult(m, lvl)
     }
   }
   return s
@@ -146,13 +171,18 @@ export function fighterPL(f: Fighter, sagaScale = 1): number {
 
 // -------------------------------------------------------------- combate ----
 
-/** Pasa un luchador de equipo a combatiente. Los PS vienen de fuera (persisten). */
-export function toCombatant(f: Fighter): Combatant {
+/**
+ * Pasa un luchador de equipo a combatiente. Los PS vienen de fuera (persisten).
+ * `team` son los baseId de sus compañeros: con ellos se resuelven los VÍNCULOS,
+ * que por eso valen distinto según con quién lo lleves.
+ */
+export function toCombatant(f: Fighter, team: string[] = []): Combatant {
   const stats = fighterStats(f)
   const hpMax = maxHp(stats.aguante)
   const item = f.item ? getItem(f.item) : undefined
   return {
     uid: f.uid,
+    baseId: f.baseId,
     name: f.name,
     lineage: f.lineage,
     style: f.style,
@@ -166,28 +196,78 @@ export function toCombatant(f: Fighter): Combatant {
     ki: Math.min(KI_MAX, 50 + (item?.startKi ?? 0)),
     kiMax: KI_MAX,
     techniques: f.techniques.slice(),
+    techLevels: f.techLevels,
     forms: f.forms.slice(),
     mods: {},
     guarding: false,
     stunned: false,
     exposed: false,
-    seedUsed: false,
     item: f.item,
     fainted: f.hp <= 0,
+    trait: TRAIT_BY_FIGHTER[f.baseId],
+    bond: bondMult(f.baseId, team),
   }
 }
 
-/** Atributos EFECTIVOS: base × transformación × buffs/debuffs del combate. */
+/**
+ * Multiplicador de los vínculos activos, CON TOPE. Se acumulan, pero ninguno
+ * pasa de +12 % por atributo: sin el tope, un Goku rodeado de Krilín, Vegeta,
+ * Gohan y Yamcha salía con +46 % de poder gratis y el bot que juega bien se
+ * terminaba el juego el 40 % de las veces. Los vínculos son un empujón por
+ * llevar a la gente adecuada, no una segunda tabla de atributos.
+ */
+export const BOND_CAP = 1.12
+
+export function bondMult(baseId: string, team: string[]): Partial<Record<StatKey, number>> {
+  const out: Partial<Record<StatKey, number>> = {}
+  for (const v of bondsFor(baseId, team.filter((x) => x !== baseId))) {
+    for (const k of STAT_KEYS) {
+      const m = v.mult[k]
+      if (m) out[k] = Math.min(BOND_CAP, (out[k] ?? 1) * m)
+    }
+  }
+  return out
+}
+
+/**
+ * Atributos EFECTIVOS: base × vínculos × carácter × transformación × buffs.
+ *
+ * El orden no importa (todo son multiplicadores) pero sí que estén TODOS aquí:
+ * es el único sitio del que bebe el motor, así que lo que no se aplique en
+ * esta función es decorativo por mucho que salga en la ficha.
+ */
 export function effStats(c: Combatant): Stats {
   const out = { ...c.stats }
   const form = c.form ? getForm(c.form) : undefined
+  const trait = traitActive(c) ? getTrait(c.trait ?? '') : undefined
   for (const k of STAT_KEYS) {
+    const bm = c.bond?.[k]
+    if (bm) out[k] *= bm
+    const tm = trait?.mult[k]
+    if (tm) out[k] *= tm
     const fm = form?.mult[k]
     if (fm) out[k] *= fm
     const mm = c.mods[k]
     if (mm) out[k] *= mm
   }
   return out
+}
+
+/** ¿Se dan ahora las condiciones del carácter de este luchador? */
+export function traitActive(c: Combatant, turn = 1, rivalLevel = c.level): boolean {
+  const t = c.trait ? getTrait(c.trait) : undefined
+  if (!t) return false
+  const frac = c.hp / Math.max(1, c.hpMax)
+  switch (t.when) {
+    case 'siempre': return true
+    case 'hpBajo': return frac < 0.34
+    case 'hpAlto': return frac > 0.5
+    case 'companeroCaido': return !!c.sawFall
+    case 'transformado': return !!c.form
+    case 'rivalFuerte': return rivalLevel > c.level
+    case 'primerAsalto': return turn <= 2
+    default: return false
+  }
 }
 
 export function combatantPL(c: Combatant, sagaScale = 1): number {
@@ -214,6 +294,53 @@ export function styleMultiplier(atk: Combatant['style'], def: Combatant['style']
  */
 export const KI_REGEN_LINEAGE: Partial<Record<Fighter['lineage'], number>> = {
   androide: 6,
+}
+
+// ------------------------------------------------------- técnicas y nivel ---
+
+/** Cuánto sube la potencia por nivel de técnica. */
+export const TECH_LEVEL_BONUS = 0.18
+/** Y cuánto abarata el coste (una técnica dominada cansa menos). */
+export const TECH_LEVEL_CUT = 0.08
+/** Tope: V4 y no se sube más. */
+export const TECH_LEVEL_MAX = 3
+
+/**
+ * Resuelve una técnica EN MANOS DE UN LUCHADOR CONCRETO, con su nivel ya
+ * aplicado. Todo el motor tiene que pasar por aquí en vez de por `getTechnique`
+ * a secas: si no, la mejora se vería en la ficha pero no cambiaría nada en el
+ * combate — exactamente el fallo que ya tuvimos en Inazuma con los objetos de
+ * atributos, que eran decorativos y valían cero medido con el bot.
+ */
+export function actorTechnique(c: { techLevels?: Record<string, number> }, id: string): Technique | undefined {
+  const t = getTechnique(id)
+  if (!t) return undefined
+  const lv = c.techLevels?.[id] ?? 0
+  if (!lv) return t
+  return {
+    ...t,
+    // El NOMBRE lleva la versión: así la mejora se ve en el campo, en la
+    // narración y en los botones, que salen todos de aquí.
+    name: `${t.name} V${lv + 1}`,
+    power: Math.round(t.power * (1 + lv * TECH_LEVEL_BONUS)),
+    cost: Math.max(6, Math.round(t.cost * (1 - lv * TECH_LEVEL_CUT))),
+  }
+}
+
+/** Sube una técnica de nivel. Devuelve false si ya está al tope. */
+export function upgradeTechnique(f: Fighter, id: string): boolean {
+  if (!f.techniques.includes(id)) return false
+  const lv = f.techLevels?.[id] ?? 0
+  if (lv >= TECH_LEVEL_MAX) return false
+  f.techLevels = { ...(f.techLevels ?? {}), [id]: lv + 1 }
+  return true
+}
+
+/** Enseña una técnica nueva. Devuelve false si ya la sabía. */
+export function learnTechnique(f: Fighter, id: string): boolean {
+  if (f.techniques.includes(id)) return false
+  f.techniques = [...f.techniques, id]
+  return true
 }
 
 export function pickRandomTech(techs: string[], rng: RNG): string | undefined {

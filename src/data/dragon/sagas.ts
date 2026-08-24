@@ -8,6 +8,12 @@
 
 export interface BossDef {
   id: string
+  /**
+   * Nivel del jefe. Va TRES por encima del final de su tramo desde que los
+   * luchadores tienen carácter y vínculos: esos bonus son del jugador (cuatro
+   * cuerpos con rasgos contra uno) y sin compensarlos el bot que juega bien se
+   * terminaba el juego el 43 % de las veces.
+   */
   level: number
   /**
    * Transformaciones que encadena al caer. **Máximo dos**: con tres, Freezer
@@ -18,6 +24,47 @@ export interface BossDef {
   phases?: string[]
   intro: string
   outro: string
+}
+
+/** Maestros que se cruzan en el camino y lo que enseñan. */
+export interface MasterDef {
+  id: string
+  name: string
+  desc: string
+  /** Técnicas que puede enseñar (además de mejorar las que ya sabes). */
+  teaches: string[]
+}
+
+export const MASTERS: MasterDef[] = [
+  {
+    id: 'roshi', name: 'Maestro Mutenroshi',
+    desc: 'Gafas de sol, camisa hawaiana y la escuela de artes marciales más antigua del mundo.',
+    teaches: ['kamehameha', 'taiyoken', 'zanzoken'],
+  },
+  {
+    id: 'karin', name: 'Karin',
+    desc: 'Un gato que lleva mil años en lo alto de una torre viendo subir a gente.',
+    teaches: ['zanzoken', 'concentracion', 'patada_ascendente'],
+  },
+  {
+    id: 'kaito', name: 'Rey Kaito',
+    desc: 'Diez veces la gravedad y un chiste malo cada dos minutos.',
+    teaches: ['kikoho', 'genkidama', 'concentracion'],
+  },
+  {
+    id: 'popo', name: 'Mr. Popo',
+    desc: 'En el Templo Sagrado no se entrena la fuerza: se entrena la calma.',
+    teaches: ['muro', 'multiforma', 'concentracion'],
+  },
+  {
+    id: 'kaiosama', name: 'Kaio del Sur',
+    desc: 'Presume de haber entrenado al hombre más fuerte de su galaxia.',
+    teaches: ['martillo', 'placaje_ki', 'ondaexpansiva'],
+  },
+]
+
+export function getMaster(id: string): MasterDef | undefined {
+  return MASTERS.find((m) => m.id === id)
 }
 
 export interface SagaDef {
@@ -34,6 +81,8 @@ export interface SagaDef {
   elites: string[]
   boss: BossDef
   recruits: string[]
+  /** Maestros que pueden aparecer en este tramo. */
+  masters: string[]
   /**
    * Pericia de la IA rival en este tramo (0-1). La palanca de dificultad que
    * NO toca ningún número del combate. Sube DESPACIO a propósito: con la
@@ -59,12 +108,13 @@ export const SAGAS: SagaDef[] = [
     elites: ['raditz', 'nappa'],
     boss: {
       id: 'vegeta_saiyan',
-      level: 18,
+      level: 21,
       phases: ['ozaru'],
       intro: 'El príncipe de los saiyans aterriza sin prisa. Su rastreador marca un número que no le impresiona.',
       outro: 'La cápsula despega hacia el espacio. No ha sido una victoria: ha sido un aplazamiento.',
     },
     recruits: ['krilin', 'yamcha', 'ten', 'chaoz', 'gohan', 'piccolo'],
+    masters: ['roshi', 'karin'],
     aiSkill: 0.35,
     intro: 'Un rastreador cae del cielo sobre la Montaña Paoz. Alguien viene a buscar a un guerrero que se olvidó de quién era.',
   },
@@ -80,12 +130,15 @@ export const SAGAS: SagaDef[] = [
     elites: ['zarbon', 'recoome', 'ginyu'],
     boss: {
       id: 'freezer',
-      level: 34,
+      // Dos por debajo del resto de jefes: es el primer muro de verdad y se
+      // llevaba la mitad de las runs él solo.
+      level: 35,
       phases: ['freezer2', 'freezer4'],
       intro: 'Flota a un palmo del suelo, sentado en nada. Dice que aún no ha usado ni la mitad de su poder. No está mintiendo.',
       outro: 'El planeta se parte bajo tus pies. Sales de allí porque alguien te sacó, no porque pudieras.',
     },
     recruits: ['krilin', 'gohan', 'piccolo', 'dende', 'vegeta', 'yajirobe'],
+    masters: ['kaito', 'karin'],
     aiSkill: 0.45,
     intro: 'Cinco minutos para que el planeta reviente y siete bolas repartidas entre gente que no piensa soltarlas.',
   },
@@ -101,12 +154,13 @@ export const SAGAS: SagaDef[] = [
     elites: ['a17', 'a19', 'cell'],
     boss: {
       id: 'cell',
-      level: 48,
+      level: 51,
       phases: ['semiperfecto', 'perfecto'],
       intro: 'Ha esperado años en un sótano para esto. Solo le falta una cosa para estar completo, y la tienes delante.',
       outro: 'La explosión se lleva media cordillera. Alguien ha pagado el precio y no has sido tú.',
     },
     recruits: ['vegeta', 'trunks', 'piccolo', 'gohan', 'a18', 'ten'],
+    masters: ['popo', 'kaito'],
     aiSkill: 0.55,
     intro: 'Un chico de pelo lila baja de una máquina del tiempo con una advertencia y una lista de fechas.',
   },
@@ -122,12 +176,13 @@ export const SAGAS: SagaDef[] = [
     elites: ['dabura', 'majin_vegeta'],
     boss: {
       id: 'buu',
-      level: 62,
+      level: 65,
       phases: ['superbuu', 'kidbuu'],
       intro: 'Rosa, sonriente y con un apetito que no distingue entre un planeta y un caramelo.',
       outro: 'Un último puñetazo y el cielo se queda quieto. Por primera vez en toda la aventura, silencio.',
     },
     recruits: ['vegeta', 'gohan', 'trunks', 'a18', 'videl', 'dende'],
+    masters: ['kaiosama', 'popo'],
     aiSkill: 0.65,
     intro: 'Un mago sin escrúpulos abre un capullo que llevaba siglos sellado. Dentro no había un arma: había un niño.',
   },

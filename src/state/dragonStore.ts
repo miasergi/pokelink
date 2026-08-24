@@ -13,26 +13,25 @@ import { useGame } from '@/state/gameStore'
 import { clearDragon, loadDragon, loadMeta, saveDragon, saveMeta } from '@/persistence/db'
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkDragonAchievements } from '@/engine/dragon/achievements'
-import { getSaga, SAGAS } from '@/data/dragon/sagas'
+import { getSaga } from '@/data/dragon/sagas'
 import { getItem, ITEMS, stockFor, type Item } from '@/data/dragon/items'
-import {
-  advance, choose, chooseSwitch, pushClash, setAuto,
-} from '@/engine/dragon/battle'
+import { advance, chooseOption, setAuto } from '@/engine/dragon/battle'
 import {
   advanceMap, applyBattleResult, applyInterlude, applyRest, applyTraining,
   BALLS_FOR_WISH, BOSS_LAYER, canRecruit, createSave, grantWish, isTeamWiped,
-  layerNodes, recruit, recruitCandidate, startNodeBattle, TEAM_MAX,
-  useItemOutOfBattle, type BattleOutcome, type DragonSave, type MapNode,
+  applyMasterOffer, availableNodes, layerNodes, masterOffers, recruit, recruitCandidate,
+  startNodeBattle, TEAM_MAX,
+  useItemOutOfBattle, type BattleOutcome, type DragonSave, type MapNode, type MasterOffer,
 } from '@/engine/dragon/run'
 import { fighterMaxHp } from '@/engine/dragon/roster'
-import type { Action, Battle } from '@/engine/dragon/types'
+import type { Battle } from '@/engine/dragon/types'
 
 export type DragonPhase =
   | 'title' | 'intro' | 'map' | 'node' | 'battle' | 'outcome'
-  | 'team' | 'shop' | 'wish' | 'victory' | 'gameover'
+  | 'team' | 'shop' | 'master' | 'wish' | 'victory' | 'gameover'
 
 /** Fases desde las que es seguro guardar (o sea: fuera de un combate). */
-const SAFE_PHASES: DragonPhase[] = ['map', 'team', 'shop', 'wish', 'title', 'intro', 'victory', 'gameover']
+const SAFE_PHASES: DragonPhase[] = ['map', 'team', 'shop', 'master', 'wish', 'title', 'intro', 'victory', 'gameover']
 
 /** RNG viva de la partida (se rehidrata del save y se vuelca al persistir). */
 let rng: RNG | null = null
@@ -48,6 +47,45 @@ function getRng(save: DragonSave): RNG {
 let pendingEntry: DragonPhase | null = null
 export function setDragonEntry(phase: DragonPhase): void {
   pendingEntry = phase
+}
+
+/**
+ * TICKER de la retransmisión. El combate se cuenta evento a evento, y solo
+ * cuando no queda nada por contar se pide el siguiente latido al motor. Así el
+ * ritmo lo marca lo que estás leyendo y no un bucle cerrado — es el mismo
+ * trato que en Inazuma, donde el partido no corre por delante de su relato.
+ */
+let ticker: ReturnType<typeof setTimeout> | null = null
+
+export function stopTicker(): void {
+  if (ticker) { clearTimeout(ticker); ticker = null }
+}
+
+function startTicker(): void {
+  stopTicker()
+  const { battle, playing, speed } = useDragon.getState()
+  if (!battle || !playing) return
+  // Contar lo que falta va rápido; pedir un latido nuevo, algo más pausado.
+  ticker = setTimeout(() => { tickOnce() }, speed)
+}
+
+function tickOnce(): void {
+  const st = useDragon.getState()
+  const b = st.battle
+  if (!b) { stopTicker(); return }
+
+  // 1) ¿Queda relato por contar? Se cuenta.
+  if (st.revealed < b.log.length) {
+    useDragon.setState({ revealed: st.revealed + 1 })
+    startTicker()
+    return
+  }
+  // 2) Contado todo: si el motor espera una decisión o el combate acabó, para.
+  if (b.phase === 'decision' || b.over) { stopTicker(); return }
+  // 3) Si no, un latido más.
+  advance(b)
+  useDragon.setState({ battle: { ...b } })
+  startTicker()
 }
 
 async function persist(save: DragonSave, phase: DragonPhase) {
@@ -108,21 +146,33 @@ interface DragonState {
   continueRun: () => void
   abandonRun: () => Promise<void>
   goTo: (phase: DragonPhase) => void
+  openTeam: () => void
+  closeTeam: () => void
   clearMessage: () => void
+  /** A dónde vuelve la pantalla de equipo (mapa o tienda). */
+  teamReturn: DragonPhase | null
 
   // mapa y nodos
   pickNode: (id: string) => void
   confirmNode: () => void
   leaveNode: () => void
   // combate
-  act: (a: Action) => void
-  clash: (ki: number) => void
-  relay: (uid: string) => void
+  /** Eventos del log ya contados. La retransmisión va por aquí. */
+  revealed: number
+  playing: boolean
+  /** Milisegundos por evento revelado. */
+  speed: number
+  decide: (optionId: string) => void
+  togglePlaying: () => void
+  setSpeed: (ms: number) => void
   toggleAuto: () => void
   finishBattle: () => void
   // gestión
   buy: (itemId: string) => void
   leaveShop: () => void
+  /** Lo que el maestro de la casilla puede enseñar a tu equipo. */
+  offers: () => MasterOffer[]
+  train: (offer: MasterOffer) => void
   equip: (uid: string, itemId?: string) => void
   useField: (itemId: string, uid: string) => void
   wish: (wishId: string) => void
@@ -137,8 +187,13 @@ export const useDragon = create<DragonState>((set, get) => ({
   outcome: null,
   stock: [],
   message: null,
+  teamReturn: null,
+  revealed: 0,
+  playing: true,
+  speed: 420,
 
   initDragon: async () => {
+    stopTicker()
     const save = await loadDragon()
     rng = null
     if (save) getRng(save)
@@ -151,6 +206,7 @@ export const useDragon = create<DragonState>((set, get) => ({
   },
 
   exitDragon: () => {
+    stopTicker()
     const { save, phase } = get()
     if (save) void persist(save, phase)
     useGame.getState().navigate('home')
@@ -174,6 +230,7 @@ export const useDragon = create<DragonState>((set, get) => ({
   },
 
   abandonRun: async () => {
+    stopTicker()
     await clearDragon().catch(() => {})
     rng = null
     set({ save: null, hasSave: false, phase: 'title', battle: null, node: null, outcome: null })
@@ -185,6 +242,23 @@ export const useDragon = create<DragonState>((set, get) => ({
     set({ phase })
   },
 
+  /**
+   * Abre el equipo recordando de dónde vienes. Sin esto, ir a Equipo desde la
+   * tienda y volver te dejaba en el mapa con el nodo de tienda SIN consumir:
+   * comprabas gratis y encima podías elegir otra casilla de la misma capa.
+   */
+  openTeam: () => {
+    const { phase } = get()
+    set({ teamReturn: phase === 'shop' ? 'shop' : 'map', phase: 'team' })
+  },
+
+  closeTeam: () => {
+    const { save, teamReturn } = get()
+    const back = teamReturn ?? 'map'
+    if (save) void persist(save, back)
+    set({ phase: back, teamReturn: null })
+  },
+
   clearMessage: () => set({ message: null }),
 
   // ------------------------------------------------------------- mapa ---
@@ -192,8 +266,10 @@ export const useDragon = create<DragonState>((set, get) => ({
   pickNode: (id) => {
     const { save } = get()
     if (!save) return
-    const node = save.map.find((n) => n.id === id)
-    if (!node || node.layer !== save.layer) return
+    // Solo casillas a las que de verdad lleva tu camino: el mapa es un grafo,
+    // no una lista, así que no vale saltar a cualquier casilla de la capa.
+    const node = availableNodes(save).find((n) => n.id === id)
+    if (!node) return
     play('select')
     // El aliado se resuelve AL ENTRAR, no al generar el mapa: si el candidato
     // ya está en tu equipo hay que ofrecer otro (si no, el nodo se gasta).
@@ -219,8 +295,10 @@ export const useDragon = create<DragonState>((set, get) => ({
 
     if (node.kind === 'combate' || node.kind === 'elite' || node.kind === 'jefe') {
       play('select')
+      save.currentNode = node.id
       const battle = startNodeBattle(save, node, r)
-      set({ battle, phase: 'battle' })
+      set({ battle, phase: 'battle', revealed: 0, playing: true })
+      startTicker()
       return
     }
 
@@ -260,9 +338,14 @@ export const useDragon = create<DragonState>((set, get) => ({
         // La tienda no se «resuelve»: se abre y se sale cuando quieras.
         set({ phase: 'shop' })
         return
+      case 'maestro':
+        // El maestro tampoco: se elige qué aprender y eso cierra la casilla.
+        set({ phase: 'master' })
+        return
     }
 
     node.done = true
+    save.currentNode = node.id
     applyInterlude(save)
     advanceMap(save, r)
     void persist(save, 'map')
@@ -271,30 +354,34 @@ export const useDragon = create<DragonState>((set, get) => ({
 
   // ---------------------------------------------------------- combate ---
 
-  act: (a) => {
+  /**
+   * Resuelve el momento clave. El sonido va por la opción elegida, no por el
+   * evento, para que suene en el instante en que pulsas.
+   */
+  decide: (optionId) => {
     const { battle } = get()
-    if (!battle) return
-    if (a.kind === 'golpe') play('hit')
-    else if (a.kind === 'tecnica') play('mega')
-    else if (a.kind === 'transformar') play('levelup')
+    if (!battle || battle.phase !== 'decision') return
+    const kind = battle.decision?.kind
+    if (kind === 'choque') play('crit')
+    else if (optionId.startsWith('form:')) play('levelup')
+    else if (optionId.startsWith('tech:')) play('mega')
+    else if (optionId === 'golpe') play('hit')
     else play('select')
-    choose(battle, a)
+    chooseOption(battle, optionId)
     set({ battle: { ...battle } })
+    startTicker()
   },
 
-  clash: (ki) => {
-    const { battle } = get()
-    if (!battle) return
-    play('crit')
-    pushClash(battle, ki)
-    set({ battle: { ...battle } })
+  togglePlaying: () => {
+    const playing = !get().playing
+    set({ playing })
+    if (playing) startTicker()
+    else stopTicker()
   },
 
-  relay: (uid) => {
-    const { battle } = get()
-    if (!battle) return
-    chooseSwitch(battle, uid)
-    set({ battle: { ...battle } })
+  setSpeed: (ms) => {
+    set({ speed: ms })
+    startTicker()
   },
 
   toggleAuto: () => {
@@ -302,10 +389,12 @@ export const useDragon = create<DragonState>((set, get) => ({
     if (!battle) return
     setAuto(battle, !battle.auto)
     set({ battle: { ...battle } })
+    startTicker()
   },
 
   /** Cierra el combate: vuelca el resultado al save y decide a dónde ir. */
   finishBattle: () => {
+    stopTicker()
     const { save, battle, node } = get()
     if (!save || !battle || !node) return
     if (!battle.over) { advance(battle) }
@@ -338,13 +427,35 @@ export const useDragon = create<DragonState>((set, get) => ({
   leaveShop: () => {
     const { save, node } = get()
     if (!save) return
-    if (node) node.done = true
+    if (node) { node.done = true; save.currentNode = node.id }
     const r = getRng(save)
     applyInterlude(save)
     advanceMap(save, r)
     void persist(save, 'map')
     set({
       save: { ...save }, node: null,
+      phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map',
+    })
+  },
+
+  offers: () => {
+    const { save, node } = get()
+    if (!save || !node?.master) return []
+    return masterOffers(save, node.master)
+  },
+
+  train: (offer) => {
+    const { save, node } = get()
+    if (!save) return
+    const msg = applyMasterOffer(save, offer)
+    play('levelup')
+    if (node) { node.done = true; save.currentNode = node.id }
+    const r = getRng(save)
+    applyInterlude(save)
+    advanceMap(save, r)
+    void persist(save, 'map')
+    set({
+      save: { ...save }, node: null, message: msg,
       phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map',
     })
   },
@@ -362,6 +473,8 @@ export const useDragon = create<DragonState>((set, get) => ({
       if (save.bag[itemId] <= 0) delete save.bag[itemId]
     }
     f.item = itemId
+    // El dominio va con el objeto CONCRETO: cambiarlo empieza de cero.
+    f.itemXp = 0
     // Cambiar de objeto puede subir el tope de PS; nunca debe dejarlo por encima.
     f.hp = Math.min(f.hp, fighterMaxHp(f))
     play('select')
@@ -408,15 +521,18 @@ export function afterOutcome(): void {
   }
 
   const eraJefe = save.layer === BOSS_LAYER
+  // OJO: `advanceMap` incrementa `save.saga`, así que la saga que acabas de
+  // superar hay que leerla ANTES o se registra la siguiente.
+  const sagaSuperada = save.saga
   const paso = advanceMap(save, r)
 
   if (paso === 'fin') {
-    void persistDragonMeta({ saga: SAGAS.length, won: true })
+    void persistDragonMeta({ saga: sagaSuperada, won: true })
     void persist(save, 'victory')
     useDragon.setState({ save: { ...save }, phase: 'victory', outcome: null })
     return
   }
-  if (eraJefe) void persistDragonMeta({ saga: save.saga })
+  if (eraJefe) void persistDragonMeta({ saga: sagaSuperada })
 
   void persist(save, 'map')
   useDragon.setState({
@@ -444,4 +560,4 @@ export function fieldItems(save: DragonSave): { item: Item; n: number }[] {
     .filter((x) => x.item?.field && x.n > 0)
 }
 
-export { layerNodes }
+export { availableNodes, layerNodes }

@@ -11,6 +11,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.63',
+    date: '2026-08-24',
+    title: 'Dragon Ball Rogue, ahora sí: caminos, retransmisión y personajes con carácter',
+    changes: [
+      'MAPA DE CAMINOS como el de Inazuma y el del roguelike Pokémon: se ve el tramo entero dibujado, con las rutas que salen de donde estás. Ya no eliges una casilla de una lista: eliges POR DÓNDE VAS, y desde dónde estés depende a dónde puedes ir después.',
+      'EL COMBATE SE CUENTA SOLO y para en lo importante. Entre asalto y asalto tu luchador se apaña; tú apareces en la jugada de cada asalto, en el choque de rayos y en el relevo. Cada opción viene con su coste en ki y sus ESTRELLAS de cómo pinta, con Pausa, ×2 y Auto.',
+      'RETRATOS de los 30 luchadores y rivales, en las fichas, en el combate y en las casillas del mapa (con caída a la carta de siempre si falta alguno).',
+      'CARÁCTER: cada luchador tiene el suyo y cambia cómo se juega. Vegeta se crece contra quien le saque nivel, Gohan pega como una mula por debajo de un tercio de vida, Trunks se vuelve un muro si cae un compañero, Ten administra el ki sin despeinarse.',
+      'VÍNCULOS del anime: Goku y Krilín, Piccolo y Gohan, Ten y Chaoz, Vegeta y Trunks… llevarlos juntos les sube los atributos a los dos. Con quién vas importa tanto como a quién subes de nivel.',
+      'MAESTROS por el camino (Mutenroshi, Karin, el Rey Kaito, Mr. Popo): enseñan técnicas nuevas o pulen las que ya sabes. Un Kamehameha V3 pega más Y cuesta menos ki.',
+      'TRANSFORMACIONES EN ÁRBOL: no se salta un escalón. A Superguerrero 2 no se llega sin haber despertado antes el Superguerrero, y el Kaio-Ken ×3 no existe sin el ×2.',
+      'OBJETOS QUE SE DOMINAN: cada combate ganado con el mismo objeto puesto lo va puliendo, y su efecto crece. El equipo que te acompaña toda la aventura acaba valiendo más que el que acabas de comprar.',
+      'Y arreglados unos cuantos agujeros: los buffs ya no se apilan hasta el infinito, la Judía de Karin por fin REVIVE en combate en vez de curar al de al lado, no se pueden «usar» armaduras de repuesto (que se perdían para siempre), y entrar en la tienda y salir por Equipo ya no regalaba la casilla.',
+    ],
+  },
+  {
     version: 'v6.62',
     date: '2026-08-24',
     title: 'DRAGON BALL ROGUE: juego nuevo en el hub',

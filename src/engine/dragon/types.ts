@@ -68,6 +68,12 @@ export interface Transformation {
   lineage?: Lineage[]
   /** Nivel mínimo para que pueda despertar (ver `checkAwakenings`). */
   unlock?: number
+  /**
+   * Forma que hay que haber despertado ANTES. Convierte la lista de
+   * transformaciones en un árbol: a Superguerrero 2 no se llega sin pasar por
+   * Superguerrero, y el Kaio-Ken ×3 no existe sin el ×2.
+   */
+  requires?: string
   desc: string
 }
 
@@ -104,10 +110,21 @@ export interface Fighter {
   /** PS actuales fuera de combate (0 = KO, hay que revivirlo). */
   hp: number
   techniques: string[]
+  /**
+   * Nivel de cada técnica (0 = de serie, 1 = V2, 2 = V3…). Sube potencia y
+   * abarata el coste; lo mueven los maestros del mapa.
+   */
+  techLevels?: Record<string, number>
   /** Transformaciones YA desbloqueadas (las de `forms` empiezan bloqueadas). */
   forms: string[]
   /** Objeto equipado. */
   item?: string
+  /**
+   * Combates ganados con el objeto puesto. Cada `ITEM_XP_PER_LEVEL` sube su
+   * nivel y refuerza sus multiplicadores: el equipo que te acompaña toda la
+   * run acaba valiendo más que el que acabas de comprar.
+   */
+  itemXp?: number
   color: string
   plBase: number
 }
@@ -126,6 +143,8 @@ export interface Action {
 /** Estado de un luchador DENTRO del combate. */
 export interface Combatant {
   uid: string
+  /** Id de catálogo: con él la UI encuentra el retrato. */
+  baseId: string
   name: string
   lineage: Lineage
   style: Style
@@ -139,6 +158,7 @@ export interface Combatant {
   ki: number
   kiMax: number
   techniques: string[]
+  techLevels?: Record<string, number>
   forms: string[]
   /** Transformación activa. */
   form?: string
@@ -150,8 +170,16 @@ export interface Combatant {
   stunned: boolean
   /** Cargó el turno pasado: recibe más daño. */
   exposed: boolean
-  /** Ya usó la Semilla del Ermitaño en este combate. */
-  seedUsed: boolean
+  /** Ya usó una técnica de apoyo (la IA no las encadena). */
+  buffed?: boolean
+  /** Entró de relevo tras ver caer a un compañero. */
+  raging?: boolean
+  /** Carácter (ver data/dragon/personalities.ts). */
+  trait?: string
+  /** Multiplicadores fijos por vínculos con el equipo que llevas. */
+  bond?: Partial<Record<StatKey, number>>
+  /** Ha visto caer a un compañero (enciende el rasgo Protector). */
+  sawFall?: boolean
   item?: string
   fainted: boolean
 }
@@ -177,13 +205,43 @@ export type BattleEvent =
   | { t: 'text'; text: string }
   | { t: 'end'; win: boolean }
 
-/** Momento en que el motor PARA y espera al jugador. */
-export type Pending =
-  | { kind: 'accion' }
-  /** Choque de rayos: cuánto ki extra empujas. */
-  | { kind: 'choque'; enemyTech: string; myTech: string }
-  /** Se te ha debilitado el luchador: elige relevo. */
-  | { kind: 'relevo' }
+/** En qué punto está el combate. */
+export type BattlePhase = 'idle' | 'decision' | 'finished'
+
+/** Una de las cosas que puedes elegir en un momento clave. */
+export interface DecisionOption {
+  id: string
+  label: string
+  desc?: string
+  /** Ki que cuesta (0 o ausente = gratis). */
+  cost?: number
+  /**
+   * 0-1: cómo de bien pinta la jugada. Se calcula SIN gastar RNG para que la
+   * UI pueda pintar las estrellas antes de tirar, igual que en Inazuma — si se
+   * tirase aquí, el combate dejaría de ser reproducible por semilla.
+   */
+  chance: number
+  disabled?: boolean
+  /** Etiqueta corta destacada («CHOQUE», «LÍMITE»…). */
+  tag?: string
+  /** Lo que ejecuta de verdad. */
+  action: Action
+}
+
+/** Momento clave: el motor PARA aquí y espera. */
+export interface Decision {
+  kind: 'jugada' | 'choque' | 'relevo'
+  headline: string
+  desc?: string
+  actorUid: string
+  rivalUid: string
+  /**
+   * DEFENDIÉNDOTE de un choque: la técnica que el rival ya ha decidido lanzar.
+   * No es una estimación, es lo que va a pasar.
+   */
+  rivalTech?: string
+  options: DecisionOption[]
+}
 
 export interface Battle {
   seed: number
@@ -194,8 +252,17 @@ export interface Battle {
   /** Índice del activo en cada bando. */
   active: number
   enemyActive: number
+  /** Retransmisión completa, en orden. La UI la revela a su ritmo. */
   log: BattleEvent[]
-  pending?: Pending
+  phase: BattlePhase
+  /** Momento clave en curso. */
+  decision: Decision | null
+  /**
+   * Asalto: cada cuántos intercambios te toca decidir. Entre decisiones, el
+   * combate se juega solo — es el patrón de Inazuma, donde no decides cada
+   * balón sino los que importan.
+   */
+  round: number
   /** Acción ya elegida por el jugador, pendiente de resolver contra el rival. */
   chosen?: Action
   /** Acción del rival ya decidida, congelada mientras se pregunta el choque. */
@@ -206,8 +273,8 @@ export interface Battle {
   bag: Record<string, number>
   over: boolean
   win?: boolean
-  /** Jefe multifase: fase actual y definición de las siguientes. */
-  phase: number
+  /** Jefe multifase: fase actual y las transformaciones que encadena al caer. */
+  bossPhase: number
   phases?: string[]
   /** Nombre del combate (para la UI). */
   title: string

@@ -450,14 +450,17 @@ describe('render de pantallas (smoke)', () => {
     useDragon.setState({ node: nodo, phase: 'node' })
     expect(() => mount(DragonScreen)).not.toThrow()
 
-    // Y el combate: se monta, narra y ofrece las acciones del turno.
+    // Y el combate: se monta, narra y ofrece la jugada del asalto. Ojo, la
+    // retransmisión se revela poco a poco (`revealed`), así que las opciones
+    // solo salen cuando ya se ha contado todo lo anterior.
     const battle = startNodeBattle(save, nodo, new RNG(9))
     advanceDragon(battle)
-    useDragon.setState({ battle, node: nodo, phase: 'battle' })
+    useDragon.setState({ battle, node: nodo, phase: 'battle', revealed: battle.log.length })
     const fight = mount(DragonScreen)
-    expect(fight).toContain('Golpear')
-    expect(fight).toContain('Cargar ki')
     expect(fight).toContain('Son Goku')
+    expect(fight).toContain('Cuerpo a cuerpo')
+    expect(fight).toContain('Concentrar ki')
+    expect(fight).toContain('Cubrirse')
 
     // El deseo de las siete bolas enseña las cinco opciones.
     useDragon.setState({ save: { ...save, balls: 7 }, battle: null, phase: 'wish' })

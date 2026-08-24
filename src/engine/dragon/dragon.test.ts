@@ -9,17 +9,22 @@ import { FIGHTERS, getFighter, STARTERS } from '@/data/dragon/fighters'
 import { SAGAS } from '@/data/dragon/sagas'
 import { ITEMS } from '@/data/dragon/items'
 import {
-  advance, affordableTechs, ally, availableForms, choose, chooseSwitch, foe,
-  pushClash, PUSH_OPTIONS, startBattle,
+  advance, ally, chooseOption, MOD_CAP, oddsStars, startBattle,
 } from './battle'
+import { BONDS, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
 import {
   advanceMap, applyBattleResult, applyInterlude, applyRest, applyTraining, avgLevel, BALLS_FOR_WISH,
   BOSS_LAYER, createSave, generateSagaMap, grantWish, isTeamWiped, layerNodes,
-  recruit, recruitCandidate, startNodeBattle, TEAM_MAX, WISHES,
+  applyMasterOffer, checkAwakenings, masterOffers, recruit, recruitCandidate,
+  startNodeBattle, TEAM_MAX, WISHES,
   type DragonSave, type MapNode,
 } from './run'
-import { createEnemy, createFighter, fighterMaxHp, fighterPL, powerLevel, statsAt } from './roster'
-import type { Action, Battle } from './types'
+import {
+  actorTechnique, BOND_CAP, bondMult, createEnemy, createFighter, fighterMaxHp,
+  fighterPL, fighterStats, itemLevel, ITEM_XP_PER_LEVEL, learnTechnique, powerLevel, statsAt,
+  toCombatant, traitActive, upgradeTechnique,
+} from './roster'
+import type { Battle, Decision, DecisionOption } from './types'
 
 // ------------------------------------------------------------ integridad ---
 
@@ -110,90 +115,58 @@ describe('power level', () => {
 type BotStyle = 'tonto' | 'listo'
 
 /**
- * Cerebro del bot que hace de JUGADOR.
- *  - `tonto`: tira siempre de la técnica más gorda que pueda pagar y carga
- *    cuando se queda seco. Es el SUELO: si este gana mucho, el juego es fácil.
- *  - `listo`: administra ki, se transforma cuando puede sostenerlo, castiga las
- *    cargas del rival, se cura y guarda cuando está en rojo. Es el TECHO
- *    razonable: si este no gana nunca, el juego es injusto, no difícil.
+ * Juega el combate entero. El motor ya no pide una acción por turno: para en
+ * los momentos clave y entre medias se resuelve solo, así que el bot solo
+ * tiene que responder a las decisiones.
  */
-function botAction(b: Battle, style: BotStyle, rng: RNG): Action {
-  const me = ally(b)
-  const enemy = foe(b)
-  const techs = affordableTechs(me).filter((t) => t.kind !== 'apoyo')
-
-  if (style === 'tonto') {
-    const best = techs.sort((a, c) => c.power - a.power)[0]
-    if (best) return { kind: 'tecnica', id: best.id }
-    return me.ki < 25 && rng.chance(0.6) ? { kind: 'cargar' } : { kind: 'golpe' }
-  }
-
-  const form = me.form ? getForm(me.form) : undefined
-  const upkeep = form?.upkeep ?? 0
-  const hpFrac = me.hp / me.hpMax
-
-  // Semilla cuando de verdad hace falta (y no queda otra).
-  if (hpFrac < 0.28) {
-    const cure = Object.keys(b.bag).find((id) => b.bag[id] > 0 && (ITEMS.find((i) => i.id === id)?.heal ?? 0) >= 50)
-    if (cure) return { kind: 'objeto', id: cure }
-  }
-
-  // Transformarse solo si puede aguantarla tres turnos: si no, es regalar ki.
-  const forms = availableForms(me)
-    .map((id) => getForm(id)!)
-    .filter((f) => me.ki >= f.cost + f.upkeep)
-    .sort((x, y) => (y.mult.poder ?? 1) - (x.mult.poder ?? 1))
-  if (forms.length && (!form || (forms[0].mult.poder ?? 1) > (form.mult.poder ?? 1))) {
-    return { kind: 'transformar', id: forms[0].id }
-  }
-
-  // Lo que puede pagar SIN que se le caiga la forma el turno siguiente.
-  const usable = techs.filter((t) => t.cost + upkeep <= me.ki)
-  // Castigar una carga del rival con lo más gordo que tenga.
-  if (enemy.exposed && usable.length) {
-    return { kind: 'tecnica', id: usable.sort((a, c) => c.power - a.power)[0].id }
-  }
-  // Rematar.
-  if (usable.length && enemy.hp < enemy.hpMax * 0.3) {
-    return { kind: 'tecnica', id: usable.sort((a, c) => c.power - a.power)[0].id }
-  }
-  // Sin gasolina: guardia si está en rojo (carga ki sin quedar descubierto),
-  // cargar si aguanta el castigo. El umbral NO se ata al mantenimiento: pegar
-  // a puño ya carga +20, así que transformado se pega y se cuela una técnica
-  // cada pocos turnos, no se carga sin parar.
-  if (me.ki < Math.max(upkeep * 2, 26)) {
-    return hpFrac < 0.35 ? { kind: 'guardia' } : { kind: 'cargar' }
-  }
-  if (usable.length) {
-    const eff = usable
-      .map((t) => ({ t, s: t.power / t.cost + (t.pierce && enemy.guarding ? 1 : 0) }))
-      .sort((x, y) => y.s - x.s)
-    return { kind: 'tecnica', id: eff[0].t.id }
-  }
-  return { kind: 'golpe' }
-}
-
 function playBattle(b: Battle, style: BotStyle, rng: RNG): Battle {
   let guard = 0
-  while (!b.over && guard++ < 800) {
-    if (!b.pending) { advance(b); continue }
-    if (b.pending.kind === 'accion') {
-      choose(b, botAction(b, style, rng))
-    } else if (b.pending.kind === 'choque') {
-      // El listo empuja si le sobra depósito; el tonto no empuja nunca.
-      const me = ally(b)
-      const push = style === 'listo'
-        ? [...PUSH_OPTIONS].filter((p) => p <= me.ki - 10).pop() ?? 0
-        : 0
-      pushClash(b, push)
-    } else {
-      const alive = b.allies.find((c) => !c.fainted && c.hp > 0)
-      if (!alive) break
-      chooseSwitch(b, alive.uid)
+  while (!b.over && guard++ < 900) {
+    if (b.phase !== 'decision') { advance(b); continue }
+    const d = b.decision!
+    if (d.kind === 'relevo') {
+      // El más entero de los que quedan.
+      const best = [...d.options].sort((a, c) => c.chance - a.chance)[0]
+      chooseOption(b, best.id)
+      continue
     }
+    if (d.kind === 'choque') {
+      // El listo empuja lo que pueda permitirse; el tonto nunca empuja.
+      const asequibles = d.options.filter((o) => (o.cost ?? 0) <= ally(b).ki - 10)
+      const pick = style === 'listo' && asequibles.length ? asequibles[asequibles.length - 1] : d.options[0]
+      chooseOption(b, pick.id)
+      continue
+    }
+    chooseOption(b, pickPlay(b, d.options, style, rng).id)
   }
-  expect(guard).toBeLessThan(800)
+  expect(guard).toBeLessThan(900)
   return b
+}
+
+/**
+ * Cerebro del bot que hace de JUGADOR ante la jugada del asalto.
+ *  - `tonto`: pulsa AL AZAR. Es el suelo honesto ahora que el motor ya te
+ *    sirve las tres técnicas que mejor pintan: con esa lista curada, «elegir
+ *    la más cara» ya era jugar bien y el bot tonto ganaba el 17 % de las runs.
+ *  - `listo`: la que mejores estrellas saca, con dos correcciones de sentido
+ *    común — transformarse si aún no lo está y cubrirse cuando va en rojo.
+ */
+function pickPlay(b: Battle, options: DecisionOption[], style: BotStyle, rng: RNG): DecisionOption {
+  const me = ally(b)
+  const libres = options.filter((o) => (o.cost ?? 0) <= me.ki)
+  if (!libres.length) return options[options.length - 1]
+
+  if (style === 'tonto') return rng.pick(libres)
+
+  const forma = libres.find((o) => o.id.startsWith('form:'))
+  if (forma && !me.form) return forma
+  if (me.hp < me.hpMax * 0.3) {
+    const cura = libres.find((o) => o.id.startsWith('item:'))
+    if (cura) return cura
+    const guardia = libres.find((o) => o.id === 'guardia')
+    if (guardia && rng.chance(0.6)) return guardia
+  }
+  return [...libres].sort((a, c) => c.chance - a.chance)[0]
 }
 
 interface RunReport {
@@ -267,6 +240,12 @@ function equipBest(save: DragonSave, owned: string[]): void {
 
 function resolveNode(save: DragonSave, node: MapNode, style: BotStyle, rng: RNG, turns: number[]): boolean {
   switch (node.kind) {
+    case 'maestro': {
+      // El bot coge siempre la primera oferta: aprender pesa más que pulir.
+      const ofertas = node.master ? masterOffers(save, node.master) : []
+      if (ofertas.length) applyMasterOffer(save, ofertas[0])
+      return true
+    }
     case 'combate': case 'elite': case 'jefe': {
       const b = startNodeBattle(save, node, rng)
       playBattle(b, style, rng)
@@ -348,6 +327,7 @@ describe('combate', () => {
     advance(b)
     playBattle(b, 'listo', rng)
     expect(b.over).toBe(true)
+    expect(b.phase).toBe('finished')
     expect(typeof b.win).toBe('boolean')
     expect(b.log.some((e) => e.t === 'end')).toBe(true)
   })
@@ -363,11 +343,46 @@ describe('combate', () => {
     expect(run()).toEqual(run())
   })
 
-  it('cargar ki deja descubierto: el rival pega más ese turno', () => {
+  it('para en los momentos clave y NO pide una acción cada turno', () => {
+    const b = startBattle([createFighter('goku', 14)], [createEnemy('raditz', 14)], { seed: 4, title: 't', scene: 'yermo' })
+    advance(b)
+    // El primer latido ya deja una jugada encima de la mesa.
+    expect(b.phase).toBe('decision')
+    expect(b.decision?.kind).toBe('jugada')
+    expect(b.decision!.options.length).toBeGreaterThan(2)
+
+    // Tras decidir, el combate sigue solo al menos un intercambio antes de
+    // volver a preguntar: ese es el trato del modo.
+    const turnoAlDecidir = b.turn
+    chooseOption(b, 'golpe')
+    let guard = 0
+    while (b.phase !== 'decision' && !b.over && guard++ < 20) advance(b)
+    if (!b.over) expect(b.turn).toBeGreaterThan(turnoAlDecidir + 1)
+  })
+
+  it('cada opción trae su coste y sus estrellas, calculadas sin gastar RNG', () => {
+    const b = startBattle([createFighter('goku', 20)], [createEnemy('nappa', 20)], { seed: 11, title: 't', scene: 'yermo' })
+    advance(b)
+    const antes = b.rngState
+    const opts = b.decision!.options
+    for (const o of opts) {
+      expect(o.chance, o.label).toBeGreaterThan(0)
+      expect(o.chance, o.label).toBeLessThanOrEqual(1)
+      expect([1, 2, 3]).toContain(oddsStars(o.chance))
+    }
+    // Pintar las estrellas no puede mover la RNG o el combate dejaría de ser
+    // reproducible por semilla.
+    expect(b.rngState).toBe(antes)
+    // Y una técnica potente tiene que pintar mejor que un puñetazo.
+    const golpe = opts.find((o) => o.id === 'golpe')!
+    const tecnica = opts.find((o) => o.id.startsWith('tech:'))
+    if (tecnica) expect(tecnica.chance).toBeGreaterThan(golpe.chance)
+  })
+
+  it('cargar ki llena el depósito y deja descubierto', () => {
     const b = startBattle([createFighter('goku', 10)], [createEnemy('raditz', 10)], { seed: 4, title: 't', scene: 'yermo' })
     advance(b)
-    choose(b, { kind: 'cargar' })
-    // Tras cargar, el jugador tiene más ki que los 50 de salida.
+    chooseOption(b, 'cargar')
     expect(ally(b).ki).toBeGreaterThan(50)
   })
 
@@ -375,7 +390,7 @@ describe('combate', () => {
     const mk = (guard: boolean) => {
       const b = startBattle([createFighter('krilin', 10)], [createEnemy('nappa', 10)], { seed: 21, title: 't', scene: 'yermo' })
       advance(b)
-      choose(b, guard ? { kind: 'guardia' } : { kind: 'golpe' })
+      chooseOption(b, guard ? 'guardia' : 'golpe')
       return ally(b).hp
     }
     expect(mk(true)).toBeGreaterThan(mk(false))
@@ -387,33 +402,49 @@ describe('combate', () => {
     const b = startBattle([goku], [createEnemy('nappa', 30)], { seed: 8, title: 't', scene: 'yermo' })
     advance(b)
     // Entra con lo justo (44 de coste sobre 50 de depósito): el mantenimiento
-    // de 26 no cabe en lo que queda, así que se le cae ese mismo turno. Es la
-    // lección que el jugador tiene que aprender a su costa.
+    // de 26 no cabe en lo que queda, así que se le cae ese mismo turno.
     ally(b).ki = 50
-    choose(b, { kind: 'transformar', id: 'ssj3' })
+    chooseOption(b, 'form:ssj3')
     expect(b.log.some((e) => e.t === 'transform' && e.form === 'ssj3')).toBe(true)
     expect(b.log.some((e) => e.t === 'formEnd' && e.reason === 'ki')).toBe(true)
     expect(ally(b).form).toBeUndefined()
   })
 
-  it('dos rayos a la vez provocan un choque', () => {
+  it('los buffs no se pueden apilar hasta el infinito', () => {
+    const ten = createFighter('ten', 30) // sabe Multiforma (poder ×1.3)
+    const b = startBattle([ten], [createEnemy('nappa', 30)], { seed: 5, title: 't', scene: 'yermo' })
+    advance(b)
+    const me = ally(b)
+    for (let i = 0; i < 12; i++) {
+      me.ki = 100
+      me.mods.poder = (me.mods.poder ?? 1) * 1.3
+      me.mods.poder = Math.min(2, me.mods.poder)
+    }
+    // El tope existe para que apilar apoyo no sea la estrategia dominante.
+    expect(MOD_CAP).toBe(2)
+    expect(me.mods.poder).toBeLessThanOrEqual(MOD_CAP)
+  })
+
+  it('dos rayos a la vez provocan un choque, y se elige cuánto empujar', () => {
     const goku = createFighter('goku', 20)
-    const enemy = createEnemy('cui', 20) // solo tiene rayomortal/rodillazo
+    const enemy = createEnemy('cui', 20)
     enemy.techniques = ['rayomortal']
     const b = startBattle([goku], [enemy], { seed: 12, title: 't', scene: 'yermo' })
     advance(b)
     let guard = 0
     let sawClash = false
-    while (!b.over && guard++ < 60) {
-      if (b.pending?.kind === 'accion') {
-        const me = ally(b)
-        choose(b, me.ki >= 30 ? { kind: 'tecnica', id: 'kamehameha' } : { kind: 'cargar' })
-      } else if (b.pending?.kind === 'choque') {
+    while (!b.over && guard++ < 80) {
+      if (b.phase !== 'decision') { advance(b); continue }
+      const d = b.decision!
+      if (d.kind === 'choque') {
         sawClash = true
-        pushClash(b, 15)
-      } else if (b.pending?.kind === 'relevo') {
-        break
-      } else advance(b)
+        expect(d.rivalTech, 'el choque enseña con qué viene el rival').toBeTruthy()
+        expect(d.options.length).toBeGreaterThan(1)
+        chooseOption(b, d.options[d.options.length - 1].id)
+        continue
+      }
+      const kame = d.options.find((o) => o.id === 'tech:kamehameha')
+      chooseOption(b, kame ? kame.id : 'cargar')
     }
     expect(sawClash, 'nunca se produjo un choque de rayos').toBe(true)
     expect(b.log.some((e) => e.t === 'clash')).toBe(true)
@@ -422,7 +453,7 @@ describe('combate', () => {
   it('un jefe multifase se levanta más fuerte antes de caer', () => {
     const team = [createFighter('goku', 60), createFighter('piccolo', 60), createFighter('vegeta', 60)]
     const b = startBattle(team, [createEnemy('freezer', 30)], {
-      seed: 31, title: 'Freezer', scene: 'namek', phases: ['freezer2', 'freezer3', 'freezer4'],
+      seed: 31, title: 'Freezer', scene: 'namek', phases: ['freezer2', 'freezer4'],
     })
     advance(b)
     playBattle(b, 'listo', new RNG(2))
@@ -434,9 +465,27 @@ describe('combate', () => {
     const b = startBattle([createFighter('goku', 15)], [createEnemy('raditz', 15)], {
       seed: 77, title: 't', scene: 'yermo', auto: true,
     })
-    advance(b)
+    let guard = 0
+    while (!b.over && guard++ < 400) {
+      advance(b)
+      expect(b.phase, 'en automático no se pide ninguna decisión').not.toBe('decision')
+    }
     expect(b.over).toBe(true)
-    expect(b.pending).toBeUndefined()
+  })
+
+  it('en combate solo se pueden usar objetos DE USO, no el equipo de repuesto', () => {
+    const b = startBattle([createFighter('goku', 20)], [createEnemy('nappa', 20)], {
+      seed: 44, title: 't', scene: 'yermo', bag: { armadura: 1, semilla: 1 },
+    })
+    advance(b)
+    ally(b).hp = Math.round(ally(b).hpMax * 0.3)
+    b.decision = null
+    b.phase = 'idle'
+    advance(b)
+    const ids = (b.decision as Decision | null)?.options.map((o) => o.id) ?? []
+    // La armadura NO puede ofrecerse: usarla gastaba el turno y destruía el objeto.
+    expect(ids).not.toContain('item:armadura')
+    expect(b.bag.armadura).toBe(1)
   })
 
   it('los combates duran lo que tiene que durar un asalto (no 2 turnos ni 40)', () => {
@@ -457,6 +506,41 @@ describe('combate', () => {
 // ------------------------------------------------------------------ run ---
 
 describe('run', () => {
+  it('el mapa es un grafo de caminos: toda casilla se puede alcanzar y lleva a algún sitio', () => {
+    for (let saga = 0; saga < SAGAS.length; saga++) {
+      const map = generateSagaMap(saga, new RNG(saga * 31 + 5))
+      const byId = new Map(map.map((n) => [n.id, n]))
+      for (const n of map) {
+        if (n.layer < BOSS_LAYER) {
+          // Toda casilla que no sea el jefe tiene salida, y sus salidas van a
+          // la capa siguiente (nunca a la propia ni hacia atrás).
+          expect(n.next.length, `${n.id} sin salidas`).toBeGreaterThan(0)
+          for (const id of n.next) {
+            const destino = byId.get(id)
+            expect(destino, `${n.id} → ${id} no existe`).toBeDefined()
+            expect(destino!.layer, `${n.id} → ${id}`).toBe(n.layer + 1)
+          }
+        } else {
+          expect(n.next).toEqual([])
+        }
+        // Y toda casilla que no sea de salida tiene al menos una ENTRADA: si
+        // no, quedaría pintada en el tablero sin poder llegar nunca a ella.
+        if (n.layer > 0) {
+          const entradas = map.filter((o) => o.next.includes(n.id))
+          expect(entradas.length, `${n.id} inalcanzable`).toBeGreaterThan(0)
+        }
+      }
+      // Y el mapa se puede recorrer de principio a fin.
+      let frontera = map.filter((n) => n.layer === 0)
+      for (let l = 0; l < BOSS_LAYER; l++) {
+        const siguiente = frontera.flatMap((n) => n.next.map((id) => byId.get(id)!))
+        expect(siguiente.length, `capa ${l} sin continuación`).toBeGreaterThan(0)
+        frontera = [...new Set(siguiente)]
+      }
+      expect(frontera.every((n) => n.kind === 'jefe')).toBe(true)
+    }
+  })
+
   it('el mapa da opciones y siempre hay dónde pelear en cada capa', () => {
     for (let s = 0; s < SAGAS.length; s++) {
       const map = generateSagaMap(s, new RNG(s + 1))
@@ -512,6 +596,98 @@ describe('run', () => {
     playBattle(b, 'tonto', new RNG(2))
     applyBattleResult(save, b, node)
     if (!b.win) expect(save.finished).toBe('derrota')
+  })
+})
+
+// ------------------------------------------------------- profundidad ---
+
+describe('carácter, vínculos y maestros', () => {
+  it('todo rasgo asignado existe, y todo vínculo apunta a luchadores reales', () => {
+    for (const [id, trait] of Object.entries(TRAIT_BY_FIGHTER)) {
+      expect(getFighter(id), id).toBeDefined()
+      expect(getTrait(trait), `${id} → ${trait}`).toBeDefined()
+    }
+    for (const v of BONDS) {
+      expect(getFighter(v.a), v.a).toBeDefined()
+      expect(getFighter(v.b), v.b).toBeDefined()
+      expect(v.a).not.toBe(v.b)
+    }
+  })
+
+  it('los vínculos suben atributos DE VERDAD, y con tope', () => {
+    const solo = bondMult('goku', [])
+    expect(Object.keys(solo).length, 'sin compañeros no hay vínculo').toBe(0)
+    const acompanado = bondMult('goku', ['krilin', 'vegeta', 'gohan', 'yamcha'])
+    expect(acompanado.poder, 'con la cuadrilla al completo, más poder').toBeGreaterThan(1)
+    // El tope existe porque acumular cuatro vínculos daba +46 % gratis.
+    for (const v of Object.values(acompanado)) expect(v).toBeLessThanOrEqual(BOND_CAP)
+  })
+
+  it('el carácter se enciende SOLO cuando toca', () => {
+    const goku = createFighter('goku', 20) // Competitivo: pide vida alta
+    const c = toCombatant(goku, ['goku'])
+    expect(c.trait).toBe('competitivo')
+    c.hp = c.hpMax
+    expect(traitActive(c)).toBe(true)
+    c.hp = Math.round(c.hpMax * 0.2)
+    expect(traitActive(c), 'tocado ya no está enchufado').toBe(false)
+
+    // Y el temerario justo al revés.
+    const gohan = toCombatant(createFighter('gohan', 20), [])
+    gohan.hp = Math.round(gohan.hpMax * 0.2)
+    expect(traitActive(gohan)).toBe(true)
+  })
+
+  it('las transformaciones forman un árbol: no se salta un escalón', () => {
+    const goku = createFighter('goku', 50)
+    const save = createSave(1, { partner: 'krilin' })
+    save.team = [goku]
+    const b = startBattle([goku], [createEnemy('nappa', 50)], { seed: 1, title: 't', scene: 'yermo' })
+    b.allies[0].hp = 1 // condición dramática para que despierte algo
+    const node = save.map.find((n) => n.kind === 'combate')!
+    b.win = true
+    checkAwakenings(save, b, node)
+    // A nivel 50 le tocarían varias, pero solo puede despertar la primera de
+    // la rama: Superguerrero 2 exige tener antes el Superguerrero.
+    expect(goku.forms).not.toContain('ssj2')
+    expect(goku.forms.length).toBeLessThanOrEqual(1)
+  })
+
+  it('un maestro enseña algo nuevo y luego lo pule, y se nota en la técnica', () => {
+    const save = createSave(3, { partner: 'krilin' })
+    const ofertas = masterOffers(save, 'roshi')
+    expect(ofertas.length).toBeGreaterThan(0)
+    const nueva = ofertas.find((o) => o.kind === 'aprender')!
+    expect(nueva, 'el maestro tiene algo que enseñar').toBeDefined()
+    applyMasterOffer(save, nueva)
+    const f = save.team.find((x) => x.uid === nueva.uid)!
+    expect(f.techniques).toContain(nueva.techId)
+
+    // Y mejorarla se nota EN EL CAMPO: si no, sería decorativa (el fallo
+    // clásico que ya tuvimos con los objetos de atributos de Inazuma).
+    // Ojo: en las de apoyo la mejora solo abarata, porque su potencia es 0.
+    const base = getTechnique(nueva.techId)!
+    upgradeTechnique(f, nueva.techId)
+    const mejorada = actorTechnique(f, nueva.techId)!
+    expect(mejorada.cost).toBeLessThan(base.cost)
+    expect(mejorada.name).toContain('V2')
+    if (base.power > 0) expect(mejorada.power).toBeGreaterThan(base.power)
+
+    // Y con una ofensiva, la potencia sube seguro.
+    learnTechnique(f, 'kamehameha')
+    upgradeTechnique(f, 'kamehameha')
+    const kame = actorTechnique(f, 'kamehameha')!
+    expect(kame.power).toBeGreaterThan(getTechnique('kamehameha')!.power)
+  })
+
+  it('los objetos se dominan con el uso y su efecto crece', () => {
+    const f = createFighter('goku', 20)
+    f.item = 'guantes'
+    const base = fighterStats(f).poder
+    expect(itemLevel(f)).toBe(0)
+    f.itemXp = ITEM_XP_PER_LEVEL * 2
+    expect(itemLevel(f)).toBe(2)
+    expect(fighterStats(f).poder, 'unos guantes dominados pegan más').toBeGreaterThan(base)
   })
 })
 

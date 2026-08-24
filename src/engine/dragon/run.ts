@@ -5,12 +5,16 @@
 // **siempre al menos un combate por capa** — sin eso salen capas de solo
 // tienda/descanso donde es imposible subir de nivel y llegas al jefe pelado.
 import { RNG } from '@/utils/rng'
-import { getSaga, SAGAS } from '@/data/dragon/sagas'
+import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
 import { getFighter } from '@/data/dragon/fighters'
 import { getForm } from '@/data/dragon/transformations'
 import { getItem } from '@/data/dragon/items'
+import { getTechnique } from '@/data/dragon/techniques'
 import { advance, setAiSkill, startBattle } from './battle'
-import { createEnemy, createFighter, fighterMaxHp, levelUp, resetUids } from './roster'
+import {
+  createEnemy, createFighter, fighterMaxHp, itemLevel, learnTechnique, levelUp,
+  resetUids, TECH_LEVEL_MAX, upgradeTechnique,
+} from './roster'
 import type { Battle, Fighter } from './types'
 
 /** Capas por saga: 5 de camino + el jefe. */
@@ -25,12 +29,21 @@ export const BALLS_FOR_WISH = 7
 
 export type NodeKind =
   | 'combate' | 'elite' | 'jefe'
-  | 'entreno' | 'reclutar' | 'tienda' | 'descanso' | 'bola'
+  | 'entreno' | 'reclutar' | 'tienda' | 'descanso' | 'bola' | 'maestro'
 
 export interface MapNode {
   id: string
   kind: NodeKind
   layer: number
+  /** Columna dentro de la capa: manda en cómo se dibuja y con quién conecta. */
+  col: number
+  /**
+   * Casillas de la capa siguiente a las que se puede saltar desde esta. Igual
+   * que en Inazuma y en el mapa del roguelike Pokémon: no eliges «una casilla
+   * de la capa», eliges un CAMINO, y desde dónde estás depende a dónde puedes
+   * ir después.
+   */
+  next: string[]
   label: string
   desc: string
   /** Rivales (combate/elite/jefe). */
@@ -39,6 +52,8 @@ export interface MapNode {
   phases?: string[]
   /** Candidato a reclutar. */
   recruit?: string
+  /** Maestro que espera en esta casilla. */
+  master?: string
   /** Niveles que reparte un nodo de entrenamiento. */
   levels?: number
   /**
@@ -89,13 +104,15 @@ const REST_DESC = 'Un respiro. El equipo recupera buena parte de sus fuerzas.'
 function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: number): MapNode {
   const s = getSaga(saga)
   const id = `${saga}-${layer}-${idx}`
+  const col = idx
+  const next: string[] = []
   const level = nodeLevel(saga, layer)
   switch (kind) {
     case 'combate': {
       const n = layer >= 3 && rng.chance(0.35) ? 2 : 1
       const enemies = Array.from({ length: n }, () => rng.pick(s.pool))
       return {
-        id, kind, layer, level, enemies,
+        id, kind, layer, col, next, level, enemies,
         label: n > 1 ? 'Emboscada' : 'Combate',
         desc: n > 1 ? 'Más de uno te ha visto llegar.' : 'Alguien te cierra el paso.',
       }
@@ -105,37 +122,43 @@ function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: nu
       // +2, no +4: medido que con +4 una élite de la capa 3 salía a nivel 19
       // contra un equipo de 12 y era una sentencia, no un reto.
       return {
-        id, kind, layer, level: level + 2, enemies,
+        id, kind, layer, col, next, level: level + 2, enemies,
         label: 'Rival de peso',
         desc: 'Este no es carne de cañón. Pega más fuerte y da mejor botín.',
       }
     }
     case 'jefe': {
       return {
-        id, kind, layer, level: s.boss.level, enemies: [s.boss.id], phases: s.boss.phases,
+        id, kind, layer, col, next, level: s.boss.level, enemies: [s.boss.id], phases: s.boss.phases,
         label: getFighter(s.boss.id)?.name ?? 'Jefe',
         desc: s.boss.intro,
       }
     }
     case 'entreno':
       return {
-        id, kind, layer, levels: layer >= 3 ? 4 : 3,
+        id, kind, layer, col, next, levels: layer >= 3 ? 4 : 3,
         label: 'Entrenamiento',
         desc: 'Gravedad aumentada y horas de sparring. Subes niveles sin arriesgar la piel.',
       }
     case 'reclutar':
       return {
-        id, kind, layer, recruit: rng.pick(s.recruits),
+        id, kind, layer, col, next, recruit: rng.pick(s.recruits),
         label: 'Aliado',
         desc: 'Alguien quiere unirse a la pelea.',
       }
     case 'tienda':
-      return { id, kind, layer, label: 'Tienda', desc: 'Cápsulas, semillas y trastos varios.' }
+      return { id, kind, layer, col, next, label: 'Tienda', desc: 'Cápsulas, semillas y trastos varios.' }
     case 'descanso':
-      return { id, kind, layer, label: 'Descanso', desc: REST_DESC }
+      return { id, kind, layer, col, next, label: 'Descanso', desc: REST_DESC }
+    case 'maestro':
+      return {
+        id, kind, layer, col, next, master: rng.pick(s.masters),
+        label: 'Maestro',
+        desc: 'Alguien con mucho que enseñar y poca paciencia.',
+      }
     case 'bola':
       return {
-        id, kind, layer,
+        id, kind, layer, col, next,
         label: 'Bola de Dragón',
         desc: 'El radar pita. Hay una esfera de cristal enterrada por aquí cerca.',
       }
@@ -143,19 +166,57 @@ function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: nu
 }
 
 /**
- * Mapa de una saga. Cada capa ofrece 2-3 opciones y **al menos un combate**;
- * la última es el jefe, sin alternativa.
+ * Conecta cada casilla con las de la capa siguiente que le quedan cerca, y se
+ * asegura de que TODA casilla de la capa siguiente tenga al menos una entrada
+ * — si no, quedarían casillas inalcanzables pintadas en el tablero.
+ *
+ * Es el mismo algoritmo que usan el mapa de Inazuma y el del roguelike Pokémon.
+ */
+function connect(curr: MapNode[], next: MapNode[], rng: RNG): void {
+  if (next.length === 1) {
+    for (const c of curr) c.next = [next[0].id]
+    return
+  }
+  const posOf = (n: MapNode, len: number) => (len <= 1 ? 0.5 : n.col / (len - 1))
+  for (const c of curr) {
+    const cp = posOf(c, curr.length)
+    const sorted = [...next].sort(
+      (a, b) => Math.abs(posOf(a, next.length) - cp) - Math.abs(posOf(b, next.length) - cp),
+    )
+    // Bien trenzado: casi siempre hay bifurcación de verdad. Con una sola
+    // salida por casilla el mapa deja de ser un mapa y es un pasillo.
+    const edges = [sorted[0].id]
+    if (sorted[1] && rng.chance(0.7)) edges.push(sorted[1].id)
+    if (sorted[2] && rng.chance(0.25)) edges.push(sorted[2].id)
+    c.next = [...new Set(edges)]
+  }
+  for (const n of next) {
+    if (!curr.some((c) => c.next.includes(n.id))) {
+      const np = posOf(n, next.length)
+      const nearest = [...curr].sort(
+        (a, b) => Math.abs(posOf(a, curr.length) - np) - Math.abs(posOf(b, curr.length) - np),
+      )[0]
+      nearest.next = [...new Set([...nearest.next, n.id])]
+    }
+  }
+}
+
+/**
+ * Mapa de una saga: un GRAFO de caminos, no una lista de opciones por capa.
+ * Cada capa tiene 2-3 casillas y **al menos una de combate** (sin eso salen
+ * capas de solo tienda y descanso donde es imposible subir de nivel y llegas
+ * al jefe pelado); la última es el jefe, al que llevan todos los caminos.
  */
 export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
-  const out: MapNode[] = []
+  const capas: MapNode[][] = []
   for (let layer = 0; layer < BOSS_LAYER; layer++) {
     // Siempre un combate (o élite en las capas altas), y luego relleno variado.
     const kinds: NodeKind[] = [layer >= 2 && rng.chance(0.45) ? 'elite' : 'combate']
-    const filler: NodeKind[] = ['entreno', 'tienda', 'descanso', 'bola', 'reclutar', 'combate']
+    const filler: NodeKind[] = ['entreno', 'tienda', 'descanso', 'bola', 'reclutar', 'maestro', 'combate']
     // El descanso y la tienda no aparecen en la primera capa: no hay dinero ni
     // heridas todavía, y ocupaban el sitio de algo útil.
     const pool = layer === 0 ? filler.filter((k) => k !== 'tienda' && k !== 'descanso') : filler
-    const extra = layer === 0 || layer === BOSS_LAYER - 1 ? 1 : rng.int(1, 2)
+    const extra = layer === 0 ? 1 : rng.int(1, 2)
     const used = new Set<NodeKind>(kinds)
     for (let i = 0; i < extra; i++) {
       const choices = pool.filter((k) => !used.has(k))
@@ -164,14 +225,29 @@ export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
       kinds.push(k)
     }
     rng.shuffle(kinds)
-    kinds.forEach((k, i) => out.push(makeNode(k, layer, saga, rng, i)))
+    capas.push(kinds.map((k, i) => makeNode(k, layer, saga, rng, i)))
   }
-  out.push(makeNode('jefe', BOSS_LAYER, saga, rng, 0))
-  return out
+  capas.push([makeNode('jefe', BOSS_LAYER, saga, rng, 0)])
+
+  for (let i = 0; i < capas.length - 1; i++) connect(capas[i], capas[i + 1], rng)
+  return capas.flat()
 }
 
-export function layerNodes(save: DragonSave): MapNode[] {
-  return save.map.filter((n) => n.layer === save.layer)
+/** Casillas a las que puedes ir AHORA, según dónde estés parado. */
+export function availableNodes(save: DragonSave): MapNode[] {
+  // Sin casilla previa (arranque de saga, o un save de antes del grafo) se
+  // abre la capa actual entera: más vale eso que dejarte sin salidas.
+  if (!save.currentNode) return save.map.filter((n) => n.layer === save.layer)
+  const actual = save.map.find((n) => n.id === save.currentNode)
+  if (!actual) return save.map.filter((n) => n.layer === save.layer)
+  return actual.next
+    .map((id) => save.map.find((n) => n.id === id))
+    .filter((n): n is MapNode => !!n)
+}
+
+/** Todas las casillas de una capa (para dibujar el tablero entero). */
+export function layerNodes(save: DragonSave, layer = save.layer): MapNode[] {
+  return save.map.filter((n) => n.layer === layer)
 }
 
 // ---------------------------------------------------------------- el save ---
@@ -251,6 +327,8 @@ export interface BattleOutcome {
   learned: { name: string; techs: string[] }[]
   /** Transformaciones despertadas en este combate (ver `checkAwakenings`). */
   awakened: string[]
+  /** Objetos que han subido de nivel por el uso. */
+  itemUp: string[]
 }
 
 /**
@@ -264,7 +342,7 @@ export const ZENKAI_GAIN = 0.07
 export const ZENKAI_CAP = 1.7
 
 export function applyBattleResult(save: DragonSave, b: Battle, node: MapNode): BattleOutcome {
-  const out: BattleOutcome = { win: !!b.win, zeni: 0, levels: 0, zenkai: [], learned: [], awakened: [] }
+  const out: BattleOutcome = { win: !!b.win, zeni: 0, levels: 0, zenkai: [], learned: [], awakened: [], itemUp: [] }
   save.battles += 1
 
   // PS de vuelta al equipo, y la bolsa tal como quedó (las semillas gastadas
@@ -292,6 +370,14 @@ export function applyBattleResult(save: DragonSave, b: Battle, node: MapNode): B
   out.levels = node.kind === 'jefe' ? 6 : node.kind === 'elite' ? 6 : 4
   for (const f of save.team) {
     if (f.hp <= 0) continue // el que cae no aprende nada
+    // El objeto que te acompaña se va dominando: solo cuenta si sobreviviste.
+    if (f.item) {
+      const antes = itemLevel(f)
+      f.itemXp = (f.itemXp ?? 0) + 1
+      if (itemLevel(f) > antes) {
+        out.itemUp.push(`${f.name}: ${getItem(f.item)?.name} +${itemLevel(f)}`)
+      }
+    }
     // El lastre entrena el doble: penaliza en combate y se cobra aquí.
     const bonus = f.item ? (getItem(f.item)?.train ?? 0) : 0
     const res = levelUp(f, out.levels + bonus)
@@ -339,6 +425,9 @@ export function checkAwakenings(save: DragonSave, b: Battle, node: MapNode): str
       if (!def) continue
       if (def.lineage && !def.lineage.includes(f.lineage)) continue
       if (f.level < (def.unlock ?? 999)) continue
+      // El árbol: no se salta un escalón. A Superguerrero 2 no se llega sin
+      // haber despertado antes el Superguerrero.
+      if (def.requires && !f.forms.includes(def.requires)) continue
       f.forms.push(id)
       out.push(`${f.name} despierta: ${def.name}`)
       break // una por combate: que cada despertar sea un momento
@@ -407,6 +496,60 @@ export function recruit(save: DragonSave, baseId: string): Fighter | null {
   return f
 }
 
+/** Lo que un maestro puede hacer por tu equipo, ya resuelto a opciones. */
+export interface MasterOffer {
+  uid: string
+  fighterName: string
+  kind: 'aprender' | 'mejorar'
+  techId: string
+  techName: string
+  /** Nivel al que quedaría (solo en 'mejorar'). */
+  level?: number
+}
+
+/**
+ * Ofertas del maestro: primero enseñar lo que nadie sabe, y si no, subir de
+ * nivel lo que ya se usa. Se limita a tres para que sea una decisión y no un
+ * listado — y por eso las mejores van delante.
+ */
+export function masterOffers(save: DragonSave, masterId: string): MasterOffer[] {
+  const m = getMaster(masterId)
+  if (!m) return []
+  const out: MasterOffer[] = []
+  for (const f of save.team) {
+    if (f.hp <= 0) continue
+    for (const techId of m.teaches) {
+      const t = getTechnique(techId)
+      if (!t) continue
+      if (!f.techniques.includes(techId)) {
+        out.push({ uid: f.uid, fighterName: f.name, kind: 'aprender', techId, techName: t.name })
+      } else {
+        const lv = f.techLevels?.[techId] ?? 0
+        if (lv < TECH_LEVEL_MAX) {
+          out.push({
+            uid: f.uid, fighterName: f.name, kind: 'mejorar', techId,
+            techName: t.name, level: lv + 2,
+          })
+        }
+      }
+    }
+  }
+  // Aprender algo nuevo pesa más que pulir lo de siempre.
+  out.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'aprender' ? -1 : 1))
+  return out.slice(0, 4)
+}
+
+export function applyMasterOffer(save: DragonSave, offer: MasterOffer): string {
+  const f = save.team.find((x) => x.uid === offer.uid)
+  if (!f) return ''
+  if (offer.kind === 'aprender') {
+    learnTechnique(f, offer.techId)
+    return `${f.name} aprende ${offer.techName}.`
+  }
+  upgradeTechnique(f, offer.techId)
+  return `${f.name} domina ${offer.techName} V${offer.level}.`
+}
+
 export function useItemOutOfBattle(save: DragonSave, itemId: string, uid: string): string | null {
   const it = getItem(itemId)
   if (!it || !it.field || !(save.bag[itemId] > 0)) return null
@@ -428,7 +571,6 @@ export function useItemOutOfBattle(save: DragonSave, itemId: string, uid: string
 
 /** Avanza a la siguiente capa o a la siguiente saga. Devuelve qué pasó. */
 export function advanceMap(save: DragonSave, rng: RNG): 'capa' | 'saga' | 'fin' {
-  save.currentNode = null
   if (save.layer < BOSS_LAYER) {
     save.layer += 1
     // Curación completa ANTES del jefe, igual que en el roguelike Pokémon: el
@@ -448,6 +590,7 @@ export function advanceMap(save: DragonSave, rng: RNG): 'capa' | 'saga' | 'fin' 
   }
   save.saga += 1
   save.layer = 0
+  save.currentNode = null
   save.map = generateSagaMap(save.saga, rng)
   // Entre sagas se cura al equipo Y SE LEVANTA A LOS CAÍDOS (a media vida). El
   // corte narrativo es el respiro: sin esto, perder a dos compañeros en la saga

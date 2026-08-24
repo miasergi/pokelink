@@ -4,25 +4,26 @@
 // esto cubre el pegamento, que es donde se rompen las cosas de verdad.
 import { beforeEach, describe, expect, it } from 'vitest'
 import { BOSS_LAYER, layerNodes } from '@/engine/dragon/run'
-import { ally, foe } from '@/engine/dragon/battle'
+import { advance, ally, foe } from '@/engine/dragon/battle'
 import { afterOutcome, useDragon } from './dragonStore'
 
-/** Juega el combate en curso a puñetazos hasta que termine. */
+/**
+ * Juega el combate en curso hasta que termine. Como el motor solo para en los
+ * momentos clave, el bot únicamente tiene que responder a las decisiones; el
+ * ticker de la UI no corre en los tests, así que se avanza a mano.
+ */
 function resolveBattle(): void {
   const st = () => useDragon.getState()
   let guard = 0
-  while (st().battle && !st().battle!.over && guard++ < 400) {
+  while (st().battle && !st().battle!.over && guard++ < 600) {
     const b = st().battle!
-    if (!b.pending) { st().act({ kind: 'golpe' }); continue }
-    if (b.pending.kind === 'accion') st().act({ kind: 'golpe' })
-    else if (b.pending.kind === 'choque') st().clash(0)
-    else {
-      const alive = b.allies.find((c) => !c.fainted && c.hp > 0)
-      if (!alive) break
-      st().relay(alive.uid)
-    }
+    if (b.phase !== 'decision') { advance(b); continue }
+    const d = b.decision!
+    // Lo más simple que siempre existe: el cuerpo a cuerpo, o la primera opción.
+    const golpe = d.options.find((o) => o.id === 'golpe') ?? d.options[0]
+    st().decide(golpe.id)
   }
-  expect(guard).toBeLessThan(400)
+  expect(guard).toBeLessThan(600)
 }
 
 describe('store de Dragon Ball', () => {
@@ -52,6 +53,7 @@ describe('store de Dragon Ball', () => {
     st().confirmNode()
     expect(st().phase).toBe('battle')
     expect(st().battle).not.toBeNull()
+    expect(st().revealed, 'la retransmisión empieza sin contar nada').toBe(0)
     // El combate arranca con los dos bandos en pie y esperando tu decisión.
     expect(ally(st().battle!).hp).toBeGreaterThan(0)
     expect(foe(st().battle!).hp).toBeGreaterThan(0)
@@ -95,6 +97,29 @@ describe('store de Dragon Ball', () => {
     st().leaveShop()
     expect(st().phase).toBe('map')
     // Salir avanza el mapa: no se puede entrar y salir para comprar sin coste.
+    expect(st().save!.layer).toBe(1)
+  })
+
+  it('ir al equipo desde la tienda y volver NO regala la casilla', async () => {
+    const st = () => useDragon.getState()
+    await st().newRun('krilin')
+    st().goTo('map')
+    const save = st().save!
+    save.map[0].kind = 'tienda'
+    st().pickNode(save.map[0].id)
+    st().confirmNode()
+    expect(st().phase).toBe('shop')
+
+    // Este era el agujero: Equipo → volver te devolvía al mapa con el nodo sin
+    // consumir, así que comprabas gratis y elegías otra casilla de la capa.
+    st().openTeam()
+    expect(st().phase).toBe('team')
+    st().closeTeam()
+    expect(st().phase).toBe('shop')
+    expect(st().save!.layer).toBe(0)
+
+    st().leaveShop()
+    expect(st().phase).toBe('map')
     expect(st().save!.layer).toBe(1)
   })
 

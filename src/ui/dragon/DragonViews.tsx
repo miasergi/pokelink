@@ -2,17 +2,18 @@
 // equipo, tienda, deseo y final.
 import { useState } from 'react'
 import { getFighter, STARTERS } from '@/data/dragon/fighters'
-import { getSaga, SAGAS } from '@/data/dragon/sagas'
+import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
 import { getItem, ITEMS } from '@/data/dragon/items'
 import { getForm } from '@/data/dragon/transformations'
+import { bondsFor, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
 import { getTechnique } from '@/data/dragon/techniques'
 import {
-  avgLevel, BALLS_FOR_WISH, BOSS_LAYER, layerNodes, TEAM_MAX, WISHES,
-  type MapNode,
+  availableNodes, avgLevel, BALLS_FOR_WISH, BOSS_LAYER, TEAM_MAX, WISHES,
 } from '@/engine/dragon/run'
-import { fighterMaxHp } from '@/engine/dragon/roster'
+import { fighterMaxHp, itemLevel } from '@/engine/dragon/roster'
 import { afterOutcome, dragonSummary, fieldItems, useDragon } from '@/state/dragonStore'
 import { Avatar, FighterRow, Header, sceneBg, Scouter } from './Bits'
+import MapBoard, { NODE_STYLE } from './MapBoard'
 
 // ------------------------------------------------------------- título ---
 
@@ -136,22 +137,11 @@ export function IntroView() {
 
 // --------------------------------------------------------------- mapa ---
 
-const NODE_STYLE: Record<MapNode['kind'], { label: string; color: string }> = {
-  combate: { label: 'Combate', color: '#f87171' },
-  elite: { label: 'Rival de peso', color: '#fb923c' },
-  jefe: { label: 'Jefe', color: '#dc2626' },
-  entreno: { label: 'Entrenamiento', color: '#a78bfa' },
-  reclutar: { label: 'Aliado', color: '#4ade80' },
-  tienda: { label: 'Tienda', color: '#fbbf24' },
-  descanso: { label: 'Descanso', color: '#38bdf8' },
-  bola: { label: 'Bola de Dragón', color: '#f59e0b' },
-}
-
 export function MapView() {
-  const { save, pickNode, goTo, exitDragon } = useDragon()
+  const { save, pickNode, openTeam, exitDragon } = useDragon()
   if (!save) return null
   const s = getSaga(save.saga)
-  const nodos = layerNodes(save)
+  const abiertas = availableNodes(save)
   const enJefe = save.layer >= BOSS_LAYER
 
   return (
@@ -165,7 +155,7 @@ export function MapView() {
             <span className="text-[11px] text-amber-300 tabular-nums">{save.zeni} ẑ</span>
             <button
               type="button"
-              onClick={() => goTo('team')}
+              onClick={openTeam}
               className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 active:bg-slate-700"
             >
               Equipo
@@ -184,38 +174,25 @@ export function MapView() {
         <span>{save.team.filter((f) => f.hp > 0).length}/{save.team.length} en pie</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {enJefe && (
-          <div className="rounded-xl p-3 text-center" style={{ background: '#7f1d1d33', boxShadow: 'inset 0 0 0 1px #dc2626' }}>
-            <div className="text-[11px] uppercase tracking-widest text-red-300">Fin del tramo</div>
-            <p className="text-[12px] text-slate-300 mt-1">
-              Tu equipo llega curado del todo. Lo que pase ahora depende solo de cómo pelees.
-            </p>
-          </div>
-        )}
-        {nodos.map((n) => {
+      {/* El tablero se lee de abajo (donde estás) hacia arriba (el jefe). */}
+      <div className="flex-1 overflow-y-auto px-2 py-3">
+        <MapBoard save={save} alcanzables={abiertas} onPick={pickNode} />
+      </div>
+
+      <div className="px-3 pb-3 shrink-0 flex flex-wrap gap-1.5">
+        {abiertas.map((n) => {
           const st = NODE_STYLE[n.kind]
           return (
             <button
               key={n.id}
               type="button"
               onClick={() => pickNode(n.id)}
-              className="w-full text-left rounded-xl bg-slate-900/70 active:bg-slate-800 p-3"
-              style={{ boxShadow: `inset 0 0 0 1.5px ${st.color}55` }}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-900/80 px-2 py-1 active:bg-slate-800"
+              style={{ boxShadow: `inset 0 0 0 1px ${st.color}66` }}
             >
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: st.color }} />
-                <span className="font-bold text-sm flex-1 truncate">{n.label}</span>
-                {n.level != null && (
-                  <span className="text-[11px] text-slate-400 tabular-nums">Nv.{n.level}</span>
-                )}
-              </div>
-              <div className="text-[11.5px] text-slate-400 leading-snug mt-1">{n.desc}</div>
-              {n.kind === 'reclutar' && n.recruit && (
-                <div className="text-[11px] text-green-300 mt-1">
-                  Se ofrece: {getFighter(n.recruit)?.name}
-                </div>
-              )}
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.color }} />
+              <span className="text-[11.5px] font-semibold">{n.label}</span>
+              {n.level != null && <span className="text-[10px] text-slate-400 tabular-nums">Nv.{n.level}</span>}
             </button>
           )
         })}
@@ -223,8 +200,6 @@ export function MapView() {
     </div>
   )
 }
-
-// --------------------------------------------------------------- nodo ---
 
 export function NodeView() {
   const { save, node, confirmNode, leaveNode } = useDragon()
@@ -283,6 +258,19 @@ export function NodeView() {
           </>
         )}
 
+        {node.kind === 'maestro' && node.master && (() => {
+          const m = getMaster(node.master)!
+          return (
+            <div className="rounded-xl bg-slate-800/70 p-3">
+              <div className="font-bold text-sm text-cyan-300">{m.name}</div>
+              <div className="text-[11.5px] text-slate-400 mt-1 leading-snug">{m.desc}</div>
+              <div className="text-[11px] text-slate-500 mt-1.5">
+                Puede enseñar: {m.teaches.map((t) => getTechnique(t)?.name).filter(Boolean).join(', ')}
+              </div>
+            </div>
+          )
+        })()}
+
         {node.kind === 'entreno' && (
           <div className="text-[12px] text-slate-400">
             +{node.levels} niveles al miembro más rezagado, sin arriesgar nada.
@@ -317,7 +305,7 @@ export function NodeView() {
           onClick={confirmNode}
           className="flex-1 rounded-xl py-3 font-bold bg-amber-500 text-slate-900 active:bg-amber-400"
         >
-          {pelea ? '¡Adelante!' : node.kind === 'tienda' ? 'Entrar' : 'Continuar'}
+          {pelea ? '¡Adelante!' : node.kind === 'tienda' ? 'Entrar' : node.kind === 'maestro' ? 'Escuchar' : 'Continuar'}
         </button>
       </div>
     </div>
@@ -362,6 +350,12 @@ export function OutcomeView() {
               </div>
             ))}
 
+            {outcome.itemUp.map((t) => (
+              <div key={t} className="text-[12px] text-emerald-300">
+                {t} — el uso lo ha ido puliendo.
+              </div>
+            ))}
+
             {outcome.learned.map((l) => (
               <div key={l.name} className="text-[12px] text-sky-300">
                 {l.name} aprende {l.techs.map((t) => getTechnique(t)?.name).filter(Boolean).join(', ')}.
@@ -392,7 +386,7 @@ export function OutcomeView() {
 // ------------------------------------------------------------- equipo ---
 
 export function TeamView() {
-  const { save, goTo, equip, useField } = useDragon()
+  const { save, closeTeam, equip, useField } = useDragon()
   const [sel, setSel] = useState<string | null>(null)
   if (!save) return null
   const equipables = Object.entries(save.bag)
@@ -405,7 +399,7 @@ export function TeamView() {
       <Header
         title="Tu equipo"
         sub={`${save.zeni} ẑ · nivel medio ${avgLevel(save)}`}
-        onBack={() => goTo('map')}
+        onBack={closeTeam}
       />
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {save.team.map((f) => (
@@ -425,8 +419,32 @@ export function TeamView() {
             />
             {sel === f.uid && (
               <div className="mt-1.5 ml-2 rounded-xl bg-slate-900/70 p-3 space-y-2">
+                {(() => {
+                  const rasgo = getTrait(TRAIT_BY_FIGHTER[f.baseId] ?? '')
+                  const vinculos = bondsFor(f.baseId, save.team.map((x) => x.baseId))
+                  return (
+                    <>
+                      {rasgo && (
+                        <div>
+                          <span className="text-[11px] font-bold text-purple-300">{rasgo.name}</span>
+                          <span className="text-[11px] text-slate-400"> · {rasgo.desc}</span>
+                        </div>
+                      )}
+                      {vinculos.map((v) => (
+                        <div key={v.name} className="text-[11px]">
+                          <span className="font-bold text-emerald-300">{v.name}</span>
+                          <span className="text-slate-400"> · {v.desc}</span>
+                        </div>
+                      ))}
+                    </>
+                  )
+                })()}
                 <div className="text-[11px] text-slate-400">
-                  {f.techniques.map((t) => getTechnique(t)?.name).filter(Boolean).join(' · ')}
+                  {f.techniques.map((t) => {
+                    const lv = f.techLevels?.[t] ?? 0
+                    const n = getTechnique(t)?.name
+                    return n ? (lv ? `${n} V${lv + 1}` : n) : null
+                  }).filter(Boolean).join(' · ')}
                 </div>
                 {!!f.forms.length && (
                   <div className="text-[11px] text-amber-300">
@@ -481,6 +499,7 @@ export function TeamView() {
                 )}
                 <div className="text-[10px] text-slate-500">
                   PS {Math.max(0, Math.round(f.hp))}/{fighterMaxHp(f)}
+                  {f.item && itemLevel(f) > 0 && ` · ${getItem(f.item)?.name} +${itemLevel(f)}`}
                 </div>
               </div>
             )}
@@ -494,7 +513,7 @@ export function TeamView() {
 // ------------------------------------------------------------- tienda ---
 
 export function ShopView() {
-  const { save, stock, buy, goTo, leaveShop } = useDragon()
+  const { save, stock, buy, openTeam, leaveShop } = useDragon()
   if (!save) return null
   const genero = stock.length ? stock : ITEMS.slice(0, 5)
   return (
@@ -525,7 +544,7 @@ export function ShopView() {
       <div className="p-3 shrink-0 flex gap-2">
         <button
           type="button"
-          onClick={() => goTo('team')}
+          onClick={openTeam}
           className="rounded-xl px-4 py-3 font-semibold bg-slate-800 active:bg-slate-700"
         >
           Equipo
@@ -538,6 +557,66 @@ export function ShopView() {
           Seguir camino
         </button>
       </div>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------ maestro ---
+
+export function MasterView() {
+  const { save, node, offers, train } = useDragon()
+  if (!save || !node?.master) return null
+  const m = getMaster(node.master)!
+  const lista = offers()
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <Header title={m.name} sub="Elige a quién y qué" />
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <div className="rounded-xl bg-slate-800/70 p-3">
+          <p className="text-[12.5px] text-slate-300 leading-snug">{m.desc}</p>
+          <p className="text-[11px] text-slate-500 mt-1.5">
+            Solo hay tiempo para una lección. Aprender algo nuevo abre opciones;
+            pulir lo que ya sabes lo hace más potente y más barato.
+          </p>
+        </div>
+        {lista.length === 0 && (
+          <div className="text-[12px] text-slate-400 px-1">
+            No tiene nada que enseñarle a este equipo.
+          </div>
+        )}
+        {lista.map((o) => (
+          <button
+            key={`${o.uid}-${o.techId}-${o.kind}`}
+            type="button"
+            onClick={() => train(o)}
+            className="w-full text-left rounded-xl bg-slate-800/80 active:bg-slate-700 p-3"
+            style={{ boxShadow: `inset 0 0 0 1px ${o.kind === 'aprender' ? '#22d3ee66' : '#ffffff12'}` }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[13.5px] flex-1 truncate">
+                {o.kind === 'aprender' ? o.techName : `${o.techName} V${o.level}`}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-300">
+                {o.kind === 'aprender' ? 'NUEVA' : 'MEJORA'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              Para {o.fighterName} · {getTechnique(o.techId)?.desc}
+            </div>
+          </button>
+        ))}
+      </div>
+      {lista.length === 0 && (
+        <div className="p-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => train({ uid: save.team[0].uid, fighterName: '', kind: 'mejorar', techId: '', techName: '' })}
+            className="w-full rounded-xl py-3 font-bold bg-slate-800 active:bg-slate-700"
+          >
+            Seguir camino
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,8 +5,8 @@ import { useEffect } from 'react'
 import { useDragon } from '@/state/dragonStore'
 import BattleView from '@/ui/dragon/BattleView'
 import {
-  EndView, IntroView, MapView, NodeView, OutcomeView, ShopView, TeamView,
-  TitleView, WishView,
+  EndView, IntroView, MapView, MasterView, NodeView, OutcomeView, ShopView,
+  TeamView, TitleView, WishView,
 } from '@/ui/dragon/DragonViews'
 
 /** Aviso efímero de lo que acaba de pasar (recompensa, deseo, entrenamiento). */
@@ -43,6 +43,7 @@ export default function DragonScreen() {
       case 'outcome': return <OutcomeView />
       case 'team': return <TeamView />
       case 'shop': return <ShopView />
+      case 'master': return <MasterView />
       case 'wish': return <WishView />
       case 'victory': return <EndView won />
       case 'gameover': return <EndView won={false} />

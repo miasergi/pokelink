@@ -1,7 +1,8 @@
 // Piezas comunes del modo Dragon Ball: cartas de luchador, barras y el
-// scouter. Sin imágenes: los personajes se pintan con su inicial sobre su
-// color, igual que el fallback de Inazuma. Así el modo funciona al 100 % sin
-// un solo asset descargado.
+// scouter. Los retratos los baja `npm run fetch-dragon`, pero SIEMPRE hay
+// caída a una carta con las iniciales sobre el color del personaje — igual que
+// en Inazuma, el modo se juega entero aunque no se haya descargado nada.
+import { useState } from 'react'
 import { getSaga } from '@/data/dragon/sagas'
 import { getForm } from '@/data/dragon/transformations'
 import { combatantPL, effStats, fighterMaxHp, fighterPL, formatPL } from '@/engine/dragon/roster'
@@ -19,6 +20,15 @@ export function sceneBg(scene: string): string {
   return SCENES[scene] ?? SCENES.yermo
 }
 
+/**
+ * Retrato del luchador. Los baja `npm run fetch-dragon` a public/dragon/
+ * fighters/<baseId>.png. Si falta uno, `Avatar` cae a la carta de iniciales y
+ * no se rompe nada — por eso el modo se puede jugar entero sin descargar nada.
+ */
+export function portraitUrl(baseId: string): string {
+  return `${import.meta.env.BASE_URL}dragon/fighters/${baseId}.png`
+}
+
 /** Inicial(es) del nombre, para la carta sin retrato. */
 export function initials(name: string): string {
   const parts = name.replace(/[()]/g, '').split(/\s+/).filter(Boolean)
@@ -26,15 +36,19 @@ export function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-export function Avatar({ name, color, size = 44, form }: {
+export function Avatar({ name, color, size = 44, form, baseId }: {
   name: string
   color: string
   size?: number
   form?: string
+  /** Con esto se pinta el retrato; sin él, las iniciales. */
+  baseId?: string
 }) {
+  const [roto, setRoto] = useState(false)
+  const conRetrato = !!baseId && !roto
   return (
     <div
-      className="relative grid place-items-center rounded-xl font-black shrink-0"
+      className="relative grid place-items-center rounded-xl font-black shrink-0 overflow-hidden"
       style={{
         width: size, height: size,
         background: `linear-gradient(150deg, ${color}, ${color}66)`,
@@ -45,8 +59,28 @@ export function Avatar({ name, color, size = 44, form }: {
         boxShadow: form ? `0 0 0 2px #fde047, 0 0 18px 2px ${color}` : `0 0 0 1px #ffffff1a`,
       }}
     >
-      {initials(name)}
+      {conRetrato ? (
+        <img
+          src={portraitUrl(baseId)}
+          alt={name}
+          loading="lazy"
+          onError={() => setRoto(true)}
+          className="w-full h-full object-cover object-top"
+        />
+      ) : (
+        initials(name)
+      )}
     </div>
+  )
+}
+
+/** Ficha diminuta para el banquillo rival de una emboscada. */
+export function MiniFighter({ c }: { c: Combatant }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-lg bg-slate-900/70 pl-1 pr-1.5 py-0.5">
+      <Avatar name={c.name} color={c.color} size={18} baseId={c.baseId} />
+      <span className="text-[9px] text-slate-400 tabular-nums">{Math.round(c.hp)}</span>
+    </span>
   )
 }
 
@@ -126,7 +160,7 @@ export function FighterRow({ f, saga, onClick, selected, right }: {
       } ${onClick ? 'active:bg-slate-700' : ''} ${ko ? 'opacity-45' : ''}`}
       style={{ boxShadow: selected ? `inset 0 0 0 1.5px ${f.color}` : undefined }}
     >
-      <Avatar name={f.name} color={f.color} size={40} />
+      <Avatar name={f.name} color={f.color} size={40} baseId={f.baseId} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="font-semibold text-sm truncate">{f.name}</span>
@@ -161,7 +195,7 @@ export function CombatantPanel({ c, saga, enemy }: { c: Combatant; saga: number;
   const s = effStats(c)
   return (
     <div className={`flex items-center gap-2.5 ${enemy ? 'flex-row-reverse text-right' : ''}`}>
-      <Avatar name={c.name} color={c.color} size={52} form={c.form} />
+      <Avatar name={c.name} color={c.color} size={52} form={c.form} baseId={c.baseId} />
       <div className="flex-1 min-w-0">
         <div className={`flex items-center gap-1.5 min-w-0 ${enemy ? 'justify-end' : ''}`}>
           <span className="font-bold text-sm truncate">{c.name}</span>

@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "build-data": "node scripts/build-data.mjs",
     "fetch-sprites": "node scripts/fetch-sprites.mjs",
-    "fetch-inazuma": "node scripts/fetch-inazuma-portraits.mjs"
+    "fetch-inazuma": "node scripts/fetch-inazuma-portraits.mjs",
+    "fetch-dragon": "node scripts/fetch-dragon-portraits.mjs"
   },
   "dependencies": {
     "idb": "^8.0.0",
