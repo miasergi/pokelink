@@ -22,6 +22,11 @@ import OcaView from '@/ui/party/OcaView'
 import { useCyber } from '@/state/cyberStore'
 import { createAdventure } from '@/engine/cyber/cyberEngine'
 import InazumaScreen from '@/ui/screens/InazumaScreen'
+import DragonScreen from '@/ui/screens/DragonScreen'
+import { useDragon } from '@/state/dragonStore'
+import { createSave as createDragonSave, startNodeBattle } from '@/engine/dragon/run'
+// Alias: `advance` ya está cogido por el motor de Inazuma en este fichero.
+import { advance as advanceDragon } from '@/engine/dragon/battle'
 import { useInazuma } from '@/state/inazumaStore'
 import { createSave, startMatch } from '@/engine/inazuma/game'
 import { actorByUid, advance, chooseOption } from '@/engine/inazuma/match'
@@ -413,5 +418,49 @@ describe('render de pantallas (smoke)', () => {
       phase: 'draft',
     })
     expect(() => mount(InazumaScreen)).not.toThrow()
+  })
+  /**
+   * Dragon Ball Rogue: mismo criterio que Inazuma — montar de verdad cada fase
+   * y comprobar el TEXTO, que es lo único que demuestra que la vista responde
+   * al estado del motor y no a los valores iniciales del store.
+   */
+  it('Dragon Ball Rogue: cada fase pinta lo suyo y el combate narra lo que pasa', () => {
+    useGame.setState({ loaded: true, screen: { name: 'dragon' } })
+    const save = createDragonSave(4242, { partner: 'piccolo' })
+
+    for (const phase of ['title', 'intro', 'map', 'team', 'wish', 'victory', 'gameover'] as const) {
+      useDragon.setState({ save, hasSave: true, phase, battle: null, node: null, outcome: null })
+      expect(() => mount(DragonScreen), phase).not.toThrow()
+    }
+
+    // El mapa nombra la saga y ofrece las casillas del tramo con su etiqueta.
+    useDragon.setState({ save, hasSave: true, phase: 'map' })
+    const map = mount(DragonScreen)
+    expect(map).toContain('Los Saiyans')
+    expect(map).toContain('Bolas')
+
+    // El equipo lista a los luchadores por su nombre.
+    useDragon.setState({ phase: 'team' })
+    const team = mount(DragonScreen)
+    expect(team).toContain('Son Goku')
+    expect(team).toContain('Piccolo')
+
+    // Un nodo de combate avisa del nivel del rival antes de entrar.
+    const nodo = save.map.find((n) => n.kind === 'combate' || n.kind === 'elite')!
+    useDragon.setState({ node: nodo, phase: 'node' })
+    expect(() => mount(DragonScreen)).not.toThrow()
+
+    // Y el combate: se monta, narra y ofrece las acciones del turno.
+    const battle = startNodeBattle(save, nodo, new RNG(9))
+    advanceDragon(battle)
+    useDragon.setState({ battle, node: nodo, phase: 'battle' })
+    const fight = mount(DragonScreen)
+    expect(fight).toContain('Golpear')
+    expect(fight).toContain('Cargar ki')
+    expect(fight).toContain('Son Goku')
+
+    // El deseo de las siete bolas enseña las cinco opciones.
+    useDragon.setState({ save: { ...save, balls: 7 }, battle: null, phase: 'wish' })
+    expect(mount(DragonScreen)).toContain('Las siete esferas')
   })
 })

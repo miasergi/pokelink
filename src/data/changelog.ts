@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.62',
+    date: '2026-08-24',
+    title: 'DRAGON BALL ROGUE: juego nuevo en el hub',
+    changes: [
+      'CUATRO SAGAS (Saiyans, Namek, Androides y Buu) en un roguelite propio: mapa por tramos, aliados que se unen por el camino y una sola vida. Si caes, se acabó.',
+      'EL COMBATE VA DE ADMINISTRAR KI: golpear carga, cargar te deja descubierto un turno y las técnicas, las transformaciones y empujar en un choque de rayos salen todas del MISMO depósito. Las técnicas gordas rinden más por punto de ki, así que la pregunta siempre es cuándo gastarlo.',
+      'CHOQUE DE RAYOS: si los dos lanzáis un ataque de energía a la vez, los rayos chocan y decides cuánto ki extra quemas para empujar. El que gana el pulso se lleva el impacto entero.',
+      'TRANSFORMACIONES QUE SE DESPIERTAN, no se compran: llegan cuando tienes el nivel Y el combate se pone feo (cae un compañero, ganas con la vida en rojo). Drenan ki cada turno, así que si te quedas seco se te caen en el peor momento.',
+      'ZENKAI: ganar al borde de la muerte hace más fuerte a un saiyan PARA SIEMPRE. Y cuando cae un compañero, el que entra lo hace furioso: ki lleno y pegando más.',
+      'JEFES MULTIFASE que se levantan más fuertes, las SIETE BOLAS DE DRAGÓN repartidas por el mapa (júntalas y pide un deseo) y el SCOUTER cantando el nivel de combate… hasta que pasa de 9.000.',
+    ],
+  },
+  {
     version: 'v6.61',
     date: '2026-08-24',
     title: 'Ocalimocho al siguiente nivel: tablero de bar de verdad',

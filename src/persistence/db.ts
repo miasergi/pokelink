@@ -80,6 +80,15 @@ interface MetaRecord {
   }[]
   /** Inazuma Rogue: ids de jugadores que has llegado a fichar (su «Pokédex»). */
   inazumaSigned?: string[]
+  /** Dragon Ball Rogue: sagas superadas, mejor saga y aventuras completadas. */
+  dragonSagasCleared?: number[]
+  dragonBestSaga?: number
+  dragonRuns?: number
+  dragonWins?: number
+  /** Bolas de dragón reunidas en total (para el logro de las siete). */
+  dragonBalls?: number
+  /** Transformaciones que has llegado a despertar alguna vez. */
+  dragonForms?: string[]
 }
 
 const LEAGUE_STAGES = ['Fase de grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final', 'Campeón']
@@ -231,6 +240,20 @@ export async function clearInazuma(): Promise<void> {
   await d.delete('runs', 'inazuma')
 }
 
+// ---- Dragon Ball Rogue ----
+export async function saveDragon(s: import('@/engine/dragon/run').DragonSave): Promise<void> {
+  const d = await db()
+  await d.put('runs', s, 'dragon')
+}
+export async function loadDragon(): Promise<import('@/engine/dragon/run').DragonSave | null> {
+  const d = await db()
+  return (await d.get('runs', 'dragon')) ?? null
+}
+export async function clearDragon(): Promise<void> {
+  const d = await db()
+  await d.delete('runs', 'dragon')
+}
+
 // ---- Meta-progresión ----
 const EMPTY_META: MetaRecord = {
   bestRuns: [],
@@ -357,6 +380,12 @@ export function mergeMeta(a: MetaRecord, b: MetaRecord): MetaRecord {
     inazumaTitles: Math.max(a.inazumaTitles ?? 0, b.inazumaTitles ?? 0),
     inazumaBestRound: Math.max(a.inazumaBestRound ?? 0, b.inazumaBestRound ?? 0),
     inazumaSigned: [...new Set([...(a.inazumaSigned ?? []), ...(b.inazumaSigned ?? [])])],
+    dragonSagasCleared: uni(a.dragonSagasCleared ?? [], b.dragonSagasCleared ?? []),
+    dragonBestSaga: Math.max(a.dragonBestSaga ?? 0, b.dragonBestSaga ?? 0),
+    dragonRuns: Math.max(a.dragonRuns ?? 0, b.dragonRuns ?? 0),
+    dragonWins: Math.max(a.dragonWins ?? 0, b.dragonWins ?? 0),
+    dragonBalls: Math.max(a.dragonBalls ?? 0, b.dragonBalls ?? 0),
+    dragonForms: [...new Set([...(a.dragonForms ?? []), ...(b.dragonForms ?? [])])],
   }
 }
 
@@ -380,7 +409,8 @@ export async function exportData(): Promise<string> {
   const run = await loadRun()
   const cyber = await loadCyber()
   const inazuma = await loadInazuma()
-  const json = JSON.stringify({ v: 1, meta, run, cyber, inazuma })
+  const dragon = await loadDragon()
+  const json = JSON.stringify({ v: 1, meta, run, cyber, inazuma, dragon })
   // base64 seguro para UTF-8
   return btoa(unescape(encodeURIComponent(json)))
 }
@@ -393,6 +423,7 @@ export async function importData(code: string): Promise<boolean> {
       run?: RunState | null
       cyber?: import('@/engine/cyber/types').CyberSave | null
       inazuma?: import('@/engine/inazuma/types').InazumaSave | null
+      dragon?: import('@/engine/dragon/run').DragonSave | null
     }
     if (data.meta) await saveMeta({ ...structuredClone(EMPTY_META), ...data.meta })
     if (data.run) await saveRun(data.run)
@@ -403,6 +434,9 @@ export async function importData(code: string): Promise<boolean> {
     // Igual con Inazuma: los códigos anteriores a este modo no tocan su partida.
     if (data.inazuma) await saveInazuma(data.inazuma)
     else if ('inazuma' in data) await clearInazuma()
+    // Y con Dragon Ball: un código exportado antes de este modo no lo borra.
+    if (data.dragon) await saveDragon(data.dragon)
+    else if ('dragon' in data) await clearDragon()
     return true
   } catch {
     return false

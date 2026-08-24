@@ -16,8 +16,9 @@ import { forceUpdate } from '@/utils/appUpdate'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
-import { loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
 import { setInazumaEntry } from '@/state/inazumaStore'
+import { dragonSummary } from '@/state/dragonStore'
 import TypeBadge from '@/ui/components/TypeBadge'
 import { layerName } from '@/engine/inazuma/tournament'
 
@@ -109,9 +110,11 @@ export default function HomeScreen() {
   // Estado de los otros dos juegos, para que su tarjeta diga si hay partida
   // empezada sin tener que entrar a mirar.
   const [inazumaRound, setInazumaRound] = useState<string | null>(null)
+  const [dragonRun, setDragonRun] = useState<string | null>(null)
   const today = dailyChallenge().date
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
+    void loadDragon().then((s) => setDragonRun(s && !s.finished ? dragonSummary(s) : null))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
   // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
@@ -183,6 +186,18 @@ export default function HomeScreen() {
           <Chip icon={<Icon name="album" className="w-3.5 h-3.5 text-amber-300" />} label="Álbum de cromos" onClick={() => { setInazumaEntry('album'); navigate('inazuma') }} />
           <Chip icon={<Icon name="gear" className="w-3.5 h-3.5 text-slate-400" />} label="Opciones" onClick={() => { setInazumaEntry('title'); navigate('inazuma') }} />
         </div>
+
+        {/* ---- DRAGON BALL ROGUE ---- */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}covers/dragon-cover.svg`}
+          logo={`${import.meta.env.BASE_URL}dragon/logo.svg`}
+          alt="Dragon Ball Rogue"
+          title="Dragon Ball Rogue"
+          color="#f97316"
+          status={dragonRun ?? 'Cuatro sagas, una sola vida'}
+          cta={dragonRun ? 'Continuar' : 'Jugar'}
+          onPlay={() => navigate('dragon')}
+        />
 
         {/* ---- LA PREVIA (juegos de beber) ---- */}
         <CoverCard

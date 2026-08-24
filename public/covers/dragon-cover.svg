@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="720" height="360">
+  <!-- Portada dibujada a mano: cielo de atardecer, aura y las siete esferas.
+       Nada de arte con copyright; el modo funciona sin un solo asset externo. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f97316"/>
+      <stop offset="0.42" stop-color="#b45309"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fef08a"/>
+      <stop offset="0.55" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="aura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fde047" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#fde047" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="0.36" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#fff7db"/>
+      <stop offset="0.45" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="720" height="360" fill="url(#sky)"/>
+  <circle cx="545" cy="126" r="150" fill="url(#sun)" opacity="0.85"/>
+
+  <!-- Cordillera: dos capas para dar profundidad -->
+  <path d="M0 268 L88 206 L150 246 L232 176 L316 250 L392 208 L470 262 L556 214 L640 258 L720 222 L720 360 L0 360 Z"
+        fill="#7c2d12" opacity="0.85"/>
+  <path d="M0 300 L96 258 L186 292 L286 244 L380 296 L488 252 L590 294 L720 258 L720 360 L0 360 Z"
+        fill="#1c1917"/>
+
+  <!-- Figura cargando ki: silueta abstracta, no un personaje concreto -->
+  <g transform="translate(214 196)">
+    <circle cx="0" cy="0" r="86" fill="url(#aura)"/>
+    <path d="M0 -54 L13 -24 L44 -30 L22 -6 L40 20 L8 12 L0 46 L-8 12 L-40 20 L-22 -6 L-44 -30 L-13 -24 Z"
+          fill="#fde047" opacity="0.92"/>
+  </g>
+
+  <!-- Las siete esferas, en arco -->
+  <g>
+    <g transform="translate(452 296)"><circle r="19" fill="url(#orb)"/><circle cx="0" cy="-6" r="2.6" fill="#dc2626"/><circle cx="-5" cy="4" r="2.6" fill="#dc2626"/><circle cx="5" cy="4" r="2.6" fill="#dc2626"/></g>
+    <g transform="translate(496 284)"><circle r="17" fill="url(#orb)"/><circle cx="-4" cy="-2" r="2.4" fill="#dc2626"/><circle cx="4" cy="3" r="2.4" fill="#dc2626"/></g>
+    <g transform="translate(536 296)"><circle r="15" fill="url(#orb)"/><circle r="2.4" fill="#dc2626"/></g>
+    <g transform="translate(574 282)"><circle r="17" fill="url(#orb)"/><circle cx="0" cy="-5" r="2.4" fill="#dc2626"/><circle cx="-5" cy="3" r="2.4" fill="#dc2626"/><circle cx="5" cy="3" r="2.4" fill="#dc2626"/><circle cx="0" cy="7" r="2.4" fill="#dc2626"/></g>
+    <g transform="translate(616 294)"><circle r="15" fill="url(#orb)"/><circle cx="-4" cy="-3" r="2.2" fill="#dc2626"/><circle cx="4" cy="-3" r="2.2" fill="#dc2626"/><circle cx="0" cy="4" r="2.2" fill="#dc2626"/></g>
+    <g transform="translate(654 282)"><circle r="16" fill="url(#orb)"/><circle cx="-5" cy="-4" r="2.2" fill="#dc2626"/><circle cx="5" cy="-4" r="2.2" fill="#dc2626"/><circle cx="-5" cy="4" r="2.2" fill="#dc2626"/><circle cx="5" cy="4" r="2.2" fill="#dc2626"/></g>
+    <g transform="translate(690 298)"><circle r="14" fill="url(#orb)"/><circle cx="0" cy="-5" r="2" fill="#dc2626"/><circle cx="-5" cy="0" r="2" fill="#dc2626"/><circle cx="5" cy="0" r="2" fill="#dc2626"/><circle cx="-3" cy="6" r="2" fill="#dc2626"/><circle cx="3" cy="6" r="2" fill="#dc2626"/></g>
+  </g>
+</svg>

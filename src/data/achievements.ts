@@ -54,6 +54,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'cyber_champion', title: 'Leyenda de bolsillo', desc: 'Completa una aventura Cyber PokéBall (derrota al campeón).', icon: 'pokeball' },
   { id: 'cyber_dex50', title: 'Dex de bolsillo', desc: 'Captura 50 especies en el modo Cyber PokéBall.', icon: 'pokedex' },
   { id: 'cyber_online', title: 'Cable Link', desc: 'Completa un intercambio o combate online en la Cyber PokéBall.', icon: 'cloud' },
+  // --- Dragon Ball Rogue ---
+  { id: 'dragon_first', title: 'El primer saiyan', desc: 'Supera la saga de los Saiyans en Dragon Ball Rogue.', icon: 'flame' },
+  { id: 'dragon_ssj', title: 'La leyenda de los mil años', desc: 'Despierta la transformación en Superguerrero.', icon: 'bolt' },
+  { id: 'dragon_freezer', title: 'El tirano del universo', desc: 'Supera la saga de Namek.', icon: 'spark' },
+  { id: 'dragon_balls', title: 'Las siete esferas', desc: 'Reúne las 7 Bolas de Dragón en una misma aventura.', icon: 'dadoballs' },
+  { id: 'dragon_win', title: 'El guerrero más fuerte', desc: 'Completa una aventura entera de Dragon Ball Rogue.', icon: 'star' },
 ]
 
 export const ACHIEVEMENT_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]))

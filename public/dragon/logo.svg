@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 96" width="340" height="96">
+  <defs>
+    <linearGradient id="dlg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="0.5" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#dc2626"/>
+    </linearGradient>
+    <radialGradient id="dorb" cx="0.36" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#fff7db"/>
+      <stop offset="0.45" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </radialGradient>
+  </defs>
+  <!-- La esfera de cuatro estrellas hace de «O» del logotipo -->
+  <g transform="translate(28 34)">
+    <circle r="21" fill="url(#dorb)" stroke="#7c2d12" stroke-width="2"/>
+    <circle cx="0" cy="-7" r="3.1" fill="#dc2626"/>
+    <circle cx="-7" cy="3" r="3.1" fill="#dc2626"/>
+    <circle cx="7" cy="3" r="3.1" fill="#dc2626"/>
+    <circle cx="0" cy="10" r="3.1" fill="#dc2626"/>
+  </g>
+  <!-- Trazo oscuro detrás para que se lea sobre cualquier arte -->
+  <text x="60" y="42" font-family="Verdana,DejaVu Sans,sans-serif" font-size="30" font-weight="bold"
+        letter-spacing="1" fill="none" stroke="#0b1220" stroke-width="7" stroke-linejoin="round">DRAGON BALL</text>
+  <text x="60" y="42" font-family="Verdana,DejaVu Sans,sans-serif" font-size="30" font-weight="bold"
+        letter-spacing="1" fill="url(#dlg)">DRAGON BALL</text>
+  <text x="62" y="68" font-family="Verdana,DejaVu Sans,sans-serif" font-size="15" font-weight="bold"
+        letter-spacing="9" fill="none" stroke="#0b1220" stroke-width="5" stroke-linejoin="round">ROGUE</text>
+  <text x="62" y="68" font-family="Verdana,DejaVu Sans,sans-serif" font-size="15" font-weight="bold"
+        letter-spacing="9" fill="#e2e8f0">ROGUE</text>
+</svg>
