@@ -1293,7 +1293,12 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     myTech = comboTechnique(techId, afinidad)
     if (myTech) myTech = { ...myTech, cost: 0 }
     if (partners.length) {
-      m.events.push({
+      // A `pre` (que desemboca en la cola de revelado), NUNCA directo a
+      // `m.events`: un evento fuera de la cola dejaba el feed eternamente
+      // un paso por detrás y `caughtUp` no se cumplía jamás — el panel de
+      // decisión no volvía a aparecer y el partido se quedaba CONGELADO en
+      // el último mensaje contado (el cuelgue del minuto 42 del playtest).
+      pre.push({
         kind: 'possession',
         minute: m.minute,
         side: chain.side,

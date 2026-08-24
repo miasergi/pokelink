@@ -343,6 +343,47 @@ function fullSave(seed: number, teamId = 'raimon'): InazumaSave {
   return save
 }
 
+/**
+ * INVARIANTE DE LA RETRANSMISIÓN: todo lo que entra en `m.events` tiene que
+ * SALIR por el retorno de `advance`/`chooseOption` (que es lo que llega a la
+ * cola de revelado). Un evento colado directo a `m.events` deja el feed
+ * eternamente un paso por detrás, `caughtUp` no se cumple y el partido se
+ * CONGELA — fue el cuelgue del minuto 42: el sabor del combo se empujaba
+ * fuera de la cola.
+ */
+it('ningún evento entra a m.events sin pasar por la cola de revelado', () => {
+  for (let seed = 0; seed < 12; seed++) {
+    const save = createSave(seed)
+    // Plantilla con COMBO despierto (Axel+Kevin con el Tornado de Dragón) y
+    // cansancio para que caigan lesiones: los dos emisores especiales.
+    save.roster = ['axel-blaze', 'kevin-dragonfly', 'mark-evans', 'jude-sharp', 'nathan-swift']
+      .map((id, i) => ({ ...createPlayer(id, 30), stamina: i < 2 ? 100 : 30 }))
+    save.roster[1] = { ...save.roster[1], techniques: ['dragon-crash', 'dragon-tornado'] }
+    save.lineup = autoLineup(save.roster)
+    const node = Object.values(save.map.nodes).find((n) => n.kind === 'jefe')!
+    const setup = startMatch(save, node)
+    if ('error' in setup) throw new Error(setup.error)
+    const { match, rng } = setup
+    let guard = 0
+    let revealed = match.events.length
+    while (match.phase !== 'finished' && guard++ < 4000) {
+      const before = match.events.length
+      let out
+      if (match.phase === 'decision') {
+        // Prioriza el COMBO cuando salga: es el emisor que se coló.
+        const opts = match.decision!.options.filter((o) => !o.disabled)
+        const combo = opts.find((o) => o.id.startsWith('combo:'))
+        out = chooseOption(match, rng, (combo ?? opts[0]).id)
+      } else {
+        out = advance(match, rng)
+      }
+      revealed += out.length
+      expect(match.events.length, `evento colado fuera de la cola (seed ${seed})`).toBe(before + out.length)
+    }
+    expect(revealed).toBe(match.events.length)
+  }
+})
+
 function playMatch(save: InazumaSave, node: TournamentNode): MatchState {
   const setup = startMatch(save, node)
   if ('error' in setup) throw new Error(setup.error)
