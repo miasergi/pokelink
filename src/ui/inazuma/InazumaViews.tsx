@@ -222,19 +222,32 @@ export function MapView() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
-      <div className="shrink-0 px-3 pt-2 pb-1.5 border-b border-slate-800/70">
+      <div className="relative shrink-0 overflow-hidden border-b border-slate-800/70">
+        {/* EL ESCENARIO del tramo: un tile de los propios juegos (la ribera,
+            el campo del insti, el Zeus Stadium… hasta la final), con un
+            gradiente para que el texto siga leyéndose. Si falta, gradiente. */}
+        <img
+          src={`${import.meta.env.BASE_URL}inazuma/zones/zona-${Math.min(7, seg.index)}.png`}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-45 select-none pointer-events-none"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/85 pointer-events-none" />
+        <div className="relative px-3 pt-2 pb-1.5">
         <SegmentProgress segs={segs} current={seg.index} />
         <div className="flex items-center gap-2 mt-2">
           <TeamCrest teamId={seg.boss?.teamId} size={30} />
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-widest text-slate-500">{seg.name}</div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-300/90">{seg.name}</div>
             <div className="font-extrabold text-[13px] leading-tight truncate">
               Camino a {seg.boss ? getTeam(seg.boss.teamId ?? '').name : 'la final'}
             </div>
           </div>
-          <span className="ml-auto text-[10px] text-slate-600 tabular-nums shrink-0">
+          <span className="ml-auto text-[10px] text-slate-400 tabular-nums shrink-0">
             {seg.index + 1}/8
           </span>
+        </div>
         </div>
       </div>
 

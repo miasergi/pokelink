@@ -406,8 +406,8 @@ export function getTeam(id: string): TeamBase {
 
 /** Nombres de las eliminatorias, de la primera a la final. */
 export const ROUND_NAMES = [
-  'Primera ronda', 'Segunda ronda', 'Tercera ronda', 'Octavos',
-  'Cuartos', 'Repesca', 'Semifinal', 'FINAL',
+  'Ronda 1', 'Ronda 2', 'Ronda 3', 'Dieciseisavos',
+  'Octavos', 'Cuartos', 'Semifinal', 'Final',
 ]
 
 /**
