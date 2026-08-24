@@ -3,6 +3,7 @@
 // caída a una carta con las iniciales sobre el color del personaje — igual que
 // en Inazuma, el modo se juega entero aunque no se haya descargado nada.
 import { useState } from 'react'
+import Icon from '@/ui/components/Icon'
 import { getSaga } from '@/data/dragon/sagas'
 import { getForm } from '@/data/dragon/transformations'
 import { combatantPL, effStats, fighterMaxHp, fighterPL, formatPL } from '@/engine/dragon/roster'
@@ -123,6 +124,15 @@ export const KI_COLOR = 'linear-gradient(90deg,#0ea5e9,#7dd3fc)'
  * El scouter. El número es cosmético (ver `powerLevel`) pero es la lectura
  * emocional del juego: cuando pasa de 9.000 el aparato echa humo.
  */
+/** El dinero del juego, con su moneda. */
+export function Zeni({ n, className = '' }: { n: number; className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1 tabular-nums ${className}`}>
+      <Icon name="coin" className="w-3 h-3" />{n.toLocaleString('es-ES')}
+    </span>
+  )
+}
+
 export function Scouter({ pl, compact }: { pl: number; compact?: boolean }) {
   const revienta = pl > 9000
   return (
@@ -236,10 +246,10 @@ export function Header({ title, sub, onBack, right }: {
         <button
           type="button"
           onClick={onBack}
-          className="w-8 h-8 grid place-items-center rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300"
+          className="w-8 h-8 grid place-items-center rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300 active:scale-95 transition"
           aria-label="Volver"
         >
-          ‹
+          <Icon name="arrowRight" className="w-4 h-4 rotate-180" />
         </button>
       )}
       <div className="flex-1 min-w-0">

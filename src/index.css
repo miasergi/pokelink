@@ -486,3 +486,114 @@ body {
   animation: mc-hue 3s linear infinite;
   pointer-events: none;
 }
+
+/* ---- DRAGON BALL: espectáculo del combate (ver ui/dragon/DragonFX.tsx) ----
+   Transformación, choque de rayos, KO y feedback continuo. Todo procedural:
+   ni una imagen, solo degradados, SVG y estos keyframes. */
+
+/* SACUDIDA DE PANTALLA. Van DOS keyframes idénticos a propósito: para
+   reiniciar una animación CSS hay que cambiarle el nombre, y alternando
+   a/b se consigue sin remontar el árbol (remontarlo perdería el scroll de
+   la retransmisión). La amplitud llega en `--dg-amp`. */
+@keyframes dg-shake-a {
+  0%, 100% { transform: translate(0, 0); }
+  12% { transform: translate(calc(var(--dg-amp, 3px) * -1), var(--dg-amp, 3px)); }
+  28% { transform: translate(var(--dg-amp, 3px), calc(var(--dg-amp, 3px) * -1)); }
+  44% { transform: translate(calc(var(--dg-amp, 3px) * -1), 0); }
+  62% { transform: translate(var(--dg-amp, 3px), var(--dg-amp, 3px)); }
+  80% { transform: translate(calc(var(--dg-amp, 3px) * -0.5), 0); }
+}
+@keyframes dg-shake-b {
+  0%, 100% { transform: translate(0, 0); }
+  12% { transform: translate(calc(var(--dg-amp, 3px) * -1), var(--dg-amp, 3px)); }
+  28% { transform: translate(var(--dg-amp, 3px), calc(var(--dg-amp, 3px) * -1)); }
+  44% { transform: translate(calc(var(--dg-amp, 3px) * -1), 0); }
+  62% { transform: translate(var(--dg-amp, 3px), var(--dg-amp, 3px)); }
+  80% { transform: translate(calc(var(--dg-amp, 3px) * -0.5), 0); }
+}
+
+/* TRANSFORMACIÓN: el aura estalla y se queda latiendo… */
+@keyframes dg-aura {
+  0% { transform: scale(.2); opacity: 0; }
+  18% { transform: scale(1.18); opacity: 1; }
+  55% { transform: scale(.95); opacity: .9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.dg-aura { animation: dg-aura 1.2s ease-out forwards; }
+/* …la columna de energía sube del suelo… */
+@keyframes dg-pillar {
+  0% { transform: scaleY(.05) scaleX(.5); opacity: 0; }
+  25% { transform: scaleY(1.05) scaleX(1); opacity: .95; }
+  70% { transform: scaleY(.92) scaleX(.9); opacity: .8; }
+  100% { transform: scaleY(1) scaleX(.6); opacity: 0; }
+}
+.dg-pillar { animation: dg-pillar 1.5s ease-out forwards; transform-origin: bottom center; }
+/* …y las ondas de choque salen despedidas (una sola vez, no en bucle). */
+@keyframes dg-ring {
+  0% { transform: scale(.15); opacity: .95; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.dg-ring { animation: dg-ring 1s ease-out forwards; }
+
+/* CHOQUE DE RAYOS: los dos haces se abren paso hacia el centro… */
+@keyframes dg-beam-up {
+  0% { transform: translateX(-50%) scaleY(0); opacity: .3; }
+  30% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  85% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  100% { transform: translateX(-50%) scaleY(1.05); opacity: 0; }
+}
+.dg-beam-up { animation: dg-beam-up 1.7s ease-out both; transform-origin: bottom center; }
+@keyframes dg-beam-down {
+  0% { transform: translateX(-50%) scaleY(0); opacity: .3; }
+  30% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  85% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  100% { transform: translateX(-50%) scaleY(1.05); opacity: 0; }
+}
+.dg-beam-down { animation: dg-beam-down 1.7s ease-out both; transform-origin: top center; }
+/* …el punto de contacto se DESPLAZA hacia el perdedor (destino en `--dg-top`;
+   se anima `top` para dejar libre el `transform` de lo que lleva dentro)… */
+@keyframes dg-drift {
+  0%, 32% { top: 50%; }
+  100% { top: var(--dg-top, 50%); }
+}
+.dg-drift { animation: dg-drift 1.7s cubic-bezier(.4, 0, .3, 1) both; }
+/* …la esfera late mientras se empujan… */
+@keyframes dg-clash {
+  0% { transform: scale(.1); opacity: 0; }
+  20% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(.85); }
+  50% { transform: scale(1.1); }
+  65% { transform: scale(.9); }
+  82% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(.4); opacity: 0; }
+}
+.dg-clash { animation: dg-clash 1.7s ease-in-out both; }
+/* …y revienta al final, ya con el veredicto puesto. */
+@keyframes dg-boom {
+  0%, 70% { transform: scale(.1); opacity: 0; }
+  82% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.dg-boom { animation: dg-boom 1.7s ease-out both; }
+
+/* KO: impacto seco y se hace de noche alrededor del que cae. */
+@keyframes dg-impact {
+  0% { transform: scale(.1) rotate(-25deg); opacity: 0; }
+  18% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+  40% { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.1) rotate(0deg); opacity: 0; }
+}
+.dg-impact { animation: dg-impact 1.05s cubic-bezier(.2, 1.2, .4, 1) forwards; }
+@keyframes dg-ko-dark {
+  0% { opacity: 0; }
+  25% { opacity: .85; }
+  70% { opacity: .7; }
+  100% { opacity: 0; }
+}
+.dg-ko-dark { animation: dg-ko-dark 1.05s ease-out forwards; }
+
+/* Menos movimiento: se conserva la información (el fogonazo, los números) y se
+   apaga el tembleque, que es lo que marea. */
+@media (prefers-reduced-motion: reduce) {
+  .dg-drift, .dg-pillar, .dg-ring { animation-duration: .01ms; }
+}

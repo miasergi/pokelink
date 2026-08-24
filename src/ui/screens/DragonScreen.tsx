@@ -1,12 +1,15 @@
 // Pantalla del modo Dragon Ball Rogue: conmuta las vistas según la FSM del
 // `dragonStore`. Igual que CyberScreen e InazumaScreen, es la única puerta de
 // entrada del modo y no comparte estado con el roguelike Pokémon.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { startMusic, stopMusic } from '@/utils/music'
+import { useSettings } from '@/state/settingsStore'
 import { useDragon } from '@/state/dragonStore'
 import BattleView from '@/ui/dragon/BattleView'
+import DragonOnboarding, { markOnboarded, shouldShowOnboarding } from '@/ui/dragon/Onboarding'
 import {
-  EndView, IntroView, MapView, MasterView, NodeView, OutcomeView, ShopView,
-  TeamView, TitleView, WishView,
+  EndView, IntroView, MapView, MasterView, OutcomeView, RecruitSwapSheet,
+  ShopView, TeamView, TitleView, WishView,
 } from '@/ui/dragon/DragonViews'
 
 /** Aviso efímero de lo que acaba de pasar (recompensa, deseo, entrenamiento). */
@@ -29,16 +32,29 @@ function Toast() {
 }
 
 export default function DragonScreen() {
-  const { phase, initDragon } = useDragon()
+  const { phase, initDragon, showHelp, closeHelp } = useDragon()
+  const [intro, setIntro] = useState(shouldShowOnboarding)
 
   useEffect(() => { void initDragon() }, [initDragon])
+
+  // Ambiente del modo: el mapa con su tema, el combate con el suyo y el jefe
+  // con uno más agresivo. Se corta en el título y en los finales, donde el
+  // silencio dice más.
+  const music = useSettings((st) => st.music)
+  const battle = useDragon((st) => st.battle)
+  useEffect(() => {
+    if (!music) { stopMusic(); return }
+    if (phase === 'battle') startMusic(battle?.phases?.length ? 'dragon-boss' : 'dragon-battle')
+    else if (phase === 'title' || phase === 'victory' || phase === 'gameover') stopMusic()
+    else startMusic('dragon-map')
+    return () => stopMusic()
+  }, [phase, music, battle?.phases])
 
   const view = (() => {
     switch (phase) {
       case 'title': return <TitleView />
       case 'intro': return <IntroView />
-      case 'map': return <MapView />
-      case 'node': return <NodeView />
+      case 'map': case 'node': return <MapView />
       case 'battle': return <BattleView />
       case 'outcome': return <OutcomeView />
       case 'team': return <TeamView />
@@ -60,7 +76,11 @@ export default function DragonScreen() {
       }}
     >
       {view}
+      <RecruitSwapSheet />
       <Toast />
+      {(intro || showHelp) && (
+        <DragonOnboarding onClose={() => { markOnboarded(); setIntro(false); closeHelp() }} />
+      )}
     </div>
   )
 }

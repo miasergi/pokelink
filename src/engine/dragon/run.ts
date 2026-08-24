@@ -114,7 +114,9 @@ function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: nu
       return {
         id, kind, layer, col, next, level, enemies,
         label: n > 1 ? 'Emboscada' : 'Combate',
-        desc: n > 1 ? 'Más de uno te ha visto llegar.' : 'Alguien te cierra el paso.',
+        desc: n > 1
+          ? 'Más de uno te ha visto llegar: caerán uno tras otro, y el segundo entra furioso.'
+          : 'Alguien te cierra el paso.',
       }
     }
     case 'elite': {
@@ -487,13 +489,28 @@ export function recruitCandidate(save: DragonSave, node: MapNode, rng: RNG): str
   return pick
 }
 
+/**
+ * Ficha a alguien. Si el equipo está lleno NO lo mete: devuelve el luchador ya
+ * construido para que la UI pregunte a quién sustituye (ver `swapIn`).
+ *
+ * Antes esto era un callejón sin salida: el mapa te anunciaba a Vegeta, entrabas
+ * y te decía que estaba completo… gastando tu única elección de la capa.
+ */
 export function recruit(save: DragonSave, baseId: string): Fighter | null {
   if (save.team.some((f) => f.baseId === baseId)) return null
   // Entra al nivel medio del equipo: un fichaje a nivel 1 sería papel mojado.
   const f = createFighter(baseId, Math.max(START_LEVEL, avgLevel(save)))
-  if (save.team.length >= TEAM_MAX) return f // el store decidirá a quién sustituye
+  if (save.team.length >= TEAM_MAX) return f
   save.team.push(f)
   return f
+}
+
+/** Mete al nuevo en el sitio de otro. El que sale se queda por el camino. */
+export function swapIn(save: DragonSave, entra: Fighter, saleUid: string): boolean {
+  const i = save.team.findIndex((f) => f.uid === saleUid)
+  if (i < 0) return false
+  save.team[i] = entra
+  return true
 }
 
 /** Lo que un maestro puede hacer por tu equipo, ya resuelto a opciones. */

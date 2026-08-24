@@ -3,12 +3,14 @@
 // una retransmisión y no como un volcado. Tú solo apareces en los momentos
 // clave: la jugada de cada asalto, el choque de rayos y el relevo.
 import { useEffect, useRef } from 'react'
+import Icon from '@/ui/components/Icon'
 import { getTechnique } from '@/data/dragon/techniques'
 import { getSaga } from '@/data/dragon/sagas'
 import { ally, foe, oddsStars } from '@/engine/dragon/battle'
 import { useDragon } from '@/state/dragonStore'
 import type { Battle, BattleEvent, DecisionOption } from '@/engine/dragon/types'
 import { CombatantPanel, hpColor, MiniFighter, sceneBg } from './Bits'
+import { DragonFXLayer, useDragonFX } from './DragonFX'
 
 /** Traduce un evento del motor a la línea que lee el jugador. */
 function eventText(b: Battle, e: BattleEvent): string | null {
@@ -47,14 +49,19 @@ function eventText(b: Battle, e: BattleEvent): string | null {
 
 const DESTACADO = /Victoria|Derrota|se transforma|choque|estalla de rabia|no había enseñado|vuelve a ponerse/
 
+/** Cómo pinta una jugada, de un vistazo. Mismo lenguaje que el mapa. */
 function Stars({ n }: { n: 1 | 2 | 3 }) {
+  const color = n === 3 ? '#4ade80' : n === 2 ? '#fbbf24' : '#f87171'
   return (
-    <span
-      className="tracking-tighter text-[11px]"
-      style={{ color: n === 3 ? '#4ade80' : n === 2 ? '#fbbf24' : '#f87171' }}
-    >
-      {'★'.repeat(n)}
-      <span className="opacity-25">{'★'.repeat(3 - n)}</span>
+    <span className="inline-flex items-center shrink-0">
+      {[1, 2, 3].map((i) => (
+        <Icon
+          key={i}
+          name="star"
+          className="w-2.5 h-2.5"
+          style={{ color, opacity: i <= n ? 1 : 0.22 }}
+        />
+      ))}
     </span>
   )
 }
@@ -102,6 +109,11 @@ export default function BattleView() {
     el?.scrollTo?.({ top: el.scrollHeight, behavior: 'smooth' })
   }, [revealed])
 
+  // EL ESPECTÁCULO. Se engancha al último evento revelado, así que la imagen va
+  // clavada al texto que se acaba de leer. Va aquí arriba porque es un hook: no
+  // puede quedar detrás del `return null` de más abajo.
+  const fx = useDragonFX(battle, revealed)
+
   if (!save || !battle) return null
   const me = ally(battle)
   const enemy = foe(battle)
@@ -118,119 +130,128 @@ export default function BattleView() {
   const rivalTech = d?.rivalTech ? getTechnique(d.rivalTech) : undefined
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 relative" style={{ background: sceneBg(battle.scene) }}>
-      <div className="px-3 py-2 flex items-center gap-1.5 border-b border-slate-800/80 shrink-0">
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-wide text-slate-400 truncate">{saga.name}</div>
-          <div className="font-bold text-sm truncate">{battle.title}</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setSpeed(speed > 260 ? 150 : 420)}
-          className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300"
-        >
-          {speed > 260 ? '×1' : '×2'}
-        </button>
-        <button
-          type="button"
-          onClick={togglePlaying}
-          className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300"
-        >
-          {playing ? 'Pausa' : 'Seguir'}
-        </button>
-        <button
-          type="button"
-          onClick={toggleAuto}
-          className={`text-[11px] px-2 py-1 rounded-lg ${battle.auto ? 'bg-amber-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-300'}`}
-        >
-          Auto
-        </button>
-      </div>
-
-      {/* Rival */}
-      <div className="px-3 pt-3">
-        <CombatantPanel c={enemy} saga={save.saga} enemy />
-        {(bancoRival.length > 0 || (battle.phases?.length ?? 0) > 0) && (
-          <div className="flex items-center justify-end gap-1.5 mt-1">
-            {battle.phases && battle.phases.length > 0 && (
-              <span className="text-[10px] text-slate-500">
-                Fase {battle.bossPhase + 1} de {battle.phases.length + 1}
-              </span>
-            )}
-            {bancoRival.map((c) => <MiniFighter key={c.uid} c={c} />)}
+    <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden" style={{ background: sceneBg(battle.scene) }}>
+      {/* Todo el combate va dentro de este envoltorio para que la SACUDIDA lo
+          mueva entero (los efectos, que son la capa de fuera, se quedan
+          quietos: si temblaran también, el golpe no se notaría). */}
+      <div className="flex flex-col flex-1 min-h-0" style={fx.shakeStyle}>
+        <div className="px-3 py-2 flex items-center gap-1.5 border-b border-slate-800/80 shrink-0">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 truncate">{saga.name}</div>
+            <div className="font-bold text-sm truncate">{battle.title}</div>
           </div>
-        )}
-      </div>
-
-      {/* Retransmisión */}
-      <div ref={logRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 my-1 space-y-1 text-[12.5px] leading-snug">
-        {lines.slice(-40).map((l, i) => (
-          <div
-            key={`${i}-${l}`}
-            className={
-              DESTACADO.test(l) ? 'text-amber-300 font-semibold'
-                : /encaja|ya no puede/.test(l) ? 'text-slate-400'
-                  : 'text-slate-200'
-            }
-          >
-            {l}
-          </div>
-        ))}
-      </div>
-
-      {/* Tú */}
-      <div className="px-3 pb-2">
-        <CombatantPanel c={me} saga={save.saga} />
-        {banco.length > 0 && (
-          <div className="flex gap-1.5 mt-2">
-            {banco.map((c) => (
-              <div key={c.uid} className="flex-1 rounded-lg bg-slate-800/60 px-2 py-1">
-                <div className="text-[10px] font-semibold truncate">{c.name}</div>
-                <div className="w-full rounded-full bg-slate-900 overflow-hidden" style={{ height: 4 }}>
-                  <div
-                    className="h-full transition-all duration-300"
-                    style={{ width: `${(c.hp / c.hpMax) * 100}%`, background: hpColor(c.hp / c.hpMax) }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Pie: o el final, o el momento clave, o el relato corriendo */}
-      <div className="px-3 pb-3 shrink-0">
-        {battle.over && !contando ? (
           <button
             type="button"
-            onClick={finishBattle}
-            className="w-full rounded-xl py-3 font-bold bg-amber-500 text-slate-900 active:bg-amber-400"
+            onClick={() => setSpeed(speed > 260 ? 150 : 420)}
+            className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300"
           >
-            Continuar
+            {speed > 260 ? '×1' : '×2'}
           </button>
-        ) : d && !contando ? (
-          <div className="space-y-1.5">
-            <div className="flex items-baseline gap-2 px-0.5">
-              <span className="font-black text-[13px] text-amber-300 shrink-0">{d.headline}</span>
-              {d.desc && <span className="text-[10.5px] text-slate-400 flex-1 leading-tight">{d.desc}</span>}
+          <button
+            type="button"
+            onClick={togglePlaying}
+            className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300"
+          >
+            {playing ? 'Pausa' : 'Seguir'}
+          </button>
+          <button
+            type="button"
+            onClick={toggleAuto}
+            className={`text-[11px] px-2 py-1 rounded-lg ${battle.auto ? 'bg-amber-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-300'}`}
+          >
+            Auto
+          </button>
+        </div>
+
+        {/* Rival */}
+        <div className="px-3 pt-3">
+          <CombatantPanel c={enemy} saga={save.saga} enemy />
+          {(bancoRival.length > 0 || (battle.phases?.length ?? 0) > 0) && (
+            <div className="flex items-center justify-end gap-1.5 mt-1">
+              {battle.phases && battle.phases.length > 0 && (
+                <span className="text-[10px] text-slate-500">
+                  Fase {battle.bossPhase + 1} de {battle.phases.length + 1}
+                </span>
+              )}
+              {bancoRival.map((c) => <MiniFighter key={c.uid} c={c} />)}
             </div>
-            {rivalTech && (
-              <div className="text-[11px] text-sky-300 px-0.5">
-                El rival viene con {rivalTech.name}.
-              </div>
-            )}
-            <div className="max-h-56 overflow-y-auto space-y-1.5">
-              {d.options.map((o) => (
-                <OptionButton key={o.id} o={o} ki={me.ki} onPick={() => decide(o.id)} />
+          )}
+        </div>
+
+        {/* Retransmisión */}
+        <div ref={logRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 my-1 space-y-1 text-[12.5px] leading-snug">
+          {lines.slice(-40).map((l, i) => (
+            <div
+              key={`${i}-${l}`}
+              className={
+                DESTACADO.test(l) ? 'text-amber-300 font-semibold'
+                  : /encaja|ya no puede/.test(l) ? 'text-slate-400'
+                    : 'text-slate-200'
+              }
+            >
+              {l}
+            </div>
+          ))}
+        </div>
+
+        {/* Tú */}
+        <div className="px-3 pb-2">
+          <CombatantPanel c={me} saga={save.saga} />
+          {banco.length > 0 && (
+            <div className="flex gap-1.5 mt-2">
+              {banco.map((c) => (
+                <div key={c.uid} className="flex-1 rounded-lg bg-slate-800/60 px-2 py-1">
+                  <div className="text-[10px] font-semibold truncate">{c.name}</div>
+                  <div className="w-full rounded-full bg-slate-900 overflow-hidden" style={{ height: 4 }}>
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{ width: `${(c.hp / c.hpMax) * 100}%`, background: hpColor(c.hp / c.hpMax) }}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="text-center text-[12px] text-slate-500 py-3">
-            {battle.auto ? 'Piloto automático…' : playing ? '…' : 'En pausa'}
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Pie: o el final, o el momento clave, o el relato corriendo */}
+        <div className="px-3 pb-3 shrink-0">
+          {battle.over && !contando ? (
+            <button
+              type="button"
+              onClick={finishBattle}
+              className="w-full rounded-xl py-3 font-bold bg-amber-500 text-slate-900 active:bg-amber-400"
+            >
+              Continuar
+            </button>
+          ) : d && !contando ? (
+            <div className="space-y-1.5">
+              <div className="flex items-baseline gap-2 px-0.5">
+                <span className="font-black text-[13px] text-amber-300 shrink-0">{d.headline}</span>
+                {d.desc && <span className="text-[10.5px] text-slate-400 flex-1 leading-tight">{d.desc}</span>}
+              </div>
+              {rivalTech && (
+                <div className="text-[11px] text-sky-300 px-0.5">
+                  El rival viene con {rivalTech.name}.
+                </div>
+              )}
+              <div className="max-h-56 overflow-y-auto space-y-1.5">
+                {d.options.map((o) => (
+                  <OptionButton key={o.id} o={o} ki={me.ki} onPick={() => decide(o.id)} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-[12px] text-slate-500 py-3">
+              {battle.auto ? 'Piloto automático…' : playing ? '…' : 'En pausa'}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Los efectos, por encima de todo y SIN capturar toques: mientras una
+          explosión está en pantalla el combate sigue y se puede decidir. */}
+      <DragonFXLayer fx={fx} />
     </div>
   )
 }

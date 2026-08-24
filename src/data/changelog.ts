@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.64',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: el mapa se entiende y el combate se ve',
+    changes: [
+      'EL MAPA IBA AL REVÉS y ya no: se empieza ARRIBA y se baja hacia el jefe, como el resto de mapas del juego. Y se abre por donde vas, no por el principio ni por el final.',
+      'AHORA SE ENTIENDE QUÉ ES CADA CASILLA: icono de verdad, NOMBRE escrito debajo, nivel del rival, la cara del enemigo que te espera y estrellas de aviso cuando te saca ventaja. Se acabaron los símbolos que no decían nada.',
+      'PREVIA DE CASILLA sobre el mapa (ya no te saca a otra pantalla): a quién te enfrentas, cuántas formas tiene el jefe, quién se ofrece a unirse, qué enseña el maestro y QUÉ TE LLEVAS exactamente.',
+      'EFECTOS DE COMBATE: la transformación estalla en aura, el choque de rayos se ve chocar de verdad, los KO sacuden la pantalla y el daño sale flotando sobre quien lo encaja (los críticos, más grandes).',
+      'CÓMO SE JUEGA: explicación al entrar por primera vez —la economía de ki, qué decides tú y una leyenda con todas las casillas—, y un botón para releerla cuando quieras.',
+      'RECLUTAR CON EL EQUIPO LLENO ya no es un callejón sin salida: eliges a quién sustituye o le dices que se quede atrás. Antes se gastaba la casilla y no pasaba nada.',
+      'MÚSICA propia del modo: un tema para el mapa, otro para los combates y otro más agresivo para los jefes.',
+    ],
+  },
+  {
     version: 'v6.63',
     date: '2026-08-24',
     title: 'Dragon Ball Rogue, ahora sí: caminos, retransmisión y personajes con carácter',

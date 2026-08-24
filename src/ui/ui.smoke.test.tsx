@@ -437,7 +437,10 @@ describe('render de pantallas (smoke)', () => {
     useDragon.setState({ save, hasSave: true, phase: 'map' })
     const map = mount(DragonScreen)
     expect(map).toContain('Los Saiyans')
-    expect(map).toContain('Bolas')
+    // El tablero dice QUÉ ES cada casilla con todas sus letras: sin eso no se
+    // entiende el mapa, que fue justo la queja de la primera versión.
+    expect(map).toContain('Tramo 1')
+    expect(map).toMatch(/Combate|Aliado|Entreno|Bola|Maestro|Tienda|Descanso/)
 
     // El equipo lista a los luchadores por su nombre.
     useDragon.setState({ phase: 'team' })
@@ -445,10 +448,13 @@ describe('render de pantallas (smoke)', () => {
     expect(team).toContain('Son Goku')
     expect(team).toContain('Piccolo')
 
-    // Un nodo de combate avisa del nivel del rival antes de entrar.
+    // Tocar una casilla abre su previa SOBRE el mapa (modal, no otra pantalla)
+    // y explica qué te llevas antes de entrar.
     const nodo = save.map.find((n) => n.kind === 'combate' || n.kind === 'elite')!
     useDragon.setState({ node: nodo, phase: 'node' })
-    expect(() => mount(DragonScreen)).not.toThrow()
+    const previa = mount(DragonScreen)
+    expect(previa).toContain('tu equipo')
+    expect(previa).toMatch(/niveles/)
 
     // Y el combate: se monta, narra y ofrece la jugada del asalto. Ojo, la
     // retransmisión se revela poco a poco (`revealed`), así que las opciones

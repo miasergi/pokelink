@@ -20,18 +20,20 @@ import {
   advanceMap, applyBattleResult, applyInterlude, applyRest, applyTraining,
   BALLS_FOR_WISH, BOSS_LAYER, canRecruit, createSave, grantWish, isTeamWiped,
   applyMasterOffer, availableNodes, layerNodes, masterOffers, recruit, recruitCandidate,
-  startNodeBattle, TEAM_MAX,
+  startNodeBattle, swapIn,
   useItemOutOfBattle, type BattleOutcome, type DragonSave, type MapNode, type MasterOffer,
 } from '@/engine/dragon/run'
 import { fighterMaxHp } from '@/engine/dragon/roster'
-import type { Battle } from '@/engine/dragon/types'
+import type { Battle, Fighter } from '@/engine/dragon/types'
 
 export type DragonPhase =
   | 'title' | 'intro' | 'map' | 'node' | 'battle' | 'outcome'
   | 'team' | 'shop' | 'master' | 'wish' | 'victory' | 'gameover'
 
 /** Fases desde las que es seguro guardar (o sea: fuera de un combate). */
-const SAFE_PHASES: DragonPhase[] = ['map', 'team', 'shop', 'master', 'wish', 'title', 'intro', 'victory', 'gameover']
+// 'node' entra aquí: ahora la previa es un modal SOBRE el mapa, así que estar
+// mirándola es estar en el mapa y se puede guardar sin problema.
+const SAFE_PHASES: DragonPhase[] = ['map', 'node', 'team', 'shop', 'master', 'wish', 'title', 'intro', 'victory', 'gameover']
 
 /** RNG viva de la partida (se rehidrata del save y se vuelca al persistir). */
 let rng: RNG | null = null
@@ -138,6 +140,13 @@ interface DragonState {
   outcome: BattleOutcome | null
   /** Género de la tienda del nodo actual. */
   stock: Item[]
+  /**
+   * Fichaje esperando sitio: el equipo está lleno y hay que decidir a quién
+   * sustituye (o si se rechaza). Sin esto el nodo se gastaba sin dar nada.
+   */
+  pendingRecruit: Fighter | null
+  /** Panel de reglas abierto a mano desde el título. */
+  showHelp: boolean
   message: string | null
 
   initDragon: () => Promise<void>
@@ -149,6 +158,8 @@ interface DragonState {
   openTeam: () => void
   closeTeam: () => void
   clearMessage: () => void
+  openHelp: () => void
+  closeHelp: () => void
   /** A dónde vuelve la pantalla de equipo (mapa o tienda). */
   teamReturn: DragonPhase | null
 
@@ -173,6 +184,8 @@ interface DragonState {
   /** Lo que el maestro de la casilla puede enseñar a tu equipo. */
   offers: () => MasterOffer[]
   train: (offer: MasterOffer) => void
+  /** Resuelve el fichaje pendiente: `null` = rechazarlo. */
+  resolveRecruit: (saleUid: string | null) => void
   equip: (uid: string, itemId?: string) => void
   useField: (itemId: string, uid: string) => void
   wish: (wishId: string) => void
@@ -188,6 +201,8 @@ export const useDragon = create<DragonState>((set, get) => ({
   stock: [],
   message: null,
   teamReturn: null,
+  pendingRecruit: null,
+  showHelp: false,
   revealed: 0,
   playing: true,
   speed: 420,
@@ -202,6 +217,7 @@ export const useDragon = create<DragonState>((set, get) => ({
     set({
       save, hasSave: !!save, phase: entry ?? 'title',
       battle: null, node: null, outcome: null, stock: [], message: null,
+      pendingRecruit: null,
     })
   },
 
@@ -260,6 +276,8 @@ export const useDragon = create<DragonState>((set, get) => ({
   },
 
   clearMessage: () => set({ message: null }),
+  openHelp: () => set({ showHelp: true }),
+  closeHelp: () => set({ showHelp: false }),
 
   // ------------------------------------------------------------- mapa ---
 
@@ -282,6 +300,9 @@ export const useDragon = create<DragonState>((set, get) => ({
     const stock = (node.stock ?? [])
       .map((id) => getItem(id))
       .filter((i): i is Item => !!i)
+    // Abrir la previa consume RNG (candidato a aliado, género de tienda), así
+    // que hay que guardar o al volver a entrar saldría otra cosa distinta.
+    void persist(save, 'node')
     set({ node, stock, phase: 'node' })
   },
 
@@ -321,9 +342,14 @@ export const useDragon = create<DragonState>((set, get) => ({
       case 'reclutar': {
         const cand = node.recruit
         if (!cand) { message = 'No queda nadie por aquí.' }
-        else if (!canRecruit(save)) { message = `El equipo está completo (${TEAM_MAX}).` }
         else {
           const f = recruit(save, cand)
+          if (f && !canRecruit(save) && !save.team.includes(f)) {
+            // Equipo lleno: se pregunta a quién sustituye en vez de perder el
+            // nodo. La casilla NO se cierra hasta que lo decidas.
+            set({ pendingRecruit: f })
+            return
+          }
           message = f ? `¡${f.name} se une al equipo!` : 'Ya está contigo.'
         }
         break
@@ -434,6 +460,30 @@ export const useDragon = create<DragonState>((set, get) => ({
     void persist(save, 'map')
     set({
       save: { ...save }, node: null,
+      phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map',
+    })
+  },
+
+  resolveRecruit: (saleUid) => {
+    const { save, node, pendingRecruit } = get()
+    if (!save || !pendingRecruit) return
+    let message: string | null = null
+    if (saleUid) {
+      const sale = save.team.find((f) => f.uid === saleUid)
+      if (swapIn(save, pendingRecruit, saleUid)) {
+        play('select')
+        message = `${pendingRecruit.name} entra en el sitio de ${sale?.name ?? 'alguien'}.`
+      }
+    } else {
+      message = `${pendingRecruit.name} se queda atrás.`
+    }
+    if (node) { node.done = true; save.currentNode = node.id }
+    const r = getRng(save)
+    applyInterlude(save)
+    advanceMap(save, r)
+    void persist(save, 'map')
+    set({
+      save: { ...save }, node: null, pendingRecruit: null, message,
       phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map',
     })
   },

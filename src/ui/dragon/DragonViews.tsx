@@ -12,13 +12,15 @@ import {
 } from '@/engine/dragon/run'
 import { fighterMaxHp, itemLevel } from '@/engine/dragon/roster'
 import { afterOutcome, dragonSummary, fieldItems, useDragon } from '@/state/dragonStore'
-import { Avatar, FighterRow, Header, sceneBg, Scouter } from './Bits'
-import MapBoard, { NODE_STYLE } from './MapBoard'
+import { Avatar, FighterRow, Header, sceneBg, Scouter, Zeni } from './Bits'
+import MapBoard from './MapBoard'
+import NodePreview from './NodePreview'
+import Icon from '@/ui/components/Icon'
 
 // ------------------------------------------------------------- título ---
 
 export function TitleView() {
-  const { hasSave, save, newRun, continueRun, abandonRun, exitDragon } = useDragon()
+  const { hasSave, save, newRun, continueRun, abandonRun, exitDragon, openHelp } = useDragon()
   const [eligiendo, setEligiendo] = useState(false)
 
   if (eligiendo) {
@@ -62,10 +64,13 @@ export function TitleView() {
       <Header title="Dragon Ball Rogue" sub="Cuatro sagas, una sola vida" onBack={exitDragon} />
       <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-center gap-3">
         <div className="text-center">
-          <div className="text-3xl font-black tracking-tight" style={{ color: '#f97316' }}>
-            DRAGON BALL
-          </div>
-          <div className="text-sm font-bold tracking-[0.3em] text-slate-400">ROGUE</div>
+          <img
+            src={`${import.meta.env.BASE_URL}dragon/logo.svg`}
+            alt="Dragon Ball Rogue"
+            className="w-full max-w-[280px] mx-auto select-none"
+            draggable={false}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+          />
           <p className="text-[12.5px] text-slate-400 mt-3 leading-snug max-w-xs mx-auto">
             Administra tu ki, transfórmate cuando el cuerpo aguante y pelea al
             borde de la muerte: solo así despierta el poder que te falta.
@@ -81,6 +86,13 @@ export function TitleView() {
             Continuar · {dragonSummary(save)}
           </button>
         )}
+        <button
+          type="button"
+          onClick={openHelp}
+          className="w-full rounded-xl py-2.5 font-semibold bg-slate-800 active:bg-slate-700 text-slate-300 inline-flex items-center justify-center gap-1.5"
+        >
+          <Icon name="book" className="w-4 h-4" />Cómo se juega
+        </button>
         <button
           type="button"
           onClick={() => setEligiendo(true)}
@@ -138,7 +150,7 @@ export function IntroView() {
 // --------------------------------------------------------------- mapa ---
 
 export function MapView() {
-  const { save, pickNode, openTeam, exitDragon } = useDragon()
+  const { save, node, pickNode, leaveNode, confirmNode, openTeam, exitDragon } = useDragon()
   if (!save) return null
   const s = getSaga(save.saga)
   const abiertas = availableNodes(save)
@@ -152,160 +164,97 @@ export function MapView() {
         onBack={exitDragon}
         right={
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] text-amber-300 tabular-nums">{save.zeni} ẑ</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 tabular-nums">
+              <Icon name="coin" className="w-3 h-3" />{save.zeni}
+            </span>
             <button
               type="button"
               onClick={openTeam}
-              className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 active:bg-slate-700"
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-800 active:bg-slate-700"
             >
-              Equipo
+              <Icon name="people" className="w-3.5 h-3.5" />Equipo
             </button>
           </div>
         }
       />
 
-      <div className="px-3 py-2 flex items-center gap-2 text-[11px] text-slate-400 border-b border-slate-800/60">
-        <span>Nivel medio {avgLevel(save)}</span>
-        <span className="text-slate-600">·</span>
-        <span className={save.balls ? 'text-amber-300' : ''}>
-          Bolas {save.balls}/{BALLS_FOR_WISH}
+      <div className="px-3 py-2 flex items-center gap-2.5 text-[11px] text-slate-400 border-b border-slate-800/60">
+        <span className="inline-flex items-center gap-1">
+          <Icon name="chartUp" className="w-3 h-3 text-purple-300" />Nivel {avgLevel(save)}
         </span>
-        <span className="text-slate-600">·</span>
-        <span>{save.team.filter((f) => f.hp > 0).length}/{save.team.length} en pie</span>
+        <span className={`inline-flex items-center gap-1 ${save.balls ? 'text-amber-300' : ''}`}>
+          <Icon name="gem" className="w-3 h-3" />{save.balls}/{BALLS_FOR_WISH}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Icon name="people" className="w-3 h-3" />
+          {save.team.filter((f) => f.hp > 0).length}/{save.team.length} en pie
+        </span>
       </div>
 
-      {/* El tablero se lee de abajo (donde estás) hacia arriba (el jefe). */}
-      <div className="flex-1 overflow-y-auto px-2 py-3">
-        <MapBoard save={save} alcanzables={abiertas} onPick={pickNode} />
-      </div>
+      {/* El tablero: la salida arriba y el jefe abajo, como el resto del juego */}
+      <MapBoard save={save} alcanzables={abiertas} onPick={(n) => pickNode(n.id)} />
 
-      <div className="px-3 pb-3 shrink-0 flex flex-wrap gap-1.5">
-        {abiertas.map((n) => {
-          const st = NODE_STYLE[n.kind]
-          return (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => pickNode(n.id)}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-900/80 px-2 py-1 active:bg-slate-800"
-              style={{ boxShadow: `inset 0 0 0 1px ${st.color}66` }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.color }} />
-              <span className="text-[11.5px] font-semibold">{n.label}</span>
-              {n.level != null && <span className="text-[10px] text-slate-400 tabular-nums">Nv.{n.level}</span>}
-            </button>
-          )
-        })}
-      </div>
+      {node && (
+        <NodePreview node={node} save={save} onEnter={confirmNode} onClose={leaveNode} />
+      )}
     </div>
   )
 }
 
-export function NodeView() {
-  const { save, node, confirmNode, leaveNode } = useDragon()
-  if (!save || !node) return null
-  const st = NODE_STYLE[node.kind]
-  const pelea = node.kind === 'combate' || node.kind === 'elite' || node.kind === 'jefe'
-  const media = avgLevel(save)
-  const diff = pelea && node.level != null ? node.level - media : 0
-
+/**
+ * Equipo lleno y alguien queriendo entrar. Se elige a quién sustituye o se le
+ * dice que no: lo que no puede pasar es que la casilla se gaste sin dar nada,
+ * que es lo que ocurría antes.
+ */
+export function RecruitSwapSheet() {
+  const { save, pendingRecruit, resolveRecruit } = useDragon()
+  if (!save || !pendingRecruit) return null
+  const nuevo = pendingRecruit
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <Header title={node.label} onBack={leaveNode} />
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        <div className="rounded-xl p-3" style={{ background: '#0f172a', boxShadow: `inset 0 0 0 1.5px ${st.color}55` }}>
-          <p className="text-[13px] text-slate-300 leading-snug">{node.desc}</p>
-        </div>
-
-        {pelea && (
-          <>
-            <div className="flex items-center gap-2 flex-wrap">
-              {(node.enemies ?? []).map((id, i) => {
-                const d = getFighter(id)
-                if (!d) return null
-                return (
-                  <div key={`${id}-${i}`} className="flex items-center gap-2 rounded-xl bg-slate-800/70 p-2 pr-3">
-                    <Avatar name={d.name} color={d.color} size={38} />
-                    <div>
-                      <div className="text-[13px] font-bold">{d.name}</div>
-                      <div className="text-[11px] text-slate-400">
-                        Nv.{node.level} · {d.style}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+    <div className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm grid place-items-center p-3">
+      <div className="w-full max-w-sm max-h-[88svh] overflow-y-auto rounded-3xl border border-emerald-600/50 bg-slate-900 p-4 animate-pop-in">
+        <div className="flex items-center gap-3">
+          <Avatar name={nuevo.name} color={nuevo.color} size={52} baseId={nuevo.baseId} />
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-widest text-emerald-300">Quiere unirse</div>
+            <div className="font-extrabold text-base leading-tight">{nuevo.name}</div>
+            <div className="text-[11px] text-slate-400">
+              Nv.{nuevo.level} · {nuevo.style} ·{' '}
+              {nuevo.techniques.map((t) => getTechnique(t)?.name).filter(Boolean).join(', ')}
             </div>
-            {node.phases?.length ? (
-              <div className="text-[12px] text-red-300">
-                Aviso: no cae a la primera. Tiene {node.phases.length + 1} formas.
-              </div>
-            ) : null}
-            <div
-              className={`text-[12px] font-semibold ${
-                diff >= 4 ? 'text-red-400' : diff >= 1 ? 'text-orange-300' : 'text-green-300'
-              }`}
-            >
-              {diff >= 4
-                ? `Te saca ${diff} niveles. Va a doler.`
-                : diff >= 1
-                  ? `Un poco por encima de ti (+${diff}).`
-                  : `Vas ${Math.abs(diff)} niveles por encima.`}
-            </div>
-            <div className="text-[11.5px] text-slate-400">
-              Recompensa: +{node.kind === 'jefe' ? 6 : node.kind === 'elite' ? 6 : 4} niveles a todo el equipo y dinero.
-            </div>
-          </>
-        )}
-
-        {node.kind === 'maestro' && node.master && (() => {
-          const m = getMaster(node.master)!
-          return (
-            <div className="rounded-xl bg-slate-800/70 p-3">
-              <div className="font-bold text-sm text-cyan-300">{m.name}</div>
-              <div className="text-[11.5px] text-slate-400 mt-1 leading-snug">{m.desc}</div>
-              <div className="text-[11px] text-slate-500 mt-1.5">
-                Puede enseñar: {m.teaches.map((t) => getTechnique(t)?.name).filter(Boolean).join(', ')}
-              </div>
-            </div>
-          )
-        })()}
-
-        {node.kind === 'entreno' && (
-          <div className="text-[12px] text-slate-400">
-            +{node.levels} niveles al miembro más rezagado, sin arriesgar nada.
           </div>
-        )}
-        {node.kind === 'reclutar' && node.recruit && (() => {
-          const d = getFighter(node.recruit)!
-          return (
-            <div className="flex items-center gap-3 rounded-xl bg-slate-800/70 p-3">
-              <Avatar name={d.name} color={d.color} size={46} />
-              <div className="min-w-0">
-                <div className="font-bold text-sm">{d.name}</div>
-                <div className="text-[11px] text-slate-400 capitalize">{d.style} · {d.lineage}</div>
-                <div className="text-[11px] text-sky-300 truncate">
-                  {d.techniques.map((t) => getTechnique(t)?.name).filter(Boolean).join(' · ')}
+        </div>
+        <p className="text-[12px] text-slate-400 mt-3">
+          El equipo está completo ({TEAM_MAX}). Elige a quién sustituye — el que
+          salga se queda por el camino, con su nivel y lo que llevara encima.
+        </p>
+        <div className="space-y-1.5 mt-3">
+          {save.team.map((f) => (
+            <button
+              key={f.uid}
+              type="button"
+              onClick={() => resolveRecruit(f.uid)}
+              className="w-full flex items-center gap-2.5 rounded-xl bg-slate-800/80 active:bg-slate-700 p-2 text-left"
+            >
+              <Avatar name={f.name} color={f.color} size={36} baseId={f.baseId} />
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-bold truncate">{f.name}</div>
+                <div className="text-[10.5px] text-slate-400">
+                  Nv.{f.level}
+                  {f.item && ` · ${getItem(f.item)?.name}`}
+                  {!!f.forms.length && ` · ${f.forms.length} transformación(es)`}
                 </div>
               </div>
-            </div>
-          )
-        })()}
-      </div>
-      <div className="p-3 shrink-0 flex gap-2">
+              <span className="text-[10px] text-rose-300 shrink-0">sale</span>
+            </button>
+          ))}
+        </div>
         <button
           type="button"
-          onClick={leaveNode}
-          className="rounded-xl px-4 py-3 font-semibold bg-slate-800 active:bg-slate-700 text-slate-300"
+          onClick={() => resolveRecruit(null)}
+          className="w-full mt-2 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-[12.5px] font-bold text-slate-300 active:scale-95 transition"
         >
-          Volver
-        </button>
-        <button
-          type="button"
-          onClick={confirmNode}
-          className="flex-1 rounded-xl py-3 font-bold bg-amber-500 text-slate-900 active:bg-amber-400"
-        >
-          {pelea ? '¡Adelante!' : node.kind === 'tienda' ? 'Entrar' : node.kind === 'maestro' ? 'Escuchar' : 'Continuar'}
+          Que se quede atrás
         </button>
       </div>
     </div>
@@ -331,7 +280,7 @@ export function OutcomeView() {
           <>
             <div className="rounded-xl bg-slate-800/60 p-3 space-y-1 text-[13px]">
               <div className="flex justify-between"><span className="text-slate-400">Niveles</span><span className="font-bold">+{outcome.levels} a todo el equipo</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Dinero</span><span className="font-bold text-amber-300">+{outcome.zeni} ẑ</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Dinero</span><span className="font-bold text-amber-300"><Zeni n={outcome.zeni} /></span></div>
             </div>
 
             {outcome.awakened.map((t) => (
@@ -398,7 +347,7 @@ export function TeamView() {
     <div className="flex flex-col flex-1 min-h-0">
       <Header
         title="Tu equipo"
-        sub={`${save.zeni} ẑ · nivel medio ${avgLevel(save)}`}
+        sub={`${save.zeni} zeni · nivel medio ${avgLevel(save)}`}
         onBack={closeTeam}
       />
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -520,7 +469,7 @@ export function ShopView() {
     <div className="flex flex-col flex-1 min-h-0">
       <Header
         title="Tienda"
-        sub={`${save.zeni} ẑ`}
+        sub={`${save.zeni} zeni`}
         // Salir RESUELVE el nodo: no se puede entrar y salir para farmear.
         onBack={leaveShop}
       />
@@ -535,7 +484,7 @@ export function ShopView() {
           >
             <div className="flex items-center gap-2">
               <span className="font-bold text-[13px] flex-1 truncate">{it.name}</span>
-              <span className="text-[12px] text-amber-300 tabular-nums">{it.price} ẑ</span>
+              <Zeni n={it.price} className="text-[12px] text-amber-300" />
             </div>
             <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{it.desc}</div>
           </button>

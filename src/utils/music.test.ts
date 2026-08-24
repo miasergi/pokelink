@@ -22,7 +22,9 @@ describe('secuencias de música', () => {
       expect(steps, `${name}.steps`).toBeGreaterThan(0)
 
       for (const key of ['bass', 'chords', 'lead'] as const) {
-        const arr = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\],\\n`).exec(body)?.[1]
+        // `\r?\n`: en Windows el fichero llega del disco con CRLF y con `\n` a
+        // secas el regex no encontraba ni una sola nota.
+        const arr = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\],\\r?\\n`).exec(body)?.[1]
         expect(arr, `${name}.${key} no encontrado`).toBeTruthy()
         // Cuenta elementos de primer nivel (los acordes son arrays anidados).
         let depth = 0, count = 1

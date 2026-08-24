@@ -13,6 +13,7 @@ let current: Track | null = null
 let step = 0
 
 export type Track = 'map' | 'battle' | 'boss' | 'story' | 'league' | 'inazuma-map' | 'inazuma-match'
+  | 'dragon-map' | 'dragon-battle' | 'dragon-boss'
 
 // --- Reproducción de ARCHIVOS (si existen) con respaldo sintetizado ---
 // Coloca pistas lo-fi LIBRES (CC0) en public/music/ con estos nombres y sonarán
@@ -25,6 +26,9 @@ const FILES: Partial<Record<Track, string>> = {
   // Inazuma Rogue: si dejas TUS mp3 aquí, suenan ellos; si no, el respaldo
   // sintetizado propio (no distribuimos audio con copyright).
   'inazuma-map': BASE + 'music/inazuma-map.mp3',
+  'dragon-map': BASE + 'music/dragon-map.mp3',
+  'dragon-battle': BASE + 'music/dragon-battle.mp3',
+  'dragon-boss': BASE + 'music/dragon-boss.mp3',
   'inazuma-match': BASE + 'music/inazuma-match.mp3',
 }
 let audioEl: HTMLAudioElement | null = null
@@ -151,6 +155,12 @@ const SEQ: Record<Track, TrackDef> = {
   ...BASE_SEQ,
   'inazuma-map': { ...BASE_SEQ.map, bpm: 102, cutoff: 3200 },
   'inazuma-match': { ...BASE_SEQ.battle, bpm: 118 },
+  // Dragon Ball: se aliasean las bases (como Inazuma) para no tocar el test de
+  // `music.test.ts`, que exige que bass/chords/lead cuadren con los `steps`.
+  // El mapa va más tranquilo y el jefe, más rápido y más oscuro que un combate.
+  'dragon-map': { ...BASE_SEQ.map, bpm: 96, cutoff: 2800 },
+  'dragon-battle': { ...BASE_SEQ.battle, bpm: 126 },
+  'dragon-boss': { ...BASE_SEQ.boss, bpm: 138 },
 }
 
 function note(freq: number, t0: number, dur: number, wave: OscillatorType, gain: number, detune = 0) {

@@ -3,7 +3,7 @@
 // elegir casilla, pelear, cobrar y volver al mapa. El motor ya tiene sus tests;
 // esto cubre el pegamento, que es donde se rompen las cosas de verdad.
 import { beforeEach, describe, expect, it } from 'vitest'
-import { BOSS_LAYER, layerNodes } from '@/engine/dragon/run'
+import { BOSS_LAYER, layerNodes, recruit, TEAM_MAX } from '@/engine/dragon/run'
 import { advance, ally, foe } from '@/engine/dragon/battle'
 import { afterOutcome, useDragon } from './dragonStore'
 
@@ -136,6 +136,52 @@ describe('store de Dragon Ball', () => {
     st().equip(uid, undefined)
     expect(st().save!.team[0].item).toBeUndefined()
     expect(st().save!.bag.guantes).toBe(1)
+  })
+
+  it('reclutar con el equipo lleno ofrece sustituir, y no se come la casilla', async () => {
+    const st = () => useDragon.getState()
+    await st().newRun('krilin')
+    st().goTo('map')
+    const save = st().save!
+    // Equipo al completo y una casilla de aliado delante.
+    recruit(save, 'ten')
+    recruit(save, 'yamcha')
+    expect(save.team.length).toBe(TEAM_MAX)
+    const nodo = save.map.find((n) => n.layer === 0)!
+    nodo.kind = 'reclutar'
+    nodo.recruit = 'piccolo'
+
+    st().pickNode(nodo.id)
+    st().confirmNode()
+    // NO avanza el mapa: se queda esperando a que decidas.
+    expect(st().pendingRecruit?.baseId).toBe('piccolo')
+    expect(st().save!.layer).toBe(0)
+
+    const sale = st().save!.team[3]
+    st().resolveRecruit(sale.uid)
+    expect(st().pendingRecruit).toBeNull()
+    expect(st().save!.team.map((f) => f.baseId)).toContain('piccolo')
+    expect(st().save!.team.map((f) => f.uid)).not.toContain(sale.uid)
+    expect(st().save!.team.length).toBe(TEAM_MAX)
+    expect(st().save!.layer, 'la casilla se resuelve y el mapa avanza').toBe(1)
+  })
+
+  it('y se puede rechazar al que se ofrece', async () => {
+    const st = () => useDragon.getState()
+    await st().newRun('krilin')
+    st().goTo('map')
+    const save = st().save!
+    recruit(save, 'ten')
+    recruit(save, 'yamcha')
+    const antes = save.team.map((f) => f.uid)
+    const nodo = save.map.find((n) => n.layer === 0)!
+    nodo.kind = 'reclutar'
+    nodo.recruit = 'piccolo'
+    st().pickNode(nodo.id)
+    st().confirmNode()
+    st().resolveRecruit(null)
+    expect(st().save!.team.map((f) => f.uid)).toEqual(antes)
+    expect(st().save!.layer).toBe(1)
   })
 
   it('las siete bolas abren la pantalla de deseo y el deseo se cumple', async () => {
