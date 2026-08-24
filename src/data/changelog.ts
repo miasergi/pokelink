@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.59',
+    date: '2026-08-24',
+    title: 'LA PREVIA: juegos de beber para calentar la noche',
+    changes: [
+      'SECCIÓN NUEVA EN LA SALA DE JUEGOS: La Previa, cinco juegos para beber pensados para un solo móvil que va pasando de mano en mano. Apuntáis los nombres de la cuadrilla una vez y se quedan guardados.',
+      'RULETA DE RETOS al estilo Picolo: rondas de ~30 cartas con retos, preguntas, minijuegos y VIRUS (reglas que se activan y se cierran solas unas cartas después), con vuestros nombres metidos en el texto.',
+      'YO NUNCA con mazo gordo, LA BOTELLA con giro animado que dice a quién apunta, y EL REY DE COPAS con baraja virtual: el cuarto rey se bebe el vaso del centro.',
+      'OCALIMOCHO: el Juego de la Oca bebedor, con tablero completo de 63 casillas, dado, fichas por jugador y las especiales de siempre (de oca a oca, el pozo, la posada, la muerte…) convertidas en reglas de tragos.',
+      'PACK PICANTE opcional para la Ruleta y el Yo Nunca. Y recordad: los tragos siempre se pueden cambiar por sorbos o prenda, y nadie conduce.',
+    ],
+  },
+  {
     version: 'v6.58',
     date: '2026-08-11',
     title: 'Inazuma: plantillas REALES, 126 jugadores y nueve institutos completos',

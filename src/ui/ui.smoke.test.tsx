@@ -13,6 +13,12 @@ import TeamScreen from '@/ui/screens/TeamScreen'
 import PokedexScreen from '@/ui/screens/PokedexScreen'
 import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
 import CyberScreen from '@/ui/screens/CyberScreen'
+import PartyScreen from '@/ui/screens/PartyScreen'
+import PicoloView from '@/ui/party/PicoloView'
+import YoNuncaView from '@/ui/party/YoNuncaView'
+import BotellaView from '@/ui/party/BotellaView'
+import KingsView from '@/ui/party/KingsView'
+import OcaView from '@/ui/party/OcaView'
 import { useCyber } from '@/state/cyberStore'
 import { createAdventure } from '@/engine/cyber/cyberEngine'
 import InazumaScreen from '@/ui/screens/InazumaScreen'
@@ -85,6 +91,21 @@ describe('render de pantallas (smoke)', () => {
     useGame.setState({ loaded: true, screen: { name: 'starterSelect', params: { pools: [1], random: false, gen: 1 } } })
     expect(() => renderToString(createElement(HomeScreen))).not.toThrow()
     expect(() => renderToString(createElement(StarterSelectScreen))).not.toThrow()
+  })
+
+  it('La Previa: hub y los cinco juegos montan', () => {
+    useGame.setState({ loaded: true, screen: { name: 'party' } })
+    // Sin cuadrilla: el hub debe montar y avisar de apuntar nombres.
+    localStorage.removeItem('pokerogue:party-players')
+    expect(mount(PartyScreen)).toContain('La Previa')
+    // Con cuadrilla: cada juego monta su portada/tablero.
+    localStorage.setItem('pokerogue:party-players', JSON.stringify(['Ana', 'Bea', 'Carlos']))
+    const players = ['Ana', 'Bea', 'Carlos']
+    expect(mount(() => createElement(PicoloView, { players, onBack: () => {} }))).toContain('ronda')
+    expect(mount(() => createElement(YoNuncaView, { onBack: () => {} }))).toContain('bebe')
+    expect(mount(() => createElement(BotellaView, { players, onBack: () => {} }))).toContain('botella')
+    expect(mount(() => createElement(KingsView, { onBack: () => {} }))).toContain('rey')
+    expect(mount(() => createElement(OcaView, { players, onBack: () => {} }))).toContain('Tirar')
   })
 
   it('Cyber PokéBall: título, mapa y centro renderizan', () => {

@@ -184,6 +184,18 @@ export default function HomeScreen() {
           <Chip icon={<Icon name="gear" className="w-3.5 h-3.5 text-slate-400" />} label="Opciones" onClick={() => { setInazumaEntry('title'); navigate('inazuma') }} />
         </div>
 
+        {/* ---- LA PREVIA (juegos de beber) ---- */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}covers/party-cover.svg`}
+          logo={`${import.meta.env.BASE_URL}party/logo.svg`}
+          alt="La Previa"
+          title="Juegos de previa"
+          color="#f472b6"
+          status="Ruleta, Yo Nunca, Botella, Rey de Copas y Ocalimocho"
+          cta="Jugar"
+          onPlay={() => navigate('party')}
+        />
+
         {/* ---- Menú transversal, discreto. ---- */}
         <div className="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
           <Chip icon={<Icon name="achievement" className="w-3.5 h-3.5 text-amber-300" />} label="Logros" onClick={() => navigate('achievements')} />

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 96" width="340" height="96">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="0.5" stop-color="#f472b6"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <!-- Trazo oscuro detrás para que se lea sobre cualquier arte -->
+  <text x="50%" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="42" font-weight="900" letter-spacing="2"
+        fill="none" stroke="#0f172a" stroke-width="8" stroke-linejoin="round" paint-order="stroke">LA PREVIA</text>
+  <text x="50%" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="42" font-weight="900" letter-spacing="2"
+        fill="url(#lg)">LA PREVIA</text>
+  <text x="50%" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="bold" letter-spacing="6"
+        fill="none" stroke="#0f172a" stroke-width="6" stroke-linejoin="round" paint-order="stroke">🍻 JUEGOS DE BEBER</text>
+  <text x="50%" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="bold" letter-spacing="6"
+        fill="#e2e8f0">🍻 JUEGOS DE BEBER</text>
+</svg>

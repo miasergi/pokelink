@@ -33,7 +33,7 @@ export type ScreenName =
   | 'leagueSetup' | 'league' | 'story' | 'storyDialogue'
   | 'map' | 'battle' | 'reward' | 'catch' | 'item' | 'shop' | 'event' | 'heal'
   | 'team' | 'pokedex' | 'records' | 'settings' | 'gameover' | 'victory' | 'rescue' | 'trade' | 'account' | 'leaderboard' | 'legendary' | 'achievements'
-  | 'cyber' | 'inazuma'
+  | 'cyber' | 'inazuma' | 'party'
 
 interface Screen {
   name: ScreenName
