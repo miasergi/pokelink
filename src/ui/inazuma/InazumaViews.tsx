@@ -223,11 +223,12 @@ export function MapView() {
     <div className="flex flex-col flex-1 min-h-0">
       <SaveHeader save={save} />
       <div className="relative shrink-0 overflow-hidden border-b border-slate-800/70">
-        {/* EL ESCENARIO del tramo: un tile de los propios juegos (la ribera,
-            el campo del insti, el Zeus Stadium… hasta la final), con un
+        {/* EL ESCENARIO del tramo: un fondo de los propios juegos, DE LA SAGA
+            que juegas (la ribera en la clásica, la caravana en Alius, Liocott
+            en el FFI, el Camino Sagrado en GO, lo virtual en VR), con un
             gradiente para que el texto siga leyéndose. Si falta, gradiente. */}
         <img
-          src={`${import.meta.env.BASE_URL}inazuma/zones/zona-${Math.min(7, seg.index)}.png`}
+          src={`${import.meta.env.BASE_URL}inazuma/zones/${save.saga ?? 'ff'}-${Math.min(7, seg.index)}.png`}
           alt=""
           draggable={false}
           className="absolute inset-0 w-full h-full object-cover object-center opacity-45 select-none pointer-events-none"
