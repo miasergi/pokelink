@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.60',
+    date: '2026-08-24',
+    title: 'Ocalimocho: la ficha ahora se pasea',
+    changes: [
+      'LA FICHA AVANZA CASILLA A CASILLA tras tirar el dado (con rebote andado si te pasas de la meta), la casilla que pisa se ilumina con tu color y la carta con la regla sale al TERMINAR el paseo.',
+      'Los saltos especiales (de oca a oca, el puente, los dados, el laberinto, la muerte) dan el brinco al cerrar la carta, para que se vea a dónde te llevan.',
+    ],
+  },
+  {
     version: 'v6.59',
     date: '2026-08-24',
     title: 'LA PREVIA: juegos de beber para calentar la noche',

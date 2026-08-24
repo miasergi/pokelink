@@ -1,6 +1,6 @@
 // Tests de LA PREVIA: integridad del tablero del Ocalimocho y de los mazos.
 import { describe, expect, it } from 'vitest'
-import { OCA_BOARD, OCA_SQUARES, resolveMove, squareAt } from './oca'
+import { OCA_BOARD, OCA_SQUARES, resolveMove, squareAt, walkPath } from './oca'
 import { KINGS_RULES, PICOLO_CARDS, YO_NUNCA, buildPicoloRound, fillPlayers } from '@/data/party/decks'
 
 describe('ocalimocho', () => {
@@ -51,6 +51,24 @@ describe('ocalimocho', () => {
     expect(resolveMove(16, 3).skipTurns).toBe(1) // posada 19
     expect(resolveMove(28, 3).skipTurns).toBe(2) // pozo 31
     expect(resolveMove(49, 3).skipTurns).toBe(2) // cárcel 52
+  })
+
+  it('el paseo animado termina EXACTAMENTE donde dice el motor', () => {
+    for (let pos = 0; pos <= 62; pos++) {
+      for (let die = 1; die <= 6; die++) {
+        const steps = walkPath(pos, die)
+        expect(steps).toHaveLength(die)
+        expect(steps[steps.length - 1]).toBe(resolveMove(pos, die).path[0])
+        // Cada paso mueve UNA casilla y nunca se sale del tablero.
+        let prev = pos
+        for (const s of steps) {
+          expect(Math.abs(s - prev)).toBe(1)
+          expect(s).toBeGreaterThanOrEqual(1)
+          expect(s).toBeLessThanOrEqual(63)
+          prev = s
+        }
+      }
+    }
   })
 
   it('ninguna tirada legal puede salirse del tablero', () => {

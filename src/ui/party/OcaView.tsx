@@ -2,7 +2,7 @@
 // casillas, dado animado y una carta por casilla con su regla. El motor puro
 // vive en `engine/party/oca.ts`; aquí solo hay turnos y presentación.
 import { useEffect, useRef, useState } from 'react'
-import { OCA_COLORS, resolveMove, squareAt, type OcaMove } from '@/engine/party/oca'
+import { OCA_COLORS, resolveMove, squareAt, walkPath, type OcaMove } from '@/engine/party/oca'
 import { PartyHeader } from '@/ui/party/partyKit'
 import Icon from '@/ui/components/Icon'
 import { play } from '@/utils/sfx'
@@ -25,13 +25,19 @@ export default function OcaView({ players, onBack }: { players: string[]; onBack
   const [positions, setPositions] = useState<number[]>(() => players.map(() => 0))
   const [skips, setSkips] = useState<number[]>(() => players.map(() => 0))
   const [current, setCurrent] = useState(0)
-  const [phase, setPhase] = useState<'idle' | 'rolling' | 'card' | 'won'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'rolling' | 'moving' | 'card' | 'jump' | 'won'>('idle')
   const [dieFace, setDieFace] = useState(1)
   const [move, setMove] = useState<OcaMove | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const rollTimer = useRef<ReturnType<typeof setInterval>>()
+  const stepTimer = useRef<ReturnType<typeof setInterval>>()
+  const hopTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  useEffect(() => () => clearInterval(rollTimer.current), [])
+  useEffect(() => () => {
+    clearInterval(rollTimer.current)
+    clearInterval(stepTimer.current)
+    clearTimeout(hopTimer.current)
+  }, [])
 
   if (n < 2) {
     return (
@@ -67,22 +73,35 @@ export default function OcaView({ players, onBack }: { players: string[]; onBack
         setDieFace(die)
         const m = resolveMove(positions[current], die)
         setMove(m)
-        setPositions((p) => p.map((x, i) => (i === current ? m.final : x)))
-        play(m.won ? 'victory' : m.square.kind === 'muerte' ? 'defeat' : m.square.kind === 'normal' ? 'tap' : 'levelup')
-        setPhase('card')
+        // PASEO casilla a casilla hasta donde caes (con rebote si te pasas);
+        // la carta de la casilla se enseña al TERMINAR de andar.
+        const steps = walkPath(positions[current], die)
+        setPhase('moving')
+        let si = 0
+        clearInterval(stepTimer.current)
+        stepTimer.current = setInterval(() => {
+          const dest = steps[si]
+          setPositions((p) => p.map((x, i) => (i === current ? dest : x)))
+          play('tap')
+          si++
+          if (si >= steps.length) {
+            clearInterval(stepTimer.current)
+            play(m.won ? 'victory' : m.square.kind === 'muerte' ? 'defeat' : m.square.kind === 'normal' ? 'select' : 'levelup')
+            setPhase('card')
+          }
+        }, 280)
       }
     }, 90)
   }
 
-  const closeCard = () => {
-    if (!move) return
-    play('select')
-    if (move.won) { setPhase('won'); return }
-    if (move.extraRoll) { setPhase('idle'); setMove(null); return }
+  /** Cierra el turno: suma castigos, salta a quien pierde turno y pasa la vez. */
+  const finishTurn = (m: OcaMove) => {
+    if (m.won) { setPhase('won'); return }
+    if (m.extraRoll) { setPhase('idle'); setMove(null); return }
     // Pasa el turno saltándose a quien esté en la posada/pozo/cárcel. Los
     // turnos que pierde el jugador ACTUAL se suman aquí mismo, sobre `skips`.
     const skipped: string[] = []
-    const s = skips.map((x, i) => (i === current ? x + move.skipTurns : x))
+    const s = skips.map((x, i) => (i === current ? x + m.skipTurns : x))
     let next = (current + 1) % n
     while (s[next] > 0) {
       s[next]--
@@ -96,8 +115,29 @@ export default function OcaView({ players, onBack }: { players: string[]; onBack
     setMove(null)
   }
 
+  const closeCard = () => {
+    if (!move || phase !== 'card') return
+    play('select')
+    const landing = move.path[0]
+    if (move.final !== landing) {
+      // Salto especial (oca, puente, dados, laberinto, muerte): la ficha da
+      // el BRINCO al cerrar la carta, y medio segundo después sigue el juego.
+      setPhase('jump')
+      hopTimer.current = setTimeout(() => {
+        setPositions((p) => p.map((x, i) => (i === current ? move.final : x)))
+        play(move.square.kind === 'muerte' ? 'defeat' : 'levelup')
+        hopTimer.current = setTimeout(() => finishTurn(move), 500)
+      }, 150)
+      return
+    }
+    finishTurn(move)
+  }
+
   const restart = () => {
     play('confirm')
+    clearInterval(rollTimer.current)
+    clearInterval(stepTimer.current)
+    clearTimeout(hopTimer.current)
     setPositions(players.map(() => 0))
     setSkips(players.map(() => 0))
     setCurrent(0)
@@ -129,18 +169,29 @@ export default function OcaView({ players, onBack }: { players: string[]; onBack
               {row.map((idx) => {
                 const sq = squareAt(idx)
                 const here = positions.map((p, i) => (p === idx ? i : -1)).filter((i) => i >= 0)
+                // La casilla que está PISANDO la ficha en movimiento se
+                // enciende con el color del jugador, para seguirla con el ojo.
+                const walking = (phase === 'moving' || phase === 'jump' || phase === 'card') && positions[current] === idx
                 return (
                   <div
                     key={idx}
-                    className="relative aspect-square rounded-md border border-slate-800 grid place-items-center"
-                    style={{ background: KIND_TINT[sq.kind] ?? 'rgba(30,41,59,.5)' }}
+                    className="relative aspect-square rounded-md border grid place-items-center transition-shadow"
+                    style={{
+                      background: KIND_TINT[sq.kind] ?? 'rgba(30,41,59,.5)',
+                      borderColor: walking ? color : 'rgb(30,41,59)',
+                      boxShadow: walking ? `0 0 10px 1px ${color}aa` : undefined,
+                    }}
                   >
                     <span className="absolute top-0 left-0.5 text-[7px] font-bold text-slate-500">{idx}</span>
                     <span className="text-[13px] leading-none">{sq.kind === 'normal' ? '' : sq.emoji}</span>
                     {here.length > 0 && (
                       <div className="absolute bottom-0.5 inset-x-0 flex justify-center gap-0.5">
                         {here.map((i) => (
-                          <span key={i} className="w-2 h-2 rounded-full border border-slate-950" style={{ background: OCA_COLORS[i % OCA_COLORS.length] }} />
+                          <span
+                            key={i}
+                            className={`rounded-full border border-slate-950 ${i === current && walking ? 'w-2.5 h-2.5 animate-pulse' : 'w-2 h-2'}`}
+                            style={{ background: OCA_COLORS[i % OCA_COLORS.length] }}
+                          />
                         ))}
                       </div>
                     )}
@@ -172,7 +223,7 @@ export default function OcaView({ players, onBack }: { players: string[]; onBack
           className="w-full rounded-2xl text-slate-950 font-extrabold py-4 text-lg active:scale-[0.98] transition disabled:opacity-50"
           style={{ background: color, boxShadow: `0 10px 24px -8px ${color}` }}
         >
-          {phase === 'rolling' ? 'Rodando…' : '🎲 Tirar el dado'}
+          {phase === 'rolling' ? 'Rodando…' : phase === 'moving' ? 'Andando…' : phase === 'jump' ? '¡Salto!' : '🎲 Tirar el dado'}
         </button>
 
         {/* Marcador compacto */}

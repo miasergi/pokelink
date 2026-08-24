@@ -137,5 +137,22 @@ export function resolveMove(pos: number, die: number): OcaMove {
   return { path, final: dest, square: sq, extraRoll, skipTurns, won, bounced }
 }
 
+/**
+ * Camino casilla a casilla de una tirada (para animar la ficha): `die` pasos
+ * desde `from`, avanzando hacia la meta y REBOTANDO hacia atrás al pisar el
+ * 63. La última casilla coincide siempre con `resolveMove(...).path[0]`.
+ */
+export function walkPath(from: number, die: number): number[] {
+  const steps: number[] = []
+  let p = from
+  let dir = 1
+  for (let i = 0; i < die; i++) {
+    if (p === 63) dir = -1
+    p += dir
+    steps.push(p)
+  }
+  return steps
+}
+
 /** Colores de ficha por jugador (hasta 8). */
 export const OCA_COLORS = ['#f87171', '#38bdf8', '#4ade80', '#fbbf24', '#a78bfa', '#f472b6', '#2dd4bf', '#fb923c']
