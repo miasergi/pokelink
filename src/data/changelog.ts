@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.61',
+    date: '2026-08-24',
+    title: 'Ocalimocho al siguiente nivel: tablero de bar de verdad',
+    changes: [
+      'TABLERO REDISEÑADO al estilo de los ocalimochos clásicos: fieltro verde con marco de madera, casillas coloreadas por categoría con su emoji y OCAS DE 8 EN 8 al grito de «¡de ocho en ocho y bebo calimocho!».',
+      'CASILLAS NUEVAS con mecánica de verdad: DUELO DE DADOS (eliges rival y se tira en pantalla), LABERINTO del que solo sales sacando 5 o 6, CÁRCEL con fianza a dos dados, POSADA DEL ABSTEMIO (nadie te manda beber), REGLAS PUÑETERAS, HIPNOSIS y ZONA CULTURAL con categoría aleatoria (26 categorías).',
+      'DOS PATINAZOS traicioneros (42→12 y 57→31), la Muerte en la 60 y una veintena de casillas temáticas con cachondeo propio: cegatos, musculitos, pa\'los de alante, guerra de bandos, trabalenguas…',
+      'HOJA DE REGLAS consultable desde el tablero (botón «?»), con los colores de cada categoría, y las cartas de casilla teñidas del color que les toca.',
+    ],
+  },
+  {
     version: 'v6.60',
     date: '2026-08-24',
     title: 'Ocalimocho: la ficha ahora se pasea',

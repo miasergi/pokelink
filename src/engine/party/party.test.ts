@@ -4,53 +4,70 @@ import { OCA_BOARD, OCA_SQUARES, resolveMove, squareAt, walkPath } from './oca'
 import { KINGS_RULES, PICOLO_CARDS, YO_NUNCA, buildPicoloRound, fillPlayers } from '@/data/party/decks'
 
 describe('ocalimocho', () => {
-  it('el tablero tiene 63 casillas bien numeradas y la meta al final', () => {
+  it('el tablero tiene 63 casillas bien numeradas, ocas de 8 en 8 y la meta al final', () => {
     expect(OCA_BOARD).toHaveLength(63)
     OCA_BOARD.forEach((sq, i) => expect(sq.idx).toBe(i + 1))
     expect(squareAt(63).kind).toBe('meta')
+    expect(OCA_SQUARES).toEqual([8, 16, 24, 32, 40, 48, 56])
     for (const o of OCA_SQUARES) expect(squareAt(o).kind).toBe('oca')
   })
 
-  it('toda casilla tiene título y regla', () => {
+  it('toda casilla tiene título, regla y emoji; las ¡A beber! llevan sus tragos y los patinazos destino válido', () => {
     for (const sq of OCA_BOARD) {
       expect(sq.title.length).toBeGreaterThan(0)
       expect(sq.rule.length).toBeGreaterThan(0)
+      expect(sq.emoji.length).toBeGreaterThan(0)
+      if (sq.kind === 'beber') expect(sq.x).toBeGreaterThan(0)
+      if (sq.kind === 'patinazo') {
+        expect(sq.jumpTo).toBeGreaterThanOrEqual(1)
+        expect(sq.jumpTo).toBeLessThan(sq.idx) // siempre resbala hacia ATRÁS
+      }
     }
   })
 
   it('la oca salta a la SIGUIENTE oca y repite tirada', () => {
-    const m = resolveMove(3, 2) // cae en la oca del 5
+    const m = resolveMove(6, 2) // cae en la oca del 8
     expect(m.square.kind).toBe('oca')
-    expect(m.final).toBe(9)
+    expect(m.final).toBe(16)
     expect(m.extraRoll).toBe(true)
   })
 
-  it('la última oca (59) lleva a la meta y gana', () => {
-    const m = resolveMove(55, 4)
+  it('la última oca (56) lleva a la meta y gana', () => {
+    const m = resolveMove(50, 6)
+    expect(m.square.kind).toBe('oca')
     expect(m.final).toBe(63)
     expect(m.won).toBe(true)
   })
 
   it('pasarse de 63 rebota hacia atrás', () => {
-    const m = resolveMove(61, 6) // 67 -> rebote a 59 (que además es oca -> 63)
+    const m = resolveMove(61, 6) // 67 -> rebote a 59
     expect(m.bounced).toBe(true)
     expect(m.path[0]).toBe(59)
+    expect(m.final).toBe(59)
   })
 
   it('llegar exacto a la meta gana; la muerte te manda al 1', () => {
     expect(resolveMove(60, 3).won).toBe(true)
-    const muerte = resolveMove(57, 1)
+    const muerte = resolveMove(59, 1)
     expect(muerte.square.kind).toBe('muerte')
     expect(muerte.final).toBe(1)
     expect(muerte.won).toBe(false)
   })
 
-  it('puente y dados saltan al gemelo y repiten; posada/pozo/cárcel quitan turnos', () => {
-    expect(resolveMove(4, 2)).toMatchObject({ final: 12, extraRoll: true })
-    expect(resolveMove(24, 2)).toMatchObject({ final: 53, extraRoll: true })
-    expect(resolveMove(16, 3).skipTurns).toBe(1) // posada 19
-    expect(resolveMove(28, 3).skipTurns).toBe(2) // pozo 31
-    expect(resolveMove(49, 3).skipTurns).toBe(2) // cárcel 52
+  it('los patinazos resbalan a su casilla (42→12, 57→31)', () => {
+    expect(resolveMove(40, 2)).toMatchObject({ final: 12, extraRoll: false })
+    expect(resolveMove(55, 2)).toMatchObject({ final: 31, extraRoll: false })
+  })
+
+  it('laberinto atrapa, cárcel quita 1 turno y la posada del abstemio no castiga', () => {
+    expect(resolveMove(7, 2).trap).toBe('laberinto') // laberinto 9
+    expect(resolveMove(33, 2).trap).toBe('laberinto') // laberinto 35
+    expect(resolveMove(25, 1).skipTurns).toBe(1) // cárcel 26
+    expect(resolveMove(44, 1).skipTurns).toBe(1) // cárcel 45
+    const posada = resolveMove(3, 1) // posada 4
+    expect(posada.square.kind).toBe('posada')
+    expect(posada.skipTurns).toBe(0)
+    expect(posada.trap).toBeUndefined()
   })
 
   it('el paseo animado termina EXACTAMENTE donde dice el motor', () => {
