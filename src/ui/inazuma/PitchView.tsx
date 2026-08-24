@@ -9,7 +9,7 @@
 // `setPointerCapture` y detección del destino con `elementFromPoint`.
 import { useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
+import { InjuryCross, ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { ptMax, rarityOf } from '@/engine/inazuma/roster'
@@ -277,6 +277,8 @@ function PitchChip({
         />
         {rarityOf(player) === 4 && <span className="mc-ring rounded-xl" />}
       </div>
+      {/* LESIONADO: su cruz SIEMPRE a la vista en la alineación. */}
+      {player.injured && <InjuryCross className="absolute -top-1 -right-1 z-10 w-4 h-4" />}
       {/* El objeto que lleva, asomando en la esquina. */}
       {player.item && (
         <span className="absolute top-8 -left-1 z-10 grid place-items-center w-4 h-4 rounded bg-slate-900/90 border border-slate-600">

@@ -411,6 +411,9 @@ interface InazumaState {
   /** Cola de APRENDIZAJES: técnicas recién despertadas, para su animación. */
   learnFx: { uid: string; baseId: string; playerName: string; techId: string }[]
   clearLearnFx: () => void
+  /** LESIONADOS recién caídos (rogue): para el modal con su cruz. */
+  injuredFx: { name: string; baseId: string }[] | null
+  clearInjuredFx: () => void
   /**
    * RUEDA DE ENTRENAMIENTO: aplica el plan elegido.
    *  - 'uno'          → +5 niveles a UN jugador, −50 de aguante (el machaque)
@@ -919,7 +922,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         const cap = st.match.stage === 'reglamentario' ? 90 : 120
         // El reloj nunca adelanta a la jugada que aún está por contarse: si el
         // siguiente evento es del 70' no tiene sentido plantarse en el 80'.
-        const nextMin = revealQueue.length ? revealQueue[0].minute : cap
+        // Con la cola VACÍA, el techo es el minuto del MOTOR con una correa
+        // de +4 (la siguiente jugada nace a ~3-8 minutos): a ×4 el reloj se
+        // escapaba al 60-80 antes de que el descanso del 45 existiera
+        // siquiera, y luego «volvía» al 45 de golpe.
+        const nextMin = revealQueue.length ? revealQueue[0].minute : Math.max(st.clock, st.match.minute + 4)
         const limit = Math.min(cap, Math.max(nextMin, st.clock))
         const next = Math.min(limit, st.clock + rate * (CLOCK_STEP_MS / 1000))
         if (next !== st.clock) set({ clock: next })
@@ -1506,6 +1513,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   fichajeAutoOpen: false,
   learnFx: [],
   clearLearnFx: () => set({ learnFx: get().learnFx.slice(1) }),
+  injuredFx: null,
+  clearInjuredFx: () => set({ injuredFx: null }),
 
   resolveEntreno: (plan, uid, element) => {
     const { save, matchNode } = get()
@@ -1514,7 +1523,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // LA REGLA ÚNICA DE LESIÓN: agotarse es romperse. Si el desgaste deja a
     // alguien a 0 de aguante, cae lesionado — y en el experto además se
     // tira el dado por elemento. Un LESIONADO no entrena ni sube de nivel.
-    const rotos: string[] = []
+    const rotos: { name: string; baseId: string }[] = []
     // VÁLVULA: el ÚLTIMO sano no se rompe entrenando («se muerde los
     // dientes») — sin ella, una lesión tonta con plantilla de arranque
     // liquidaba la run sin partido de por medio.
@@ -1523,7 +1532,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       let stamina = Math.max(0, p.stamina - drain)
       let lesion = stamina <= 0 || (riesgo > 0 && rng.chance(riesgo))
       if (lesion && sanosQueQuedan <= 1) { lesion = false; stamina = Math.max(1, stamina) }
-      if (lesion) { rotos.push(getPlayerBase(p.baseId).name); sanosQueQuedan-- }
+      if (lesion) { rotos.push({ name: getPlayerBase(p.baseId).name, baseId: p.baseId }); sanosQueQuedan-- }
       return { ...p, stamina, injured: lesion || undefined }
     }
     // OJO: `levelUp` DEVUELVE al jugador subido (no muta) — la primera
@@ -1571,14 +1580,19 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       play('heal')
     }
     if (rotos.length) {
-      message += ` · ¡LESIÓN! ${rotos.join(' y ')} — al fisio o a esperar al próximo partido oficial.`
+      message += ` · ¡LESIÓN! ${rotos.map((r) => r.name).join(' y ')} — al fisio o a esperar al próximo partido oficial.`
       play('error')
     }
     const next: InazumaSave = { ...save, roster, cleared: save.cleared.slice() }
     advanceLayer(next, matchNode)
     // Lo DESPERTADO en el entrenamiento se anuncia con su animación.
     const learned = learnedBetween(save.roster, roster)
-    set({ save: next, matchNode: null, phase: 'map', message, learnFx: [...get().learnFx, ...learned] })
+    set({
+      save: next, matchNode: null, phase: 'map', message,
+      learnFx: [...get().learnFx, ...learned],
+      // El MODAL de lesión: el toast se perdía entre mensajes.
+      injuredFx: rotos.length ? rotos : get().injuredFx,
+    })
     void persist(next, 'map')
   },
 

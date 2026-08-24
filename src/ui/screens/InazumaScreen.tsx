@@ -14,6 +14,7 @@ import TradeView from '@/ui/inazuma/TradeView'
 import EntrenoView from '@/ui/inazuma/EntrenoView'
 import ItemFxOverlay from '@/ui/inazuma/ItemFxOverlay'
 import PlayerRevealOverlay from '@/ui/inazuma/PlayerRevealOverlay'
+import InjuryRogueOverlay from '@/ui/inazuma/InjuryOverlay'
 import TechniqueLearnOverlay from '@/ui/inazuma/TechniqueLearnOverlay'
 import TechniqueSheet from '@/ui/inazuma/TechniqueSheet'
 import SigningOverflowSheet from '@/ui/inazuma/SigningOverflowSheet'
@@ -79,6 +80,7 @@ export default function InazumaScreen() {
       {view}
       <ItemFxOverlay />
       <PlayerRevealOverlay />
+      <InjuryRogueOverlay />
       {/* ¡Nueva supertécnica!: la evolución de la casa. */}
       <TechniqueLearnOverlay />
       {/* Visor global de supertécnica: se abre al tocar cualquier estampa. */}

@@ -1047,7 +1047,9 @@ function BagPanel({
                           return
                         }
                         onUse(use, p.uid)
-                        setUse(null)
+                        // ABIERTO mientras queden unidades: dar tres pociones
+                        // seguidas ya no exige tres viajes por el menú.
+                        if (save.bag.filter((x) => x === use).length <= 1) setUse(null)
                       }}
                     />
                   ))}

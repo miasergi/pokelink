@@ -5,7 +5,7 @@
 // para abrir los datos del jugador.
 import { useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
-import { ELEMENT_ICON, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
+import { ELEMENT_ICON, InjuryCross, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
@@ -30,6 +30,8 @@ export interface BoardChip {
   position?: Position
   /** Objeto equipado: su imagen asoma en la esquina de la ficha. */
   itemId?: string
+  /** LESIONADO: su cruz roja encima de la ficha, sin tener que tocarlo. */
+  injured?: boolean
 }
 
 const ROWS: { pos: Position; label: string }[] = [
@@ -141,6 +143,8 @@ function Chip({ chip, onTap, onSwap }: {
             {chip.position}
           </span>
         )}
+        {/* LESIONADO: su cruz SIEMPRE a la vista, sin tener que tocarlo. */}
+        {chip.injured && <InjuryCross className="absolute -top-1.5 -right-1.5 w-4 h-4" />}
         {/* El objeto que lleva, asomando: se ve quién va equipado sin entrar. */}
         {chip.itemId && (
           <span className="absolute -bottom-1 -left-1 grid place-items-center w-4 h-4 rounded bg-slate-900/90 border border-slate-600">

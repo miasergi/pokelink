@@ -17,6 +17,7 @@ import ChesterTV from '@/ui/inazuma/ChesterTV'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
+import { InjuryBanner } from '@/ui/inazuma/InjuryOverlay'
 import { Crest, KindIcon, rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { getTactic } from '@/data/inazuma/tactics'
@@ -45,6 +46,13 @@ export default function MatchView() {
   const [flash, setFlash] = useState<{ key: number; text: string; color: string } | null>(null)
   // CINEMÁTICA de filosofía encendida: fogonazo con su icono y su nombre.
   const [tacticFx, setTacticFx] = useState<{ key: number; id: string; name: string; mine: boolean } | null>(null)
+  // ¡LESIÓN!: overlay grande con el retrato y la cruz — se retira solo.
+  const [injuryFx, setInjuryFx] = useState<{ key: number; name: string; baseId?: string } | null>(null)
+  useEffect(() => {
+    if (!injuryFx) return
+    const t = setTimeout(() => setInjuryFx(null), 2000)
+    return () => clearTimeout(t)
+  }, [injuryFx])
   useEffect(() => {
     if (!tacticFx) return
     const t = setTimeout(() => setTacticFx(null), 1700)
@@ -128,8 +136,9 @@ export default function MatchView() {
         )
       }
     } else if (last.kind === 'injury') {
-      // ¡LESIÓN! Rótulo rojo en el campo — y el césped lo saca a la banda.
-      setFlash({ key: feed.length, text: `¡LESIÓN DE ${last.player.split(' ')[0].toUpperCase()}!`, color: '#f87171' })
+      // ¡LESIÓN! Overlay grande con retrato y cruz (el flash pasaba
+      // desapercibido) — y el césped lo saca a la banda.
+      setInjuryFx({ key: feed.length, name: last.player, baseId: actorByUid(match, last.playerUid)?.baseId })
     } else if (last.kind === 'tactic') {
       // Filosofía ENCENDIDA: su cinemática de activación.
       setTacticFx({ key: feed.length, id: last.tactic, name: last.name, mine: last.side === mine })
@@ -391,6 +400,9 @@ export default function MatchView() {
 
       {/* ¡GOL! La celebración para el partido un instante: sin ella, el gol
           pasaba tan deprisa como un regate cualquiera. */}
+      {/* ¡LESIÓN!: el retrato con su cruz, en grande — se retira solo. */}
+      {injuryFx && <InjuryBanner key={injuryFx.key} name={injuryFx.name} baseId={injuryFx.baseId} />}
+
       {gol && (
         <GoalOverlay
           key={gol.key}

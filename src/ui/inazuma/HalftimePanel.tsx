@@ -28,12 +28,15 @@ const HALFTIME_ITEMS = new Set([
 
 export default function HalftimePanel() {
   const { match, save, halftimeBreak, resumeSecondHalf, halftimeUseItem, halftimeSubstitute, halftimeFormation, halftimeSwap } = useInazuma()
-  const [target, setTarget] = useState<Actor | null>(null)
+  // Por UID y no por objeto: así el panel se REFRESCA tras cada consumible
+  // (el Actor de un snapshot se quedaba con los depósitos viejos).
+  const [targetUid, setTargetUid] = useState<string | null>(null)
   const [action, setAction] = useState<'item' | 'sub' | null>(null)
   if (!halftimeBreak || !match || !save) return null
 
   const side = match.home.isPlayer ? match.home : match.away
   const onPitch = [side.keeper, ...side.defs, ...side.mids, ...side.fwds]
+  const target: Actor | null = onPitch.find((a) => a.uid === targetUid) ?? null
   const onPitchUids = new Set(onPitch.map((a) => a.uid))
   // El SUSTITUIDO no vuelve: fuera de la lista de cambios (regla de fútbol).
   const subbedOut = new Set(match.subbedOut ?? [])
@@ -97,11 +100,9 @@ export default function HalftimePanel() {
             stamina: a.stamina,
             pt: a.pt,
             ptMax: a.ptMax,
+            injured: a.injured,
           }))}
-          onTap={(c) => {
-            const a = onPitch.find((x) => x.uid === c.key)
-            if (a) { setTarget(a); setAction(null) }
-          }}
+          onTap={(c) => { setTargetUid(c.key); setAction(null) }}
           onSwap={(a, b) => halftimeSwap(a, b)}
         />
 
@@ -132,10 +133,15 @@ export default function HalftimePanel() {
             )}
             {action === 'item' && (
               <div className="flex flex-col gap-1.5">
+                {!items.length && (
+                  <p className="text-[11px] text-slate-500 py-1">No queda nada que dar.</p>
+                )}
                 {items.map(({ id, count }) => (
                   <button
                     key={id}
-                    onClick={() => { halftimeUseItem(id, target.uid); setTarget(null); setAction(null) }}
+                    // El panel SE QUEDA ABIERTO: puedes encadenar consumibles
+                    // sobre el mismo jugador sin volver a elegirlo.
+                    onClick={() => halftimeUseItem(id, target.uid)}
                     className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-left active:scale-[0.99] transition"
                   >
                     <ItemIcon itemId={id} className="w-6 h-6" />
@@ -159,7 +165,7 @@ export default function HalftimePanel() {
                   <PlayerRow
                     key={p.uid}
                     player={{ ...p, pt: ptMax(p), stamina: 100 }}
-                    onClick={() => { halftimeSubstitute(target.uid, p.uid); setTarget(null); setAction(null) }}
+                    onClick={() => { halftimeSubstitute(target.uid, p.uid); setTargetUid(null); setAction(null) }}
                   />
                 ))}
               </div>
@@ -167,6 +173,12 @@ export default function HalftimePanel() {
             {action && (
               <button className="mt-2 text-[11px] text-slate-500 underline" onClick={() => setAction(null)}>atrás</button>
             )}
+            <button
+              className="mt-2 ml-3 text-[11px] font-bold text-emerald-300 underline"
+              onClick={() => { setTargetUid(null); setAction(null) }}
+            >
+              hecho
+            </button>
           </div>
         )}
 
