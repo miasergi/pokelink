@@ -7,7 +7,7 @@ import { getTechnique, TECHNIQUES } from '@/data/dragon/techniques'
 import { getForm, TRANSFORMATIONS } from '@/data/dragon/transformations'
 import { FIGHTERS, getFighter, STARTERS } from '@/data/dragon/fighters'
 import { SAGAS } from '@/data/dragon/sagas'
-import { ITEMS } from '@/data/dragon/items'
+import { ITEMS, itemEffect, itemIcon, itemVerb, stockFor } from '@/data/dragon/items'
 import {
   advance, ally, chooseOption, MOD_CAP, oddsStars, startBattle,
 } from './battle'
@@ -71,6 +71,50 @@ describe('datos', () => {
     // activarla sería regalar ki (se caería sola antes de hacer nada).
     for (const f of TRANSFORMATIONS.filter((x) => x.upkeep > 0)) {
       expect(f.cost + f.upkeep * 2, f.name).toBeLessThanOrEqual(100)
+    }
+  })
+
+  it('cada objeto pertenece a UNA familia y hace lo que su familia promete', () => {
+    for (const i of ITEMS) {
+      if (i.kind === 'equipo') {
+        // Un equipable que no cambie ningún atributo ni dé ki de salida no
+        // tiene ningún motivo para existir: sería un pisapapeles.
+        const cambia = Object.keys(i.stats ?? {}).length > 0 || !!i.startKi || !!i.train
+        expect(cambia, `${i.name} no hace nada al equiparse`).toBe(true)
+      } else {
+        // Y un consumible tiene que curar, dar ki o levantar a alguien.
+        expect(!!i.heal || !!i.ki || !!i.revive, `${i.name} no hace nada al usarse`).toBe(true)
+      }
+    }
+  })
+
+  it('lo que dice un objeto sale de sus propios datos, así que no puede mentir', () => {
+    for (const i of ITEMS) {
+      const lineas = itemEffect(i)
+      expect(lineas.length, `${i.name} sin efecto legible`).toBeGreaterThan(0)
+      // Los porcentajes que se pintan tienen que cuadrar con el multiplicador.
+      for (const k of Object.keys(i.stats ?? {}) as (keyof typeof i.stats)[]) {
+        const pct = Math.round((i.stats![k]! - 1) * 100)
+        expect(lineas.join(' '), `${i.name}.${String(k)}`).toContain(`${pct > 0 ? '+' : ''}${pct} %`)
+      }
+      // Y el icono y el verbo salen siempre, sin huecos invisibles.
+      expect(itemIcon(i)).toBeTruthy()
+      expect(itemVerb(i)).toBe(i.kind === 'equipo' ? 'Equipar ›' : 'Usar ›')
+    }
+  })
+
+  it('todo lo que se vende se puede comprar y usar (nada muerto en el catálogo)', () => {
+    // El Radar del Dragón vivió un tiempo en el catálogo sin efecto Y excluido
+    // de la tienda: existía solo para ocupar sitio. Que no vuelva a pasar.
+    const rng = new RNG(4)
+    const vendidos = new Set<string>()
+    for (let saga = 0; saga < 4; saga++) {
+      for (let i = 0; i < 40; i++) {
+        for (const it of stockFor(saga, (a) => rng.pick(a))) vendidos.add(it.id)
+      }
+    }
+    for (const i of ITEMS) {
+      expect(vendidos.has(i.id), `${i.name} no lo vende nadie`).toBe(true)
     }
   })
 

@@ -553,7 +553,7 @@ body {
 /* …el punto de contacto se DESPLAZA hacia el perdedor (destino en `--dg-top`;
    se anima `top` para dejar libre el `transform` de lo que lleva dentro)… */
 @keyframes dg-drift {
-  0%, 32% { top: 50%; }
+  0%, 32% { top: var(--dg-from, 50%); }
   100% { top: var(--dg-top, 50%); }
 }
 .dg-drift { animation: dg-drift 1.7s cubic-bezier(.4, 0, .3, 1) both; }
@@ -592,8 +592,51 @@ body {
 }
 .dg-ko-dark { animation: dg-ko-dark 1.05s ease-out forwards; }
 
-/* Menos movimiento: se conserva la información (el fogonazo, los números) y se
-   apaga el tembleque, que es lo que marea. */
+/* ---- DRAGON BALL: la ESCENA del combate (ver ui/dragon/Bits.tsx) ----
+   Antes el combate era una cabecera, dos fichas y un muro de texto. Esto es lo
+   que da vida al escenario: los luchadores respiran, la transformación deja un
+   aura ENCENDIDA mientras dura (y no solo en el fogonazo) y el fondo tiene
+   ambiente. Todo con keyframes, ni una imagen. */
+
+/* Los luchadores no están congelados: flotan un pelo, cada uno a su ritmo (el
+   desfase lo pone la vista con `animation-delay`). */
+@keyframes dg-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.dg-idle { animation: dg-idle 3.4s ease-in-out infinite; }
+
+/* AURA PERMANENTE de la transformación: late alrededor del retrato TODO el
+   rato que dure la forma. Es la señal de «esto ya no es el mismo luchador». */
+@keyframes dg-form-aura {
+  0%, 100% { transform: scale(1); opacity: .6; }
+  50% { transform: scale(1.08); opacity: .95; }
+}
+.dg-form-aura { animation: dg-form-aura 1.5s ease-in-out infinite; }
+
+/* Y sus lenguas de fuego, subiendo desde el suelo del que está transformado. */
+@keyframes dg-flame {
+  0% { transform: translateY(4px) scaleY(.5); opacity: 0; }
+  30% { opacity: .95; }
+  100% { transform: translateY(-30px) scaleY(1.6); opacity: 0; }
+}
+.dg-flame { animation: dg-flame 1.1s ease-out infinite; }
+
+/* Ambiente del escenario: polvo, esporas o chispas cruzando despacio. */
+@keyframes dg-mote {
+  0% { transform: translate(0, 0); opacity: 0; }
+  18% { opacity: .75; }
+  100% { transform: translate(16px, -78px); opacity: 0; }
+}
+.dg-mote { animation: dg-mote 7s linear infinite; }
+
+/* Menos movimiento: se conserva la información (el fogonazo, los números, el
+   aura que dice que sigues transformado) y se apaga el tembleque y el bucle
+   de partículas, que es lo que marea. */
 @media (prefers-reduced-motion: reduce) {
   .dg-drift, .dg-pillar, .dg-ring { animation-duration: .01ms; }
+  .dg-idle, .dg-mote, .dg-flame { animation: none; }
+  /* El aura se queda QUIETA pero VISIBLE: la opacidad base la pone el estilo
+     en línea del elemento, así que basta con cortar la animación. */
+  .dg-form-aura { animation: none; }
 }

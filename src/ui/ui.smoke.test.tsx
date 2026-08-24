@@ -442,11 +442,22 @@ describe('render de pantallas (smoke)', () => {
     expect(map).toContain('Tramo 1')
     expect(map).toMatch(/Combate|Aliado|Entreno|Bola|Maestro|Tienda|Descanso/)
 
-    // El equipo lista a los luchadores por su nombre.
+    // El equipo: los luchadores, el TOPE a la vista y los huecos libres.
     useDragon.setState({ phase: 'team' })
     const team = mount(DragonScreen)
     expect(team).toContain('Son Goku')
     expect(team).toContain('Piccolo')
+    expect(team, 'el tope de equipo tiene que verse').toContain('de 4 luchadores')
+    expect(team, 'los huecos libres explican el tope sin contarlo').toContain('Hueco libre')
+
+    // Y la bolsa separa lo que se lleva puesto de lo que se gasta, diciendo
+    // qué hace cada objeto en números.
+    useDragon.setState({
+      save: { ...save, bag: { guantes: 1, semilla: 2 } },
+      phase: 'team',
+    })
+    const bolsa = mount(DragonScreen)
+    expect(bolsa).toContain('Bolsa')
 
     // Tocar una casilla abre su previa SOBRE el mapa (modal, no otra pantalla)
     // y explica qué te llevas antes de entrar.

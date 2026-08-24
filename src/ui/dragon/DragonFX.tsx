@@ -55,15 +55,26 @@ export interface DragonFXState {
 }
 
 /**
- * Dónde vive cada bando en la pantalla de combate: el rival arriba (su panel
- * está bajo la cabecera) y tú abajo (justo encima del panel de decisión). Los
- * efectos se anclan ahí para que el daño salga SOBRE quien lo encaja.
+ * Dónde vive cada bando EN EL ESCENARIO: el rival al fondo a la derecha y tú
+ * delante a la izquierda (ver la escena de `BattleView`). Los efectos se anclan
+ * ahí para que el daño salga SOBRE quien lo encaja.
+ *
+ * Son porcentajes de la pantalla ENTERA, no del escenario: la capa de efectos
+ * cubre todo el combate. Si algún día cambia la altura de la escena, estos
+ * cuatro números son lo único que hay que retocar.
  */
+const ANCHOR: Record<Side, { x: number; y: number }> = {
+  aliado: { x: 24, y: 31 },
+  rival: { x: 76, y: 17 },
+}
+/** Dónde se encuentran los dos rayos: justo entre los dos luchadores. */
+const CLASH_Y = 24
+
 function anchorY(side: Side): number {
-  return side === 'aliado' ? 73 : 17
+  return ANCHOR[side].y
 }
 function anchorX(side: Side): number {
-  return side === 'aliado' ? 32 : 68
+  return ANCHOR[side].x
 }
 
 /** Si el sistema pide menos movimiento, se recorta. Envuelto porque jsdom (los
@@ -288,8 +299,9 @@ function TransformOverlay({ fx }: { fx: TransformFx }) {
     <div className="absolute inset-0 overflow-hidden">
       {/* El fogonazo que ciega media pantalla. */}
       <div className="absolute inset-0 animate-inazuma-flash" style={{ background: '#fff7d6' }} />
-      {/* Todo lo demás nace del luchador. */}
-      <div className="absolute" style={{ left: '50%', top: `${anchorY(fx.side)}%` }}>
+      {/* Todo lo demás nace del luchador: ahora que está PLANTADO en un sitio
+          concreto del escenario, la columna sale de sus pies y no del centro. */}
+      <div className="absolute" style={{ left: `${anchorX(fx.side)}%`, top: `${anchorY(fx.side)}%` }}>
         {/* La COLUMNA de energía: sube del suelo y se estrecha al cielo. */}
         <span
           className="absolute dg-pillar blur-md"
@@ -366,7 +378,7 @@ function ClashOverlay({ fx }: { fx: ClashFx }) {
   // Empuje en % de la altura del overlay: hacia arriba si ganas tú (le comes el
   // terreno al rival), hacia abajo si gana él. El margen manda en cuánto.
   const dir = fx.winner === 'empate' ? 0 : fx.winner === 'aliado' ? -1 : 1
-  const push = dir * (8 + fx.margin * 20)
+  const push = dir * (6 + fx.margin * 14)
   const winColor = fx.winner === 'rival' ? fx.colorR : fx.colorA
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -374,14 +386,14 @@ function ClashOverlay({ fx }: { fx: ClashFx }) {
       <span
         className="absolute left-1/2 -translate-x-1/2 dg-beam-up blur-[2px]"
         style={{
-          bottom: 0, height: '58%', width: fx.winner === 'aliado' ? 44 : 28,
+          bottom: 0, height: `${100 - CLASH_Y}%`, width: fx.winner === 'aliado' ? 44 : 28,
           background: `linear-gradient(to top, ${fx.colorA}00, ${fx.colorA} 30%, #fff)`,
         }}
       />
       <span
         className="absolute left-1/2 -translate-x-1/2 dg-beam-down blur-[2px]"
         style={{
-          top: 0, height: '48%', width: fx.winner === 'rival' ? 44 : 28,
+          top: 0, height: `${CLASH_Y}%`, width: fx.winner === 'rival' ? 44 : 28,
           background: `linear-gradient(to bottom, ${fx.colorR}00, ${fx.colorR} 30%, #fff)`,
         }}
       />
@@ -392,8 +404,9 @@ function ClashOverlay({ fx }: { fx: ClashFx }) {
       <span
         className="absolute left-1/2 dg-drift"
         style={{
-          top: '50%', width: 116, height: 116, marginLeft: -58, marginTop: -58,
-          ['--dg-top' as string]: `${50 + push}%`,
+          top: `${CLASH_Y}%`, width: 116, height: 116, marginLeft: -58, marginTop: -58,
+          ['--dg-from' as string]: `${CLASH_Y}%`,
+          ['--dg-top' as string]: `${CLASH_Y + push}%`,
         }}
       >
         <span

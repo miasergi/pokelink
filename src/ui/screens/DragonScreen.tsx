@@ -9,8 +9,9 @@ import BattleView from '@/ui/dragon/BattleView'
 import DragonOnboarding, { markOnboarded, shouldShowOnboarding } from '@/ui/dragon/Onboarding'
 import {
   EndView, IntroView, MapView, MasterView, OutcomeView, RecruitSwapSheet,
-  ShopView, TeamView, TitleView, WishView,
+  ShopView, TitleView, WishView,
 } from '@/ui/dragon/DragonViews'
+import TeamView from '@/ui/dragon/TeamView'
 
 /** Aviso efímero de lo que acaba de pasar (recompensa, deseo, entrenamiento). */
 function Toast() {

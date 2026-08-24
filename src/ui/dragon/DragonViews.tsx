@@ -1,18 +1,15 @@
-// Todas las vistas del modo salvo el combate: título, mapa, nodo, resumen,
-// equipo, tienda, deseo y final.
+// Vistas del modo salvo el combate y el equipo, que tienen fichero propio:
+// título, intro, mapa, maestro, resumen, tienda, deseo y final.
 import { useState } from 'react'
 import { getFighter, STARTERS } from '@/data/dragon/fighters'
 import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
-import { getItem, ITEMS } from '@/data/dragon/items'
-import { getForm } from '@/data/dragon/transformations'
-import { bondsFor, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
+import { getItem, ITEMS, itemEffect, itemFamily, itemIcon } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
 import {
   availableNodes, avgLevel, BALLS_FOR_WISH, BOSS_LAYER, TEAM_MAX, WISHES,
 } from '@/engine/dragon/run'
-import { fighterMaxHp, itemLevel } from '@/engine/dragon/roster'
-import { afterOutcome, dragonSummary, fieldItems, useDragon } from '@/state/dragonStore'
-import { Avatar, FighterRow, Header, sceneBg, Scouter, Zeni } from './Bits'
+import { afterOutcome, dragonSummary, useDragon } from '@/state/dragonStore'
+import { Avatar, Header, sceneBg, Scouter, TeamStrip, Zeni } from './Bits'
 import MapBoard from './MapBoard'
 import NodePreview from './NodePreview'
 import Icon from '@/ui/components/Icon'
@@ -187,12 +184,17 @@ export function MapView() {
         </span>
         <span className="inline-flex items-center gap-1">
           <Icon name="people" className="w-3 h-3" />
-          {save.team.filter((f) => f.hp > 0).length}/{save.team.length} en pie
+          {save.team.length}/{TEAM_MAX} luchadores
         </span>
       </div>
 
       {/* El tablero: la salida arriba y el jefe abajo, como el resto del juego */}
       <MapBoard save={save} alcanzables={abiertas} onPick={(n) => pickNode(n.id)} />
+
+      {/* El equipo, siempre a la vista. Tocar abre la ficha completa. */}
+      <div className="shrink-0 border-t border-slate-800/70">
+        <TeamStrip team={save.team} max={TEAM_MAX} onOpen={openTeam} />
+      </div>
 
       {node && (
         <NodePreview node={node} save={save} onEnter={confirmNode} onClose={leaveNode} />
@@ -334,131 +336,6 @@ export function OutcomeView() {
 
 // ------------------------------------------------------------- equipo ---
 
-export function TeamView() {
-  const { save, closeTeam, equip, useField } = useDragon()
-  const [sel, setSel] = useState<string | null>(null)
-  if (!save) return null
-  const equipables = Object.entries(save.bag)
-    .map(([id, n]) => ({ item: getItem(id)!, n }))
-    .filter((x) => x.item?.kind === 'equipo' && x.n > 0)
-  const curas = fieldItems(save)
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <Header
-        title="Tu equipo"
-        sub={`${save.zeni} zeni · nivel medio ${avgLevel(save)}`}
-        onBack={closeTeam}
-      />
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {save.team.map((f) => (
-          <div key={f.uid}>
-            <FighterRow
-              f={f}
-              saga={save.saga}
-              selected={sel === f.uid}
-              onClick={() => setSel(sel === f.uid ? null : f.uid)}
-              right={
-                f.item ? (
-                  <span className="text-[10px] text-amber-300 shrink-0 max-w-[70px] truncate">
-                    {getItem(f.item)?.name}
-                  </span>
-                ) : undefined
-              }
-            />
-            {sel === f.uid && (
-              <div className="mt-1.5 ml-2 rounded-xl bg-slate-900/70 p-3 space-y-2">
-                {(() => {
-                  const rasgo = getTrait(TRAIT_BY_FIGHTER[f.baseId] ?? '')
-                  const vinculos = bondsFor(f.baseId, save.team.map((x) => x.baseId))
-                  return (
-                    <>
-                      {rasgo && (
-                        <div>
-                          <span className="text-[11px] font-bold text-purple-300">{rasgo.name}</span>
-                          <span className="text-[11px] text-slate-400"> · {rasgo.desc}</span>
-                        </div>
-                      )}
-                      {vinculos.map((v) => (
-                        <div key={v.name} className="text-[11px]">
-                          <span className="font-bold text-emerald-300">{v.name}</span>
-                          <span className="text-slate-400"> · {v.desc}</span>
-                        </div>
-                      ))}
-                    </>
-                  )
-                })()}
-                <div className="text-[11px] text-slate-400">
-                  {f.techniques.map((t) => {
-                    const lv = f.techLevels?.[t] ?? 0
-                    const n = getTechnique(t)?.name
-                    return n ? (lv ? `${n} V${lv + 1}` : n) : null
-                  }).filter(Boolean).join(' · ')}
-                </div>
-                {!!f.forms.length && (
-                  <div className="text-[11px] text-amber-300">
-                    Transformaciones: {f.forms.map((id) => getForm(id)?.name).filter(Boolean).join(' · ')}
-                  </div>
-                )}
-
-                <div>
-                  <div className="text-[11px] text-slate-400 mb-1">Objeto</div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {f.item && (
-                      <button
-                        type="button"
-                        onClick={() => equip(f.uid, undefined)}
-                        className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 active:bg-slate-700"
-                      >
-                        Quitar {getItem(f.item)?.name}
-                      </button>
-                    )}
-                    {equipables.map(({ item, n }) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => equip(f.uid, item.id)}
-                        className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 active:bg-slate-700"
-                      >
-                        {item.name} ×{n}
-                      </button>
-                    ))}
-                    {!equipables.length && !f.item && (
-                      <span className="text-[11px] text-slate-500">Nada en la bolsa.</span>
-                    )}
-                  </div>
-                </div>
-
-                {!!curas.length && (
-                  <div>
-                    <div className="text-[11px] text-slate-400 mb-1">Usar ahora</div>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {curas.map(({ item, n }) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => useField(item.id, f.uid)}
-                          className="text-[11px] px-2 py-1 rounded-lg bg-emerald-900/60 active:bg-emerald-800"
-                        >
-                          {item.name} ×{n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="text-[10px] text-slate-500">
-                  PS {Math.max(0, Math.round(f.hp))}/{fighterMaxHp(f)}
-                  {f.item && itemLevel(f) > 0 && ` · ${getItem(f.item)?.name} +${itemLevel(f)}`}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ------------------------------------------------------------- tienda ---
 
 export function ShopView() {
@@ -469,26 +346,52 @@ export function ShopView() {
     <div className="flex flex-col flex-1 min-h-0">
       <Header
         title="Tienda"
-        sub={`${save.zeni} zeni`}
+        sub="Los equipables se llevan puestos; los consumibles se gastan"
         // Salir RESUELVE el nodo: no se puede entrar y salir para farmear.
         onBack={leaveShop}
       />
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {genero.map((it) => (
-          <button
-            key={it.id}
-            type="button"
-            onClick={() => buy(it.id)}
-            disabled={save.zeni < it.price}
-            className="w-full text-left rounded-xl bg-slate-800/70 active:bg-slate-700 p-3 disabled:opacity-40"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-[13px] flex-1 truncate">{it.name}</span>
-              <Zeni n={it.price} className="text-[12px] text-amber-300" />
-            </div>
-            <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{it.desc}</div>
-          </button>
-        ))}
+        {/* Cada artículo dice a QUÉ FAMILIA pertenece y QUÉ HACE en números:
+            sin eso, la tienda era una lista de nombres bonitos. */}
+        {genero.map((it) => {
+          const fam = itemFamily(it)
+          const caro = save.zeni < it.price
+          return (
+            <button
+              key={it.id}
+              type="button"
+              onClick={() => buy(it.id)}
+              disabled={caro}
+              className="w-full text-left rounded-2xl bg-slate-800/70 active:bg-slate-700 p-3 disabled:opacity-40 transition active:scale-[0.99]"
+              style={{ boxShadow: `inset 0 0 0 1px ${fam.color}33` }}
+            >
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="grid place-items-center rounded-xl shrink-0"
+                  style={{ width: 38, height: 38, background: `${fam.color}22` }}
+                >
+                  <Icon name={itemIcon(it)} className="w-5 h-5" style={{ color: fam.color }} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-[13px] truncate">{it.name}</span>
+                    <span
+                      className="text-[8.5px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                      style={{ background: `${fam.color}22`, color: fam.color }}
+                    >
+                      {fam.label}
+                    </span>
+                  </div>
+                  <div className="text-[11.5px] text-emerald-300 leading-snug">
+                    {itemEffect(it).join(' · ')}
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 leading-snug">{it.desc}</div>
+                </div>
+                <Zeni n={it.price} className={`text-[12px] shrink-0 ${caro ? 'text-red-400' : 'text-amber-300'}`} />
+              </div>
+            </button>
+          )
+        })}
       </div>
       <div className="p-3 shrink-0 flex gap-2">
         <button

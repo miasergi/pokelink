@@ -11,6 +11,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.65',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: batallas con escenario, equipo a la vista y objetos claros',
+    changes: [
+      'EL EQUIPO, SIEMPRE VISIBLE: una barra bajo el mapa con la cara y la vida de cada luchador, y los HUECOS LIBRES pintados — así se ve el tope de cuatro sin que nadie lo explique. Tocarla abre la ficha completa.',
+      'PANTALLA DE EQUIPO como la de Pokémon e Inazuma: cada luchador con su retrato, su barra de vida, su nivel y lo que lleva encima; y al seleccionarlo, sus atributos en barras, su carácter, sus vínculos, sus técnicas (con el nivel V2/V3) y las transformaciones que ha despertado.',
+      'OBJETOS QUE SE ENTIENDEN: dos familias y nada más. Los EQUIPABLES se llevan puestos (uno por luchador) y los CONSUMIBLES se gastan. Cada uno dice lo que hace EN NÚMEROS («+20 % de poder», «Cura el 100 % de la vida»), y ese texto se genera desde sus datos, así que no puede mentir.',
+      'La bolsa va separada por familias, con el icono de lo que hace cada objeto, quién lo lleva puesto y el verbo claro: Equipar o Usar.',
+      'Y fuera el Radar del Dragón, que ni se vendía ni hacía nada: estaba en el catálogo ocupando sitio.',
+      'LAS BATALLAS YA SON UNA ESCENA: escenario propio de cada saga con horizonte, suelo en perspectiva y ambiente (las agujas de Namek con sus tres soles, el skyline de la ciudad, el mar de nubes del templo), y los dos luchadores ENFRENTADOS de cuerpo entero, el rival arriba y tú abajo más cerca de la cámara.',
+      'Barras de vida y ki con presencia: el trozo que pierdes se queda un instante en fantasma antes de caer, así se ve CUÁNTO te han quitado y no solo cuánto queda.',
+      'La transformación ya no es solo el estallido: mientras dure, el aura late alrededor del retrato.',
+      'Y el registro de la pelea se recoge a una franja de tres líneas, para que el protagonismo sea el combate y no el texto.',
+    ],
+  },
+  {
     version: 'v6.64',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: el mapa se entiende y el combate se ve',

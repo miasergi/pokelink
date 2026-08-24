@@ -1,6 +1,12 @@
-// Objetos. Dos familias:
-//  - `equipo`: se lleva puesto y multiplica atributos.
-//  - `uso`: se gasta EN COMBATE y consume el turno (menos el radar, que es de mapa).
+// Objetos. DOS FAMILIAS Y NADA MÁS, porque la primera versión no se entendía:
+//  - EQUIPABLE (`equipo`): se lleva puesto, uno por luchador, y sube atributos
+//    mientras lo lleve. No se gasta.
+//  - CONSUMIBLE (`uso`): se gasta al usarlo y desaparece. Cura, devuelve ki o
+//    levanta a un caído.
+//
+// Y una regla para que se entiendan sin leerse la descripción: lo que hace cada
+// objeto se GENERA desde sus datos (`itemEffect`), no se escribe a mano. Así la
+// etiqueta no puede mentir ni quedarse vieja al retocar un número.
 //
 // Los multiplicadores son PORCENTAJE, nunca puntos planos. En Inazuma medimos
 // que los bonus planos valen literalmente cero en cuanto los atributos suben;
@@ -112,12 +118,67 @@ export const ITEMS: Item[] = [
     heal: 60, revive: true, field: true,
     desc: 'Levanta a un compañero debilitado con parte de sus fuerzas.',
   },
-  {
-    id: 'radar', name: 'Radar del Dragón', kind: 'uso', price: 2000,
-    field: true,
-    desc: 'Detecta una Bola de Dragón en el tramo actual. Se queda contigo.',
-  },
 ]
+
+/** Nombre de cada atributo tal como se lee en la ficha. */
+const STAT_LABEL: Record<StatKey, string> = {
+  poder: 'poder',
+  ki: 'ki',
+  defensa: 'defensa',
+  velocidad: 'velocidad',
+  aguante: 'aguante',
+}
+
+/**
+ * Qué hace el objeto, en frases cortas y SACADAS DE SUS PROPIOS DATOS. Si
+ * mañana cambia un multiplicador, la etiqueta cambia sola.
+ */
+export function itemEffect(it: Item): string[] {
+  const out: string[] = []
+  for (const k of Object.keys(it.stats ?? {}) as StatKey[]) {
+    const v = it.stats![k]!
+    const pct = Math.round((v - 1) * 100)
+    out.push(`${pct > 0 ? '+' : ''}${pct} % de ${STAT_LABEL[k]}`)
+  }
+  if (it.startKi) out.push(`Empiezas cada combate con +${it.startKi} de ki`)
+  if (it.revive) out.push(`Levanta a un compañero caído con el ${it.heal ?? 50} % de vida`)
+  else if (it.heal) out.push(`Cura el ${it.heal} % de la vida`)
+  if (it.ki) out.push(`Devuelve ${it.ki} de ki`)
+  if (it.train) out.push(`+${it.train} nivel${it.train > 1 ? 'es' : ''} extra por combate ganado`)
+  return out
+}
+
+/**
+ * Icono por lo que HACE, no por su nombre: un objeto nuevo entra ya con el
+ * suyo. Mismo criterio que `itemIconName` en Inazuma.
+ */
+export function itemIcon(it: Item): string {
+  if (it.kind === 'uso') {
+    if (it.revive) return 'lifebuoy'
+    if (it.heal) return 'potion'
+    return 'drink'
+  }
+  const s = it.stats ?? {}
+  if (it.train) return 'dumbbell'
+  if ((s.poder ?? 1) > 1) return 'swords'
+  if ((s.defensa ?? 1) > 1) return 'shield'
+  if ((s.velocidad ?? 1) > 1) return 'boot'
+  if ((s.ki ?? 1) > 1) return 'spark'
+  if (it.startKi) return 'bolt'
+  return 'jersey'
+}
+
+/** El verbo de la acción, que es como el resto de la app distingue familias. */
+export function itemVerb(it: Item): string {
+  return it.kind === 'equipo' ? 'Equipar ›' : 'Usar ›'
+}
+
+/** Etiqueta de familia, para que la diferencia se vea de un vistazo. */
+export function itemFamily(it: Item): { label: string; color: string; hint: string } {
+  return it.kind === 'equipo'
+    ? { label: 'EQUIPABLE', color: '#38bdf8', hint: 'Se lleva puesto. Uno por luchador.' }
+    : { label: 'CONSUMIBLE', color: '#4ade80', hint: 'Se gasta al usarlo y desaparece.' }
+}
 
 const BY_ID = new Map(ITEMS.map((i) => [i.id, i]))
 
@@ -127,7 +188,7 @@ export function getItem(id: string): Item | undefined {
 
 /** Lo que vende la tienda en un tramo dado (la variedad sube con la saga). */
 export function stockFor(saga: number, rngPick: <T>(a: readonly T[]) => T): Item[] {
-  const pool = ITEMS.filter((i) => i.id !== 'radar')
+  const pool = ITEMS.slice()
   const out: Item[] = []
   // Siempre hay algo con lo que curarse: una tienda sin cura es una trampa.
   out.push(saga >= 2 ? BY_ID.get('semilla')! : BY_ID.get('semilla_media')!)

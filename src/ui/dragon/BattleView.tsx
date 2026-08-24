@@ -1,7 +1,16 @@
-// El combate, contado. El motor va por delante generando el log y esta vista
-// lo REVELA a su ritmo (ver el ticker de `dragonStore`), así que se lee como
-// una retransmisión y no como un volcado. Tú solo apareces en los momentos
+// El combate, contado Y VISTO. El motor va por delante generando el log y esta
+// vista lo REVELA a su ritmo (ver el ticker de `dragonStore`), así que se lee
+// como una retransmisión y no como un volcado. Tú solo apareces en los momentos
 // clave: la jugada de cada asalto, el choque de rayos y el relevo.
+//
+// La pantalla se reparte en tres franjas, de arriba abajo:
+//   1. LA ESCENA: el escenario de la saga (`SceneBackdrop`) con los dos
+//      luchadores enfrentados y sus constantes vitales encima.
+//   2. EL RELATO: tres o cuatro líneas con desvanecido. Ni una más: el texto
+//      se comía la pantalla y el protagonismo es de la escena.
+//   3. LAS DECISIONES: siempre abajo, siempre accesibles.
+// El contrato con el motor no se toca: se lee `battle.log.slice(0, revealed)` y
+// las opciones salen de `battle.decision` cuando ya se ha revelado todo.
 import { useEffect, useRef } from 'react'
 import Icon from '@/ui/components/Icon'
 import { getTechnique } from '@/data/dragon/techniques'
@@ -9,7 +18,7 @@ import { getSaga } from '@/data/dragon/sagas'
 import { ally, foe, oddsStars } from '@/engine/dragon/battle'
 import { useDragon } from '@/state/dragonStore'
 import type { Battle, BattleEvent, DecisionOption } from '@/engine/dragon/types'
-import { CombatantPanel, hpColor, MiniFighter, sceneBg } from './Bits'
+import { MiniFighter, SceneBackdrop, sceneBg, StageFighter, VitalStrip } from './Bits'
 import { DragonFXLayer, useDragonFX } from './DragonFX'
 
 /** Traduce un evento del motor a la línea que lee el jugador. */
@@ -163,30 +172,82 @@ export default function BattleView() {
           </button>
         </div>
 
-        {/* Rival */}
-        <div className="px-3 pt-3">
-          <CombatantPanel c={enemy} saga={save.saga} enemy />
-          {(bancoRival.length > 0 || (battle.phases?.length ?? 0) > 0) && (
-            <div className="flex items-center justify-end gap-1.5 mt-1">
-              {battle.phases && battle.phases.length > 0 && (
-                <span className="text-[10px] text-slate-500">
-                  Fase {battle.bossPhase + 1} de {battle.phases.length + 1}
-                </span>
+        {/* LA ESCENA. Antes esto era «panel del rival / muro de texto / panel
+            tuyo»: se leía, pero no se veía nada. Ahora hay un sitio —con su
+            horizonte y su suelo— y los dos luchadores plantados en él, el rival
+            al fondo a la derecha y tú delante a la izquierda: más grande, más
+            cerca de la cámara, para que se lea de un vistazo quién es quién.
+            La altura va tasada (`min(40vh…)`) porque debajo tienen que caber
+            SIEMPRE el relato y las decisiones sin scroll incómodo. */}
+        <div className="relative shrink-0 overflow-hidden" style={{ height: 'min(40vh, 300px)', minHeight: 200 }}>
+          <SceneBackdrop scene={battle.scene} />
+
+          {/* El rival, al fondo: más pequeño porque está más lejos, y espejado
+              para que mire hacia ti. */}
+          <div className="absolute" style={{ right: '9%', top: '3%' }}>
+            <StageFighter c={enemy} size={76} flip delay={1.1} />
+          </div>
+          {/* Tú, en primer término. */}
+          <div className="absolute" style={{ left: '7%', bottom: '4%' }}>
+            <StageFighter c={me} size={100} />
+          </div>
+
+          {/* Constantes vitales: cada panel en la esquina CONTRARIA a su dueño,
+              que es donde no le tapa la cara a nadie. Van DESPUÉS de los
+              luchadores en el DOM a propósito: en una pantalla muy baja el
+              panel se superpone al retrato en vez de que el retrato tape la
+              información, que es lo que no se puede perder. */}
+          <div className="absolute top-1.5 left-2 w-[56%] max-w-[15rem]">
+            <VitalStrip
+              c={enemy}
+              saga={save.saga}
+              extra={(bancoRival.length > 0 || (battle.phases?.length ?? 0) > 0) && (
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  {battle.phases && battle.phases.length > 0 && (
+                    <span className="text-[10px] text-slate-400">
+                      Fase {battle.bossPhase + 1} de {battle.phases.length + 1}
+                    </span>
+                  )}
+                  {bancoRival.map((c) => <MiniFighter key={c.uid} c={c} />)}
+                </div>
               )}
-              {bancoRival.map((c) => <MiniFighter key={c.uid} c={c} />)}
-            </div>
-          )}
+            />
+          </div>
+          <div className="absolute bottom-1.5 right-2 w-[56%] max-w-[15rem]">
+            <VitalStrip
+              c={me}
+              saga={save.saga}
+              align="right"
+              extra={banco.length > 0 && (
+                <div className="flex items-center justify-end gap-1.5 mt-1 flex-wrap">
+                  {banco.map((c) => <MiniFighter key={c.uid} c={c} withName />)}
+                </div>
+              )}
+            />
+          </div>
         </div>
 
-        {/* Retransmisión */}
-        <div ref={logRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 my-1 space-y-1 text-[12.5px] leading-snug">
-          {lines.slice(-40).map((l, i) => (
+        {/* LA RETRANSMISIÓN, en su franja. Sigue siendo el mismo relato revelado
+            (`battle.log.slice(0, revealed)`) y el mismo autoscroll, pero acotado
+            a tres o cuatro líneas con las de arriba desvaneciéndose: lo que
+            manda ahora es la escena, no el texto. */}
+        <div
+          ref={logRef}
+          className="shrink-0 overflow-y-auto no-scrollbar px-3 py-1.5 space-y-0.5 text-[12.5px] leading-snug border-y border-slate-800/70 bg-slate-950/45"
+          style={{
+            maxHeight: '4.7rem',
+            maskImage: 'linear-gradient(to bottom, transparent, #000 26%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent, #000 26%)',
+          }}
+        >
+          {lines.slice(-40).map((l, i, arr) => (
             <div
               key={`${i}-${l}`}
               className={
                 DESTACADO.test(l) ? 'text-amber-300 font-semibold'
-                  : /encaja|ya no puede/.test(l) ? 'text-slate-400'
-                    : 'text-slate-200'
+                  : i === arr.length - 1 ? 'text-slate-100'
+                    : /encaja|ya no puede/.test(l) ? 'text-slate-400'
+                      : 'text-slate-300'
               }
             >
               {l}
@@ -194,28 +255,8 @@ export default function BattleView() {
           ))}
         </div>
 
-        {/* Tú */}
-        <div className="px-3 pb-2">
-          <CombatantPanel c={me} saga={save.saga} />
-          {banco.length > 0 && (
-            <div className="flex gap-1.5 mt-2">
-              {banco.map((c) => (
-                <div key={c.uid} className="flex-1 rounded-lg bg-slate-800/60 px-2 py-1">
-                  <div className="text-[10px] font-semibold truncate">{c.name}</div>
-                  <div className="w-full rounded-full bg-slate-900 overflow-hidden" style={{ height: 4 }}>
-                    <div
-                      className="h-full transition-all duration-300"
-                      style={{ width: `${(c.hp / c.hpMax) * 100}%`, background: hpColor(c.hp / c.hpMax) }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Pie: o el final, o el momento clave, o el relato corriendo */}
-        <div className="px-3 pb-3 shrink-0">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-2 pb-3">
           {battle.over && !contando ? (
             <button
               type="button"
@@ -235,7 +276,9 @@ export default function BattleView() {
                   El rival viene con {rivalTech.name}.
                 </div>
               )}
-              <div className="max-h-56 overflow-y-auto space-y-1.5">
+              {/* Sin scroll propio: el que manda es el del pie, así no hay dos
+                  barras anidadas peleándose en una pantalla de móvil. */}
+              <div className="space-y-1.5">
                 {d.options.map((o) => (
                   <OptionButton key={o.id} o={o} ki={me.ki} onPick={() => decide(o.id)} />
                 ))}
