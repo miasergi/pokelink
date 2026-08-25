@@ -18,7 +18,7 @@ import { effectivenessLabel, elementMultiplier, ELEMENT_INFO } from './elements'
 import { fatigueMultiplier, tacticEffects } from './roster'
 import { getTactic } from '@/data/inazuma/tactics'
 import type { TacticEffect } from '@/data/inazuma/tactics'
-import { COMBO_BY_TECHNIQUE, COMBO_COST_MULT, COMBO_PARTNER_STAMINA, comboTechnique, launchableCombos, type Combo } from '@/data/inazuma/combos'
+import { COMBO_BY_TECHNIQUE, COMBO_COST_MULT, COMBO_PARTNER_STAMINA, comboTechnique, launchableCombos, person, type Combo } from '@/data/inazuma/combos'
 import { getTechnique } from '@/data/inazuma/techniques'
 import type {
   Actor, ChainStep, Decision, DecisionMode, DecisionOption, Element, MatchEvent, MatchSide,
@@ -336,25 +336,31 @@ function pickRotating(pool: Actor[], rng: RNG): Actor {
 }
 
 /** Sin LESIONADOS: un jugador roto no disputa lances (está en la banda). */
-const sanos = (pool: Actor[]): Actor[] => {
-  const ok = pool.filter((a) => !a.injured)
-  return ok.length ? ok : pool
-}
+const sanos = (pool: Actor[]): Actor[] => pool.filter((a) => !a.injured)
 
 /** Escoge al defensor que corresponde al eslabón actual. */
 function defenderFor(step: ChainStep, def: MatchSide, rng: RNG): Actor {
   if (step === 'definicion') return def.keeper
-  const pool = sanos(step === 'construccion'
-    ? (def.mids.length ? def.mids : def.defs)
-    : (def.defs.length ? def.defs : def.mids))
-  return pool.length ? pickRotating(pool, rng) : def.keeper
+  // EN CASCADA y siempre entre SANOS: si toda una línea está rota se tira de
+  // la siguiente, y solo sin nadie sano en el campo queda el portero. Antes,
+  // con una línea entera lesionada, el filtro devolvía el pool CON lesionados
+  // y los de la banda «seguían jugando».
+  const lines = step === 'construccion' ? [def.mids, def.defs, def.fwds] : [def.defs, def.mids, def.fwds]
+  for (const line of lines) {
+    const ok = sanos(line)
+    if (ok.length) return pickRotating(ok, rng)
+  }
+  return def.keeper
 }
 
 /** Escoge al que recibe el balón para atacar el área. */
 function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
-  if (step === 'construccion') return pickRotating(sanos(atk.mids.length ? atk.mids : allActors(atk)), rng)
-  const pool = sanos(atk.fwds.length ? atk.fwds : atk.mids)
-  return pool.length ? pickRotating(pool, rng) : atk.keeper
+  const lines = step === 'construccion' ? [atk.mids, atk.fwds, atk.defs] : [atk.fwds, atk.mids, atk.defs]
+  for (const line of lines) {
+    const ok = sanos(line)
+    if (ok.length) return pickRotating(ok, rng)
+  }
+  return atk.keeper
 }
 
 /**
@@ -366,9 +372,12 @@ function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
 function injuryCheck(m: MatchState, out: MatchEvent[], a: Actor, side: Side, rng: RNG): void {
   if (a.injured) return
   // Fresco NO te rompes: el dado solo existe por debajo de 60 de aguante
-  // (0 % → 5 % a medida que te vacías), y quedarse a CERO sigue siendo
-  // lesión segura. El calibrado anterior (1-8 % desde fresco) llovía.
-  const p = a.stamina <= 0 ? 1 : a.stamina >= 60 ? 0 : 0.05 * (1 - a.stamina / 60)
+  // (0 % → 3.5 % a medida que te vacías), y quedarse a CERO sigue siendo
+  // lesión segura. Recalibrado a la baja (5 → 3.5) al SELLAR de verdad a los
+  // lesionados: antes «seguían jugando» si caía la línea entera, y al
+  // arreglarlo los partidos con lesiones pasaron a jugarse en inferioridad
+  // real — la banda del bot se desplomó a 0/150 títulos.
+  const p = a.stamina <= 0 ? 1 : a.stamina >= 60 ? 0 : 0.035 * (1 - a.stamina / 60)
   if (p <= 0 || !rng.chance(p)) return
   a.injured = true
   out.push({
@@ -470,6 +479,23 @@ function executeDuel(
   attacker: Actor, defender: Actor,
   atkTech: Technique | undefined, defTech: Technique | undefined,
 ): void {
+  // La LESIÓN se anuncia AL FINAL de la jugada, no en mitad: antes el «¡X se
+  // ha lesionado!» salía ANTES que el propio duelo que la causaba, y parecía
+  // que el lesionado seguía jugando tan campante.
+  const lesiones: MatchEvent[] = []
+  try {
+    executeDuelInner(m, rng, out, attacker, defender, atkTech, defTech, lesiones)
+  } finally {
+    out.push(...lesiones)
+  }
+}
+
+function executeDuelInner(
+  m: MatchState, rng: RNG, out: MatchEvent[],
+  attacker: Actor, defender: Actor,
+  atkTech: Technique | undefined, defTech: Technique | undefined,
+  lesiones: MatchEvent[],
+): void {
   const chain = m.chain!
   const step = chain.step
   const atkSide = sideOf(m, chain.side)
@@ -520,8 +546,9 @@ function executeDuel(
     if (sprinter) sprinter.stamina = Math.max(0, sprinter.stamina - 15)
     chain.sprint = undefined
   }
-  // El PERDEDOR del choque es quien arriesga el físico.
-  injuryCheck(m, out, r.success ? defender : attacker, r.success ? otherSide(chain.side) : chain.side, rng)
+  // El PERDEDOR del choque es quien arriesga el físico. El aviso se guarda y
+  // se cuenta AL CIERRE de la jugada (ver `executeDuel`).
+  injuryCheck(m, lesiones, r.success ? defender : attacker, r.success ? otherSide(chain.side) : chain.side, rng)
 
   // Rachas: el ganador suma, el perdedor se apaga. A 2 seguidos, EN LLAMAS.
   {
@@ -560,7 +587,13 @@ function executeDuel(
     // Tiro lejano: el que dispara NO está en el borde del área, y el campo
     // tiene que pintarlo donde de verdad estaba.
     longShot: chain.longShot && step === 'definicion' ? true : undefined,
-    text: duelText(step, attacker, defender, atkTech, defTech, r.success, r.effectiveness),
+    text: duelText(
+      step, attacker, defender, atkTech, defTech, r.success, r.effectiveness,
+      // Tiro lejano que YA superó el cruce (rozado): el chut se contó en el
+      // `longshotKick` — este duelo es la CONTINUACIÓN del mismo balón, no
+      // un disparo nuevo (antes se narraba «X dispara» dos veces).
+      chain.longShot === true && step === 'definicion' && chain.longShotPower !== undefined,
+    ),
   })
 
   // EL MOMENTO DEL PORTERO: si intentó una técnica ante el disparo, tiene su
@@ -651,13 +684,18 @@ function executeDuel(
     // marcha por la BANDA, el corte es FALTA, o la entrada dentro del área es
     // ¡PENALTI! (que concede un disparo limpio contra el portero con la
     // maquinaria normal de definición: cinemática, parada y córner incluidos).
+    // Si el perdedor acaba de LESIONARSE, cualquier continuación de la jugada
+    // (saque de banda, falta, penalti, presión) la juega un compañero SANO:
+    // el de la banda no vuelve a tocarla.
+    const relevo = attacker.injured ? attackerFor(step, atkSide, rng) : attacker
     if (step === 'construccion' && rng.chance(0.15)) {
       out.push({
         kind: 'possession',
         minute: m.minute,
         side: chain.side,
-        text: `¡El balón se marcha por la banda! Saque para ${atkSide.name}: la vuelve a jugar ${attacker.name}.`,
+        text: `¡El balón se marcha por la banda! Saque para ${atkSide.name}: la vuelve a jugar ${relevo.name}.`,
       })
+      chain.carrier = relevo.uid
       chain.defenderUid = defenderFor(step, defSide, rng).uid
       exhaustionCheck(m, out, attacker)
       return
@@ -667,8 +705,9 @@ function executeDuel(
         kind: 'possession',
         minute: m.minute,
         side: chain.side,
-        text: `¡Falta de ${defender.name}! Libre a favor: ${attacker.name} la pone en juego.`,
+        text: `¡Falta de ${defender.name}! Libre a favor: ${relevo.name} la pone en juego.`,
       })
+      chain.carrier = relevo.uid
       chain.defenderUid = defenderFor(step, defSide, rng).uid
       exhaustionCheck(m, out, attacker)
       return
@@ -678,10 +717,10 @@ function executeDuel(
         kind: 'possession',
         minute: m.minute,
         side: chain.side,
-        text: `¡¡PENALTI!! ${defender.name} derriba a ${attacker.name} dentro del área. Lo lanza ${attacker.name}…`,
+        text: `¡¡PENALTI!! ${defender.name} derriba a ${attacker.name} dentro del área. Lo lanza ${relevo.name}…`,
       })
       chain.step = 'definicion'
-      chain.carrier = attacker.uid
+      chain.carrier = relevo.uid
       chain.defenderUid = defSide.keeper.uid
       chain.momentum += 0.15
       exhaustionCheck(m, out, attacker)
@@ -700,6 +739,7 @@ function executeDuel(
         side: chain.side,
         text: `¡${atkSide.name} no deja respirar! Roba de vuelta al instante y sigue la jugada.`,
       })
+      chain.carrier = relevo.uid
       chain.defenderUid = defenderFor(step, defSide, rng).uid
       exhaustionCheck(m, out, attacker)
       return
@@ -789,8 +829,9 @@ function pickComboPartners(side: MatchSide, actor: Actor, combo: Combo, pitch: A
   }
   for (const mId of combo.members) {
     if (partners.length >= needed) break
-    if (mId === actor.baseId) continue
-    const a = pool.find((x) => x.baseId === mId && !partners.includes(x))
+    // La misma PERSONA en otra época también es canon (jude-sharp-2 es Jude).
+    if (person(mId) === person(actor.baseId)) continue
+    const a = pool.find((x) => person(x.baseId) === person(mId) && !partners.includes(x))
     if (a) partners.push(a)
   }
   const statKey = combo && getTechnique(combo.techniqueId)?.kind === 'regate' ? 'control' : 'tiro'
@@ -801,10 +842,12 @@ function pickComboPartners(side: MatchSide, actor: Actor, combo: Combo, pitch: A
   return partners.length >= needed ? partners : null
 }
 
-/** AFINIDAD: el que lanza y sus compañeros son EXACTAMENTE los de la serie. */
+/** AFINIDAD: el que lanza y sus compañeros son EXACTAMENTE los de la serie
+ * (contando cada época del personaje como la misma persona). */
 function comboAfinidad(actor: Actor, partners: Actor[], combo: Combo): boolean {
-  return combo.members.every((mId) => mId === actor.baseId || partners.some((p) => p.baseId === mId))
-    && combo.members.includes(actor.baseId)
+  const p = (id: string) => person(id)
+  return combo.members.every((mId) => p(mId) === p(actor.baseId) || partners.some((x) => p(x.baseId) === p(mId)))
+    && combo.members.some((mId) => p(mId) === p(actor.baseId))
 }
 
 function addBurst(s: MatchSide, amount: number): void {
@@ -822,6 +865,8 @@ function duelText(
   step: ChainStep, atk: Actor, def: Actor,
   atkTech: Technique | undefined, defTech: Technique | undefined,
   success: boolean, eff: number,
+  /** El tiro lejano ya contado que superó el cruce: no se re-anuncia. */
+  grazed = false,
 ): string {
   const el = effectivenessLabel(eff)
   const tail = el ? ` ${el}` : ''
@@ -841,6 +886,13 @@ function duelText(
   }
   // La definición NO adelanta el desenlace: el gol lo anuncian el evento de
   // gol y su celebración. «Fulano bate a Mengano» era un spoiler con patas.
+  // El tiro rozado tampoco se re-anuncia: MISMA frase gane o pierda, que la
+  // diferencia la cuenten el portero y el veredicto.
+  if (grazed) {
+    return success
+      ? `¡El balón sale tocado pero sigue volando hacia la puerta!${tail}`
+      : `¡El balón sale tocado pero sigue volando hacia la puerta!${block}`
+  }
   return success
     ? `${move} ¡${atk.name} arma la pierna!${tail}`
     : `${atk.name} dispara…${block}`
@@ -1302,7 +1354,9 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
         kind: 'possession',
         minute: m.minute,
         side: chain.side,
-        text: `¡${attacker.name} y ${partners.map((p) => p.name).join(' y ')} se juntan para combinar${afinidad ? '! ¡La afinidad de siempre!' : '!'}`,
+        // Con QUIÉN LA LANZA por delante: sin nombrar al que dispara, la
+        // combinada parecía cosa de nadie.
+        text: `¡Combinada! La lanza ${attacker.name}, arropado por ${partners.map((p) => p.name).join(' y ')}.${afinidad ? ' ¡La afinidad de siempre!' : ''}`,
       })
     }
   } else if (optionId === 'longshot') {

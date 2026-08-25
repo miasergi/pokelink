@@ -1494,13 +1494,15 @@ describe('coherencia', () => {
   })
 
   it('las combinadas se GANAN: hace falta despertar la técnica y tener al socio', () => {
-    // Kevin sin su cadena despierta: NO hay combo aunque estén los dos.
+    // CANON COMPLETO: con TODOS los de la serie sobre el césped (Axel y
+    // Kevin), la combinada se desbloquea aunque nadie la haya despertado —
+    // juntar al dúo canónico ya es ganársela.
     const raw = ['axel-blaze', 'kevin-dragonfly', 'mark-evans'].map((id) => {
       const pl = createPlayer(id, 5)
       return { baseId: pl.baseId, techniques: pl.techniques }
     })
     const hasCombo = (list: Combo[]) => list.some((c) => c.techniqueId === 'dragon-tornado')
-    expect(hasCombo(launchableCombos('axel-blaze', raw))).toBe(false)
+    expect(hasCombo(launchableCombos('axel-blaze', raw))).toBe(true)
     // Kevin despierta el Tornado de Dragón (2º paso de su cadena) → combo.
     const conCadena = raw.map((a) => (a.baseId === 'kevin-dragonfly'
       ? { ...a, techniques: ['dragon-crash', 'dragon-tornado'] }

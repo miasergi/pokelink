@@ -246,9 +246,12 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
         // La placa es de la técnica QUE DECIDE: en el disparo la del tirador
         // (la parada tendrá la suya al llegar), en el duelo de campo la del
         // ganador, en el cruce la del bloqueador si corta.
+        // SOLO la técnica del protagonista del momento: en el disparo la del
+        // tirador, en el duelo de campo la del GANADOR (la del perdedor
+        // aparecía como «una imagen que no toca»).
         const name = last.step === 'definicion' && !last.intercept
-          ? last.technique ?? last.counter
-          : (last.success ? last.technique ?? last.counter : last.counter ?? last.technique)
+          ? last.technique
+          : (last.success ? last.technique : last.counter)
         const uid = name === last.technique ? last.attackerUid : last.defenderUid
         const t = name ? techniqueByName(name) : undefined
         if (t) {

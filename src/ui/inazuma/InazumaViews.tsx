@@ -1,6 +1,6 @@
 // Vistas del modo fuera del partido: título, mapa del torneo, previa, vestuario
 // (plantilla), tienda, cartas de recompensa y pantallas de cierre.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -376,8 +376,6 @@ function SaveHeader({ save }: { save: InazumaSave }) {
 }
 
 function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void }) {
-  const { save } = useInazuma()
-  const items = (save?.bag.length ?? 0) + (save?.techniqueBag.length ?? 0)
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
       <Button variant="secondary" full onClick={onSquad}>
@@ -385,15 +383,11 @@ function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void
       </Button>
       {onBag && (
         // Con el icono a secas se leía como una papelera, y «tocar la papelera»
-        // asusta. Va con la palabra al lado.
+        // asusta. Va con la palabra al lado. Sin globo con el TOTAL de objetos:
+        // el numerito no aportaba nada y liaba (parecían notificaciones).
         <Button variant="secondary" full onClick={onBag}>
-          <span className="inline-flex items-center justify-center gap-1.5 relative">
+          <span className="inline-flex items-center justify-center gap-1.5">
             <Icon name="bag" className="w-4 h-4" /> Mochila
-            {items > 0 && (
-              <span className="rounded-full bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 leading-tight">
-                {items}
-              </span>
-            )}
           </span>
         </Button>
       )}
@@ -412,6 +406,10 @@ export function PreviewView() {
   // Ficha abierta al tocar una ficha de cualquiera de las dos alineaciones.
   const [inspect, setInspect] = useState<CompareBlock | null>(null)
   const [compare, setCompare] = useState<CompareBlock | null>(null)
+  // BLINDAJE anti doble-toque: el segundo tap de un doble toque caía justo
+  // donde aparece «Comparar» y abría el comparador sin querer.
+  const inspectAt = useRef(0)
+  useEffect(() => { if (inspect) inspectAt.current = Date.now() }, [inspect])
   if (!save || !matchNode) return null
   const team = getTeam(matchNode.teamId ?? 'occult')
   // En una pachanga el rival es el equipo de barrio de la casilla, NO el
@@ -570,7 +568,7 @@ export function PreviewView() {
             </button>
             <InspectCard block={inspect} />
             <div className="mt-3 flex gap-2">
-              <Button variant="secondary" full onClick={() => setCompare(inspect)}>
+              <Button variant="secondary" full onClick={() => { if (Date.now() - inspectAt.current > 350) setCompare(inspect) }}>
                 <span className="inline-flex items-center justify-center gap-1.5">
                   <Icon name="scales" className="w-4 h-4" /> Comparar
                 </span>
@@ -1095,6 +1093,9 @@ function PlayerDetail({
   const fee = transferValue(base, player.level)
   const [confirmSale, setConfirmSale] = useState(false)
   const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
+  // El segundo tap de un DOBLE TOQUE sobre la lista caía en «Comparar» de la
+  // ficha recién abierta y comparaba sin querer: los primeros 350 ms no valen.
+  const openedAt = useRef(Date.now())
   return (
     <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-3 max-h-[86svh] overflow-y-auto overscroll-contain" onClick={(e) => e.stopPropagation()}>
@@ -1269,7 +1270,7 @@ function PlayerDetail({
         {/* Mover y rotar se hacen con drag&drop en el campo: aquí solo
             queda lo que NO se puede arrastrar (comparar y vender). */}
         <div className="mt-3 flex gap-2">
-          <Button variant="secondary" full onClick={() => setCompareWith({
+          <Button variant="secondary" full onClick={() => { if (Date.now() - openedAt.current <= 350) return; setCompareWith({
             name: base.name,
             baseId: base.id,
             position: base.position,
@@ -1277,7 +1278,7 @@ function PlayerDetail({
             level: player.level,
             rarity: rarityOf(player),
             stats: effectiveStats(player),
-          })}>
+          }) }}>
             <span className="inline-flex items-center justify-center gap-1.5">
               <Icon name="scales" className="w-4 h-4" /> Comparar
             </span>
@@ -1452,6 +1453,8 @@ export function ShopView() {
 
 export function DraftView() {
   const { save, draft, draftPicks, draftFromMatch, pickDraft } = useInazuma()
+  // Comparar un FICHAJE con tu gente ANTES de decidir (sin fichar por ello).
+  const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
   if (!save) return null
   // El marcador SOLO cuando el draft viene de un partido: en la casilla de
   // objeto salía el resultado del último partido, que no pintaba nada allí.
@@ -1558,11 +1561,36 @@ export function DraftView() {
               <div className="mt-2 flex flex-col gap-1.5">
                 <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
                 <SigningExtras baseId={o.playerId} save={save} />
+                {/* Comparar SIN fichar: el div corta la burbuja — cualquier
+                    clic que suba hasta la carta es un fichaje hecho. */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="secondary"
+                    full
+                    onClick={() => {
+                      const b = getPlayerBase(o.playerId)
+                      setCompareWith({
+                        name: b.name,
+                        baseId: b.id,
+                        position: b.position,
+                        element: b.element,
+                        level: o.level,
+                        rarity: 1,
+                        stats: scaleStats(b.stats, o.level),
+                      })
+                    }}
+                  >
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <Icon name="scales" className="w-4 h-4" /> Comparar con los míos
+                    </span>
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
         ))}
       </div>
+      {compareWith && <CompareSheet a={compareWith} onClose={() => setCompareWith(null)} />}
     </div>
   )
 }
@@ -1592,7 +1620,10 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
             return (
               <span key={id} className="inline-flex items-center gap-1">
                 <span
-                  onClick={() => useTechSheet.getState().open(t)}
+                  // SIN burbuja: este chip vive dentro de la carta de fichaje
+                  // (que ficha al clicarse) — tocar la técnica para VERLA
+                  // fichaba al jugador sin querer.
+                  onClick={(e) => { e.stopPropagation(); useTechSheet.getState().open(t) }}
                   className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold cursor-pointer active:scale-95 transition"
                   style={{ color: info.color, ...rarityChipStyle(i + 1, `${info.color}12`) }}
                 >
@@ -1615,6 +1646,9 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
         return (
           <div
             key={c.techniqueId}
+            // Leer la nota del combo tampoco debe fichar (la carta entera
+            // es un botón de fichaje).
+            onClick={(e) => e.stopPropagation()}
             className={`rounded-md border px-1.5 py-1 text-[10px] leading-snug ${
               ready ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 bg-slate-800/40 text-slate-400'
             }`}

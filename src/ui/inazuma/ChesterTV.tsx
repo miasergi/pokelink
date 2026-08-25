@@ -14,61 +14,148 @@ const BASE = import.meta.env.BASE_URL
 type Mood = 'calma' | 'tension' | 'euforia' | 'drama'
 
 /** Qué dice Chester y con qué cara. FRASES CORTAS: el partido cambia rápido
- * y los párrafos del motor no daban tiempo a leerse. */
-function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
+ * y los párrafos del motor no daban tiempo a leerse.
+ *
+ * VARIEDAD: cada situación tiene varias formas de contarse y se elige una de
+ * forma DETERMINISTA por evento (minuto + protagonistas) — mismas frases en
+ * cada re-render, distintas a lo largo del partido. Sin esto, Chester sonaba
+ * a contestador automático. */
+function chester(e: MatchEvent | undefined, prev?: MatchEvent): { text: string; mood: Mood } {
   if (!e) return { text: '¡Muy buenas! Chester Horse desde la cabina.', mood: 'calma' }
   const text = 'text' in e && typeof e.text === 'string' && e.text ? e.text : ''
   const first = (n: string) => n.split(' ')[0]
+  // Semilla estable del evento: minuto y largo del texto bastan para variar.
+  const va = (opts: string[]): string => opts[Math.abs(e.minute * 7 + text.length) % opts.length]
   switch (e.kind) {
-    case 'kickoff': return { text: '¡Rueda el balón! Chester Horse, con ustedes.', mood: 'calma' }
+    case 'kickoff': return {
+      text: va([
+        '¡Rueda el balón! Chester Horse, con ustedes.',
+        '¡Arranca el partido! Aquí Chester Horse, en cabina.',
+        '¡En pie todo el mundo, que esto ya está en marcha!',
+      ]),
+      mood: 'calma',
+    }
     // Si el portero INTENTÓ una técnica y no bastó, se dice: gastó sus PT y
     // sin mención parecía que la parada nunca había existido.
     case 'goal': return {
       text: e.keeperTech
-        ? `¡GOOOOOL de ${first(e.scorer)}! ¡Ni la ${e.keeperTech} de ${first(e.keeper ?? '')} la para!`
-        : `¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡${e.technique}!` : ''}`,
+        ? va([
+          `¡GOOOOOL de ${first(e.scorer)}! ¡Ni la ${e.keeperTech} de ${first(e.keeper ?? '')} la para!`,
+          `¡La ${e.keeperTech} de ${first(e.keeper ?? '')} no basta! ¡GOOOOOL de ${first(e.scorer)}!`,
+          `¡GOL, GOL, GOOOL! ¡${first(e.scorer)} rompe la ${e.keeperTech} de ${first(e.keeper ?? '')}!`,
+        ])
+        : va([
+          `¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡${e.technique}!` : ''}`,
+          `¡GOL, GOL, GOOOL de ${first(e.scorer)}!`,
+          `¡${first(e.scorer)} la manda a la red! ¡GOOOOOL!`,
+          `¡Balón dentro! ¡GOOOOOL de ${first(e.scorer)}!${e.technique ? ` ¡Menuda ${e.technique}!` : ''}`,
+        ]),
       mood: 'euforia',
     }
     // El portero SACA su técnica: aún no se sabe si basta. Puro drama.
-    case 'keeperTry': return { text: `¡${first(e.keeper)} saca su ${e.technique}!`, mood: 'drama' }
+    case 'keeperTry': return {
+      text: va([
+        `¡${first(e.keeper)} saca su ${e.technique}!`,
+        `¡${e.technique}! ${first(e.keeper)} se juega el tipo.`,
+        `¡${first(e.keeper)} responde con su ${e.technique}!`,
+      ]),
+      mood: 'drama',
+    }
     // El CHUT lejano se canta ANTES del cruce de la defensa.
     case 'longshotKick': return {
-      text: e.technique ? `¡${first(e.shooter)} dispara desde lejos con ${e.technique}!` : `¡${first(e.shooter)} lo intenta desde lejos!`,
+      text: e.technique
+        ? va([
+          `¡${first(e.shooter)} dispara desde lejos con ${e.technique}!`,
+          `¡${e.technique} desde tres cuartos! ${first(e.shooter)} se atreve.`,
+          `¡${first(e.shooter)} lo prueba de lejos! ¡${e.technique}!`,
+        ])
+        : va([
+          `¡${first(e.shooter)} lo intenta desde lejos!`,
+          `¡Pelotazo de ${first(e.shooter)} desde su casa!`,
+        ]),
       mood: 'tension',
     }
     case 'save': return {
       text: e.technique
         // La técnica ya se contó en su momento (keeperTry): esto es el
         // VEREDICTO a secas.
-        ? `¡LA PARA! ¡Enorme ${first(e.keeper)}!`
-        : `¡${first(e.keeper)} la para!`,
+        ? va([
+          `¡LA PARA! ¡Enorme ${first(e.keeper)}!`,
+          `¡La saca ${first(e.keeper)}! ¡Qué manos!`,
+          `¡Imposible marcar ahí! ¡${first(e.keeper)} la atrapa!`,
+        ])
+        : va([
+          `¡${first(e.keeper)} la para!`,
+          `¡Buenas manos de ${first(e.keeper)}!`,
+          `¡${first(e.keeper)} dice que no!`,
+        ]),
       mood: 'drama',
     }
     case 'penalty': return { text, mood: 'tension' }
     case 'duel': {
       if (e.step === 'definicion' && !e.intercept) {
-        return { text: e.technique ? `¡${first(e.attacker)} dispara con ${e.technique}!` : `¡Dispara ${first(e.attacker)}!`, mood: 'tension' }
+        // Continuación de un tiro lejano ROZADO: el chut ya se cantó — aquí
+        // solo se sigue el vuelo (re-anunciar el disparo lo contaba doble).
+        if (prev?.kind === 'duel' && prev.intercept === true && prev.success) {
+          return {
+            text: va([
+              '¡Y aun así el balón sigue volando hacia la puerta!',
+              '¡El balón llega vivo al área! ¿Qué hará el portero?',
+            ]),
+            mood: 'tension',
+          }
+        }
+        return {
+          text: e.technique
+            ? va([
+              `¡${first(e.attacker)} dispara con ${e.technique}!`,
+              `¡${e.technique}! Dispara ${first(e.attacker)}.`,
+              `¡Allá va ${first(e.attacker)} con su ${e.technique}!`,
+            ])
+            : va([`¡Dispara ${first(e.attacker)}!`, `¡${first(e.attacker)} arma la pierna!`]),
+          mood: 'tension',
+        }
       }
       if (e.intercept) {
         return {
           text: e.success
-            ? `¡El tiro pasa rozando a ${first(e.defender)}!`
-            : `¡${first(e.defender)} bloquea${e.counter ? ` con ${e.counter}` : ''}!`,
+            ? va([
+              `¡El tiro pasa rozando a ${first(e.defender)}!`,
+              `¡${first(e.defender)} llega a tocarlo… pero el balón sigue!`,
+            ])
+            : va([
+              `¡${first(e.defender)} bloquea${e.counter ? ` con ${e.counter}` : ''}!`,
+              `¡Se cruza ${first(e.defender)}${e.counter ? ` con su ${e.counter}` : ''} y la saca!`,
+            ]),
           mood: 'tension',
         }
       }
       // Duelo de campo: regate contra corte, en una línea.
       return {
         text: e.success
-          ? `¡${first(e.attacker)} regatea${e.technique ? ` con ${e.technique}` : ''} a ${first(e.defender)}!`
-          : `¡${first(e.defender)} corta${e.counter ? ` con ${e.counter}` : ''} a ${first(e.attacker)}!`,
+          ? va([
+            `¡${first(e.attacker)} regatea${e.technique ? ` con ${e.technique}` : ''} a ${first(e.defender)}!`,
+            `¡${first(e.attacker)} se va de ${first(e.defender)}${e.technique ? ` con su ${e.technique}` : ''}!`,
+            `¡Qué recorte de ${first(e.attacker)}!${e.technique ? ` ¡${e.technique}!` : ''} ${first(e.defender)} se queda atrás.`,
+          ])
+          : va([
+            `¡${first(e.defender)} corta${e.counter ? ` con ${e.counter}` : ''} a ${first(e.attacker)}!`,
+            `¡${first(e.defender)} le roba la cartera a ${first(e.attacker)}${e.counter ? ` con su ${e.counter}` : ''}!`,
+            `¡Por ahí no! ${first(e.defender)} frena a ${first(e.attacker)}${e.counter ? ` con ${e.counter}` : ''}.`,
+          ]),
         mood: 'calma',
       }
     }
     // Una LESIÓN: mala noticia, cara de circunstancias.
     case 'injury': return { text, mood: 'drama' }
-    case 'halftime': return { text: 'Descanso. Un respiro, que falta hace.', mood: 'calma' }
-    case 'fulltime': return { text: '¡Y hasta aquí el partido, amigos!', mood: 'calma' }
+    case 'halftime': return {
+      text: va(['Descanso. Un respiro, que falta hace.', 'Al vestuario. Toca recomponerse.']),
+      mood: 'calma',
+    }
+    case 'fulltime': return {
+      text: va(['¡Y hasta aquí el partido, amigos!', '¡Pitido final! Se acabó lo que se daba.']),
+      mood: 'calma',
+    }
     case 'tactic': return { text, mood: 'tension' }
     default: return { text, mood: 'calma' }
   }
@@ -76,7 +163,7 @@ function chester(e: MatchEvent | undefined): { text: string; mood: Mood } {
 
 export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: number }) {
   const last = feed[feed.length - 1]
-  const { text, mood } = chester(last)
+  const { text, mood } = chester(last, feed[feed.length - 2])
 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
@@ -120,7 +207,10 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           // El chut ya enseñó su imagen (longshotKick): en el cruce solo
           // corta al BLOQUEO si lo hay; el roce se queda con Chester.
           ? (e.success ? undefined : e.counter)
-          : (e.success ? e.technique ?? e.counter : e.counter ?? e.technique))
+          // Duelo de campo: SOLO la técnica del GANADOR — la frase de Chester
+          // narra al que gana, y enseñar la del perdedor era «una imagen que
+          // no toca» (se veía el regate mientras se contaba el corte).
+          : (e.success ? e.technique : e.counter))
       // El MOMENTO del portero: su técnica en imagen ANTES del veredicto.
       // La parada posterior ya no re-corta (la imagen sería la misma).
       : e?.kind === 'keeperTry'

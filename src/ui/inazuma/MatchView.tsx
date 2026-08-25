@@ -149,7 +149,13 @@ export default function MatchView() {
       const key = feed.length
       setShotFlight({ key, element: last.element, mine: last.side === mine, toUid: last.defenderUid })
       setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? { ...fl, landed: true } : fl)), Math.round(1000 * f))
-      setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? null : fl)), Math.round(2300 * f))
+      // Solo si el BLOQUEO triunfa se recoge el balón aquí: con el tiro
+      // ROZADO el vuelo se queda vivo hasta que el mano a mano lo continúa —
+      // recogerlo hacía que el balón volviera a los pies del tirador y la
+      // cinemática del césped «se repitiera».
+      if (!last.success) {
+        setTimeout(() => setShotFlight((fl) => (fl && fl.key === key ? null : fl)), Math.round(2300 * f))
+      }
     } else if (last.kind === 'duel' && last.step === 'definicion') {
       // DISPARO sin pantalla grande: la supertécnica brota sobre el tirador EN
       // EL CÉSPED (LivePitch) y el balón sale ardiendo hacia la portería. La

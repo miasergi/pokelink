@@ -834,12 +834,6 @@ export const PLAYERS: PlayerBase[] = [
     signature: ['eagle-buster', 'condor-dive', 'monkey-turn', 'kung-fu-attack'],
   },
   {
-    id: 'shark-shooter', name: 'Shark Shooter', team: 'oumihara', position: 'DEL', element: 'aire', fame: 1,
-    stats: { tiro: 65, control: 39, fisico: 26, defensa: 19, velocidad: 38, aguante: 22 },
-    techniques: ['suisei-shoot'],
-    signature: ['suisei-shoot'],
-  },
-  {
     id: 'gaston-cooley', name: 'Gaston Cooley', team: 'oumihara', position: 'POR', element: 'aire', fame: 1,
     stats: { tiro: 22, control: 31, fisico: 30, defensa: 65, velocidad: 31, aguante: 40 },
     techniques: ['tsunami-wall'],
@@ -1592,12 +1586,6 @@ export const PLAYERS: PlayerBase[] = [
     stats: { tiro: 33, control: 54, fisico: 28, defensa: 28, velocidad: 34, aguante: 25 },
     techniques: ['kangaroo-kick'],
     signature: ['kangaroo-kick', 'tsunami-boost', 'kumo-no-ito', 'no-escape'],
-  },
-  {
-    id: 'surf-club', name: 'Surf Club', team: 'big-waves', position: 'MED', element: 'aire', fame: 1,
-    stats: { tiro: 26, control: 52, fisico: 27, defensa: 30, velocidad: 38, aguante: 28 },
-    techniques: ['oouchiwa'],
-    signature: ['oouchiwa'],
   },
   {
     id: 'joe-dawes', name: 'Joe Dawes', team: 'big-waves', position: 'DEL', element: 'fuego', fame: 1,
@@ -5738,6 +5726,10 @@ export function formationFor(teamId: string): string {
  */
 const SQUAD_FILL: Record<string, string[]> = {
   kfc: ['alex-hawke'],
+  // El crawl coló una técnica y un club como «jugadores» (Shark Shooter y
+  // Surf Club): fuera del roster, y estos dos completan la convocatoria.
+  oumihara: ['a-woodbridge'],
+  'big-waves': ['alain-favreau'],
   'gemini-storm': ['albert-denver-2', 'anna-mole', 'ashton-malone'],
   epsilon: ['albert-denver-2', 'ashton-malone', 'ben-blowton-2'],
   'diamond-dust': ['albert-denver-2', 'ashton-malone', 'ben-blowton-2'],
@@ -5786,3 +5778,19 @@ export function startingSquad(teamId: string, formationId?: string): string[] {
 
 /** Once inicial del Raimon (compatibilidad). */
 export const RAIMON_STARTING_XI: string[] = startingSquad('raimon').slice(0, 11)
+
+// ---------------------------------------------------------------------------
+// LA CADENA SIEMPRE DE MENOS A MÁS: en la serie se aprende primero la versión
+// floja y después la evolución, pero el crawl traía algunas cadenas giradas
+// (Joseph King despertaba el Escudo Total antes que el Escudo). Se reordena
+// por potencia al cargar, y lo que cada jugador SABE de salida pasa a ser el
+// principio de su cadena ordenada (más lo que tuviera de fuera de ella).
+import { getTechnique as __getTech } from '@/data/inazuma/techniques'
+for (const p of PLAYERS) {
+  if (!p.signature?.length) continue
+  const antes = p.signature
+  p.signature = [...antes].sort((a, b) => (__getTech(a)?.power ?? 0) - (__getTech(b)?.power ?? 0))
+  const deCadena = p.techniques.filter((t) => antes.includes(t)).length
+  const deFuera = p.techniques.filter((t) => !antes.includes(t))
+  p.techniques = [...p.signature.slice(0, deCadena), ...deFuera]
+}
