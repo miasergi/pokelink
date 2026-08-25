@@ -4,24 +4,40 @@
 //
 //   node scripts/audit-dragon-portraits.mjs
 //   node scripts/audit-dragon-portraits.mjs goku vegeta
+//   node scripts/audit-dragon-portraits.mjs --formas        (los transformados)
+//   node scripts/audit-dragon-portraits.mjs --formas goku__ssj
 //
 // No modifica nada: es la comprobación que uno hace DESPUÉS de `fetch-dragon`
-// para no fiarse de que el recorte haya salido bien.
+// (o de `fetch-dragon-forms`, con `--formas`) para no fiarse de que el recorte
+// haya salido bien.
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { decodePng, analyze, isPng } from './png-cutout.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const DIR = join(ROOT, 'public', 'dragon', 'fighters')
+const args = process.argv.slice(2)
+// Los retratos de los transformados viven en otra carpeta pero se miden igual:
+// mismo PNG, mismo alfa, mismas esquinas. Un solo auditor para los dos.
+const formas = args.includes('--formas') || args.includes('--forms')
+const DIR = join(ROOT, 'public', 'dragon', formas ? 'forms' : 'fighters')
 
-const only = new Set(process.argv.slice(2).filter((a) => !a.startsWith('--')))
+const only = new Set(args.filter((a) => !a.startsWith('--')))
 
 function pad(s, n) { return String(s).padEnd(n) }
 function padL(s, n) { return String(s).padStart(n) }
 
 async function main() {
-  const files = (await readdir(DIR)).filter((f) => f.endsWith('.png')).sort()
+  let files = []
+  try {
+    files = (await readdir(DIR)).filter((f) => f.endsWith('.png')).sort()
+  } catch {
+    console.log(`No hay nada que auditar: ${DIR} todavía no existe.`)
+    return
+  }
+  // Los ids de forma (`vegeta_saiyan__ozaru`) son bastante más largos que los
+  // de luchador, así que la columna se mide sola en vez de ir fija a 16.
+  const W = Math.max(16, ...files.map((f) => f.length - 4))
   const rows = []
   let totalBytes = 0
   const suspicious = []
@@ -61,12 +77,12 @@ async function main() {
     if (a.opaqueRatio < 0.08) suspicious.push(`${id}: sujeto residual ${(a.opaqueRatio * 100).toFixed(1)}% — ¿flood fill se comió al personaje?`)
   }
 
-  console.log(`${pad('id', 16)} ${pad('tamaño', 10)} ${padL('kB', 7)} ${padL('alfa', 5)} ${padL('transp%', 8)} ${padL('sujeto%', 8)} ${padL('esquinas', 9)} ${padL('marco%', 7)}`)
-  console.log('-'.repeat(80))
+  console.log(`${pad('id', W)} ${pad('tamaño', 10)} ${padL('kB', 7)} ${padL('alfa', 5)} ${padL('transp%', 8)} ${padL('sujeto%', 8)} ${padL('esquinas', 9)} ${padL('marco%', 7)}`)
+  console.log('-'.repeat(W + 64))
   for (const r of rows) {
-    if (!r.ok) { console.log(`${pad(r.id, 16)} ${r.note}`); continue }
+    if (!r.ok) { console.log(`${pad(r.id, W)} ${r.note}`); continue }
     console.log([
-      pad(r.id, 16),
+      pad(r.id, W),
       pad(r.dims, 10),
       padL((r.size / 1024).toFixed(1), 7),
       padL(r.hasAlpha ? 'sí' : 'NO', 5),
@@ -76,7 +92,7 @@ async function main() {
       padL((r.border * 100).toFixed(0), 7),
     ].join(' '))
   }
-  console.log('-'.repeat(80))
+  console.log('-'.repeat(W + 64))
   const good = rows.filter((r) => r.ok && r.hasAlpha && r.corners).length
   console.log(`${rows.length} ficheros · ${good} con esquinas limpias · total ${(totalBytes / 1024).toFixed(1)} kB`)
   if (suspicious.length) {

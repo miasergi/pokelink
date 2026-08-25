@@ -24,7 +24,7 @@ export const FIGHTERS: FighterData[] = [
     base: { poder: 15, ki: 15, defensa: 13, velocidad: 14, aguante: 15 },
     techniques: ['kamehameha', 'combo'],
     learn: [{ level: 8, tech: 'concentracion' }, { level: 18, tech: 'martillo' }, { level: 30, tech: 'genkidama' }],
-    forms: ['kaioken', 'kaioken3', 'ssj', 'ssj2', 'ssj3'],
+    forms: ['kaioken', 'kaioken3', 'ssj', 'ssj2', 'ssj3', 'ssjgod', 'ssjblue', 'ultra'],
     color: '#f97316', plBase: 334,
   },
   {
@@ -77,7 +77,7 @@ export const FIGHTERS: FighterData[] = [
     base: { poder: 17, ki: 15, defensa: 13, velocidad: 15, aguante: 14 },
     techniques: ['galick', 'combo'],
     learn: [{ level: 14, tech: 'bigbang' }, { level: 26, tech: 'resplandor' }],
-    forms: ['ozaru', 'ssj', 'ssj2', 'majin'],
+    forms: ['ozaru', 'ssj', 'ssj2', 'majin', 'ssjgod', 'ssjblue'],
     color: '#3b82f6', plBase: 800,
   },
   {

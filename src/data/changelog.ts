@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.68',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: al transformarse, cambian de verdad',
+    changes: [
+      'CUANDO ALGUIEN SE TRANSFORMA, CAMBIA DE ASPECTO EN PLENA BATALLA: 40 retratos nuevos con Goku en Superguerrero, 2, 3, Dios, Azul e Instinto; Vegeta con la M de Majin; Gohan, Trunks, Goten, Gotenks; Broly y Kale desatados; Freezer en sus tres formas; Cell semiperfecto y perfecto; Buu y Kid Buu.',
+      'Y CADA TRANSFORMACIÓN CON SU COLOR: el aura, las llamas y el rótulo toman el color de la forma, así que el dorado del Superguerrero no se confunde con el azul del ki divino ni con el rojo del Kaio-Ken. Si de alguna forma no hay retrato, se ve igualmente por el aura.',
+      'GOKU Y VEGETA YA PUEDEN LLEGAR A DIOS: la escalera Superguerrero Dios → Dios Superguerrero → Instinto Superior estaba escrita pero no colgaba de nadie, así que era imposible de despertar. Ahora es la cima de la rama saiyan.',
+    ],
+  },
+  {
     version: 'v6.67',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: TODAS las sagas y 63 luchadores',

@@ -13,7 +13,10 @@
     "build-data": "node scripts/build-data.mjs",
     "fetch-sprites": "node scripts/fetch-sprites.mjs",
     "fetch-inazuma": "node scripts/fetch-inazuma-portraits.mjs",
-    "fetch-dragon": "node scripts/fetch-dragon-portraits.mjs"
+    "fetch-dragon": "node scripts/fetch-dragon-portraits.mjs",
+    "fetch-dragon-forms": "node scripts/fetch-dragon-forms.mjs",
+    "audit-dragon": "node scripts/audit-dragon-portraits.mjs",
+    "audit-dragon-forms": "node scripts/audit-dragon-portraits.mjs --formas"
   },
   "dependencies": {
     "idb": "^8.0.0",
