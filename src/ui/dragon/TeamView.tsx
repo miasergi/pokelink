@@ -13,8 +13,8 @@ import { getItem, itemEffect, itemFamily, itemIcon, itemVerb, type Item } from '
 import { getTechnique } from '@/data/dragon/techniques'
 import { getForm } from '@/data/dragon/transformations'
 import { bondsFor, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
-import { getSaga } from '@/data/dragon/sagas'
-import { avgLevel, TEAM_MAX } from '@/engine/dragon/run'
+
+import { avgLevel, sagaOf, TEAM_MAX } from '@/engine/dragon/run'
 import { effStats, fighterMaxHp, fighterPL, itemLevel, toCombatant } from '@/engine/dragon/roster'
 import { useDragon } from '@/state/dragonStore'
 import type { Fighter, StatKey } from '@/engine/dragon/types'
@@ -29,9 +29,9 @@ const STAT_ROWS: { k: StatKey; label: string; icon: string }[] = [
 ]
 
 /** Fila de un luchador. La misma lectura que un equipo Pokémon: cara + barras. */
-function TeamSlot({ f, saga, selected, onClick }: {
+function TeamSlot({ f, plScale, selected, onClick }: {
   f: Fighter
-  saga: number
+  plScale: number
   selected: boolean
   onClick: () => void
 }) {
@@ -77,7 +77,7 @@ function TeamSlot({ f, saga, selected, onClick }: {
           {ko && <span className="text-[10px] text-red-400 shrink-0">K.O.</span>}
         </div>
       </div>
-      <Scouter pl={fighterPL(f, getSaga(saga).plScale)} compact />
+      <Scouter pl={fighterPL(f, plScale)} compact />
     </button>
   )
 }
@@ -146,7 +146,7 @@ export default function TeamView() {
               <TeamSlot
                 key={f.uid}
                 f={f}
-                saga={save.saga}
+                plScale={sagaOf(save.arc, save.saga).plScale}
                 selected={elegido?.uid === f.uid}
                 onClick={() => setSel(f.uid)}
               />

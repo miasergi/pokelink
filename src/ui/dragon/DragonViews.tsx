@@ -1,7 +1,8 @@
 // Vistas del modo salvo el combate y el equipo, que tienen fichero propio:
 // título, intro, mapa, maestro, resumen, tienda, deseo y final.
 import { useState } from 'react'
-import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
+import { getMaster, SAGAS } from '@/data/dragon/sagas'
+import { sagaOf } from '@/engine/dragon/run'
 import { getItem, ITEMS, itemEffect, itemFamily, itemIcon } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
 import {
@@ -11,6 +12,7 @@ import { afterOutcome, dragonSummary, useDragon } from '@/state/dragonStore'
 import { Avatar, Header, sceneBg, Scouter, TeamStrip, Zeni } from './Bits'
 import MapBoard from './MapBoard'
 import StarterPicker from './StarterPicker'
+import ArcPicker from './ArcPicker'
 import NodePreview from './NodePreview'
 import Icon from '@/ui/components/Icon'
 
@@ -18,10 +20,22 @@ import Icon from '@/ui/components/Icon'
 
 export function TitleView() {
   const { hasSave, save, newRun, continueRun, abandonRun, exitDragon, openHelp } = useDragon()
-  const [eligiendo, setEligiendo] = useState(false)
+  // Dos pasos antes de jugar: qué historia y con quién. En ese orden, porque
+  // el arco decide contra quién peleas y eso condiciona a quién quieres llevar.
+  const [paso, setPaso] = useState<null | 'arco' | 'inicial'>(null)
+  const [arco, setArco] = useState('z')
 
-  if (eligiendo) {
-    return <StarterPicker onPick={(id) => void newRun(id)} onBack={() => setEligiendo(false)} />
+  if (paso === 'arco') {
+    return <ArcPicker onPick={(id) => { setArco(id); setPaso('inicial') }} onBack={() => setPaso(null)} />
+  }
+  if (paso === 'inicial') {
+    return (
+      <StarterPicker
+        arc={arco}
+        onPick={(id) => void newRun(id, arco)}
+        onBack={() => setPaso('arco')}
+      />
+    )
   }
 
   return (
@@ -60,7 +74,7 @@ export function TitleView() {
         </button>
         <button
           type="button"
-          onClick={() => setEligiendo(true)}
+          onClick={() => setPaso('arco')}
           className={`w-full rounded-xl py-3 font-bold ${
             hasSave ? 'bg-slate-800 active:bg-slate-700' : 'bg-amber-500 text-slate-900 active:bg-amber-400'
           }`}
@@ -86,7 +100,7 @@ export function TitleView() {
 export function IntroView() {
   const { save, goTo } = useDragon()
   if (!save) return null
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ background: sceneBg(s.scene) }}>
       <div className="flex-1 grid place-items-center p-6 text-center">
@@ -117,7 +131,7 @@ export function IntroView() {
 export function MapView() {
   const { save, node, pickNode, leaveNode, confirmNode, openTeam, exitDragon } = useDragon()
   if (!save) return null
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   const abiertas = availableNodes(save)
   const enJefe = save.layer >= BOSS_LAYER
 
@@ -486,7 +500,7 @@ export function WishView() {
 export function EndView({ won }: { won: boolean }) {
   const { save, abandonRun, exitDragon } = useDragon()
   if (!save) return null
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ background: sceneBg(s.scene) }}>
       <div className="flex-1 grid place-items-center p-6 text-center">

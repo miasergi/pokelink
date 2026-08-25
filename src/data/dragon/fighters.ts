@@ -5,7 +5,8 @@
 // deliberada: los personajes flojos existen para que reclutarlos sea una
 // decisión y no un regalo — traen técnicas que los fuertes no tienen.
 //
-// Los RIVALES van deliberadamente APLANADOS (49-70) en todas las sagas: la
+// Los RIVALES van deliberadamente APLANADOS (49-79) en TODAS las sagas y en
+// todos los arcos —también los de Super, que en el canon están a años luz—: la
 // dificultad tiene que venir del nivel y de la pericia de la IA, no de que los
 // enemigos de la saga 2 jueguen en otra liga de atributos. Con la escala sin
 // aplanar, la saga de Namek mataba al 95 % de las runs que llegaban a ella,
@@ -225,6 +226,235 @@ export const FIGHTERS: FighterData[] = [
     base: { poder: 17, ki: 16, defensa: 14, velocidad: 14, aguante: 18 },
     techniques: ['ondaexpansiva', 'regeneracion', 'martillo'],
     color: '#f472b6', plBase: 8000000,
+  },
+
+  // ============================ ARCO CLÁSICO (Dragon Ball) — ALIADOS ===
+  {
+    id: 'goku_nino', name: 'Son Goku (niño)', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 13, ki: 12, defensa: 11, velocidad: 13, aguante: 13 },
+    techniques: ['kamehameha_nino', 'bastonsagrado'],
+    learn: [{ level: 10, tech: 'kamehameha' }, { level: 22, tech: 'combo' }, { level: 34, tech: 'punokamikaze' }],
+    forms: ['kaioken', 'ozaru'],
+    color: '#f97316', plBase: 10,
+  },
+  {
+    id: 'roshi', name: 'Mutenroshi', lineage: 'terricola', style: 'ki',
+    base: { poder: 12, ki: 15, defensa: 12, velocidad: 11, aguante: 12 },
+    techniques: ['kamehameha', 'mafuba'],
+    learn: [{ level: 16, tech: 'concentracion' }, { level: 28, tech: 'ondaexpansiva' }],
+    forms: ['sobrecarga'],
+    color: '#e2e8f0', plBase: 139,
+  },
+  {
+    id: 'goten', name: 'Son Goten', lineage: 'saiyan', style: 'ki',
+    base: { poder: 12, ki: 15, defensa: 11, velocidad: 14, aguante: 12 },
+    techniques: ['kamehameha', 'patada_ascendente'],
+    learn: [{ level: 18, tech: 'concentracion' }, { level: 30, tech: 'ondaexpansiva' }],
+    forms: ['ssj'],
+    color: '#fb923c', plBase: 1000,
+  },
+  {
+    id: 'trunks_nino', name: 'Trunks (niño)', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 14, ki: 13, defensa: 12, velocidad: 14, aguante: 12 },
+    techniques: ['combo', 'bigbang'],
+    learn: [{ level: 18, tech: 'burningattack' }, { level: 30, tech: 'martillo' }],
+    forms: ['ssj'],
+    color: '#a78bfa', plBase: 1100,
+  },
+  {
+    id: 'gotenks', name: 'Gotenks', lineage: 'saiyan', style: 'tecnico',
+    base: { poder: 16, ki: 16, defensa: 13, velocidad: 16, aguante: 13 },
+    techniques: ['multiforma', 'gigantica'],
+    learn: [{ level: 40, tech: 'kamehameha' }, { level: 55, tech: 'resplandor' }],
+    forms: ['ssj', 'ssj2', 'ssj3'],
+    color: '#c084fc', plBase: 300000,
+  },
+
+  // ============================ ARCO CLÁSICO — RIVALES ===
+  {
+    id: 'pilaf', name: 'Emperador Pilaf', lineage: 'terricola', style: 'tecnico',
+    base: { poder: 13, ki: 14, defensa: 12, velocidad: 12, aguante: 12 },
+    techniques: ['rayomortal', 'taiyoken'],
+    color: '#22c55e', plBase: 20,
+  },
+  {
+    id: 'bandido', name: 'Bandido del desierto', lineage: 'terricola', style: 'bruto',
+    base: { poder: 12, ki: 10, defensa: 11, velocidad: 13, aguante: 11 },
+    techniques: ['punolobo', 'patada_ascendente'],
+    color: '#a16207', plBase: 68,
+  },
+  {
+    id: 'giran', name: 'Giran', lineage: 'majin', style: 'bruto',
+    base: { poder: 15, ki: 9, defensa: 14, velocidad: 10, aguante: 15 },
+    techniques: ['martillo', 'placaje_ki'],
+    color: '#65a30d', plBase: 105,
+  },
+  {
+    id: 'nam', name: 'Nam', lineage: 'terricola', style: 'tecnico',
+    base: { poder: 14, ki: 12, defensa: 12, velocidad: 13, aguante: 12 },
+    techniques: ['punokamikaze', 'rodillazo'],
+    color: '#d97706', plBase: 90,
+  },
+  {
+    id: 'jackie', name: 'Jackie Chun', lineage: 'terricola', style: 'ki',
+    base: { poder: 15, ki: 16, defensa: 14, velocidad: 14, aguante: 13 },
+    techniques: ['kamehameha', 'taiyoken'],
+    color: '#f1f5f9', plBase: 139,
+  },
+  {
+    id: 'black_rr', name: 'Sargento Black', lineage: 'terricola', style: 'bruto',
+    base: { poder: 14, ki: 11, defensa: 14, velocidad: 11, aguante: 14 },
+    techniques: ['placaje_ki', 'ondaexpansiva'],
+    color: '#334155', plBase: 90,
+  },
+  {
+    id: 'blue_rr', name: 'General Blue', lineage: 'terricola', style: 'tecnico',
+    base: { poder: 14, ki: 13, defensa: 12, velocidad: 14, aguante: 12 },
+    techniques: ['taiyoken', 'rayomortal'],
+    color: '#3b82f6', plBase: 100,
+  },
+  {
+    id: 'tao', name: 'Tao Pai Pai', lineage: 'terricola', style: 'tecnico',
+    base: { poder: 16, ki: 15, defensa: 13, velocidad: 15, aguante: 13 },
+    techniques: ['dodonpa', 'rodillazo', 'punokamikaze'],
+    color: '#dc2626', plBase: 210,
+  },
+  {
+    id: 'tambourine', name: 'Tambourine', lineage: 'namek', style: 'bruto',
+    base: { poder: 15, ki: 13, defensa: 13, velocidad: 14, aguante: 13 },
+    techniques: ['garra_namek', 'explosion_demoniaca'],
+    color: '#7f1d1d', plBase: 190,
+  },
+  {
+    id: 'piccolo_daimao', name: 'Piccolo Daimaó', lineage: 'namek', style: 'ki',
+    base: { poder: 16, ki: 16, defensa: 14, velocidad: 14, aguante: 14 },
+    techniques: ['explosion_demoniaca', 'garra_namek', 'muro'],
+    forms: ['gigante'],
+    color: '#166534', plBase: 260,
+  },
+  {
+    id: 'piccolo_jr', name: 'Piccolo Jr.', lineage: 'namek', style: 'tecnico',
+    base: { poder: 16, ki: 16, defensa: 14, velocidad: 15, aguante: 14 },
+    techniques: ['makankosappo', 'explosion_demoniaca', 'regeneracion'],
+    forms: ['gigante'],
+    color: '#15803d', plBase: 329,
+  },
+  {
+    id: 'chappa', name: 'Rey Chappa', lineage: 'terricola', style: 'bruto',
+    base: { poder: 15, ki: 12, defensa: 14, velocidad: 14, aguante: 13 },
+    techniques: ['multiforma', 'combo'],
+    color: '#b45309', plBase: 150,
+  },
+
+  // ============================ DRAGON BALL SUPER — RIVALES ===
+  {
+    id: 'freezer_dorado', name: 'Freezer Dorado', lineage: 'majin', style: 'ki',
+    base: { poder: 16, ki: 16, defensa: 14, velocidad: 15, aguante: 14 },
+    techniques: ['chispa', 'rayomortal', 'kienzan'],
+    forms: ['golden'],
+    color: '#eab308', plBase: 1000000,
+  },
+  {
+    id: 'sorbet', name: 'Sorbet', lineage: 'majin', style: 'tecnico',
+    base: { poder: 12, ki: 13, defensa: 11, velocidad: 12, aguante: 11 },
+    techniques: ['rayomortal', 'taiyoken'],
+    color: '#7c3aed', plBase: 1200,
+  },
+  {
+    id: 'bills', name: 'Bills', lineage: 'dios', style: 'ki',
+    base: { poder: 16, ki: 17, defensa: 14, velocidad: 15, aguante: 14 },
+    techniques: ['hakai', 'esferacastigo', 'atomico'],
+    forms: ['divino'],
+    color: '#8b5cf6', plBase: 5000000,
+  },
+  {
+    id: 'whis', name: 'Whis', lineage: 'dios', style: 'tecnico',
+    base: { poder: 15, ki: 17, defensa: 15, velocidad: 17, aguante: 14 },
+    techniques: ['saltotemporal', 'esferacastigo', 'muroluz'],
+    forms: ['divino'],
+    color: '#38bdf8', plBase: 9000000,
+  },
+  {
+    id: 'hit', name: 'Hit', lineage: 'majin', style: 'tecnico',
+    base: { poder: 15, ki: 14, defensa: 13, velocidad: 16, aguante: 13 },
+    techniques: ['saltotemporal', 'atomico', 'rodillazo'],
+    color: '#7dd3fc', plBase: 2000000,
+  },
+  {
+    id: 'cabba', name: 'Cabba', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 14, ki: 13, defensa: 12, velocidad: 14, aguante: 12 },
+    techniques: ['galick', 'combo'],
+    forms: ['ssj', 'ssj2'],
+    color: '#f97316', plBase: 90000,
+  },
+  {
+    id: 'kale', name: 'Kale', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 16, ki: 13, defensa: 13, velocidad: 12, aguante: 14 },
+    techniques: ['gigantica', 'ondaexpansiva'],
+    forms: ['rabia'],
+    color: '#4ade80', plBase: 800000,
+  },
+  {
+    id: 'caulifla', name: 'Caulifla', lineage: 'saiyan', style: 'tecnico',
+    base: { poder: 14, ki: 14, defensa: 12, velocidad: 15, aguante: 12 },
+    techniques: ['combo', 'bigbang'],
+    forms: ['ssj', 'ssj2'],
+    color: '#f472b6', plBase: 400000,
+  },
+  {
+    id: 'kefla', name: 'Kefla', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 16, ki: 15, defensa: 14, velocidad: 15, aguante: 14 },
+    techniques: ['gigantica', 'resplandor', 'combo'],
+    forms: ['rabia'],
+    color: '#22c55e', plBase: 3000000,
+  },
+  {
+    id: 'broly', name: 'Broly', lineage: 'saiyan', style: 'bruto',
+    base: { poder: 17, ki: 14, defensa: 14, velocidad: 13, aguante: 16 },
+    techniques: ['gigantica', 'punokamikaze', 'ondaexpansiva'],
+    forms: ['rabia', 'ssj'],
+    color: '#16a34a', plBase: 4000000,
+  },
+  {
+    id: 'goku_black', name: 'Goku Black', lineage: 'dios', style: 'tecnico',
+    base: { poder: 15, ki: 15, defensa: 13, velocidad: 15, aguante: 13 },
+    techniques: ['kamehameha', 'rayojuicio', 'kienzan'],
+    forms: ['ssj', 'rabia'],
+    color: '#1e293b', plBase: 3000000,
+  },
+  {
+    id: 'zamasu', name: 'Zamasu', lineage: 'dios', style: 'ki',
+    base: { poder: 14, ki: 16, defensa: 14, velocidad: 14, aguante: 14 },
+    techniques: ['rayojuicio', 'esferacastigo', 'regeneracion'],
+    forms: ['inmortal'],
+    color: '#4ade80', plBase: 4000000,
+  },
+  {
+    id: 'zamasu_fusion', name: 'Zamasu fusionado', lineage: 'dios', style: 'ki',
+    base: { poder: 17, ki: 17, defensa: 14, velocidad: 15, aguante: 15 },
+    techniques: ['esferacastigo', 'rayojuicio', 'hakai'],
+    forms: ['inmortal', 'divino'],
+    color: '#a3e635', plBase: 8000000,
+  },
+  {
+    id: 'toppo', name: 'Toppo', lineage: 'dios', style: 'bruto',
+    base: { poder: 15, ki: 13, defensa: 15, velocidad: 13, aguante: 15 },
+    techniques: ['atomico', 'hakai', 'muro'],
+    forms: ['divino'],
+    color: '#f59e0b', plBase: 3000000,
+  },
+  {
+    id: 'dyspo', name: 'Dyspo', lineage: 'majin', style: 'tecnico',
+    base: { poder: 14, ki: 13, defensa: 12, velocidad: 18, aguante: 12 },
+    techniques: ['saltotemporal', 'rodillazo', 'infinitybullet'],
+    color: '#c084fc', plBase: 1500000,
+  },
+  {
+    id: 'jiren', name: 'Jiren', lineage: 'dios', style: 'bruto',
+    base: { poder: 17, ki: 16, defensa: 15, velocidad: 15, aguante: 15 },
+    techniques: ['atomico', 'gigantica', 'muroluz'],
+    forms: ['fuerzatotal'],
+    color: '#dc2626', plBase: 20000000,
   },
 ]
 

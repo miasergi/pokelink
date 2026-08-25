@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.67',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: TODAS las sagas y 63 luchadores',
+    changes: [
+      'TRECE SAGAS, de la búsqueda de las esferas al Torneo del Poder. Y como jugarlas todas del tirón son más de setenta casillas, ahora ELIGES ARCO: Dragon Ball, Dragon Ball Z, Dragon Ball Super o la aventura completa.',
+      '63 LUCHADORES (antes 30): Goku niño, Mutenroshi, Goten, Trunks, Gotenks, Pilaf, Tao Pai Pai, el Rey Demonio, Jackie Chun, Bills, Whis, Freezer Dorado, Hit, Broly, Goku Black, Zamasu, Kefla, Toppo, Jiren… todos con su retrato recortado.',
+      'TRANSFORMACIONES NUEVAS con su escalera: Superguerrero Dios, Dios Superguerrero y el Instinto Superior, que ya no estaba en ninguna rama. Más la Forma Dorada, la Ira Legendaria y el Poder Divino de los rivales.',
+      '14 TÉCNICAS NUEVAS: el Mafuba, el Dodon Pa, el Puño del Dragón, el Hakai de los dioses, el Salto Temporal de Hit, el Rayo del Juicio…',
+      'La curva de niveles se calcula ahora por la posición del tramo dentro del arco, así que cada arco arranca donde debe y encadena bien si juegas la aventura entera (que llega hasta nivel 200).',
+      'CUANDO ALGUIEN SE TRANSFORMA, SE VE: si hay retrato de esa forma, el luchador cambia de aspecto en plena batalla.',
+    ],
+  },
+  {
     version: 'v6.66',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: eliges inicial y empiezas solo',

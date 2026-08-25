@@ -14,7 +14,7 @@
 import { useEffect, useRef } from 'react'
 import Icon from '@/ui/components/Icon'
 import { getTechnique } from '@/data/dragon/techniques'
-import { getSaga } from '@/data/dragon/sagas'
+import { sagaOf } from '@/engine/dragon/run'
 import { ally, foe, oddsStars } from '@/engine/dragon/battle'
 import { useDragon } from '@/state/dragonStore'
 import type { Battle, BattleEvent, DecisionOption } from '@/engine/dragon/types'
@@ -126,7 +126,7 @@ export default function BattleView() {
   if (!save || !battle) return null
   const me = ally(battle)
   const enemy = foe(battle)
-  const saga = getSaga(save.saga)
+  const saga = sagaOf(save.arc, save.saga)
   // Solo lo YA contado: el motor va por delante y no se puede destripar.
   const lines = battle.log
     .slice(0, revealed)
@@ -200,7 +200,7 @@ export default function BattleView() {
           <div className="absolute top-1.5 left-2 w-[56%] max-w-[15rem]">
             <VitalStrip
               c={enemy}
-              saga={save.saga}
+              plScale={saga.plScale}
               extra={(bancoRival.length > 0 || (battle.phases?.length ?? 0) > 0) && (
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   {battle.phases && battle.phases.length > 0 && (
@@ -216,7 +216,7 @@ export default function BattleView() {
           <div className="absolute bottom-1.5 right-2 w-[56%] max-w-[15rem]">
             <VitalStrip
               c={me}
-              saga={save.saga}
+              plScale={saga.plScale}
               align="right"
               extra={banco.length > 0 && (
                 <div className="flex items-center justify-end gap-1.5 mt-1 flex-wrap">

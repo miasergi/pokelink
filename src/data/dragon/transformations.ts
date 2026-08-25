@@ -165,6 +165,63 @@ export const TRANSFORMATIONS: Transformation[] = [
     cost: 0, upkeep: 0,
     desc: 'Pura destrucción sin intención. La forma más antigua y más peligrosa.',
   },
+
+  // ------------------------------------------------ Dragon Ball Super ---
+  // La escalera divina. Multiplicadores enormes pero coste ALTO: el depósito
+  // de ki es de 100 para todos, así que `coste + 2 turnos de mantenimiento`
+  // tiene que caber ahí (hay un test que lo vigila). Son formas para rematar
+  // un combate, no para pasearse con ellas puestas.
+  {
+    id: 'ssjgod',
+    name: 'Superguerrero Dios',
+    mult: { poder: 2.9, ki: 2.8, velocidad: 2.2, defensa: 1.7 },
+    requires: 'ssj3', unlock: 74, cost: 40, upkeep: 18,
+    lineage: ['saiyan'],
+    desc: 'El pelo rojo y la calma de quien ya no necesita gritar.',
+  },
+  {
+    id: 'ssjblue',
+    name: 'Dios Superguerrero',
+    mult: { poder: 3.4, ki: 3.3, velocidad: 2.6, defensa: 1.9 },
+    requires: 'ssjgod', unlock: 92, cost: 46, upkeep: 22,
+    lineage: ['saiyan'],
+    desc: 'El ki divino de un dios en el cuerpo de un superguerrero.',
+  },
+  {
+    id: 'golden',
+    name: 'Forma Dorada',
+    mult: { poder: 1.85, ki: 1.8, velocidad: 1.4, defensa: 1.45 },
+    cost: 0, upkeep: 0,
+    desc: 'Cuatro meses de entrenamiento del ser más perezoso del universo.',
+  },
+  {
+    id: 'rabia',
+    name: 'Ira Legendaria',
+    mult: { poder: 1.8, ki: 1.5, defensa: 1.4, aguante: 1.2, velocidad: 1.2 },
+    cost: 0, upkeep: 0,
+    desc: 'Un poder que crece con la furia y no sabe parar.',
+  },
+  {
+    id: 'divino',
+    name: 'Poder Divino',
+    mult: { poder: 1.9, ki: 1.85, velocidad: 1.45, defensa: 1.5 },
+    cost: 0, upkeep: 0,
+    desc: 'La liga de los dioses, donde el esfuerzo ya no basta.',
+  },
+  {
+    id: 'inmortal',
+    name: 'Cuerpo Inmortal',
+    mult: { poder: 1.6, ki: 1.6, defensa: 1.6, aguante: 1.3 },
+    cost: 0, upkeep: 0,
+    desc: 'Da igual cuánto le rompas: se recompone y sigue.',
+  },
+  {
+    id: 'fuerzatotal',
+    name: 'Fuerza Total',
+    mult: { poder: 2.0, ki: 1.7, defensa: 1.55, velocidad: 1.5 },
+    cost: 0, upkeep: 0,
+    desc: 'El orgullo de quien nunca ha necesitado transformarse para ganar.',
+  },
 ]
 
 const BY_ID = new Map(TRANSFORMATIONS.map((t) => [t.id, t]))

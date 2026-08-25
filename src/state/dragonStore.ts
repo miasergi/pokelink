@@ -13,7 +13,7 @@ import { useGame } from '@/state/gameStore'
 import { clearDragon, loadDragon, loadMeta, saveDragon, saveMeta } from '@/persistence/db'
 import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkDragonAchievements } from '@/engine/dragon/achievements'
-import { getSaga } from '@/data/dragon/sagas'
+import { sagaOf } from '@/engine/dragon/run'
 import { getItem, ITEMS, stockFor, type Item } from '@/data/dragon/items'
 import { advance, chooseOption, setAuto } from '@/engine/dragon/battle'
 import {
@@ -151,7 +151,7 @@ interface DragonState {
 
   initDragon: () => Promise<void>
   exitDragon: () => void
-  newRun: (starter: string) => Promise<void>
+  newRun: (starter: string, arc?: string) => Promise<void>
   continueRun: () => void
   abandonRun: () => Promise<void>
   goTo: (phase: DragonPhase) => void
@@ -228,9 +228,9 @@ export const useDragon = create<DragonState>((set, get) => ({
     useGame.getState().navigate('home')
   },
 
-  newRun: async (starter: string) => {
+  newRun: async (starter: string, arc = 'z') => {
     const seed = Math.floor(Math.random() * 0xffffffff)
-    const save = createSave(seed, { starter })
+    const save = createSave(seed, { starter, arc })
     save.startedAt = Date.now()
     rng = new RNG(seed)
     rng.setState(save.rngState)
@@ -590,7 +590,7 @@ export function afterOutcome(): void {
     phase: save.balls >= BALLS_FOR_WISH ? 'wish' : 'map',
     outcome: null,
     node: null,
-    message: paso === 'saga' ? getSaga(save.saga).intro : outcome?.zenkai.length
+    message: paso === 'saga' ? sagaOf(save.arc, save.saga).intro : outcome?.zenkai.length
       ? `¡${outcome.zenkai.join(' y ')} vuelve más fuerte tras rozar la muerte!`
       : null,
   })
@@ -599,7 +599,7 @@ export function afterOutcome(): void {
 /** Resumen de una línea para la tarjeta de Inicio. */
 export function dragonSummary(save: DragonSave): string {
   if (save.finished === 'victoria') return 'Aventura completada'
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   return `${s.name} · ${save.layer >= BOSS_LAYER ? 'ante el jefe' : `tramo ${save.layer + 1}`}`
 }
 

@@ -6,7 +6,7 @@ import { RNG } from '@/utils/rng'
 import { getTechnique, TECHNIQUES } from '@/data/dragon/techniques'
 import { getForm, TRANSFORMATIONS } from '@/data/dragon/transformations'
 import { FIGHTERS, getFighter, STARTERS } from '@/data/dragon/fighters'
-import { SAGAS } from '@/data/dragon/sagas'
+import { ARCS, bossLevel, getMaster, getSaga, sagaLevels, SAGAS } from '@/data/dragon/sagas'
 import { ITEMS, itemEffect, itemIcon, itemVerb, stockFor } from '@/data/dragon/items'
 import {
   advance, ally, chooseOption, MOD_CAP, oddsStars, startBattle,
@@ -15,13 +15,14 @@ import { BONDS, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
 import {
   advanceMap, applyBattleResult, applyInterlude, applyRest, applyTraining, avgLevel, BALLS_FOR_WISH,
   BOSS_LAYER, createSave, generateSagaMap, grantWish, isTeamWiped, layerNodes,
-  applyMasterOffer, checkAwakenings, masterOffers, recruit, recruitCandidate,
+  applyMasterOffer, arcLength, checkAwakenings, masterOffers, recruit, recruitCandidate,
   startNodeBattle, TEAM_MAX, WISHES,
   type DragonSave, type MapNode,
 } from './run'
 import {
   actorTechnique, BOND_CAP, bondMult, createEnemy, createFighter, fighterMaxHp,
-  fighterPL, fighterStats, itemLevel, ITEM_XP_PER_LEVEL, learnTechnique, powerLevel, statsAt,
+  fighterPL, fighterStats, itemLevel, ITEM_XP_PER_LEVEL, learnTechnique, LEVEL_CAP,
+  powerLevel, statsAt,
   toCombatant, traitActive, upgradeTechnique,
 } from './roster'
 import type { Battle, Decision, DecisionOption } from './types'
@@ -46,6 +47,25 @@ describe('datos', () => {
         expect(getFighter(id), `${s.name} → ${id}`).toBeDefined()
       }
       for (const p of s.boss.phases ?? []) expect(getForm(p), p).toBeDefined()
+    }
+  })
+
+  it('cada saga tiene su gente y nadie del catálogo se queda sin usar', () => {
+    // Un luchador escrito y no usado en ningún pool es contenido muerto.
+    const usados = new Set<string>()
+    for (const s of SAGAS) {
+      for (const id of [...s.pool, ...s.elites, ...s.recruits, s.boss.id]) usados.add(id)
+    }
+    for (const id of STARTERS) usados.add(id)
+    const huerfanos = FIGHTERS.filter((f) => !usados.has(f.id)).map((f) => f.name)
+    expect(huerfanos, `sin usar: ${huerfanos.join(', ')}`).toEqual([])
+  })
+
+  it('los maestros de cada saga existen', () => {
+    for (const s of SAGAS) {
+      for (const m of s.masters) {
+        expect(getMaster(m), `${s.name} → ${m}`).toBeDefined()
+      }
     }
   })
 
@@ -224,11 +244,11 @@ interface RunReport {
   turns: number[]
 }
 
-function playRun(seed: number, style: BotStyle): RunReport {
+function playRun(seed: number, style: BotStyle, arc = 'z'): RunReport {
   const rng = new RNG(seed ^ 0x9e3779b9)
   // El bot listo elige al más completo; el tonto, al azar.
   const starter = style === 'listo' ? 'piccolo' : rng.pick([...STARTERS])
-  const save = createSave(seed, { starter })
+  const save = createSave(seed, { starter, arc })
   const turns: number[] = []
   let guard = 0
 
@@ -245,7 +265,7 @@ function playRun(seed: number, style: BotStyle): RunReport {
 
   return {
     won: save.finished === 'victoria',
-    diedAt: save.finished === 'victoria' ? 4 : save.saga,
+    diedAt: save.finished === 'victoria' ? arcLength(arc) : save.saga,
     layer: save.layer,
     battles: save.battles,
     avgLevel: avgLevel(save),
@@ -601,10 +621,37 @@ describe('run', () => {
     }
   })
 
-  it('la curva de niveles de los rivales sube saga a saga', () => {
-    for (let i = 1; i < SAGAS.length; i++) {
-      expect(SAGAS[i].levels[0]).toBeGreaterThan(SAGAS[i - 1].levels[1])
-      expect(SAGAS[i].boss.level).toBeGreaterThan(SAGAS[i - 1].boss.level)
+  it('la curva de niveles sube tramo a tramo, sea cual sea el arco', () => {
+    for (const arc of ARCS) {
+      for (let i = 1; i < arc.sagas.length; i++) {
+        const [antesIni, antesFin] = sagaLevels(i - 1)
+        const [ini] = sagaLevels(i)
+        expect(ini, `${arc.name} tramo ${i}`).toBeGreaterThan(antesFin)
+        expect(antesFin).toBeGreaterThan(antesIni)
+        expect(bossLevel(i)).toBeGreaterThan(bossLevel(i - 1))
+      }
+      // Y el jefe de un tramo pega SIEMPRE por encima de sus propios rivales.
+      for (let i = 0; i < arc.sagas.length; i++) {
+        expect(bossLevel(i)).toBeGreaterThan(sagaLevels(i)[1])
+      }
+    }
+  })
+
+  it('todo arco es jugable de principio a fin y sin niveles absurdos', () => {
+    for (const arc of ARCS) {
+      expect(arc.sagas.length).toBeGreaterThan(0)
+      for (const id of arc.sagas) {
+        const s = getSaga(id)
+        expect(s, `${arc.name} → saga ${id}`).toBeDefined()
+        // Cada tramo necesita con quién pelear, a quién temer y a quién fichar.
+        expect(s.pool.length, `${s.name}.pool`).toBeGreaterThan(0)
+        expect(s.elites.length, `${s.name}.elites`).toBeGreaterThan(0)
+        expect(s.recruits.length, `${s.name}.recruits`).toBeGreaterThan(0)
+        expect(getFighter(s.boss.id), `${s.name}.boss`).toBeDefined()
+      }
+      // El nivel final del arco tiene que caber en el tope del juego.
+      const ultimo = bossLevel(arc.sagas.length - 1)
+      expect(ultimo, `${arc.name} acaba en nivel ${ultimo}`).toBeLessThanOrEqual(LEVEL_CAP)
     }
   })
 
@@ -739,6 +786,23 @@ describe('carácter, vínculos y maestros', () => {
 // ------------------------------------------------------- calibración ---
 
 describe('dificultad', () => {
+  it('TODOS los arcos se juegan, no solo el de siempre', () => {
+    // Sobre VARIAS semillas: con una sola, que el bot muera pronto es
+    // perfectamente legítimo en un rogue y el test saltaría por ruido.
+    for (const arc of ARCS) {
+      const runs = Array.from({ length: 12 }, (_, i) => playRun(3000 + i * 17, 'listo', arc.id))
+      const combates = runs.reduce((a, r) => a + r.battles, 0) / runs.length
+      const llega = runs.reduce((a, r) => a + r.diedAt, 0) / runs.length
+      // eslint-disable-next-line no-console
+      console.log(`ARCO ${arc.id.padEnd(9)} · ${combates.toFixed(1)} combates · llega al tramo ${llega.toFixed(1)}/${arc.sagas.length} · gana ${runs.filter((r) => r.won).length}/12`)
+      expect(combates, `${arc.name}: no se pelea`).toBeGreaterThan(3)
+      // Y alguna run tiene que pasar del primer tramo, o el arco es un muro.
+      expect(runs.some((r) => r.diedAt > 0), `${arc.name}: nadie pasa del primer tramo`).toBe(true)
+      // Ni un paseo: un arco que se gana casi siempre no es un rogue.
+      expect(runs.filter((r) => r.won).length, `${arc.name}: demasiado fácil`).toBeLessThanOrEqual(7)
+    }
+  })
+
   it('jugar bien se nota: el bot listo llega mucho más lejos que el tonto', () => {
     const N = 30
     const tontos: RunReport[] = []

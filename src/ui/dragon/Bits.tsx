@@ -4,7 +4,6 @@
 // en Inazuma, el modo se juega entero aunque no se haya descargado nada.
 import { useEffect, useState } from 'react'
 import Icon from '@/ui/components/Icon'
-import { getSaga } from '@/data/dragon/sagas'
 import { getForm } from '@/data/dragon/transformations'
 import { combatantPL, fighterMaxHp, fighterPL, formatPL } from '@/engine/dragon/roster'
 import type { Combatant, Fighter } from '@/engine/dragon/types'
@@ -220,6 +219,15 @@ export function portraitUrl(baseId: string): string {
   return `${import.meta.env.BASE_URL}dragon/fighters/${baseId}.png`
 }
 
+/**
+ * Retrato de un luchador YA TRANSFORMADO. Vive aparte (`dragon/forms/`) porque
+ * no todas las combinaciones existen: si falta, `Avatar` cae al retrato normal
+ * y de ahí a las iniciales, así que transformarse nunca deja un hueco.
+ */
+export function formPortraitUrl(baseId: string, form: string): string {
+  return `${import.meta.env.BASE_URL}dragon/forms/${baseId}__${form}.png`
+}
+
 /** Inicial(es) del nombre, para la carta sin retrato. */
 export function initials(name: string): string {
   const parts = name.replace(/[()]/g, '').split(/\s+/).filter(Boolean)
@@ -235,8 +243,15 @@ export function Avatar({ name, color, size = 44, form, baseId }: {
   /** Con esto se pinta el retrato; sin él, las iniciales. */
   baseId?: string
 }) {
-  const [roto, setRoto] = useState(false)
-  const conRetrato = !!baseId && !roto
+  // Dos caídas encadenadas: retrato de la forma → retrato normal → iniciales.
+  // `key` en el <img> fuerza a React a recrearlo al cambiar de forma; sin eso
+  // el `onError` de un retrato roto se quedaba pegado y el luchador perdía la
+  // cara al transformarse.
+  const [falla, setFalla] = useState<Record<string, boolean>>({})
+  const src = baseId
+    ? (form && !falla[`${baseId}__${form}`] ? formPortraitUrl(baseId, form)
+      : !falla[baseId] ? portraitUrl(baseId) : null)
+    : null
   return (
     <div
       className="relative grid place-items-center rounded-xl font-black shrink-0 overflow-hidden"
@@ -250,12 +265,16 @@ export function Avatar({ name, color, size = 44, form, baseId }: {
         boxShadow: form ? `0 0 0 2px #fde047, 0 0 18px 2px ${color}` : `0 0 0 1px #ffffff1a`,
       }}
     >
-      {conRetrato ? (
+      {src ? (
         <img
-          src={portraitUrl(baseId)}
+          key={src}
+          src={src}
           alt={name}
           loading="lazy"
-          onError={() => setRoto(true)}
+          onError={() => setFalla((f) => ({
+            ...f,
+            [form && src.includes('/forms/') ? `${baseId}__${form}` : String(baseId)]: true,
+          }))}
           className="w-full h-full object-cover object-top"
         />
       ) : (
@@ -416,9 +435,10 @@ export function Scouter({ pl, compact }: { pl: number; compact?: boolean }) {
 }
 
 /** Ficha de un luchador del equipo, fuera del combate. */
-export function FighterRow({ f, saga, onClick, selected, right }: {
+export function FighterRow({ f, plScale, onClick, selected, right }: {
   f: Fighter
-  saga: number
+  /** Teatro del scouter, ya resuelto por quien conoce el arco. */
+  plScale: number
   onClick?: () => void
   selected?: boolean
   right?: React.ReactNode
@@ -450,7 +470,7 @@ export function FighterRow({ f, saga, onClick, selected, right }: {
           <Bar value={f.hp} max={max} color={hpColor(f.hp / max)} height={6} />
         </div>
         <div className="flex items-center gap-1.5 mt-1">
-          <Scouter pl={fighterPL(f, getSaga(saga).plScale)} compact />
+          <Scouter pl={fighterPL(f, plScale)} compact />
           {ko && <span className="text-[10px] text-red-400">Fuera de combate</span>}
           {!!f.forms.length && (
             <span className="text-[9px] text-amber-300 truncate">
@@ -528,7 +548,13 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
   /** Desfase del balanceo, para que los dos no respiren a la vez. */
   delay?: number
 }) {
-  const [roto, setRoto] = useState(false)
+  // TRANSFORMADO SE VE: si existe el retrato de la forma, se usa ese. Dos
+  // caídas encadenadas (forma → normal → iniciales) con un mapa de fallos,
+  // porque con un solo booleano el fallo de una fuente tumbaba a la otra.
+  const [falla, setFalla] = useState<Record<string, boolean>>({})
+  const formSrc = c.form ? formPortraitUrl(c.baseId, c.form) : null
+  const baseSrc = portraitUrl(c.baseId)
+  const stageSrc = formSrc && !falla[formSrc] ? formSrc : (!falla[baseSrc] ? baseSrc : null)
   const form = c.form ? getForm(c.form) : undefined
   const h = Math.round(size * 1.5)
   const ko = c.fainted || c.hp <= 0
@@ -583,11 +609,12 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
             opacity: ko ? 0.45 : 1,
           }}
         >
-          {!roto ? (
+          {stageSrc ? (
             <img
-              src={portraitUrl(c.baseId)}
+              key={stageSrc}
+              src={stageSrc}
               alt={c.name}
-              onError={() => setRoto(true)}
+              onError={() => setFalla((f) => ({ ...f, [stageSrc]: true }))}
               draggable={false}
               className="w-full h-full object-contain object-bottom"
               style={{
@@ -623,9 +650,10 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
  * planta en la esquina CONTRARIA a su dueño, como en los combates de Pokémon:
  * así la barra no le tapa la cara a nadie.
  */
-export function VitalStrip({ c, saga, align = 'left', extra }: {
+export function VitalStrip({ c, plScale, align = 'left', extra }: {
   c: Combatant
-  saga: number
+  /** Teatro del scouter, ya resuelto por quien conoce el arco. */
+  plScale: number
   align?: 'left' | 'right'
   /** Banquillo u otra coletilla, alineada con el panel. */
   extra?: React.ReactNode
@@ -642,7 +670,7 @@ export function VitalStrip({ c, saga, align = 'left', extra }: {
           {c.name}
         </span>
         <span className="text-[10px] text-slate-300 shrink-0 tabular-nums">Nv.{c.level}</span>
-        <Scouter pl={combatantPL(c, getSaga(saga).plScale)} compact />
+        <Scouter pl={combatantPL(c, plScale)} compact />
       </div>
       {form && (
         <div

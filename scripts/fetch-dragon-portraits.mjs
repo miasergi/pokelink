@@ -85,6 +85,10 @@ const UA = 'pokelink-dragon-portraits/2.0 (script de un solo uso; contacto: repo
  *          buscador.
  * `file`   es un override para cuando no hay render y la imagen principal del
  *          artículo tampoco sirve.
+ *
+ * Y una entrada a `null` significa "ya hemos mirado y NO hay nada decente en la
+ * wiki": ni se busca. Es distinto de no tener entrada (que sí busca a ciegas por
+ * el nombre en español y suele traer cualquier cosa).
  */
 const WIKI = {
   // --- Aliados ---
@@ -140,6 +144,82 @@ const WIKI = {
   // todas las formas. En Sparking! Zero "Majin Buu" a secas ES el Buu gordo,
   // que es el que el doblaje español llama simplemente "Majin Buu".
   buu: { title: 'Innocent Buu', render: 'Sparking! Zero - Majin Buu artwork.png' },
+
+  // --- Arco clásico (Dragon Ball): aliados ---
+  // Sparking! Zero no tiene al Goku niño de la primera serie. El que sí tiene es
+  // el "Mini" de Daima, que va igual de crío, con la cola fuera y el Báculo
+  // Sagrado en la mano: para `goku_nino` vale. Comparte artículo con `goku`, así
+  // que lo que lo distingue es el render.
+  goku_nino: { title: 'Goku', render: 'Sparking! Zero - Goku (Mini) artwork.png' },
+  roshi: { title: 'Master Roshi', render: 'Sparking! Zero - Master Roshi artwork.png' },
+  goten: { title: 'Goten', render: 'Sparking! Zero - Goten artwork.png' },
+  // OJO: "Trunks" a secas es el NIÑO; el del futuro (nuestro `trunks`) vive en
+  // "Future Trunks". Aquí cambian artículo y render a la vez.
+  trunks_nino: { title: 'Trunks', render: 'Sparking! Zero - Kid Trunks artwork.png' },
+  gotenks: { title: 'Gotenks', render: 'Sparking! Zero - Gotenks artwork.png' },
+
+  // --- Arco clásico (Dragon Ball): rivales ---
+  // AVISO PARA EL QUE VENGA DETRÁS: de aquí para abajo NO hay artwork con alfa.
+  // Los villanos de la primera serie no salen en Sparking! Zero ni en ningún
+  // juego moderno, así que la wiki solo tiene fotogramas del anime y páginas de
+  // manga a color. Por eso van con `file` (un fichero elegido a mano, el que
+  // mejor aísla al personaje) en vez de con `render`: el fondo lo quita después
+  // el flood fill de `png-cutout.mjs`. Es peor acabado que el resto del roster,
+  // pero es lo que hay — y sigue siendo mejor que una pegatina rectangular.
+  // Un fotograma con el fondo despejado recorta mucho mejor que uno de acción,
+  // así que están elegidos por eso, no por lo épicos que sean.
+  pilaf: { title: 'Emperor Pilaf', file: 'PilafKanzenban.png' },
+  // `bandido` no tiene artículo NI personaje: es un enemigo de relleno que el
+  // juego se inventa para el arco del desierto. `null` = no lo intentes
+  // siquiera; la UI pinta la carta con las iniciales y tan contentos.
+  bandido: null,
+  giran: { title: 'Giran', file: 'GiranS.png' },
+  nam: { title: 'Nam', file: 'Nam DB Ep 22 002.png' },
+  // Jackie Chun es Mutenroshi con peluca y gafas, y su artículo REDIRIGE a
+  // "Master Roshi": sin `file` nos traeríamos al viejo de siempre y tendríamos
+  // dos veces el mismo retrato.
+  jackie: { title: 'Master Roshi', file: 'JackieChun (Ep26).png' },
+  black_rr: { title: 'Staff Officer Black', file: 'StaffOfficerBlackPathToPower.png' },
+  blue_rr: { title: 'General Blue', file: 'GeneralBlueColorManga.jpg' },
+  tao: { title: 'Mercenary Tao', file: 'Mercenary Tao (Kanzenban Manga).png' },
+  tambourine: { title: 'Tambourine', file: 'Tambourine Dragon Ball Episode 103.png' },
+  // Los dos Piccolos de la primera serie sí tienen recorte de verdad, pero solo
+  // en Jumputi Heroes (arte chibi con alfa). Feo mezclarlo con los renders de
+  // Sparking! Zero, sí; peor sería un recuadro con el trono de fondo.
+  piccolo_daimao: { title: 'King Piccolo', file: 'Jumputi Heroes - King Piccolo.png' },
+  // Mismo artículo que `piccolo` (el Jr. de mayor ES Piccolo), así que forzamos
+  // fichero. "Ma Junior" es el nombre con el que se apunta al 23º Budokai.
+  piccolo_jr: { title: 'Piccolo', file: 'Jumputi Heroes - Ma Junior.png' },
+  chappa: { title: 'King Chappa', file: 'King Chappa manga.jpg' },
+
+  // --- Dragon Ball Super: rivales ---
+  // Mismo artículo que `freezer`; el render es el que manda.
+  freezer_dorado: { title: 'Frieza', render: 'Sparking! Zero - Golden Frieza artwork.png' },
+  // Sorbet tampoco es jugable en ningún juego reciente: fotograma y a recortar.
+  sorbet: { title: 'Sorbet', file: 'Sorbet main image.png' },
+  // "Bills" es el nombre del doblaje español; en la wiki es "Beerus".
+  bills: { title: 'Beerus', render: 'Sparking! Zero - Beerus artwork.png' },
+  whis: { title: 'Whis', render: 'Sparking! Zero - Whis artwork.png' },
+  hit: { title: 'Hit', render: 'Sparking! Zero - Hit artwork.png' },
+  cabba: { title: 'Cabba', render: 'Sparking! Zero - Cabba artwork.png' },
+  // Kale, Caulifla y Kefla en forma BASE: si cogiéramos las transformadas, Kefla
+  // (la fusión) y Kale (Legendaria) saldrían las dos verdes y musculadas y no
+  // habría quien las distinguiera en la carta.
+  kale: { title: 'Kale', render: 'Sparking! Zero - Kale artwork.png' },
+  caulifla: { title: 'Caulifla', render: 'Sparking! Zero - Caulifla artwork.png' },
+  kefla: { title: 'Kefla', render: 'Sparking! Zero - Kefla artwork.png' },
+  // El Broly del roster está en el bloque de Super, así que el de la peli de
+  // 2018 — no el "(Z)" de las películas viejas.
+  broly: { title: 'Broly', render: 'Sparking! Zero - Broly (Super) artwork.png' },
+  goku_black: { title: 'Goku Black', render: 'Sparking! Zero - Goku Black artwork.png' },
+  // Zamasu y Zamasu fusionado son el mismo personaje en dos estados; cada uno
+  // con su artículo Y su render para que no se pisen.
+  zamasu: { title: 'Zamasu', render: 'Sparking! Zero - Zamasu artwork.png' },
+  zamasu_fusion: { title: 'Fused Zamasu', render: 'Sparking! Zero - Fused Zamasu artwork.png' },
+  // "Toppo" redirige a "Top" en la wiki inglesa.
+  toppo: { title: 'Top', render: 'Sparking! Zero - Toppo artwork.png' },
+  dyspo: { title: 'Dyspo', render: 'Sparking! Zero - Dyspo artwork.png' },
+  jiren: { title: 'Jiren', render: 'Sparking! Zero - Jiren artwork.png' },
 }
 
 const args = process.argv.slice(2)
@@ -432,6 +512,12 @@ async function main() {
     const dest = join(OUT_DIR, `${id}.png`)
     if (!force && await exists(dest)) { skipped++; continue }
     const entry = WIKI[id]
+    if (entry === null) {
+      // Descartado a mano: no hay imagen que valga y buscar solo trae basura.
+      missing.push(`${name} (${id})`)
+      console.log(`  – ${name} — sin retrato a propósito (no hay nada en la wiki)`)
+      continue
+    }
     if (!entry) console.log(`  ! ${id} — sin entrada en WIKI, probamos con "${name}" a pelo`)
 
     try {
@@ -458,6 +544,13 @@ async function main() {
         if (!got) continue
         if (!fallback) fallback = { ...got, cand }
         if (looksCutOut(got.image)) { chosen = { ...got, cand }; break }
+        // Un candidato ELEGIDO A MANO manda aunque venga con fondo opaco. Sin
+        // esto la búsqueda a ciegas se cuela por detrás: basta con que a algún
+        // fichero suyo le vea alfa para que gane, y así es como "Jackie Chun"
+        // acaba siendo el artwork de Mutenroshi (mismo artículo) y Tao Pai Pai y
+        // General Blue acaban compartiendo retrato. Si hemos dicho qué fichero
+        // es, ese es; para el fondo ya está el recorte de más abajo.
+        if (cand.why.includes('mano')) break
       }
 
       if (chosen) {

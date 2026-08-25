@@ -11,6 +11,7 @@ import { getFighter, STARTER_PITCH, STARTERS } from '@/data/dragon/fighters'
 import { getTechnique } from '@/data/dragon/techniques'
 import { getForm } from '@/data/dragon/transformations'
 import { getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
+import { getArc } from '@/data/dragon/sagas'
 import { START_LEVEL, TEAM_MAX } from '@/engine/dragon/run'
 import { maxHp, statsAt } from '@/engine/dragon/roster'
 import type { StatKey } from '@/engine/dragon/types'
@@ -24,7 +25,8 @@ const STAT_ROWS: { k: StatKey; label: string; icon: string }[] = [
   { k: 'aguante', label: 'Aguante', icon: 'heal' },
 ]
 
-export default function StarterPicker({ onPick, onBack }: {
+export default function StarterPicker({ arc, onPick, onBack }: {
+  arc: string
   onPick: (id: string) => void
   onBack: () => void
 }) {
@@ -43,7 +45,11 @@ export default function StarterPicker({ onPick, onBack }: {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <Header title="Elige a tu guerrero" sub="Empiezas la aventura solo con él" onBack={onBack} />
+      <Header
+        title="Elige a tu guerrero"
+        sub={`${getArc(arc).name} · empiezas solo con él`}
+        onBack={onBack}
+      />
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
         <div

@@ -5,7 +5,9 @@
 // **siempre al menos un combate por capa** — sin eso salen capas de solo
 // tienda/descanso donde es imposible subir de nivel y llegas al jefe pelado.
 import { RNG } from '@/utils/rng'
-import { getMaster, getSaga, SAGAS } from '@/data/dragon/sagas'
+import {
+  bossLevel, getArc, getMaster, getSaga, sagaLevels,
+} from '@/data/dragon/sagas'
 import { getFighter } from '@/data/dragon/fighters'
 import { getForm } from '@/data/dragon/transformations'
 import { getItem } from '@/data/dragon/items'
@@ -78,7 +80,9 @@ export interface MapNode {
 export interface DragonSave {
   seed: number
   rngState: number
-  /** Saga actual (0-3). */
+  /** Arco elegido (ver `ARCS`). Manda en qué sagas se juegan y en qué orden. */
+  arc: string
+  /** Índice de la saga DENTRO del arco, no su id. */
   saga: number
   /** Capa actual dentro de la saga. */
   layer: number
@@ -100,19 +104,29 @@ export interface DragonSave {
   startedAt: number
 }
 
+/** La saga que toca en esa posición del arco. */
+export function sagaOf(arc: string, indexInArc: number) {
+  const ids = getArc(arc).sagas
+  return getSaga(ids[Math.max(0, Math.min(ids.length - 1, indexInArc))])
+}
+
+/** Cuántas sagas tiene el arco elegido. */
+export function arcLength(arc: string): number {
+  return getArc(arc).sagas.length
+}
+
 // --------------------------------------------------------------- el mapa ---
 
-function nodeLevel(saga: number, layer: number): number {
-  const s = getSaga(saga)
-  const [a, b] = s.levels
+function nodeLevel(indexInArc: number, layer: number): number {
+  const [a, b] = sagaLevels(indexInArc, START_LEVEL)
   const t = layer / Math.max(1, BOSS_LAYER - 1)
   return Math.round(a + (b - a) * t)
 }
 
 const REST_DESC = 'Un respiro. El equipo recupera buena parte de sus fuerzas.'
 
-function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: number): MapNode {
-  const s = getSaga(saga)
+function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: number, arc: string): MapNode {
+  const s = sagaOf(arc, saga)
   const id = `${saga}-${layer}-${idx}`
   const col = idx
   const next: string[] = []
@@ -141,7 +155,8 @@ function makeNode(kind: NodeKind, layer: number, saga: number, rng: RNG, idx: nu
     }
     case 'jefe': {
       return {
-        id, kind, layer, col, next, level: s.boss.level, enemies: [s.boss.id], phases: s.boss.phases,
+        id, kind, layer, col, next, level: bossLevel(saga, START_LEVEL),
+        enemies: [s.boss.id], phases: s.boss.phases,
         label: getFighter(s.boss.id)?.name ?? 'Jefe',
         desc: s.boss.intro,
       }
@@ -219,7 +234,7 @@ function connect(curr: MapNode[], next: MapNode[], rng: RNG): void {
  * capas de solo tienda y descanso donde es imposible subir de nivel y llegas
  * al jefe pelado); la última es el jefe, al que llevan todos los caminos.
  */
-export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
+export function generateSagaMap(saga: number, rng: RNG, arc = 'z'): MapNode[] {
   const capas: MapNode[][] = []
   for (let layer = 0; layer < BOSS_LAYER; layer++) {
     // Siempre un combate (o élite en las capas altas), y luego relleno variado.
@@ -244,12 +259,12 @@ export function generateSagaMap(saga: number, rng: RNG): MapNode[] {
     }
     rng.shuffle(kinds)
     capas.push(kinds.map((k, i) => {
-      const n = makeNode(k, layer, saga, rng, i)
+      const n = makeNode(k, layer, saga, rng, i, arc)
       if (saga === 0 && layer === 0) n.saga0Prologue = true
       return n
     }))
   }
-  capas.push([makeNode('jefe', BOSS_LAYER, saga, rng, 0)])
+  capas.push([makeNode('jefe', BOSS_LAYER, saga, rng, 0, arc)])
 
   for (let i = 0; i < capas.length - 1; i++) connect(capas[i], capas[i + 1], rng)
   return capas.flat()
@@ -277,6 +292,8 @@ export function layerNodes(save: DragonSave, layer = save.layer): MapNode[] {
 export interface NewRunOptions {
   /** El inicial: se empieza SOLO con él, como el inicial de Pokémon. */
   starter?: string
+  /** Arco a jugar (ver `ARCS`). Por defecto, el clásico de Z. */
+  arc?: string
 }
 
 export function createSave(seed: number, opts: NewRunOptions = {}): DragonSave {
@@ -285,9 +302,11 @@ export function createSave(seed: number, opts: NewRunOptions = {}): DragonSave {
   // UN solo luchador para empezar. El equipo se hace por el camino, que es de
   // donde sale el arco de la aventura: los aliados se ganan, no se regalan.
   const team = [createFighter(opts.starter ?? 'goku', START_LEVEL)]
+  const arc = opts.arc ?? 'z'
   return {
     seed,
     rngState: rng.getState(),
+    arc,
     saga: 0,
     layer: 0,
     team,
@@ -295,7 +314,7 @@ export function createSave(seed: number, opts: NewRunOptions = {}): DragonSave {
     bag: { semilla_media: 1 },
     balls: 0,
     wishes: [],
-    map: generateSagaMap(0, rng),
+    map: generateSagaMap(0, rng, arc),
     currentNode: null,
     battles: 0,
     wins: 0,
@@ -325,7 +344,7 @@ export function buildEnemies(node: MapNode): Fighter[] {
 }
 
 export function startNodeBattle(save: DragonSave, node: MapNode, rng: RNG): Battle {
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   // La pericia del rival sube por saga y un punto más en jefes y élites: es la
   // palanca de dificultad que NO toca ningún número, así que subirla no
   // desequilibra el daño ni la economía de ki.
@@ -512,7 +531,7 @@ export function canRecruit(save: DragonSave): boolean {
  * del tramo: si no, el nodo se gasta sin dar nada (medido en el diagnóstico).
  */
 export function recruitCandidate(save: DragonSave, node: MapNode, rng: RNG): string | null {
-  const s = getSaga(save.saga)
+  const s = sagaOf(save.arc, save.saga)
   const has = (id: string) => save.team.some((f) => f.baseId === id)
   if (node.recruit && !has(node.recruit)) return node.recruit
   const libres = s.recruits.filter((id) => !has(id))
@@ -633,15 +652,15 @@ export function advanceMap(save: DragonSave, rng: RNG): 'capa' | 'saga' | 'fin' 
     }
     return 'capa'
   }
-  // Jefe caído: siguiente saga.
-  if (save.saga >= SAGAS.length - 1) {
+  // Jefe caído: siguiente saga del arco.
+  if (save.saga >= arcLength(save.arc) - 1) {
     save.finished = 'victoria'
     return 'fin'
   }
   save.saga += 1
   save.layer = 0
   save.currentNode = null
-  save.map = generateSagaMap(save.saga, rng)
+  save.map = generateSagaMap(save.saga, rng, save.arc)
   // Entre sagas se cura al equipo Y SE LEVANTA A LOS CAÍDOS (a media vida). El
   // corte narrativo es el respiro: sin esto, perder a dos compañeros en la saga
   // 1 dejaba la run en una espiral de la que solo se salía comprando una Judía

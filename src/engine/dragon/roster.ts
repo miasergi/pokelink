@@ -14,6 +14,14 @@ export const GROWTH = 0.085
 /** El depósito de ki es IGUAL para todos (0-100). */
 export const KI_MAX = 100
 
+/**
+ * Tope de nivel. Alto porque la aventura COMPLETA son trece tramos y cada uno
+ * sube 15 niveles: el jefe final ronda el 200. No hay ningún motivo para
+ * dejarlo en 99 — los atributos crecen en línea recta con el nivel, así que la
+ * escala aguanta, y el power level del scouter ya explota solo.
+ */
+export const LEVEL_CAP = 250
+
 const STAT_KEYS: StatKey[] = ['poder', 'ki', 'defensa', 'velocidad', 'aguante']
 
 /** Atributos a un nivel dado, sin objeto ni transformación. */
@@ -91,11 +99,22 @@ export function createFighter(baseId: string, level: number): Fighter {
   }
 }
 
-/** Un rival: igual que un aliado pero con sus formas YA disponibles. */
+/**
+ * Un rival: igual que un aliado pero con sus transformaciones ya despiertas.
+ *
+ * OJO, respeta el NIVEL DE DESBLOQUEO igual que el jugador. Sin ese filtro, un
+ * Cabba de relleno a nivel 9 salía con Superguerrero puesto y borraba al
+ * equipo en la segunda casilla del arco de Super. Y las formas SIN `unlock`
+ * (Forma Dorada, Poder Divino, las de Freezer…) son de FASE DE JEFE: las
+ * reparte el motor por `phases`, no se llevan de serie.
+ */
 export function createEnemy(baseId: string, level: number): Fighter {
   const f = createFighter(baseId, level)
   const d = getFighter(baseId)
-  f.forms = (d?.forms ?? []).slice()
+  f.forms = (d?.forms ?? []).filter((id) => {
+    const def = getForm(id)
+    return !!def?.unlock && level >= def.unlock
+  })
   return f
 }
 
@@ -116,7 +135,7 @@ export function levelUp(f: Fighter, amount: number): { levels: number; learned: 
   const d = getFighter(f.baseId)
   if (!d) return { levels: 0, learned: [] }
   const before = f.level
-  f.level = Math.min(99, f.level + amount)
+  f.level = Math.min(LEVEL_CAP, f.level + amount)
   const learned = techniquesAt(d, f.level).filter((t) => !f.techniques.includes(t))
   f.techniques = techniquesAt(d, f.level)
   const s = statsAt(d.base, f.level, f.zenkai)

@@ -194,6 +194,98 @@ export const TECHNIQUES: Technique[] = [
     buff: { defensa: 1.45 },
     desc: 'Una cúpula de energía. Aguantas lo que venga.',
   },
+
+  // ------------------------------------------- Dragon Ball (arco clásico) ---
+  {
+    id: 'kamehameha_nino',
+    name: 'Kamehameha imperfecto',
+    kind: 'energia', style: 'ki', power: 44, cost: 24,
+    desc: 'Aún no le sale entero, pero ya tumba a un dinosaurio.',
+  },
+  {
+    id: 'bastonsagrado',
+    name: 'Bastón Sagrado',
+    kind: 'fisica', style: 'tecnico', power: 48, cost: 25, hits: 2,
+    desc: 'Se alarga hasta donde haga falta. Nadie sabe cuánto es eso.',
+  },
+  {
+    id: 'dodonpa',
+    name: 'Dodon Pa',
+    kind: 'energia', style: 'tecnico', power: 54, cost: 27, pierce: true,
+    desc: 'Un dedo, un rayo fino y un agujero limpio.',
+  },
+  {
+    id: 'mafuba',
+    name: 'Mafuba',
+    kind: 'apoyo', style: 'tecnico', power: 0, cost: 40,
+    debuff: { poder: 0.6, ki: 0.6 },
+    desc: 'Sella al rival en una vasija. Sale carísimo y lo deja hecho un guiñapo.',
+  },
+  {
+    id: 'explosion_demoniaca',
+    name: 'Onda Demoníaca',
+    kind: 'energia', style: 'ki', power: 68, cost: 34,
+    desc: 'La técnica del Rey Demonio. Huele a azufre.',
+  },
+  {
+    id: 'punokamikaze',
+    name: 'Puño Kamikaze',
+    kind: 'fisica', style: 'bruto', power: 64, cost: 32, recoil: 10,
+    desc: 'Todo el cuerpo por delante y que sea lo que Kami quiera.',
+  },
+
+  // ------------------------------------------------------ Dragon Ball Super ---
+  {
+    id: 'punodragon',
+    name: 'Puño del Dragón',
+    kind: 'fisica', style: 'bruto', power: 88, cost: 44, pierce: true,
+    desc: 'Un dragón dorado sale del puño y atraviesa lo que haya delante.',
+  },
+  {
+    id: 'hakai',
+    name: 'Hakai',
+    kind: 'energia', style: 'ki', power: 110, cost: 58, pierce: true,
+    desc: 'La técnica de los dioses de la destrucción: borra lo que toca.',
+  },
+  {
+    id: 'saltotemporal',
+    name: 'Salto Temporal',
+    kind: 'apoyo', style: 'tecnico', power: 0, cost: 30,
+    buff: { velocidad: 1.5 },
+    debuff: { velocidad: 0.8 },
+    desc: 'Se adelanta un instante en el tiempo. Imposible seguirle.',
+  },
+  {
+    id: 'rayojuicio',
+    name: 'Rayo del Juicio',
+    kind: 'energia', style: 'ki', power: 82, cost: 40,
+    desc: 'Un dios convencido de que aniquilar es justicia.',
+  },
+  {
+    id: 'esferacastigo',
+    name: 'Esfera del Castigo',
+    kind: 'energia', style: 'ki', power: 94, cost: 46,
+    desc: 'La condena caída del cielo, del tamaño de una montaña.',
+  },
+  {
+    id: 'gigantica',
+    name: 'Bomba Gigantesca',
+    kind: 'energia', style: 'bruto', power: 100, cost: 50, recoil: 8,
+    desc: 'Toda la energía comprimida y soltada de una vez.',
+  },
+  {
+    id: 'atomico',
+    name: 'Puño Atómico',
+    kind: 'fisica', style: 'bruto', power: 76, cost: 38, stun: 0.2,
+    desc: 'El golpe más simple del universo, llevado al extremo.',
+  },
+  {
+    id: 'muroluz',
+    name: 'Muro de Luz',
+    kind: 'apoyo', style: 'tecnico', power: 0, cost: 24,
+    buff: { defensa: 1.5, aguante: 1.15 },
+    desc: 'Una barrera que no se rompe con fuerza bruta.',
+  },
 ]
 
 const BY_ID = new Map(TECHNIQUES.map((t) => [t.id, t]))
