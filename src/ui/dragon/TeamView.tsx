@@ -9,7 +9,7 @@
 // escrito en números: era imposible saber qué era cada cosa.
 import { useState } from 'react'
 import Icon from '@/ui/components/Icon'
-import { getItem, itemEffect, itemFamily, itemIcon, itemVerb, type Item } from '@/data/dragon/items'
+import { getItem, itemEffect, itemFamily, itemVerb, type Item } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
 import { fusionOf } from '@/data/dragon/fusions'
 import { getForm } from '@/data/dragon/transformations'
@@ -20,6 +20,7 @@ import { effStats, fighterMaxHp, fighterPL, itemLevel, toCombatant } from '@/eng
 import { useDragon } from '@/state/dragonStore'
 import type { Fighter, StatKey } from '@/engine/dragon/types'
 import { Avatar, Bar, Header, hpColor, Scouter } from './Bits'
+import { ItemArt } from './ItemArt'
 
 const STAT_ROWS: { k: StatKey; label: string; icon: string }[] = [
   { k: 'poder', label: 'Poder', icon: 'swords' },
@@ -69,7 +70,9 @@ function TeamSlot({ f, plScale, selected, onClick }: {
           </span>
           {item ? (
             <span className="inline-flex items-center gap-1 text-[10px] text-sky-300 truncate">
-              <Icon name={itemIcon(item)} className="w-3 h-3 shrink-0" />
+              {/* Un pelín más grande que el icono monocromo que había aquí: el
+                  dibujo va a color y a 12 px se volvía una mancha. */}
+              <ItemArt id={item.id} className="w-4 h-4 shrink-0" />
               {item.name}{lvl > 0 && ` +${lvl}`}
             </span>
           ) : (
@@ -306,7 +309,7 @@ function FighterDetail({ f, save, onEquip, onUse, equipables }: {
               onClick={() => onEquip(f.uid, undefined)}
               className="flex items-center gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-left active:scale-[0.99] transition"
             >
-              <Icon name={itemIcon(item)} className="w-5 h-5 text-amber-300 shrink-0" />
+              <ItemArt id={item.id} className="w-7 h-7 shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[12px] font-bold text-amber-200">
                   {item.name}{lvl > 0 && <span className="text-emerald-300"> +{lvl}</span>} · puesto
@@ -327,7 +330,7 @@ function FighterDetail({ f, save, onEquip, onUse, equipables }: {
               onClick={() => onEquip(f.uid, it.id)}
               className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
             >
-              <Icon name={itemIcon(it)} className="w-5 h-5 text-slate-300 shrink-0" />
+              <ItemArt id={it.id} className="w-7 h-7 shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[12px] font-bold">{it.name} <span className="text-slate-500">×{n}</span></span>
                 <span className="block text-[10px] text-emerald-300 leading-snug">{itemEffect(it).join(' · ')}</span>
@@ -352,7 +355,7 @@ function FighterDetail({ f, save, onEquip, onUse, equipables }: {
                 onClick={() => onUse(it.id, f.uid)}
                 className="inline-flex items-center gap-1 text-[10.5px] px-2 py-1 rounded-lg bg-emerald-900/60 active:bg-emerald-800"
               >
-                <Icon name={itemIcon(it)} className="w-3 h-3" />
+                <ItemArt id={it.id} className="w-4 h-4" />
                 {it.name} ×{n}
               </button>
             ))}
@@ -393,9 +396,11 @@ function BagSection({ titulo, vacio, items, save }: {
               >
                 <span
                   className="grid place-items-center rounded-xl shrink-0"
-                  style={{ width: 36, height: 36, background: `${itemFamily(it).color}22` }}
+                  style={{ width: 38, height: 38, background: `${itemFamily(it).color}22` }}
                 >
-                  <Icon name={itemIcon(it)} className="w-4.5 h-4.5" style={{ color: itemFamily(it).color }} />
+                  {/* El color del objeto lo pone su dibujo; la cajita solo pone
+                      el fondo de familia (azul equipable / verde consumible). */}
+                  <ItemArt id={it.id} className="w-7 h-7" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">

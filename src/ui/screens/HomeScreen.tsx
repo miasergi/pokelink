@@ -190,7 +190,7 @@ export default function HomeScreen() {
         {/* ---- DRAGON BALL ROGUE ---- */}
         <CoverCard
           art={`${import.meta.env.BASE_URL}covers/dragon-cover.jpg`}
-          logo={`${import.meta.env.BASE_URL}dragon/logo.svg`}
+          logo={`${import.meta.env.BASE_URL}dragon/logo.png`}
           alt="Dragon Ball Rogue"
           title="Dragon Ball Rogue"
           color="#f97316"

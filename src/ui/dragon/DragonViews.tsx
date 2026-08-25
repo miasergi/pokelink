@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { getMaster, SAGAS } from '@/data/dragon/sagas'
 import { sagaOf } from '@/engine/dragon/run'
-import { getItem, ITEMS, itemEffect, itemFamily, itemIcon } from '@/data/dragon/items'
+import { getItem, ITEMS, itemEffect, itemFamily } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
 import {
   availableNodes, avgLevel, BALLS_FOR_WISH, BOSS_LAYER, TEAM_MAX, WISHES,
@@ -14,6 +14,7 @@ import MapBoard from './MapBoard'
 import StarterPicker from './StarterPicker'
 import ArcPicker from './ArcPicker'
 import NodePreview from './NodePreview'
+import { ItemArt } from './ItemArt'
 import Icon from '@/ui/components/Icon'
 
 // ------------------------------------------------------------- título ---
@@ -44,7 +45,7 @@ export function TitleView() {
       <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-center gap-3">
         <div className="text-center">
           <img
-            src={`${import.meta.env.BASE_URL}dragon/logo.svg`}
+            src={`${import.meta.env.BASE_URL}dragon/logo.png`}
             alt="Dragon Ball Rogue"
             className="w-full max-w-[280px] mx-auto select-none"
             draggable={false}
@@ -371,9 +372,11 @@ export function ShopView() {
               <div className="flex items-start gap-2.5">
                 <span
                   className="grid place-items-center rounded-xl shrink-0"
-                  style={{ width: 38, height: 38, background: `${fam.color}22` }}
+                  style={{ width: 40, height: 40, background: `${fam.color}22` }}
                 >
-                  <Icon name={itemIcon(it)} className="w-5 h-5" style={{ color: fam.color }} />
+                  {/* El escaparate enseña el objeto DIBUJADO; el color de
+                      familia se queda para el fondo de la cajita. */}
+                  <ItemArt id={it.id} className="w-8 h-8" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">

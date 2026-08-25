@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.70',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: logo oficial y objetos con dibujo propio',
+    changes: [
+      'EL LOGO OFICIAL DE DRAGON BALL en la portada del juego y en su pantalla de título.',
+      'CADA OBJETO CON SU DIBUJO: la judía verde de la Semilla del Ermitaño, el peto con hombreras de la armadura saiyan, el rastreador de oreja, la Nube Kinton, la ropa lastrada… quince ilustraciones propias, hechas a medida y a juego entre ellas, en lugar de los iconos genéricos de antes.',
+    ],
+  },
+  {
     version: 'v6.69',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: fusiones, definitivas y las transformaciones ya se ven',
