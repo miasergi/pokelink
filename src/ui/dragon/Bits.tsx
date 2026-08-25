@@ -577,7 +577,7 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
             style={{
               left: '50%', top: '4%', width: size * 1.5, height: h * 0.98,
               marginLeft: -(size * 1.5) / 2, opacity: 0.7,
-              background: `radial-gradient(ellipse, #fef9c3aa 0%, ${c.color}99 44%, transparent 72%)`,
+              background: `radial-gradient(ellipse, #ffffffaa 0%, ${form.aura ?? c.color}cc 42%, transparent 72%)`,
             }}
           />
           {/* …y sus llamas, que es lo que canta «esto sigue encendido». */}
@@ -587,7 +587,7 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
               className="absolute bottom-1 dg-flame rounded-full blur-[1px] pointer-events-none"
               style={{
                 left: `${12 + i * 19}%`, width: 5, height: 16,
-                background: `linear-gradient(to top, #fde047, ${c.color}00)`,
+                background: `linear-gradient(to top, ${form.aura ?? '#fde047'}, ${form.aura ?? c.color}00)`,
                 animationDelay: `-${i * 0.22}s`,
               }}
             />
@@ -605,7 +605,7 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
             transform: flip ? 'scaleX(-1)' : undefined,
             filter: ko
               ? 'grayscale(1) brightness(.5)'
-              : `drop-shadow(0 6px 10px rgba(2,6,23,.7))${form ? ` drop-shadow(0 0 12px ${c.color})` : ''}`,
+              : `drop-shadow(0 6px 10px rgba(2,6,23,.7))${form ? ` drop-shadow(0 0 14px ${form.aura ?? c.color}) drop-shadow(0 0 26px ${form.aura ?? c.color})` : ''}`,
             opacity: ko ? 0.45 : 1,
           }}
         >
@@ -674,8 +674,12 @@ export function VitalStrip({ c, plScale, align = 'left', extra }: {
       </div>
       {form && (
         <div
-          className="text-[10px] font-black uppercase tracking-wide truncate text-amber-300"
-          style={{ textAlign: right ? 'right' : 'left', textShadow: `0 0 10px ${c.color}` }}
+          className="text-[10px] font-black uppercase tracking-wide truncate"
+          style={{
+            textAlign: right ? 'right' : 'left',
+            color: form.aura ?? '#fde047',
+            textShadow: `0 0 10px ${form.aura ?? c.color}`,
+          }}
         >
           {form.name}
         </div>

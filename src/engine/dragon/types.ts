@@ -69,6 +69,12 @@ export interface Transformation {
   /** Nivel mínimo para que pueda despertar (ver `checkAwakenings`). */
   unlock?: number
   /**
+   * Color del aura. Es lo que hace que una transformación se DISTINGA de otra
+   * de un vistazo aunque no haya retrato de esa forma concreta: el dorado del
+   * Superguerrero no se confunde con el azul del ki divino.
+   */
+  aura?: string
+  /**
    * Forma que hay que haber despertado ANTES. Convierte la lista de
    * transformaciones en un árbol: a Superguerrero 2 no se llega sin pasar por
    * Superguerrero, y el Kaio-Ken ×3 no existe sin el ×2.

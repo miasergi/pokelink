@@ -159,30 +159,38 @@ const WIKI = {
   gotenks: { title: 'Gotenks', render: 'Sparking! Zero - Gotenks artwork.png' },
 
   // --- Arco clásico (Dragon Ball): rivales ---
-  // AVISO PARA EL QUE VENGA DETRÁS: de aquí para abajo NO hay artwork con alfa.
-  // Los villanos de la primera serie no salen en Sparking! Zero ni en ningún
-  // juego moderno, así que la wiki solo tiene fotogramas del anime y páginas de
-  // manga a color. Por eso van con `file` (un fichero elegido a mano, el que
-  // mejor aísla al personaje) en vez de con `render`: el fondo lo quita después
-  // el flood fill de `png-cutout.mjs`. Es peor acabado que el resto del roster,
-  // pero es lo que hay — y sigue siendo mejor que una pegatina rectangular.
-  // Un fotograma con el fondo despejado recorta mucho mejor que uno de acción,
-  // así que están elegidos por eso, no por lo épicos que sean.
+  // AVISO PARA EL QUE VENGA DETRÁS: de aquí para abajo casi no hay artwork con
+  // alfa. Los villanos de la primera serie no salen en Sparking! Zero ni en
+  // ningún juego moderno, así que la wiki solo tiene fotogramas del anime y
+  // páginas de manga a color. Por eso van con `file` (un fichero elegido a mano,
+  // el que mejor aísla al personaje) en vez de con `render`: el fondo lo quita
+  // después el flood fill de `png-cutout.mjs`. Es peor acabado que el resto del
+  // roster, pero es lo que hay — y sigue siendo mejor que una pegatina
+  // rectangular. Están elegidos por lo despejado del fondo, no por lo épicos que
+  // sean: un plano quieto recorta mucho mejor que uno de acción.
   pilaf: { title: 'Emperor Pilaf', file: 'PilafKanzenban.png' },
   // `bandido` no tiene artículo NI personaje: es un enemigo de relleno que el
   // juego se inventa para el arco del desierto. `null` = no lo intentes
   // siquiera; la UI pinta la carta con las iniciales y tan contentos.
   bandido: null,
-  giran: { title: 'Giran', file: 'GiranS.png' },
-  nam: { title: 'Nam', file: 'Nam DB Ep 22 002.png' },
+  // De Giran, Nam y el Sargento Black no hay ni un fotograma que valga: siempre
+  // salen metidos en una escena y el flood fill acaba comiéndoles media pierna o
+  // dejándoles media pared pegada. De los tres SÍ hay foto de su figura de la
+  // línea World Collectable (DWC) sobre fondo liso: eso recorta redondo y el
+  // personaje se reconoce a la primera. Es la foto de un muñeco, sí; pero es la
+  // única versión limpia que existe.
+  giran: { title: 'Giran', file: 'Giran-DWC-full.PNG' },
+  nam: { title: 'Nam', file: 'Nam-DWC-full.PNG' },
   // Jackie Chun es Mutenroshi con peluca y gafas, y su artículo REDIRIGE a
   // "Master Roshi": sin `file` nos traeríamos al viejo de siempre y tendríamos
   // dos veces el mismo retrato.
   jackie: { title: 'Master Roshi', file: 'JackieChun (Ep26).png' },
-  black_rr: { title: 'Staff Officer Black', file: 'StaffOfficerBlackPathToPower.png' },
+  black_rr: { title: 'Staff Officer Black', file: 'DWC DB040 black august 2009.PNG' },
+  // Blue, Tao y Tambourine sí tienen manga a color con el personaje entero y de
+  // pie sobre casi nada: se recortan bien.
   blue_rr: { title: 'General Blue', file: 'GeneralBlueColorManga.jpg' },
   tao: { title: 'Mercenary Tao', file: 'Mercenary Tao (Kanzenban Manga).png' },
-  tambourine: { title: 'Tambourine', file: 'Tambourine Dragon Ball Episode 103.png' },
+  tambourine: { title: 'Tambourine', file: 'Tambourine Manga.PNG' },
   // Los dos Piccolos de la primera serie sí tienen recorte de verdad, pero solo
   // en Jumputi Heroes (arte chibi con alfa). Feo mezclarlo con los renders de
   // Sparking! Zero, sí; peor sería un recuadro con el trono de fondo.
