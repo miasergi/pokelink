@@ -9,7 +9,7 @@ import { FIGHTERS, getFighter, STARTERS } from '@/data/dragon/fighters'
 import { ARCS, bossLevel, getMaster, getSaga, sagaLevels, SAGAS } from '@/data/dragon/sagas'
 import { ITEMS, itemEffect, itemIcon, itemVerb, stockFor } from '@/data/dragon/items'
 import {
-  advance, ally, chooseOption, MOD_CAP, oddsStars, startBattle,
+  advance, affordableTechs, ally, chooseOption, MOD_CAP, oddsStars, startBattle,
 } from './battle'
 import { BONDS, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
 import {
@@ -551,6 +551,62 @@ describe('combate', () => {
     // La armadura NO puede ofrecerse: usarla gastaba el turno y destruía el objeto.
     expect(ids).not.toContain('item:armadura')
     expect(b.bag.armadura).toBe(1)
+  })
+
+  it('la fusión junta a dos en uno, y al acabar reparte lo que quede', () => {
+    const goten = createFighter('goten', 40)
+    const trunks = createFighter('trunks_nino', 40)
+    const save = createSave(2, { starter: 'goten' })
+    save.team = [goten, trunks]
+    const node = save.map.find((n) => n.kind === 'combate')!
+    const b = startBattle(save.team, [createEnemy('nappa', 40)], { seed: 5, title: 't', scene: 'yermo' })
+    // Con el depósito lleno, la jugada del asalto ofrece la fusión.
+    b.allies.forEach((c) => { c.ki = 100 })
+    advance(b)
+    const fus = (b.decision as Decision | null)?.options.find((o) => o.id.startsWith('fus:'))
+    expect(fus, 'no se ofreció la fusión').toBeDefined()
+
+    const vidaAntes = b.allies[0].hp + b.allies[1].hp
+    chooseOption(b, fus!.id)
+    const fusionado = b.allies.find((c) => c.fusedFrom)
+    expect(fusionado, 'no apareció el fusionado').toBeDefined()
+    expect(fusionado!.name).toBe('Gotenks')
+    // Junta la vida de los dos, no la cura: fusionarse no es un descanso.
+    expect(fusionado!.hp).toBeLessThanOrEqual(vidaAntes)
+    // Y los dos originales salen del combate: se han gastado DOS cuerpos.
+    expect(b.allies.filter((c) => !c.fusedFrom && !c.fainted).length).toBe(0)
+
+    // Al terminar, lo que le quede se reparte a partes iguales entre los dos
+    // (más lo que sumen por subir de nivel, que también cura un poco).
+    fusionado!.hp = 100
+    b.over = true
+    b.win = true
+    applyBattleResult(save, b, node)
+    expect(goten.hp).toBe(trunks.hp)
+    expect(goten.hp).toBeGreaterThan(0)
+    expect(goten.hp).toBeLessThan(100)
+  })
+
+  it('la definitiva pega como nada y solo se usa UNA vez por combate', () => {
+    const goku = createFighter('goku', 60) // ya sabe su definitiva
+    expect(goku.techniques).toContain('ult_kamehameha')
+    const b = startBattle([goku], [createEnemy('nappa', 60)], { seed: 9, title: 't', scene: 'yermo' })
+    b.allies.forEach((c) => { c.ki = 100 })
+    advance(b)
+    const ult = (b.decision as Decision | null)?.options.find((o) => o.id === 'tech:ult_kamehameha')
+    expect(ult, 'la definitiva no se ofreció con el depósito lleno').toBeDefined()
+    expect(ult!.tag).toBe('DEFINITIVA')
+
+    chooseOption(b, ult!.id)
+    // Puede acabar en CHOQUE DE RAYOS (dos ataques de energía a la vez): en
+    // ese caso el motor pide otra decisión antes de resolver nada.
+    if (b.phase === 'decision' && b.decision?.kind === 'choque') {
+      chooseOption(b, b.decision.options[0].id)
+    }
+    expect(ally(b).ultUsed, 'la definitiva no se marcó como gastada').toBe(true)
+    // Y ya no vuelve a ofrecerse aunque recargue el depósito entero.
+    ally(b).ki = 100
+    expect(affordableTechs(ally(b)).some((t) => t.ultimate)).toBe(false)
   })
 
   it('los combates duran lo que tiene que durar un asalto (no 2 turnos ni 40)', () => {

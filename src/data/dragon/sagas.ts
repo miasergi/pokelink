@@ -430,8 +430,13 @@ export function getArc(id: string): ArcDef {
 export const SAGA_LEVEL_STEP = 15
 /** Cuánto sube el nivel de los rivales DENTRO de un mismo tramo. */
 const SAGA_LEVEL_SPAN = 12
-/** El jefe va por encima del final de su tramo. */
-const BOSS_LEVEL_OVER = 3
+/**
+ * Cuánto le saca el jefe al final de su tramo. Bajado de 3 a 2 por feedback:
+ * el primer jefe era un muro y no se pasaba de ahí. Medido con el bot que
+ * juega bien: con 3 ganaba el 20 % de las runs, con 2 el 33 %, que da margen
+ * para aprender las mecánicas sin volverlo un paseo.
+ */
+const BOSS_LEVEL_OVER = 2
 
 export function sagaLevels(indexInArc: number, startLevel = 6): [number, number] {
   const from = startLevel + indexInArc * SAGA_LEVEL_STEP

@@ -262,9 +262,30 @@ export function OutcomeView() {
 
         {!perdida && (
           <>
-            <div className="rounded-xl bg-slate-800/60 p-3 space-y-1 text-[13px]">
-              <div className="flex justify-between"><span className="text-slate-400">Niveles</span><span className="font-bold">+{outcome.levels} a todo el equipo</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Dinero</span><span className="font-bold text-amber-300"><Zeni n={outcome.zeni} /></span></div>
+            {/* QUIÉN sube y DE CUÁNTO A CUÁNTO. «+4 niveles» a secas no se
+                entendía: hay que ver a cada luchador cambiar de número para
+                caer en que sube el equipo entero, peleen o no. */}
+            <div className="rounded-2xl bg-slate-800/60 p-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Icon name="chartUp" className="w-4 h-4 text-purple-300" />
+                <span className="text-[12px] font-bold text-purple-300">
+                  +{outcome.levels} niveles a TODO el equipo
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {outcome.levelUps.map((l) => (
+                  <div key={l.uid} className="flex items-center gap-2">
+                    <span className="text-[12.5px] font-semibold flex-1 truncate">{l.name}</span>
+                    <span className="text-[12px] text-slate-500 tabular-nums">Nv.{l.from}</span>
+                    <Icon name="arrowRight" className="w-3 h-3 text-purple-300" />
+                    <span className="text-[13px] font-black text-purple-200 tabular-nums">Nv.{l.to}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between mt-2 pt-2 border-t border-slate-700/60 text-[13px]">
+                <span className="text-slate-400">Dinero</span>
+                <span className="font-bold text-amber-300"><Zeni n={outcome.zeni} /></span>
+              </div>
             </div>
 
             {outcome.awakened.map((t) => (

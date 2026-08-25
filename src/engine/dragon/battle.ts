@@ -9,7 +9,10 @@ import { RNG } from '@/utils/rng'
 import { getTechnique } from '@/data/dragon/techniques'
 import { getForm } from '@/data/dragon/transformations'
 import { getItem } from '@/data/dragon/items'
-import { actorTechnique, effStats, KI_MAX, KI_REGEN_LINEAGE, styleMultiplier, toCombatant } from './roster'
+import { FUSIONS, fusedStats, fusionOf } from '@/data/dragon/fusions'
+import {
+  actorTechnique, effStats, KI_MAX, KI_REGEN_LINEAGE, maxHp, styleMultiplier, toCombatant,
+} from './roster'
 import type {
   Action, Battle, BattleEvent, Combatant, Decision, DecisionOption, Fighter, Side, StatKey, Technique,
 } from './types'
@@ -86,7 +89,7 @@ export function techOf(id: string | undefined): Technique | undefined {
 export function affordableTechs(c: Combatant): Technique[] {
   return c.techniques
     .map((id) => actorTechnique(c, id))
-    .filter((t): t is Technique => !!t && t.cost <= c.ki)
+    .filter((t): t is Technique => !!t && t.cost <= c.ki && !(t.ultimate && c.ultUsed))
 }
 
 /** La técnica tal como la lanza ESTE luchador. */
@@ -289,6 +292,8 @@ function performAction(b: Battle, actor: Combatant, target: Combatant, a: Action
         performAction(b, actor, target, { kind: 'golpe' }, rng)
         return
       }
+      // La DEFINITIVA se gasta para todo el combate: es una sola bala.
+      if (t.ultimate) actor.ultUsed = true
       performTechnique(b, actor, target, t, rng)
       return
     }
@@ -311,6 +316,59 @@ function performAction(b: Battle, actor: Combatant, target: Combatant, a: Action
       actor.ki -= f.cost
       actor.form = f.id
       log(b, { t: 'transform', side: sideOf(b, actor), uid: actor.uid, form: f.id, name: f.name })
+      return
+    }
+    case 'fusion': {
+      const fus = a.id ? FUSIONS.find((f) => f.id === a.id) : undefined
+      if (!fus) return
+      const side = sideOf(b, actor)
+      const equipo = side === 'aliado' ? b.allies : b.enemies
+      // El compañero: el OTRO de la pareja, vivo y con ki para poner su parte.
+      const otro = equipo.find((c) => (
+        c.uid !== actor.uid && !c.fainted && c.hp > 0
+        && (c.baseId === fus.a || c.baseId === fus.b) && c.baseId !== actor.baseId
+        && c.ki >= fus.cost
+      ))
+      if (!otro || actor.ki < fus.cost) return
+
+      const s1 = effStats(actor)
+      const s2 = effStats(otro)
+      const stats = fusedStats(s1, s2, fus.mult)
+      const hpMax = maxHp(stats.aguante)
+      const fusionado: Combatant = {
+        uid: `fus-${actor.uid}-${otro.uid}`,
+        baseId: fus.id,
+        name: fus.name,
+        lineage: actor.lineage,
+        style: actor.style,
+        level: Math.max(actor.level, otro.level),
+        color: fus.color,
+        plBase: actor.plBase,
+        stats,
+        // La vida es la SUMA de lo que les quedaba: fusionarse no cura, junta.
+        hp: Math.min(hpMax, Math.round(actor.hp + otro.hp)),
+        hpMax,
+        ki: KI_MAX,
+        kiMax: KI_MAX,
+        techniques: fus.techniques.slice(),
+        forms: [],
+        mods: {},
+        guarding: false,
+        stunned: false,
+        exposed: false,
+        fainted: false,
+        fusedFrom: [actor.uid, otro.uid],
+      }
+      // Los dos originales salen del combate: han GASTADO dos cuerpos por uno.
+      actor.fainted = true
+      otro.fainted = true
+      const i = equipo.indexOf(actor)
+      equipo.splice(i, 0, fusionado)
+      if (side === 'aliado') b.active = i
+      else b.enemyActive = i
+      log(b, { t: 'action', side, uid: actor.uid, kind: 'fusion', name: fus.name })
+      log(b, { t: 'transform', side, uid: fusionado.uid, form: fus.id, name: fus.name })
+      log(b, { t: 'text', text: `¡${actor.name} y ${otro.name} se funden en ${fus.name}!` })
       return
     }
     case 'objeto': {
@@ -355,6 +413,11 @@ function clashPower(c: Combatant, t: Technique, push: number, rng: RNG): number 
 function resolveClash(b: Battle, me: Combatant, foeC: Combatant, myT: Technique, foeT: Technique, myPush: number, foePush: number, rng: RNG): void {
   me.ki = Math.max(0, me.ki - myT.cost - myPush)
   foeC.ki = Math.max(0, foeC.ki - foeT.cost - foePush)
+  // El choque NO pasa por `performAction`, así que la DEFINITIVA hay que
+  // marcarla aquí: si no, lanzarla contra otro rayo la devolvía intacta y se
+  // podía repetir todo el combate.
+  if (myT.ultimate) me.ultUsed = true
+  if (foeT.ultimate) foeC.ultUsed = true
   log(b, { t: 'action', side: 'aliado', uid: me.uid, kind: 'tecnica', name: myT.name })
   log(b, { t: 'action', side: 'rival', uid: foeC.uid, kind: 'tecnica', name: foeT.name })
 
@@ -434,6 +497,12 @@ export function aiAction(c: Combatant, target: Combatant, skill: number, rng: RN
   const buff = support.find((t) => t.buff || t.debuff)
   if (buff && c.ki > 60 && !c.buffed && rng.chance(0.2 + skill * 0.3)) {
     return { kind: 'tecnica', id: buff.id }
+  }
+
+  // La definitiva, cuando de verdad decide: para rematar o si va perdiendo.
+  const ult = techs.find((t) => t.ultimate)
+  if (ult && (targetFrac < 0.5 || hpFrac < 0.4) && rng.chance(0.5 + skill * 0.5)) {
+    return { kind: 'tecnica', id: ult.id }
   }
 
   // Rematar: si con la más fuerte lo tumba, va sin pensarlo.
@@ -575,6 +644,7 @@ function settle(b: Battle, rng: RNG): void {
       f.ki = KI_MAX
       f.mods = {}
       f.buffed = false
+      f.ultUsed = false
       f.stunned = false
       const def = getForm(next)
       log(b, { t: 'transform', side: 'rival', uid: f.uid, form: next, name: def?.name ?? next })
@@ -692,6 +762,11 @@ export function optionOdds(b: Battle, action: Action): number {
       ahorro = it?.heal ? me.hpMax * (it.heal / 100) : 0
       break
     }
+    case 'fusion': {
+      const fus = action.id ? FUSIONS.find((f) => f.id === action.id) : undefined
+      mio = PUNCH_POWER * ((em.poder * (fus?.mult ?? 1.8)) / Math.max(1, er.defensa)) * DMG_K * lvl
+      break
+    }
     default:
       break
   }
@@ -738,14 +813,33 @@ function buildPlay(b: Battle): Decision {
     }))
   }
 
-  const techs = affordableTechs(me)
-    .filter((t) => t.cost + upkeep <= me.ki)
-    .sort((x, y) => optionOdds(b, { kind: 'tecnica', id: y.id }) - optionOdds(b, { kind: 'tecnica', id: x.id }))
-    .slice(0, 3)
+  const pagables = affordableTechs(me).filter((t) => t.cost + upkeep <= me.ki)
+  // La definitiva NUNCA se queda fuera del recorte a tres: llegar a poder
+  // lanzarla es el premio de todo el asalto y sería absurdo esconderla.
+  const ults = pagables.filter((t) => t.ultimate)
+  const techs = [
+    ...ults,
+    ...pagables
+      .filter((t) => !t.ultimate)
+      .sort((x, y) => optionOdds(b, { kind: 'tecnica', id: y.id }) - optionOdds(b, { kind: 'tecnica', id: x.id }))
+      .slice(0, 3),
+  ]
   for (const t of techs) {
     options.push(option(b, `tech:${t.id}`, t.name, { kind: 'tecnica', id: t.id }, {
       cost: t.cost, desc: t.desc,
-      tag: t.kind === 'energia' ? 'RAYO' : undefined,
+      tag: t.ultimate ? 'DEFINITIVA' : t.kind === 'energia' ? 'RAYO' : undefined,
+    }))
+  }
+
+  // FUSIÓN: solo si el compañero está vivo y los dos tienen ki. Va arriba
+  // porque es la jugada más gorda que existe.
+  for (const c of b.allies) {
+    if (c.uid === me.uid || c.fainted || c.hp <= 0) continue
+    const fus = fusionOf(me.baseId, c.baseId)
+    if (!fus || me.ki < fus.cost || c.ki < fus.cost) continue
+    options.push(option(b, `fus:${fus.id}`, fus.name, { kind: 'fusion', id: fus.id }, {
+      cost: fus.cost, tag: 'FUSIÓN',
+      desc: `${fus.desc} Tú y ${c.name} os convertís en uno solo para el resto del combate.`,
     }))
   }
 

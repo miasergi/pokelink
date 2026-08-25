@@ -11,6 +11,7 @@ import { useState } from 'react'
 import Icon from '@/ui/components/Icon'
 import { getItem, itemEffect, itemFamily, itemIcon, itemVerb, type Item } from '@/data/dragon/items'
 import { getTechnique } from '@/data/dragon/techniques'
+import { fusionOf } from '@/data/dragon/fusions'
 import { getForm } from '@/data/dragon/transformations'
 import { bondsFor, getTrait, TRAIT_BY_FIGHTER } from '@/data/dragon/personalities'
 
@@ -243,7 +244,14 @@ function FighterDetail({ f, save, onEquip, onUse, equipables }: {
             if (!tec) return null
             const nivel = f.techLevels?.[t] ?? 0
             return (
-              <span key={t} className="text-[10.5px] rounded-lg bg-slate-800 px-2 py-0.5">
+              <span
+                key={t}
+                className="text-[10.5px] rounded-lg px-2 py-0.5"
+                style={tec.ultimate
+                  ? { background: '#7f1d1d55', boxShadow: 'inset 0 0 0 1px #f8717188' }
+                  : { background: '#1e293b' }}
+              >
+                {tec.ultimate && <b className="text-rose-300">DEFINITIVA · </b>}
                 {tec.name}{nivel > 0 && <b className="text-amber-300"> V{nivel + 1}</b>}
                 <span className="text-sky-300"> · {tec.cost} ki</span>
               </span>
@@ -251,6 +259,26 @@ function FighterDetail({ f, save, onEquip, onUse, equipables }: {
           })}
         </div>
       </div>
+
+      {/* FUSIONES posibles con quien llevas: si no se cuentan, nadie las
+          descubre — solo aparecen dentro del combate y en un momento concreto. */}
+      {(() => {
+        const posibles = save.team
+          .filter((o) => o.uid !== f.uid)
+          .map((o) => fusionOf(f.baseId, o.baseId))
+          .filter((x): x is NonNullable<typeof x> => !!x)
+        if (!posibles.length) return null
+        return (
+          <div className="rounded-xl bg-fuchsia-500/10 px-2.5 py-1.5" style={{ boxShadow: 'inset 0 0 0 1px #e879f944' }}>
+            <div className="text-[11px] font-bold text-fuchsia-300">
+              Fusión: {posibles.map((v) => v.name).join(' · ')}
+            </div>
+            <div className="text-[10.5px] text-slate-400 leading-snug">
+              En combate, con {posibles[0].cost} de ki cada uno, os convertís en uno solo.
+            </div>
+          </div>
+        )
+      })()}
 
       {!!f.forms.length && (
         <div>

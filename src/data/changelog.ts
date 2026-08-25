@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.69',
+    date: '2026-08-25',
+    title: 'Dragon Ball Rogue: fusiones, definitivas y las transformaciones ya se ven',
+    changes: [
+      'LAS TRANSFORMACIONES SE VEN SIEMPRE. Las que se alcanzan antes (Kaio-Ken, Ozaru, Namekiano gigante) son justo las que no tienen ilustración propia en ninguna parte, así que ahora el luchador SE TIÑE del color de su forma. Ya no te transformas sin que cambie nada.',
+      'FUSIONES: si llevas a los dos de una pareja, en combate podéis convertiros en uno solo. Gotenks, Gogeta, Vegetto, Kefla y el Piccolo completo. Gastas dos cuerpos por uno muy superior, y si cae, caéis los dos.',
+      'DEFINITIVAS: cada luchador aprende la suya al subir de nivel. Piden el depósito casi lleno y solo se usan UNA vez por combate, pero pegan como nada más en el juego. El Kamehameha x10, el Resplandor Final definitivo, la Supernova, la Bola de la Aniquilación…',
+      'AHORA SE VE CUÁNDO SUBES DE NIVEL: al ganar un combate sale cada luchador pasando de su nivel al nuevo, uno por uno, para que quede claro que sube el equipo entero peleen o no.',
+      'MÁS ASEQUIBLE: los jefes bajan un nivel respecto a su tramo. Medido con el bot, pasar del primer jefe deja de ser un muro.',
+      'Y la portada del juego es ya una ilustración de verdad.',
+    ],
+  },
+  {
     version: 'v6.68',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: al transformarse, cambian de verdad',

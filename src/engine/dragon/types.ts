@@ -50,6 +50,11 @@ export interface Technique {
   recoil?: number
   /** Ignora la guardia del rival. */
   pierce?: boolean
+  /**
+   * DEFINITIVA: la jugada que decide un combate. Pide el depósito casi lleno,
+   * solo se puede usar UNA VEZ por combate y pega como nada más del juego.
+   */
+  ultimate?: boolean
   desc: string
 }
 
@@ -138,7 +143,8 @@ export interface Fighter {
 // ---------------------------------------------------------------- combate ---
 
 /** Lo que puede hacer un luchador en su turno. */
-export type ActionKind = 'golpe' | 'tecnica' | 'cargar' | 'guardia' | 'transformar' | 'objeto' | 'nada'
+export type ActionKind =
+  | 'golpe' | 'tecnica' | 'cargar' | 'guardia' | 'transformar' | 'objeto' | 'fusion' | 'nada'
 
 export interface Action {
   kind: ActionKind
@@ -178,6 +184,10 @@ export interface Combatant {
   exposed: boolean
   /** Ya usó una técnica de apoyo (la IA no las encadena). */
   buffed?: boolean
+  /** Ya gastó su definitiva en este combate. */
+  ultUsed?: boolean
+  /** Es el resultado de una fusión: al deshacerse vuelven los dos originales. */
+  fusedFrom?: [string, string]
   /** Entró de relevo tras ver caer a un compañero. */
   raging?: boolean
   /** Carácter (ver data/dragon/personalities.ts). */

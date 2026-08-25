@@ -286,6 +286,59 @@ export const TECHNIQUES: Technique[] = [
     buff: { defensa: 1.5, aguante: 1.15 },
     desc: 'Una barrera que no se rompe con fuerza bruta.',
   },
+
+  // --------------------------------------------------------- DEFINITIVAS ---
+  // Una por luchador y una sola vez por combate. Piden el depósito casi lleno,
+  // así que llegar a lanzarlas es en sí una decisión: son el premio a haber
+  // administrado bien el ki durante todo el asalto.
+  {
+    id: 'ult_kamehameha',
+    name: 'Kamehameha x10',
+    kind: 'energia', style: 'ki', power: 210, cost: 88, ultimate: true,
+    desc: 'Todo el ki de golpe en una sola onda. O cae, o te quedas seco.',
+  },
+  {
+    id: 'ult_resplandor',
+    name: 'Resplandor Final definitivo',
+    kind: 'energia', style: 'ki', power: 200, cost: 85, ultimate: true,
+    desc: 'Los dos brazos abiertos y una pared de luz que borra el horizonte.',
+  },
+  {
+    id: 'ult_padrehijo',
+    name: 'Kamehameha padre e hijo',
+    kind: 'energia', style: 'ki', power: 215, cost: 88, ultimate: true,
+    desc: 'No estás solo empujando: nunca lo estuviste.',
+  },
+  {
+    id: 'ult_makankosappo',
+    name: 'Rayo Perforador definitivo',
+    kind: 'energia', style: 'tecnico', power: 190, cost: 82, pierce: true, ultimate: true,
+    desc: 'Un taladro de ki cargado durante todo el combate. No hay guardia que valga.',
+  },
+  {
+    id: 'ult_supernova',
+    name: 'Supernova',
+    kind: 'energia', style: 'ki', power: 205, cost: 86, ultimate: true,
+    desc: 'Una bola del tamaño de un sol sobre la punta del dedo.',
+  },
+  {
+    id: 'ult_dragon',
+    name: 'Puño del Dragón definitivo',
+    kind: 'fisica', style: 'bruto', power: 200, cost: 84, pierce: true, ultimate: true,
+    desc: 'El dragón dorado atraviesa al rival y sigue subiendo.',
+  },
+  {
+    id: 'ult_aniquilacion',
+    name: 'Bola de la Aniquilación',
+    kind: 'energia', style: 'bruto', power: 220, cost: 90, ultimate: true,
+    desc: 'Suficiente para partir un planeta, lanzada sin pensarlo dos veces.',
+  },
+  {
+    id: 'ult_hakai',
+    name: 'Hakai absoluto',
+    kind: 'energia', style: 'ki', power: 195, cost: 84, pierce: true, ultimate: true,
+    desc: 'Deja de existir lo que el dios decida que sobra.',
+  },
 ]
 
 const BY_ID = new Map(TECHNIQUES.map((t) => [t.id, t]))

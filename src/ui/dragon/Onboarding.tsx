@@ -26,7 +26,7 @@ export function markOnboarded(seen = true): void {
 
 /** Qué hace cada casilla, en una línea. Es la leyenda del mapa. */
 const CASILLAS: { kind: NodeKind; desc: string }[] = [
-  { kind: 'combate', desc: 'Pelea normal. Sube +4 niveles a TODO el equipo y da dinero.' },
+  { kind: 'combate', desc: 'Pelea normal. Sube +4 niveles a TODO el equipo (peleen o no) y da dinero.' },
   { kind: 'elite', desc: 'Rival duro: +6 niveles y mejor botín, pero pega de verdad.' },
   { kind: 'jefe', desc: 'Cierra la saga. Tiene varias formas: no cae a la primera.' },
   { kind: 'entreno', desc: 'Niveles sin arriesgar la piel, para el más rezagado.' },
@@ -81,6 +81,12 @@ const PASOS = [
           Las transformaciones no se compran: <b>se despiertan</b> peleando al
           límite. Y ganar con la vida en rojo hace más fuerte a un saiyan para
           siempre.
+        </p>
+        <p className="mt-2">
+          Con el depósito casi lleno sale la <b className="text-rose-300">DEFINITIVA</b>:
+          pega como nada, pero solo una vez por combate. Y si llevas a los dos
+          de una pareja, podéis <b className="text-fuchsia-300">FUSIONAROS</b> en
+          uno solo — gastas dos cuerpos por uno mucho mejor.
         </p>
       </>
     ),

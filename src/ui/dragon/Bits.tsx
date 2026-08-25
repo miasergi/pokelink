@@ -220,6 +220,34 @@ export function portraitUrl(baseId: string): string {
 }
 
 /**
+ * TINTE de una transformación sin retrato propio.
+ *
+ * Las formas que se alcanzan antes —Kaio-Ken, Ozaru, Namekiano gigante,
+ * Sobrecarga— son justo las que NO tienen artwork propio en ninguna parte (el
+ * Kaio-Ken es un aura roja sobre el Goku de siempre), así que en una partida
+ * normal el jugador se transformaba y no veía cambiar nada. Aquí se tiñe el
+ * retrato con el color de la forma: `sepia` lo lleva todo a un tono base de
+ * ~40° y el `hue-rotate` lo gira hasta el color que toca.
+ */
+export function tintFilter(hex: string): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let hue = 0
+  if (max !== min) {
+    const d = max - min
+    if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) * 60
+    else if (max === g) hue = ((b - r) / d + 2) * 60
+    else hue = ((r - g) / d + 4) * 60
+  }
+  // 40° es aproximadamente el tono que deja `sepia(1)`.
+  return `sepia(1) saturate(4.5) hue-rotate(${Math.round(hue - 40)}deg) brightness(1.05)`
+}
+
+/**
  * Retrato de un luchador YA TRANSFORMADO. Vive aparte (`dragon/forms/`) porque
  * no todas las combinaciones existen: si falta, `Avatar` cae al retrato normal
  * y de ahí a las iniciales, así que transformarse nunca deja un hueco.
@@ -233,6 +261,11 @@ export function initials(name: string): string {
   const parts = name.replace(/[()]/g, '').split(/\s+/).filter(Boolean)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+/** Color del aura de una forma, con caída al ámbar de siempre. */
+function auraOf(form: string): string {
+  return getForm(form)?.aura ?? '#fde047'
 }
 
 export function Avatar({ name, color, size = 44, form, baseId }: {
@@ -269,6 +302,7 @@ export function Avatar({ name, color, size = 44, form, baseId }: {
         <img
           key={src}
           src={src}
+          style={form && !src.includes('/forms/') ? { filter: tintFilter(auraOf(form)) } : undefined}
           alt={name}
           loading="lazy"
           onError={() => setFalla((f) => ({
@@ -605,7 +639,14 @@ export function StageFighter({ c, size, flip, delay = 0 }: {
             transform: flip ? 'scaleX(-1)' : undefined,
             filter: ko
               ? 'grayscale(1) brightness(.5)'
-              : `drop-shadow(0 6px 10px rgba(2,6,23,.7))${form ? ` drop-shadow(0 0 14px ${form.aura ?? c.color}) drop-shadow(0 0 26px ${form.aura ?? c.color})` : ''}`,
+              : [
+                // Si la forma no trae retrato propio, se TIÑE el de siempre:
+                // así transformarse se ve siempre, no solo cuando hay arte.
+                form && stageSrc === baseSrc ? tintFilter(form.aura ?? c.color) : '',
+                'drop-shadow(0 6px 10px rgba(2,6,23,.7))',
+                form ? `drop-shadow(0 0 14px ${form.aura ?? c.color})` : '',
+                form ? `drop-shadow(0 0 26px ${form.aura ?? c.color})` : '',
+              ].filter(Boolean).join(' '),
             opacity: ko ? 0.45 : 1,
           }}
         >

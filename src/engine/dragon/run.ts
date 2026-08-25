@@ -371,6 +371,12 @@ export interface BattleOutcome {
   awakened: string[]
   /** Objetos que han subido de nivel por el uso. */
   itemUp: string[]
+  /**
+   * Quién ha subido y de cuánto a cuánto. Se guarda explícito porque «+4
+   * niveles» a secas no se entiende: hay que ver a CADA luchador pasar de un
+   * número a otro para enterarse de que sube el equipo entero.
+   */
+  levelUps: { uid: string; name: string; from: number; to: number; learned: string[] }[]
 }
 
 /**
@@ -384,14 +390,30 @@ export const ZENKAI_GAIN = 0.07
 export const ZENKAI_CAP = 1.7
 
 export function applyBattleResult(save: DragonSave, b: Battle, node: MapNode): BattleOutcome {
-  const out: BattleOutcome = { win: !!b.win, zeni: 0, levels: 0, zenkai: [], learned: [], awakened: [], itemUp: [] }
+  const out: BattleOutcome = {
+    win: !!b.win, zeni: 0, levels: 0, zenkai: [], learned: [],
+    awakened: [], itemUp: [], levelUps: [],
+  }
   save.battles += 1
 
   // PS de vuelta al equipo, y la bolsa tal como quedó (las semillas gastadas
   // en combate no vuelven).
   for (const c of b.allies) {
+    // Un FUSIONADO no existe en el equipo: lo que le quede de vida se reparte
+    // entre los dos que se fundieron. Si cayó, caen los dos — que es el riesgo
+    // que se asume al gastar dos cuerpos en uno.
+    if (c.fusedFrom) {
+      const mitad = Math.max(0, Math.floor(c.hp / 2))
+      for (const uid of c.fusedFrom) {
+        const orig = save.team.find((x) => x.uid === uid)
+        if (orig) orig.hp = mitad
+      }
+      continue
+    }
     const f = save.team.find((x) => x.uid === c.uid)
-    if (f) f.hp = Math.max(0, c.hp)
+    // Los originales de una fusión quedan `fainted` durante el combate pero su
+    // vida la fija el fusionado: no se pisa aquí.
+    if (f && !b.allies.some((o) => o.fusedFrom?.includes(c.uid))) f.hp = Math.max(0, c.hp)
   }
   save.bag = { ...b.bag }
 
@@ -422,12 +444,17 @@ export function applyBattleResult(save: DragonSave, b: Battle, node: MapNode): B
     }
     // El lastre entrena el doble: penaliza en combate y se cobra aquí.
     const bonus = f.item ? (getItem(f.item)?.train ?? 0) : 0
+    const antesNivel = f.level
     const res = levelUp(f, out.levels + bonus)
     if (res.learned.length) out.learned.push({ name: f.name, techs: res.learned })
+    out.levelUps.push({
+      uid: f.uid, name: f.name, from: antesNivel, to: f.level, learned: res.learned,
+    })
   }
 
   // Zenkai: solo saiyans, solo si sobrevivieron con el depósito en rojo.
   for (const c of b.allies) {
+    if (c.fusedFrom) continue
     const f = save.team.find((x) => x.uid === c.uid)
     if (!f || f.lineage !== 'saiyan') continue
     if (c.hp <= 0 || c.hp > c.hpMax * ZENKAI_THRESHOLD) continue
