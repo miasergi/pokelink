@@ -36,6 +36,9 @@ export interface Stats {
   velocidad: number
   /** Aguante: PT máximos y resistencia a la fatiga. */
   aguante: number
+  /** PARADA: lo que decide el mano a mano BAJO PALOS. Antes el portero usaba
+      `defensa` y un central se convertía en portero decente gratis. */
+  portero: number
 }
 
 /** Qué clase de duelo resuelve una supertécnica. */
@@ -215,7 +218,7 @@ export type MatchEvent =
     /** Si la posesión es un PASE, quién lo da y quién lo recibe (cinemática). */
     passFromUid?: string; passToUid?: string
   }
-  | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; element?: Element; effectiveness: number; success: boolean; /** Probabilidad REAL que tenía el atacante (transparencia de la mecánica). */ chance?: number; /** El disparo salió de LEJOS: el césped lo pinta desde su sitio. */ longShot?: boolean; /** Es el CRUCE de un defensa en la trayectoria, no el disparo final. */ intercept?: boolean; text: string }
+  | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; /** Potencia EFECTIVA (mejoras y combos incluidos), para pintarla al usarse. */ power?: number; counterPower?: number; element?: Element; effectiveness: number; success: boolean; /** Probabilidad REAL que tenía el atacante (transparencia de la mecánica). */ chance?: number; /** El disparo salió de LEJOS: el césped lo pinta desde su sitio. */ longShot?: boolean; /** Es el CRUCE de un defensa en la trayectoria, no el disparo final. */ intercept?: boolean; text: string }
   | {
     kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number]
     /** La técnica que el portero INTENTÓ y no bastó (para la frase de
@@ -224,10 +227,10 @@ export type MatchEvent =
   }
   /** EL MOMENTO DEL PORTERO: saca su técnica ANTES de saberse el veredicto.
       Se emite con el mismo compás pare o encaje — cero spoilers por ritmo. */
-  | { kind: 'keeperTry'; minute: number; side: Side; keeper: string; keeperUid: string; technique: string; text: string }
+  | { kind: 'keeperTry'; minute: number; side: Side; keeper: string; keeperUid: string; technique: string; power?: number; text: string }
   /** EL CHUT del tiro lejano, contado ANTES del cruce de la defensa: primero
       se dispara, luego el defensa se cruza — el orden en que pasa de verdad. */
-  | { kind: 'longshotKick'; minute: number; side: Side; shooter: string; shooterUid: string; technique?: string; element?: Element; text: string }
+  | { kind: 'longshotKick'; minute: number; side: Side; shooter: string; shooterUid: string; technique?: string; power?: number; element?: Element; text: string }
   | {
     kind: 'save'; minute: number; side: Side; keeper: string; keeperUid: string; technique?: string; text: string
     /** Para el plano del paradón en la tele (`inazuma/keepers/<baseId>.png`). */

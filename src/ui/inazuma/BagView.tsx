@@ -173,7 +173,7 @@ export default function BagView() {
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
-        <Button variant="secondary" onClick={() => goTo('squad')}>Vestuario</Button>
+        <Button variant="secondary" onClick={() => goTo('squad')}>Gestionar</Button>
         <Button variant="primary" full onClick={() => goTo('map')}>Volver al mapa</Button>
       </div>
 

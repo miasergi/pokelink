@@ -1270,6 +1270,56 @@ describe('torneo', () => {
  * jugando, porque el juego «funciona» igual.
  */
 describe('coherencia', () => {
+  it('un LESIONADO no vuelve a aparecer en ningún lance (salvo el portero)', () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const save = fullSave(seed)
+      // Todo el mundo al borde del colapso: queremos lesiones a mansalva.
+      save.roster = save.roster.map((p) => ({ ...p, stamina: 22 }))
+      const node = firstBoss(save)
+      const setup = startMatch(save, node)
+      if ('error' in setup) throw new Error(setup.error)
+      const { match, rng } = setup
+      let guard = 0
+      while (match.phase !== 'finished' && guard++ < 5000) {
+        if (match.phase === 'decision') {
+          const opts = match.decision!.options.filter((o) => !o.disabled)
+          chooseOption(match, rng, opts[0].id)
+        } else {
+          advance(match, rng)
+        }
+      }
+      // Porteros de ambos lados: los únicos que pueden seguir rotos en juego.
+      const keepers = new Set([match.home.keeper.uid, match.away.keeper.uid])
+      const injuredAt = new Map<string, number>()
+      match.events.forEach((e, i) => {
+        if (e.kind === 'injury' && !keepers.has(e.playerUid)) injuredAt.set(e.playerUid, i)
+      })
+      const uidsOf = (e: (typeof match.events)[number]): string[] => {
+        switch (e.kind) {
+          case 'duel': return [e.attackerUid, e.defenderUid]
+          case 'longshotKick': return [e.shooterUid]
+          case 'goal': return [e.scorerUid]
+          case 'penalty': return [e.shooterUid]
+          case 'possession': return [e.passFromUid, e.passToUid].filter((x): x is string => !!x)
+          default: return []
+        }
+      }
+      match.events.forEach((e, i) => {
+        for (const uid of uidsOf(e)) {
+          const at = injuredAt.get(uid)
+          if (at !== undefined && i > at) {
+            // Traza para cazar la vía de escape: la ventana de eventos entre
+            // la lesión y la reaparición.
+            const win = match.events.slice(Math.max(0, at - 2), i + 1)
+              .map((x, j) => `  [${Math.max(0, at - 2) + j}] ${x.kind}${'step' in x ? ':' + String(x.step) : ''} ${'text' in x ? x.text : ''}`)
+              .join('\n')
+            expect.fail(`seed ${seed}: lesionado ${uid} (evento ${at}) reaparece en ${e.kind} (evento ${i})\n${win}`)
+          }
+        }
+      })
+    }
+  })
+
   it('cada acción del partido nombra a jugadores que están en el campo', () => {
     for (let seed = 0; seed < 12; seed++) {
       const save = fullSave(seed * 17 + 5)

@@ -10,9 +10,12 @@
 // ocupa el jugador en la plantilla de la wiki (los primeros son los titulares).
 // Presupuesto por rareza: ★1≈200 ★2≈240 ★3≈285 ★4≈330 ★5≈375.
 import { bestFormationFor, getFormation } from '@/data/inazuma/formations'
-import type { PlayerBase } from '@/engine/inazuma/types'
+import type { PlayerBase, Stats } from '@/engine/inazuma/types'
 
-export const PLAYERS: PlayerBase[] = [
+/** El bloque GENERADO trae 6 atributos; `portero` se calcula al cargar. */
+type RawPlayer = Omit<PlayerBase, 'stats'> & { stats: Omit<Stats, 'portero'> & { portero?: number } }
+
+const RAW_PLAYERS: RawPlayer[] = [
   // ============================== RAIMON
   {
     id: 'mark-evans', name: 'Mark Evans', team: 'raimon', position: 'POR', element: 'montana', fame: 5,
@@ -5616,6 +5619,10 @@ export const PLAYERS: PlayerBase[] = [
   },
 ]
 
+// El catálogo REAL: el bloque crudo con `portero` ya rellenado (ver el bucle
+// de carga al final del archivo, que también ordena las cadenas).
+export const PLAYERS = RAW_PLAYERS as PlayerBase[]
+
 /**
  * CAPITÁN CANÓNICO de cada instituto (del infobox de la wiki): es quien
  * lleva su Brazalete de Capitán y el ancla del reparto de rarezas.
@@ -5787,6 +5794,14 @@ export const RAIMON_STARTING_XI: string[] = startingSquad('raimon').slice(0, 11)
 // principio de su cadena ordenada (más lo que tuviera de fuera de ella).
 import { getTechnique as __getTech } from '@/data/inazuma/techniques'
 for (const p of PLAYERS) {
+  // EL ATRIBUTO DE PORTERO, calculado al cargar (el bloque generado es de 6
+  // stats): el portero hereda su oficio de la defensa que traía tuneada de
+  // portero; el jugador de campo llega con paradas de andar por casa.
+  if (p.stats.portero === undefined) {
+    p.stats.portero = p.position === 'POR'
+      ? p.stats.defensa
+      : Math.round(p.stats.defensa * 0.3 + p.stats.fisico * 0.2)
+  }
   if (!p.signature?.length) continue
   const antes = p.signature
   p.signature = [...antes].sort((a, b) => (__getTech(a)?.power ?? 0) - (__getTech(b)?.power ?? 0))

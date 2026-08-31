@@ -189,7 +189,7 @@ export function nextRound(s: PachangaState, rng: RNG): void {
   const options: DecisionOption[] = []
   const build = (id: string, label: string, tech: Technique | undefined, cost: number): DecisionOption => {
     const atk = mineTurn ? toDuelist(shooter, tech) : toDuelist(shooter, rivalTech)
-    const def = mineTurn ? toDuelist(keeper, rivalTech) : toDuelist(keeper, tech)
+    const def = { ...(mineTurn ? toDuelist(keeper, rivalTech) : toDuelist(keeper, tech)), keeper: true }
     const { chance } = duelChance('definicion', atk, def)
     const shown = mineTurn ? chance : 1 - chance
     const el = tech?.element
@@ -242,7 +242,7 @@ export function shoot(s: PachangaState, rng: RNG, optionId: string): PachangaRou
   const extra = s.round >= KEEPER_FATIGUE_FROM ? (s.round - KEEPER_FATIGUE_FROM) + 2 : 0
   keeper.stamina = Math.max(0, keeper.stamina - STAMINA_PER_ROUND - extra)
 
-  const r = resolveDuel('definicion', toDuelist(shooter, shotTech), toDuelist(keeper, saveTech), rng)
+  const r = resolveDuel('definicion', toDuelist(shooter, shotTech), { ...toDuelist(keeper, saveTech), keeper: true }, rng)
   if (r.success) {
     if (mine) s.goals[0] += 1
     else s.goals[1] += 1

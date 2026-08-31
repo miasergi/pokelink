@@ -358,7 +358,10 @@ export default function MatchView() {
               // modo dinámico (por eso «seguía igual»).
               // …y tampoco durante el DESCANSO ni con el panel de cambios:
               // el balón no rueda mientras los equipos están en el vestuario.
-              flowing={!(match.phase === 'decision' && caughtUp && !frozen) && stage === null && gol === null
+              // Y SOLO con el feed AL DÍA: con eventos aún por revelar, el
+              // rondo se colaba entre dos duelos de la misma jugada y el balón
+              // «iba hacia atrás y hacia adelante» sin que nadie lo tocara.
+              flowing={caughtUp && !(match.phase === 'decision' && !frozen) && stage === null && gol === null
                 && !halftimeBreak && !halftimeSubsSummary}
             />
             {/* FILOSOFÍA ENCENDIDA: el fogonazo de activación. */}

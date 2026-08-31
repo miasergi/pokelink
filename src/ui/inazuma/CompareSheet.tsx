@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { Button, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
-import { effectiveStats, RARITY_LABEL, rarityOf } from '@/engine/inazuma/roster'
+import { effectiveStats, overallOf, RARITY_LABEL, rarityOf } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { PlayerRow, portraitUrl } from '@/ui/inazuma/PlayerCard'
@@ -36,6 +36,7 @@ const ROWS: { key: keyof Stats; label: string }[] = [
   { key: 'defensa', label: 'Defensa' },
   { key: 'velocidad', label: 'Velocidad' },
   { key: 'aguante', label: 'Aguante' },
+  { key: 'portero', label: 'Portero' },
 ]
 
 export default function CompareSheet({ a, onClose }: { a: CompareBlock; onClose: () => void }) {
@@ -147,6 +148,7 @@ function Head({ block, right }: { block: CompareBlock; right?: boolean }) {
         <div className={`flex items-center gap-1 text-[10px] text-slate-400 ${right ? 'justify-end' : ''}`}>
           {block.position} · Nv.{block.level}
           <ElementIcon element={block.element} className="w-3 h-3" />
+          <span className="font-black tabular-nums text-amber-300">{overallOf(block.stats, block.position)}</span>
         </div>
         <span
           className="text-[9px] font-extrabold uppercase tracking-widest"

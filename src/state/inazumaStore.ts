@@ -329,6 +329,10 @@ interface InazumaState {
   initInazuma: () => Promise<void>
   exitInazuma: () => void
   newTournament: (teamId?: string, opts?: NewRunOptions) => Promise<void>
+  /** Rejugar con LA MISMA configuración (equipo, saga, randomizador…):
+   * con `sameSeed` repite además el mismo cuadro y sorteos — el «reintentar
+   * este mapa» del modo Pokémon. */
+  restartTournament: (sameSeed: boolean) => Promise<void>
   continueTournament: () => void
   abandonTournament: () => Promise<void>
   goTo: (phase: InazumaPhase) => void
@@ -572,6 +576,32 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     const { save } = get()
     if (!save) return
     set({ phase: isMapComplete(save) ? 'victory' : 'map' })
+  },
+
+  restartTournament: async (sameSeed) => {
+    const old = get().save
+    if (!old) return
+    stopTicker()
+    const seed = sameSeed ? old.seed : Math.floor(Math.random() * 0xffffffff)
+    const save = createSave(seed, old.teamId, {
+      difficulty: old.difficulty,
+      saga: old.saga,
+      pools: old.pools,
+      random: old.random,
+      // Con el inicial randomizado se VUELVE a sortear (misma semilla = el
+      // mismo); si lo elegiste tú, arrancas con él otra vez.
+      starterId: old.random?.inicial ? undefined : old.starterBaseId,
+      customName: old.customName,
+      customCrest: old.customCrest,
+      randomSquad: old.randomSquad,
+    })
+    rng = new RNG(seed)
+    rng.setState(save.rngState)
+    await saveInazuma(save)
+    set({
+      save, hasSave: true, phase: 'map', match: null, pachanga: null, matchNode: null,
+      feed: [], playing: false, draft: [], draftPicks: 0, pendingTarget: null, message: null,
+    })
   },
 
   abandonTournament: async () => {
@@ -1232,7 +1262,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       next.roster.push(fichado)
       slotIn(next, fichado)
       void persistInazumaMeta({ signed: [opt.playerId] })
-      message = `${getPlayerBase(opt.playerId).name} firma por el Raimon.`
+      // Con CARTA DE REVELADO (y su Comparar), como el resto de llegadas: el
+      // toast de «firma por el Raimon» no le hacía justicia.
+      closeDraft(set, next, draft, draftPicks, optionId, null)
+      set({ revealPlayer: { uid: fichado.uid, title: `¡${getPlayerBase(opt.playerId).name} firma por tu equipo!` } })
+      return
     } else if (opt.kind === 'objeto') {
       // Cartas de PAGO (la agenda del ojeador): si no llega el dinero, la
       // carta no se gasta — se avisa y se sigue eligiendo.

@@ -54,6 +54,9 @@ export interface Duelist {
   burst?: boolean
   /** Multiplicador extra (racha EN LLAMAS, sprint, tiro lejano…). 1 = ninguno. */
   boost?: number
+  /** Está BAJO PALOS en este duelo: la parada se juega con `portero`, no con
+      `defensa` (un central improvisado ya no es portero decente gratis). */
+  keeper?: boolean
 }
 
 export interface DuelResult {
@@ -90,11 +93,13 @@ function attackStat(step: ChainStep, s: Stats): number {
   }
 }
 
-function defendStat(step: ChainStep, s: Stats): number {
+function defendStat(step: ChainStep, s: Stats, keeper?: boolean): number {
   switch (step) {
     case 'construccion': return s.defensa * 0.6 + s.velocidad * 0.4
     case 'penetracion': return s.defensa * 0.7 + s.fisico * 0.3
-    case 'definicion': return s.defensa
+    // El MANO A MANO: el portero para con su atributo de PORTERO; el defensa
+    // que se cruza en un tiro lejano sigue bloqueando con su defensa.
+    case 'definicion': return keeper ? s.portero : s.defensa
   }
 }
 
@@ -127,7 +132,7 @@ export function duelChance(step: ChainStep, atk: Duelist, def: Duelist, momentum
   const effectiveness = elementEdge ? 1 + (raw0 - 1) * (1 + elementEdge * 5) : raw0
 
   const attackerPower = power(attackStat(step, atk.stats), atk) * effectiveness * (1 + momentum)
-  const defenderPower = power(defendStat(step, def.stats), def)
+  const defenderPower = power(defendStat(step, def.stats, def.keeper), def)
 
   const raw = (attackerPower * STEP_BIAS[step]) / (attackerPower * STEP_BIAS[step] + defenderPower)
   // Techo y suelo: ni el mejor delantero del torneo marca siempre, ni el peor

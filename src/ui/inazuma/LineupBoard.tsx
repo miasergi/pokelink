@@ -4,6 +4,7 @@
 // todas las alineaciones del modo se lean igual — y cada ficha es CLICABLE
 // para abrir los datos del jugador.
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ImgFallback } from '@/ui/components/kit'
 import { ELEMENT_ICON, InjuryCross, ItemIcon, rarityChipStyle } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
@@ -51,6 +52,10 @@ export default function LineupBoard({ chips, onTap, onSwap }: {
    */
   onSwap?: (aKey: string, bKey: string) => void
 }) {
+  // ARRASTRE VISIBLE: un fantasma del retrato sigue al dedo y la ficha de
+  // destino se ilumina. Antes el intercambio funcionaba pero no SE VEÍA nada
+  // moverse («en el descanso no se ve el drag and drop»).
+  const [drag, setDrag] = useState<{ chip: BoardChip; x: number; y: number; hoverKey: string | null; moved: boolean } | null>(null)
   return (
     <div
       // shrink-0: con `overflow-hidden` este div pierde su tamaño mínimo como
@@ -75,24 +80,61 @@ export default function LineupBoard({ chips, onTap, onSwap }: {
             <div key={pos}>
               <div className="text-[8px] uppercase tracking-widest text-emerald-200/40 text-center mb-1">{label}</div>
               <div className="flex justify-center gap-2 flex-wrap">
-                {line.map((c) => <Chip key={c.key} chip={c} onTap={onTap} onSwap={onSwap} />)}
+                {line.map((c) => (
+                  <Chip
+                    key={c.key}
+                    chip={c}
+                    onTap={onTap}
+                    onSwap={onSwap}
+                    dragTarget={drag?.moved === true && drag.hoverKey === c.key && drag.chip.key !== c.key}
+                    dragSource={drag?.moved === true && drag.chip.key === c.key}
+                    onDrag={setDrag}
+                  />
+                ))}
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* EL FANTASMA del arrastre: el retrato pegado al dedo, por encima de
+          todo. Sin él, arrastrar era un acto de fe. */}
+      {drag?.moved && createPortal(
+        <div
+          className="fixed z-[96] pointer-events-none -translate-x-1/2 -translate-y-[70%]"
+          style={{ left: drag.x, top: drag.y }}
+        >
+          <div
+            className="w-12 h-12 rounded-xl overflow-hidden border-2 border-amber-300 shadow-lg shadow-black/60 bg-slate-900"
+            style={{ boxShadow: '0 0 16px rgba(251,191,36,.5)' }}
+          >
+            <ImgFallback
+              src={portraitUrl(drag.chip.baseId)}
+              className="w-full h-full object-cover object-top"
+              alt={drag.chip.name}
+              fallback={<span className="grid place-items-center w-full h-full text-[11px] font-extrabold text-slate-300">{drag.chip.name[0]}</span>}
+            />
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
 
-function Chip({ chip, onTap, onSwap }: {
+function Chip({ chip, onTap, onSwap, dragTarget, dragSource, onDrag }: {
   chip: BoardChip
   onTap?: (c: BoardChip) => void
   onSwap?: (aKey: string, bKey: string) => void
+  /** El dedo está ENCIMA con otra ficha en la mano: se ilumina como destino. */
+  dragTarget?: boolean
+  /** Es la ficha que se está arrastrando: se atenúa en su sitio. */
+  dragSource?: boolean
+  onDrag?: (d: { chip: BoardChip; x: number; y: number; hoverKey: string | null; moved: boolean } | null) => void
 }) {
   const info = ELEMENT_INFO[chip.element]
   const outOfPosition = chip.position != null && chip.position !== chip.role
-  const [dragging, setDragging] = useState(false)
+  const [start, setStart] = useState<{ x: number; y: number } | null>(null)
   return (
     <button
       data-uid={chip.key}
@@ -102,19 +144,31 @@ function Chip({ chip, onTap, onSwap }: {
       // el gesto no pelee con el scroll de la hoja.
       onPointerDown={onSwap ? (e) => {
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-        setDragging(true)
+        setStart({ x: e.clientX, y: e.clientY })
+        onDrag?.({ chip, x: e.clientX, y: e.clientY, hoverKey: null, moved: false })
+      } : undefined}
+      onPointerMove={onSwap ? (e) => {
+        if (!start) return
+        // Umbral de 8 px: por debajo sigue siendo un toque, no un arrastre.
+        const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8
+        const el = document.elementFromPoint(e.clientX, e.clientY)
+        const key = el?.closest?.('[data-uid]')?.getAttribute('data-uid') ?? null
+        onDrag?.({ chip, x: e.clientX, y: e.clientY, hoverKey: key, moved })
       } : undefined}
       onPointerUp={onSwap ? (e) => {
-        setDragging(false)
+        setStart(null)
+        onDrag?.(null)
         const el = document.elementFromPoint(e.clientX, e.clientY)
         const key = el?.closest?.('[data-uid]')?.getAttribute('data-uid')
         if (key && key !== chip.key) onSwap(chip.key, key)
         else onTap?.(chip)
       } : undefined}
-      onPointerCancel={onSwap ? () => setDragging(false) : undefined}
-      className={`relative w-[52px] shrink-0 flex flex-col items-center ${
+      onPointerCancel={onSwap ? () => { setStart(null); onDrag?.(null) } : undefined}
+      className={`relative w-[52px] shrink-0 flex flex-col items-center rounded-lg ${
         onSwap ? 'touch-none' : ''
-      } ${dragging ? 'scale-110 z-30 opacity-90' : ''} ${onTap || onSwap ? 'active:scale-95 transition' : 'cursor-default'}`}
+      } ${dragSource ? 'opacity-40' : ''} ${
+        dragTarget ? 'ring-2 ring-amber-300 bg-amber-400/15' : ''
+      } ${onTap || onSwap ? 'active:scale-95 transition' : 'cursor-default'}`}
     >
       <div className="relative">
         <div

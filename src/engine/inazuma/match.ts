@@ -296,7 +296,10 @@ function startPossession(m: MatchState, rng: RNG, out: MatchEvent[]): void {
   const side: Side = rng.next() < pHome ? 'home' : 'away'
   const s = sideOf(m, side)
 
-  const carrier = pickRotating(s.mids.length ? s.mids : allActors(s), rng)
+  // SANOS y en cascada (la tercera vía de escape de los lesionados: el saque
+  // de cada posesión — el de después del descanso incluido — le daba el balón
+  // a cualquiera del centro del campo, roto o no).
+  const carrier = attackerFor('construccion', s, rng)
   const rivalSide = sideOf(m, otherSide(side))
   m.chain = {
     side,
@@ -535,6 +538,10 @@ function executeDuelInner(
     atkDuelist.boost = (atkDuelist.boost ?? 1) * LONG_SHOT_MALUS * alivio * (chain.longShotPower ?? 1)
   }
   const defDuelist = toDuelist(defender, defTech, defBurst, chain.sprint)
+  // En la definición el defensor ES el portero (ver `defenderFor`): su duelo
+  // se juega con el atributo de PORTERO. El cruce del tiro lejano se resuelve
+  // aparte (`interceptLongShot`) y ahí el bloqueador sigue con su defensa.
+  if (step === 'definicion') defDuelist.keeper = true
   defDuelist.boost = (defDuelist.boost ?? 1) * (defFx.defendBias?.[step] ?? 1)
   if (defFx.comebackBoost && defSide.goals < atkSide.goals) {
     defDuelist.boost = (defDuelist.boost ?? 1) * (1 + defFx.comebackBoost)
@@ -1133,12 +1140,11 @@ function buildOption(
   // Tiro lejano: la misma penalización que aplicará `executeDuel`, para que
   // las estrellas del botón sean las del duelo de verdad.
   if (spec.powerScale) atkDuelist.boost = (atkDuelist.boost ?? 1) * spec.powerScale
-  const { chance } = duelChance(
-    step,
-    atkDuelist,
-    toDuelist(defender, defTech, defSide.burstTurns > 0, m.chain?.sprint),
-    momentum,
-  )
+  const defDuelist0 = toDuelist(defender, defTech, defSide.burstTurns > 0, m.chain?.sprint)
+  // Mismo criterio que `executeDuel`: en la definición el defensor es el
+  // portero — las estrellas del botón tienen que salir del duelo de verdad.
+  if (step === 'definicion') defDuelist0.keeper = true
+  const { chance } = duelChance(step, atkDuelist, defDuelist0, momentum)
   // Defendiendo, tus estrellas son la probabilidad de PARAR = 1 − la del tiro.
   const shown = mode === 'ataque' ? chance : 1 - chance
   const el: Element | undefined = myTech?.element ?? spec.mateElement
@@ -1443,9 +1449,11 @@ function shootoutDecided(sh: ShootoutState): boolean {
   return sh.round % 2 === 0 && h !== a
 }
 
-/** Quién tira el penalti: el que mejor dispare de los que están en el campo. */
+/** Quién tira el penalti: el que mejor dispare de los SANOS sobre el campo
+ * (el lesionado de la banda tampoco vuelve para la tanda). */
 function penaltyTaker(side: MatchSide, round: number): Actor {
   const pool = [...side.fwds, ...side.mids, ...side.defs]
+    .filter((a) => !a.injured)
     .sort((a, b) => b.stats.tiro - a.stats.tiro)
   if (!pool.length) return side.keeper
   // Se van rotando: en la muerte súbita tienen que tirar todos.
@@ -1500,7 +1508,7 @@ function resolvePenalty(
   const r = resolveDuel(
     'definicion',
     toDuelist(shooter, shotTech, false, undefined),
-    toDuelist(keeper, saveTech, false, undefined),
+    { ...toDuelist(keeper, saveTech, false, undefined), keeper: true },
     rng,
   )
   if (r.success) sh.goals[side === 'home' ? 0 : 1] += 1

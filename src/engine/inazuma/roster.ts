@@ -57,10 +57,16 @@ export const RARITY_GRADIENT = 'linear-gradient(135deg, #f472b6, #fbbf24, #34d39
 
 /** Reparto del presupuesto por demarcación (fracción de cada atributo). */
 const RARITY_SHAPE: Record<Position, Record<keyof Stats, number>> = {
-  POR: { tiro: 0.09, control: 0.13, fisico: 0.17, defensa: 0.30, velocidad: 0.13, aguante: 0.18 },
-  DEF: { tiro: 0.09, control: 0.14, fisico: 0.24, defensa: 0.27, velocidad: 0.12, aguante: 0.14 },
-  MED: { tiro: 0.15, control: 0.27, fisico: 0.13, defensa: 0.16, velocidad: 0.17, aguante: 0.12 },
-  DEL: { tiro: 0.30, control: 0.21, fisico: 0.14, defensa: 0.08, velocidad: 0.17, aguante: 0.10 },
+  // El 0.30 que el portero tenía en `defensa` pasa TAL CUAL a `portero`: el
+  // mano a mano bajo palos pesa igual que siempre — lo que cambia es que un
+  // central improvisado de portero ya no hereda ese oficio gratis.
+  // El hueco del nuevo atributo sale de las stats SECUNDARIAS, nunca de las
+  // de ataque (tiro/control iguales que siempre): recortarlas bajó los goles
+  // de todo el mundo y la banda del bot se cayó a 0 títulos.
+  POR: { tiro: 0.06, control: 0.11, fisico: 0.14, defensa: 0.12, velocidad: 0.11, aguante: 0.16, portero: 0.30 },
+  DEF: { tiro: 0.09, control: 0.14, fisico: 0.21, defensa: 0.25, velocidad: 0.11, aguante: 0.13, portero: 0.07 },
+  MED: { tiro: 0.15, control: 0.27, fisico: 0.11, defensa: 0.14, velocidad: 0.16, aguante: 0.10, portero: 0.07 },
+  DEL: { tiro: 0.30, control: 0.21, fisico: 0.13, defensa: 0.07, velocidad: 0.16, aguante: 0.08, portero: 0.05 },
 }
 
 /** Hash determinista pequeño, para el ruido por identidad. */
@@ -180,6 +186,7 @@ export function scaleStats(base: Stats, level: number): Stats {
     defensa: scaleStat(base.defensa, level),
     velocidad: scaleStat(base.velocidad, level),
     aguante: scaleStat(base.aguante, level),
+    portero: scaleStat(base.portero, level),
   }
 }
 
@@ -289,7 +296,7 @@ export function overallOf(s: Stats, position: Position): number {
 
 /** Peso de cada atributo por demarcación (para la valoración y la IA). */
 export const POSITION_WEIGHTS: Record<Position, Partial<Record<keyof Stats, number>>> = {
-  POR: { defensa: 5, fisico: 2, control: 1, aguante: 1, velocidad: 1 },
+  POR: { portero: 5, defensa: 1, fisico: 1.5, control: 1, aguante: 1, velocidad: 0.5 },
   DEF: { defensa: 4, fisico: 3, velocidad: 1.5, control: 1, aguante: 1 },
   MED: { control: 4, velocidad: 2, defensa: 1.5, tiro: 1.5, aguante: 1 },
   DEL: { tiro: 4, control: 2, velocidad: 2, fisico: 1, aguante: 1 },
@@ -645,14 +652,9 @@ function withRivalArmband(xi: RivalPlayer[], captainBaseId?: string | null): Riv
   const cap = (captainBaseId ? xi.find((p) => p.baseId === captainBaseId) : undefined)
     ?? xi.reduce((best, p) =>
       (fameOf(p) > fameOf(best) || (fameOf(p) === fameOf(best) && sum(p) > sum(best)) ? p : best), xi[0])
-  cap.stats = {
-    tiro: Math.round(cap.stats.tiro * ARMBAND_MULT),
-    control: Math.round(cap.stats.control * ARMBAND_MULT),
-    fisico: Math.round(cap.stats.fisico * ARMBAND_MULT),
-    defensa: Math.round(cap.stats.defensa * ARMBAND_MULT),
-    velocidad: Math.round(cap.stats.velocidad * ARMBAND_MULT),
-    aguante: Math.round(cap.stats.aguante * ARMBAND_MULT),
-  }
+  cap.stats = Object.fromEntries(
+    Object.entries(cap.stats).map(([k, v]) => [k, Math.round(v * ARMBAND_MULT)]),
+  ) as unknown as typeof cap.stats
   return xi
 }
 
@@ -685,14 +687,9 @@ export function rivalPreviewStats(base: PlayerBase, teamId: string, level: numbe
 
 /** Aplica el `power` del instituto a todos los atributos ya escalados. */
 function applyPower(s: Stats, power: number): Stats {
-  return {
-    tiro: Math.round(s.tiro * power),
-    control: Math.round(s.control * power),
-    fisico: Math.round(s.fisico * power),
-    defensa: Math.round(s.defensa * power),
-    velocidad: Math.round(s.velocidad * power),
-    aguante: Math.round(s.aguante * power),
-  }
+  return Object.fromEntries(
+    Object.entries(s).map(([k, v]) => [k, Math.round(v * power)]),
+  ) as unknown as Stats
 }
 
 /**
@@ -729,10 +726,10 @@ function fillerRival(name: string, position: Position, element: Element, level: 
   const core = rng.int(38, 50)
   const soft = rng.int(26, 36)
   const shape: Record<Position, Stats> = {
-    POR: { tiro: soft, control: soft, fisico: core, defensa: core + 12, velocidad: soft, aguante: core },
-    DEF: { tiro: soft, control: soft, fisico: core + 6, defensa: core + 8, velocidad: soft, aguante: core },
-    MED: { tiro: soft, control: core + 8, fisico: soft, defensa: core, velocidad: core, aguante: core },
-    DEL: { tiro: core + 10, control: core, fisico: soft, defensa: soft, velocidad: core, aguante: soft },
+    POR: { tiro: soft, control: soft, fisico: core, defensa: soft, velocidad: soft, aguante: core, portero: core + 12 },
+    DEF: { tiro: soft, control: soft, fisico: core + 6, defensa: core + 8, velocidad: soft, aguante: core, portero: soft },
+    MED: { tiro: soft, control: core + 8, fisico: soft, defensa: core, velocidad: core, aguante: core, portero: soft },
+    DEL: { tiro: core + 10, control: core, fisico: soft, defensa: soft, velocidad: core, aguante: soft, portero: soft },
   }
   const stats = applyPower(scaleStats(shape[position], level), power)
   return {

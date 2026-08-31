@@ -1,6 +1,7 @@
 // Vistas del modo fuera del partido: título, mapa del torneo, previa, vestuario
 // (plantilla), tienda, cartas de recompensa y pantallas de cierre.
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
@@ -15,14 +16,15 @@ import { MedalHint } from '@/ui/inazuma/BagView'
 import { StatsBoard } from '@/ui/inazuma/ExtraViews'
 import { FORMATIONS, getFormation } from '@/data/inazuma/formations'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
-import { CoinPrice, CoinText, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, rarityChipStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, CoinText, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemIcon, Pic, rarityBorder, rarityCardStyle, TechIcons, TechniqueBadge, useTechSheet } from '@/ui/inazuma/Glyphs'
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf,
+  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, ptMax, RARITY_LABEL, rarityOf,
   realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
-  signatureLevelFor, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
+  slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
+import SignatureChain from '@/ui/inazuma/SignatureChain'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
 import type { Element as InazumaElement } from '@/engine/inazuma/types'
 
@@ -31,6 +33,7 @@ import { getTeam, TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { COMBOS } from '@/data/inazuma/combos'
 import { tacticEffectLines, tacticFitsHint, getTactic, TACTICS, TACTIC_PRICE } from '@/data/inazuma/tactics'
 import { loadMeta } from '@/persistence/db'
+import { shareText } from '@/utils/share'
 import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
@@ -375,22 +378,14 @@ function SaveHeader({ save }: { save: InazumaSave }) {
   )
 }
 
-function BottomBar({ onSquad, onBag }: { onSquad: () => void; onBag?: () => void }) {
+function BottomBar({ onSquad }: { onSquad: () => void; onBag?: () => void }) {
+  // UN solo botón: GESTIONAR (el vestuario de siempre, con la mochila dentro).
+  // El botón «Mochila» duplicaba destino y se pidió fuera.
   return (
     <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
       <Button variant="secondary" full onClick={onSquad}>
-        <span className="inline-flex items-center justify-center gap-1.5"><Icon name="people" className="w-4 h-4" /> Vestuario</span>
+        <span className="inline-flex items-center justify-center gap-1.5"><Icon name="people" className="w-4 h-4" /> Gestionar</span>
       </Button>
-      {onBag && (
-        // Con el icono a secas se leía como una papelera, y «tocar la papelera»
-        // asusta. Va con la palabra al lado. Sin globo con el TOTAL de objetos:
-        // el numerito no aportaba nada y liaba (parecían notificaciones).
-        <Button variant="secondary" full onClick={onBag}>
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Icon name="bag" className="w-4 h-4" /> Mochila
-          </span>
-        </Button>
-      )}
       {/* El «volver a inicio» vivía aquí y se pulsaba sin querer: fuera.
           Salir del modo queda en ajustes. */}
     </div>
@@ -581,7 +576,7 @@ export function PreviewView() {
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">
         {err && <div className="text-[11px] text-rose-300 text-center">{err}</div>}
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => goTo('squad')}>Vestuario</Button>
+          <Button variant="secondary" onClick={() => goTo('squad')}>Gestionar</Button>
           <Button variant="primary" full disabled={!!err} onClick={confirmMatch}>¡Saltar al campo!</Button>
         </div>
         {/* Sin «volver al cuadro»: entrar en la casilla es comprometerse. */}
@@ -857,6 +852,13 @@ export function SquadView() {
         </>}
 
         <BagPanel save={save} onUse={useConsumable} onEquip={equip} />
+        {/* La vista COMPLETA de la mochila (vender, convertir medallas y el
+            Fichaje estrella) vive aquí desde que el botón del mapa se quitó. */}
+        <Button variant="ghost" full onClick={() => goTo('bag')}>
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Icon name="bag" className="w-4 h-4" /> Mochila completa (vender y convertir)
+          </span>
+        </Button>
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
@@ -971,34 +973,51 @@ function BagPanel({
   if (!save.bag.length) return null
   return (
     <>
-      <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-2">Mochila</div>
-      {/* Con IMAGEN y QUÉ HACE: el nombre solo no le decía nada a nadie.
-          Duplicados agrupados con ×N, como en la vista de mochila. */}
-      <div className="flex flex-col gap-1.5">
-        {[...new Map(save.bag.map((id) => [id, save.bag.filter((x) => x === id).length]))].map(([id, count]) => {
-          const item = getItem(id)
-          if (!item) return null
-          return (
-            <button
-              key={id}
-              onClick={() => setUse(id)}
-              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
-            >
-              <ItemIcon itemId={id} className="w-6 h-6 shrink-0" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[12px] font-bold">
-                  {item.name}
-                  {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
-                </span>
-                <span className="block text-[10px] text-slate-400 leading-snug">{item.desc}</span>
+      {/* La mochila EN DOS ESTANTES: lo que se USA (consumibles) y lo que se
+          EQUIPA — mezclados no se distinguía qué era cada cosa. Con IMAGEN y
+          QUÉ HACE; duplicados agrupados con ×N. */}
+      {(() => {
+        const grouped = [...new Map(save.bag.map((id) => [id, save.bag.filter((x) => x === id).length]))]
+          .map(([id, count]) => ({ id, count, item: getItem(id) }))
+          .filter((x): x is { id: string; count: number; item: NonNullable<ReturnType<typeof getItem>> } => !!x.item)
+        const equipables = grouped.filter(({ item }) => item.kind === 'equipo' || item.kind === 'raro')
+        const consumibles = grouped.filter(({ item }) => item.kind !== 'equipo' && item.kind !== 'raro')
+        const fila = ({ id, count, item }: (typeof grouped)[number]) => (
+          <button
+            key={id}
+            onClick={() => setUse(id)}
+            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
+          >
+            <ItemIcon itemId={id} className="w-6 h-6 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-bold">
+                {item.name}
+                {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
               </span>
-              <span className="shrink-0 text-[10px] font-bold text-emerald-300">
-                {item.kind === 'equipo' || item.kind === 'raro' ? 'Equipar ›' : 'Usar ›'}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+              <span className="block text-[10px] text-slate-400 leading-snug">{item.desc}</span>
+            </span>
+            <span className="shrink-0 text-[10px] font-bold text-emerald-300">
+              {item.kind === 'equipo' || item.kind === 'raro' ? 'Equipar ›' : 'Usar ›'}
+            </span>
+          </button>
+        )
+        return (
+          <>
+            {consumibles.length > 0 && (
+              <>
+                <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-2">Mochila · Consumibles</div>
+                <div className="flex flex-col gap-1.5">{consumibles.map(fila)}</div>
+              </>
+            )}
+            {equipables.length > 0 && (
+              <>
+                <div className="text-[11px] uppercase tracking-widest text-slate-500 mt-2">Mochila · Equipables</div>
+                <div className="flex flex-col gap-1.5">{equipables.map(fila)}</div>
+              </>
+            )}
+          </>
+        )
+      })()}
       {use && (
         <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm grid place-items-center p-4" onClick={() => { setUse(null); setMejoraFor(null) }}>
           <div className="relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-4 max-h-[82svh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -1124,39 +1143,36 @@ function PlayerDetail({
             quedan, con lo que le falta para despertarlas (nivel y rareza).
             Antes eran dos apartados que decían casi lo mismo, y encima con
             una parrafada explicando PT y aguante que ya nos sabemos. */}
-        <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Supertécnicas</div>
-        <div className="flex flex-col gap-1 mt-1">
+        <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">Cadena de supertécnicas</div>
+        <div className="mt-1">
+          {/* UN solo formato de cadena en todo el modo (ver SignatureChain). */}
+          <SignatureChain baseId={player.baseId} player={player} />
+          {/* Lo aprendido FUERA de la cadena (manuales, regalos del mapa). */}
           {(() => {
             const chain = getPlayerBase(player.baseId).signature ?? []
-            // Lo aprendido primero (en el orden de su cadena, y lo que venga
-            // de fuera al final), y después lo que le queda por despertar.
-            const known = [
-              ...chain.filter((id) => player.techniques.includes(id)),
-              ...player.techniques.filter((id) => !chain.includes(id)),
-            ]
-            const pending = chain.filter((id) => !player.techniques.includes(id))
-            if (!known.length && !pending.length) {
-              return <div className="text-[11px] text-slate-600">Este jugador no tiene cadena de supertécnicas.</div>
-            }
+            const extras = player.techniques.filter((id) => !chain.includes(id))
+            if (!extras.length) return null
             return (
               <>
-                {known.map((id) => {
-                  const t = getTechnique(id)
-                  if (!t) return null
-                  const info = ELEMENT_INFO[t.element]
-                  return (
-                    <div key={id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5">
-                      <TechniqueBadge tech={t} size={30} holder={player} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="mt-1.5 text-[9px] uppercase tracking-widest text-slate-600">Aprendidas fuera de la cadena</div>
+                <div className="flex flex-col gap-1 mt-1">
+                  {extras.map((id) => {
+                    const t = getTechnique(id)
+                    if (!t) return null
+                    const info = ELEMENT_INFO[t.element]
+                    return (
+                      <div
+                        key={id}
+                        onClick={() => useTechSheet.getState().open(t, player)}
+                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5 cursor-pointer active:scale-[0.99] transition"
+                      >
+                        <TechniqueBadge tech={t} size={30} holder={player} />
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                           <TechIcons tech={t} className="w-3.5 h-3.5" />
                           <span className="font-bold text-[12px]" style={{ color: info.color }}>
                             {t.name}
                             {techLevel(player, id) > 0 && <span className="ml-1 text-amber-300">V{techLevel(player, id) + 1}</span>}
                           </span>
-                          {/* Potencia y coste EFECTIVOS (Mejoras aplicadas)…
-                              y la REAL en verde: lo que ESTE jugador genera
-                              con ella (sus stats × la técnica). */}
                           <span className="text-[10px] text-slate-500">
                             {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
                           </span>
@@ -1165,67 +1181,9 @@ function PlayerDetail({
                           </span>
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
-
-                {/* LO QUE LE QUEDA, en el orden en que lo aprende, con el
-                    nivel y la rareza que abren cada paso. */}
-                {pending.map((id) => {
-                  const t = getTechnique(id)
-                  if (!t) return null
-                  const i = chain.indexOf(id)
-                  const need = signatureLevelFor(player.baseId, i)
-                  // El paso i pide rareza i+1: el 2.º es de Avanzado, el 3.º de Ídolo…
-                  const needRarity = Math.min(MAX_RARITY, i + 1)
-                  const faltaNivel = player.level < need
-                  const faltaRareza = rarityOf(player) < needRarity
-                  return (
-                    <div
-                      key={id}
-                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 opacity-70"
-                      style={rarityChipStyle(needRarity, 'rgba(30,41,59,0.45)')}
-                    >
-                      <TechniqueBadge tech={t} size={30} holder={player} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <TechIcons tech={t} className="w-3.5 h-3.5" />
-                          <span className="font-bold text-[12px] text-slate-300">{t.name}</span>
-                          {/* Potencia Y COSTE: lo que pedirá cuando despierte,
-                              y la REAL que tendría hoy en sus pies. */}
-                          <span className="text-[10px] text-slate-500">
-                            {techniquePower(player, t)} pot. · {techniqueCostFor(player, t)} PT
-                          </span>
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-emerald-300/80">
-                            <Icon name="swords" className="w-2.5 h-2.5" /> {realTechniquePower(player, t)}
-                          </span>
-                        </div>
-                        {/* Qué le falta EXACTAMENTE para despertarla. */}
-                        <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
-                          <span className={faltaNivel ? 'text-rose-300/90' : 'text-emerald-300/80'}>
-                            nivel {need}
-                          </span>
-                          <span className="text-slate-600">·</span>
-                          {/* El CANDADO del color de la rareza que lo abre. */}
-                          <Icon
-                            name="lock"
-                            className="w-3 h-3"
-                            style={{ color: rarityBorder(needRarity) }}
-                          />
-                          <span
-                            className="font-extrabold uppercase tracking-widest"
-                            style={{ color: faltaRareza ? rarityBorder(needRarity) : undefined }}
-                          >
-                            {RARITY_LABEL[needRarity]}
-                          </span>
-                          {!faltaNivel && !faltaRareza && (
-                            <span className="text-emerald-300/90">· lista para despertar</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </>
             )
           })()}
@@ -1438,7 +1396,7 @@ export function ShopView() {
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
-        <Button variant="secondary" onClick={() => goTo('squad')}>Vestuario</Button>
+        <Button variant="secondary" onClick={() => goTo('squad')}>Gestionar</Button>
         <Button variant="primary" full onClick={() => goTo('map')}>
           {isRaiRai ? 'Salir del Rai Rai' : 'Salir de la tienda'}
         </Button>
@@ -1494,7 +1452,10 @@ export function DraftView() {
           </p>
         )}
         {draft.map((o) => (
-          <Card key={o.id} className="p-3" onClick={() => pickDraft(o.id)}>
+          // Las cartas de FICHAJE ya no fichan al tocarlas (demasiados
+          // fichajes sin querer): tienen su botón «Fichar». Las demás
+          // (objeto, dinero, técnica…) siguen eligiéndose con el toque.
+          <Card key={o.id} className="p-3" onClick={o.kind === 'fichaje' ? undefined : () => pickDraft(o.id)}>
             <div className="flex items-center gap-2.5">
               {o.kind === 'fichaje' ? (
                 <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden border border-slate-600 grid place-items-center bg-slate-800">
@@ -1560,10 +1521,10 @@ export function DraftView() {
             {o.kind === 'fichaje' && (
               <div className="mt-2 flex flex-col gap-1.5">
                 <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
-                <SigningExtras baseId={o.playerId} save={save} />
-                {/* Comparar SIN fichar: el div corta la burbuja — cualquier
-                    clic que suba hasta la carta es un fichaje hecho. */}
-                <div onClick={(e) => e.stopPropagation()}>
+                <SigningExtras baseId={o.playerId} save={save} level={o.level} />
+                {/* COMPARAR y FICHAR, cada uno con su botón: la carta ya no
+                    ficha al tocarla. */}
+                <div className="flex gap-2">
                   <Button
                     variant="secondary"
                     full
@@ -1581,7 +1542,12 @@ export function DraftView() {
                     }}
                   >
                     <span className="inline-flex items-center justify-center gap-1.5">
-                      <Icon name="scales" className="w-4 h-4" /> Comparar con los míos
+                      <Icon name="scales" className="w-4 h-4" /> Comparar
+                    </span>
+                  </Button>
+                  <Button variant="primary" full onClick={() => pickDraft(o.id)}>
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <Icon name="autograph" className="w-4 h-4" /> Fichar
                     </span>
                   </Button>
                 </div>
@@ -1600,7 +1566,7 @@ export function DraftView() {
  * supertécnicas (con el nivel al que despierta cada paso) y las técnicas
  * COMBINADAS que desbloquearía con gente que ya está en tu plantilla.
  */
-function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) {
+function SigningExtras({ baseId, save, level }: { baseId: string; save: InazumaSave; level: number }) {
   const base = getPlayerBase(baseId)
   const chain = base.signature ?? []
   const rosterIds = new Set(save.roster.map((p) => p.baseId))
@@ -1610,31 +1576,11 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
   return (
     <div className="flex flex-col gap-1">
       {chain.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-[9px] uppercase tracking-widest text-slate-500 mr-0.5">Cadena</span>
-          {chain.map((id, i, arr) => {
-            const t = getTechnique(id)
-            if (!t) return null
-            const info = ELEMENT_INFO[t.element]
-            const need = signatureLevelFor(baseId, i)
-            return (
-              <span key={id} className="inline-flex items-center gap-1">
-                <span
-                  // SIN burbuja: este chip vive dentro de la carta de fichaje
-                  // (que ficha al clicarse) — tocar la técnica para VERLA
-                  // fichaba al jugador sin querer.
-                  onClick={(e) => { e.stopPropagation(); useTechSheet.getState().open(t) }}
-                  className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] font-bold cursor-pointer active:scale-95 transition"
-                  style={{ color: info.color, ...rarityChipStyle(i + 1, `${info.color}12`) }}
-                >
-                  <TechIcons tech={t} className="w-2.5 h-2.5" />
-                  {t.name}
-                  <span className="text-slate-500">{t.power} pot. · nv.{need}</span>
-                </span>
-                {i < arr.length - 1 && <Icon name="arrowRight" className="w-2.5 h-2.5 text-slate-600" />}
-              </span>
-            )
-          })}
+        <div>
+          <div className="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Cadena de supertécnicas</div>
+          {/* EL MISMO formato de cadena que la ficha del jugador: escalera con
+              su estado (los pasos ya paran la burbuja, no fichan sin querer). */}
+          <SignatureChain baseId={baseId} level={level} rarity={1} />
         </div>
       )}
       {combos.map((c) => {
@@ -1669,20 +1615,56 @@ function SigningExtras({ baseId, save }: { baseId: string; save: InazumaSave }) 
 // ---------------------------------------------------------------------------
 
 export function EndView({ won }: { won: boolean }) {
-  const { save, exitInazuma, abandonTournament, goTo } = useInazuma()
+  const { save, exitInazuma, restartTournament } = useInazuma()
+  // Confeti de victoria, autoapagado — el mismo cierre que el modo Pokémon.
+  const [confetti, setConfetti] = useState(won)
+  const [shared, setShared] = useState<string | null>(null)
+  useEffect(() => {
+    if (!won) return
+    const t = setTimeout(() => setConfetti(false), 4000)
+    return () => clearTimeout(t)
+  }, [won])
   if (!save) return null
+  const teamName = teamDisplay(save).name
+
+  const share = async () => {
+    const team = buildLineup(save.roster, save.lineup)?.all ?? []
+    const text = `⚡ ¡${teamName} campeón del Football Frontier en Inazuma Rogue!\n`
+      + `⚽ ${save.record[0]}V ${save.record[1]}E ${save.record[2]}D · ${save.goalsFor}-${save.goalsAgainst}\n`
+      + `🎮 Once: ${team.map((p) => `${getPlayerBase(p.baseId).name.split(' ')[0]} Nv.${p.level}`).join(', ')}\n\n`
+      + '¿Puedes superarme? https://miasergi.github.io/pokelink/'
+    const r = await shareText(text, 'Inazuma Rogue')
+    setShared(r === 'copied' ? '¡Copiado! Pégalo donde quieras' : r === 'shared' ? '¡Compartido!' : 'No se pudo compartir')
+  }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 relative">
+      {confetti && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-10" aria-hidden>
+          {Array.from({ length: 26 }).map((_, i) => (
+            <Icon
+              key={i}
+              name={(['trophy', 'star', 'bolt', 'ball'] as const)[i % 4]}
+              className="absolute w-5 h-5 text-amber-300 animate-float"
+              style={{ left: `${(i * 37) % 100}%`, top: `${(i * 53) % 100}%`, animationDelay: `${(i % 8) * 0.35}s`, opacity: 0.8 }}
+            />
+          ))}
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 safe-top flex flex-col items-center gap-3 text-center">
         <Icon name={won ? 'trophy' : 'sad'} className={`w-16 h-16 mt-4 ${won ? 'text-amber-300' : 'text-slate-400'}`} />
         <h2 className={`text-2xl font-extrabold ${won ? 'text-amber-300' : 'text-slate-300'}`}>
-          {won ? '¡CAMPEONES DEL FOOTBALL FRONTIER!' : 'Eliminados'}
+          {won ? '¡CAMPEONES DEL FOOTBALL FRONTIER!' : 'Fin del torneo'}
         </h2>
         <p className="text-sm text-slate-400 max-w-[18rem]">
           {won
-            ? 'El Raimon lo ha conseguido. Nadie apostaba por vosotros.'
+            ? `El ${teamName} lo ha conseguido. Nadie apostaba por vosotros.`
             : `El torneo se acaba aquí, en ${layerName(save.layer, save.teamId, save.saga)}. La próxima vez.`}
+        </p>
+        {/* La plantilla queda GUARDADA con todo su detalle (Salón del título):
+            base para revanchas y exhibiciones. */}
+        <p className="text-[11px] text-slate-500 -mt-1">
+          Tu plantilla queda guardada con todos sus datos{won ? ' en el Salón de campeones' : ''}.
         </p>
         <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
           <Stat label="Ganados" value={save.record[0]} />
@@ -1699,14 +1681,32 @@ export function EndView({ won }: { won: boolean }) {
           <StatsBoard save={save} />
         </div>
       </div>
+      {/* El CIERRE, calcado del modo Pokémon: reintentar el mismo cuadro,
+          sortear uno nuevo con la misma configuración, o volver a casa (y
+          compartir, si has ganado). Fuera el menú de «nueva run / álbum». */}
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-3 safe-bottom flex flex-col gap-2">
-        <Button variant="primary" full onClick={() => void abandonTournament()}>Nuevo torneo</Button>
-        <Button variant="secondary" full onClick={() => goTo('album')}>
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Icon name="pokedex" className="w-4 h-4" /> Álbum de fichajes
-          </span>
+        {won ? (
+          <>
+            <Button variant="secondary" full onClick={() => void share()}>
+              {shared ?? <span className="inline-flex items-center justify-center gap-1.5"><Icon name="share" className="w-4 h-4" /> Compartir</span>}
+            </Button>
+            <Button variant="primary" full onClick={() => void restartTournament(false)}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="refresh" className="w-4 h-4" /> Nuevo torneo ({teamName})</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="primary" full onClick={() => void restartTournament(true)}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="refresh" className="w-4 h-4" /> Reintentar este torneo (mismo cuadro)</span>
+            </Button>
+            <Button variant="secondary" full onClick={() => void restartTournament(false)}>
+              <span className="inline-flex items-center justify-center gap-1.5"><Icon name="dice" className="w-4 h-4" /> Reiniciar con cuadro nuevo</span>
+            </Button>
+          </>
+        )}
+        <Button variant="ghost" full onClick={exitInazuma}>
+          <span className="inline-flex items-center justify-center gap-1.5"><Icon name="home" className="w-4 h-4" /> Volver al inicio</span>
         </Button>
-        <Button variant="ghost" full onClick={exitInazuma}>Volver al inicio</Button>
       </div>
     </div>
   )
@@ -1842,22 +1842,28 @@ function Stat({ label, value }: { label: string; value: number }) {
  */
 export function Toast() {
   const { message, clearMessage } = useInazuma()
-
-  useEffect(() => {
-    if (!message) return
-    const t = setTimeout(clearMessage, 4000)
-    return () => clearTimeout(t)
-  }, [message, clearMessage])
-
   if (!message) return null
-  return (
-    <div className="pointer-events-none fixed left-1/2 -translate-x-1/2 bottom-24 z-[80] max-w-[90%] animate-pop-in">
-      <button
-        onClick={clearMessage}
-        className="pointer-events-auto rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-[12px] text-slate-100 shadow-xl"
+  // MODAL, no toast: los avisos del rogue (niveles, dinero, técnicas
+  // aprendidas…) pasaban desapercibidos abajo y desaparecían solos a los 4 s.
+  // Ahora se quedan hasta el «Entendido» (o un toque fuera): lo que ha pasado
+  // se LEE. El icono (rayo o aviso) le da contexto de un vistazo.
+  const esAviso = /^(no |ese |esa |el partido guardado|la enfermería|te faltan)/i.test(message)
+  return createPortal(
+    <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm grid place-items-center p-5 animate-fade-in" onClick={clearMessage}>
+      <div
+        className={`w-full max-w-sm rounded-3xl border-2 bg-slate-900 p-4 text-center animate-pop-in ${
+          esAviso ? 'border-rose-500/50' : 'border-amber-500/50'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+        style={{ boxShadow: esAviso ? '0 0 30px rgba(244,63,94,.25)' : '0 0 30px rgba(251,191,36,.25)' }}
       >
-        <CoinText text={message} />
-      </button>
-    </div>
+        <Icon name={esAviso ? 'warning' : 'bolt'} className={`w-8 h-8 mx-auto mb-1.5 ${esAviso ? 'text-rose-400' : 'text-amber-300'}`} />
+        <p className="text-[13px] leading-snug text-slate-100 font-semibold">
+          <CoinText text={message} />
+        </p>
+        <Button variant="primary" full className="mt-3" onClick={clearMessage}>Entendido</Button>
+      </div>
+    </div>,
+    document.body,
   )
 }

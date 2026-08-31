@@ -15,7 +15,7 @@ import { comboOf } from '@/data/inazuma/combos'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon, TechIcons, useTechSheet } from '@/ui/inazuma/Glyphs'
-import { effectiveStats, ptMax, RARITY_LABEL, rarityOf, techniqueCostFor, techniquePower } from '@/engine/inazuma/roster'
+import { effectiveStats, overall, ptMax, RARITY_LABEL, rarityOf, techniqueCostFor, techniquePower } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem } from '@/data/inazuma/items'
@@ -99,7 +99,8 @@ export function PlayerCard({
       // multicolor degradado). El elemento pasa a icono junto al nombre.
       style={rarityCardStyle(tier)}
     >
-      {/* Franja superior: rareza en texto y demarcación. */}
+      {/* Franja superior: rareza en texto, demarcación y la MEDIA global
+          (tipo FIFA, 1-99): el número que resume al jugador de un vistazo. */}
       <div className="flex items-center gap-1.5 px-2 pt-2">
         <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold ${POSITION_COLOR[base.position]}`}>
           {base.position}
@@ -109,6 +110,10 @@ export function PlayerCard({
           style={{ color: rarityBorder(tier) }}
         >
           {RARITY_LABEL[tier]}
+        </span>
+        <span className="ml-auto inline-flex items-baseline gap-1 rounded-md bg-slate-950/50 px-1.5 py-0.5">
+          <span className="text-base font-black tabular-nums leading-none text-amber-300">{overall(player)}</span>
+          <span className="text-[8px] font-extrabold uppercase tracking-widest text-slate-500">med</span>
         </span>
       </div>
 
@@ -183,7 +188,7 @@ export function PlayerCard({
 }
 
 const STAT_LABEL: Record<keyof Stats, string> = {
-  tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU',
+  tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU', portero: 'POR',
 }
 
 export function StatGrid({ stats, boosted }: {
@@ -192,7 +197,7 @@ export function StatGrid({ stats, boosted }: {
   boosted?: keyof Stats
 }) {
   return (
-    <div className="grid grid-cols-6 gap-1">
+    <div className="grid grid-cols-7 gap-1">
       {(Object.keys(STAT_LABEL) as (keyof Stats)[]).map((k) => (
         <div key={k} className={`rounded-md py-0.5 text-center ${k === boosted ? 'bg-emerald-500/15 border border-emerald-500/50' : 'bg-slate-800/70'}`}>
           <div className={`text-[8px] leading-none ${k === boosted ? 'text-emerald-300' : 'text-slate-500'}`}>{STAT_LABEL[k]}</div>
@@ -250,6 +255,7 @@ export function PlayerRow({
           <span className="font-bold text-[13px] truncate">{base.name}</span>
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
+          <span className="ml-auto shrink-0 text-[12px] font-black tabular-nums text-amber-300">{overall(player)}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           {/* PT y aguante, SIEMPRE los que le quedan y CON etiqueta: la fila

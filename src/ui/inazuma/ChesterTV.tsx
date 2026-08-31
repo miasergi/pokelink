@@ -167,7 +167,7 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
-  const [tech, setTech] = useState<{ name: string; key: number } | null>(null)
+  const [tech, setTech] = useState<{ name: string; key: number; power?: number } | null>(null)
   // PLANO DE GOL: al marcar, la tele corta al balón reventando la red.
   const [golCam, setGolCam] = useState<{ key: number } | null>(null)
   // PLANO DE PARADA: el portero con la pelota atrapada, al cantar el paradón.
@@ -223,6 +223,13 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           : e?.kind === 'penalty'
             ? e.technique
             : undefined
+    // La potencia EFECTIVA que viaja con el evento (mejoras y bonos de combo
+    // incluidos): es la que se rotula bajo la imagen.
+    const power = e?.kind === 'duel'
+      ? (name === e.technique ? e.power : name === e.counter ? e.counterPower : undefined)
+      : e?.kind === 'keeperTry' || e?.kind === 'longshotKick'
+        ? e.power
+        : undefined
     if (!name) {
       // Sin imagen propia: la PARADA deja respirar a la del intento del
       // portero (se va sola a los 2.6 s, «un pelín más»); cualquier otro
@@ -232,7 +239,7 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
       return
     }
     const key = feed.length
-    setTech({ name, key })
+    setTech({ name, key, power })
     setGolCam(null)
     setSaveCam(null)
     // OJO: SIN cleanup. Si el timer se limpiara al llegar el siguiente
@@ -288,11 +295,15 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
                 alt={techInfo.name}
                 fallback={<span className="grid place-items-center w-full h-full text-[10px] font-bold text-slate-400 px-1 text-center">{techInfo.name}</span>}
               />
+              {/* Nombre y POTENCIA EFECTIVA bien visibles: «no veo su
+                  potencia» era feedback literal del playtest. */}
               <span
-                className="absolute inset-x-0 bottom-0 px-1 py-0.5 text-center text-[8px] font-extrabold uppercase tracking-wide bg-slate-950/85 truncate"
+                className="absolute inset-x-0 bottom-0 px-1 py-0.5 flex items-center justify-center gap-1 bg-slate-950/85"
                 style={{ color: ELEMENT_INFO[techInfo.element].color }}
               >
-                {techInfo.name} · {techInfo.power}
+                <span className="text-[8px] font-extrabold uppercase tracking-wide truncate">{techInfo.name}</span>
+                <span className="shrink-0 text-[10px] font-black tabular-nums text-amber-300">{tech?.power ?? techInfo.power}</span>
+                <span className="shrink-0 text-[7px] font-bold uppercase text-slate-400">pot</span>
               </span>
             </div>
           ) : (
