@@ -39,7 +39,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'kevin-dragonfly', name: 'Kevin Dragonfly', team: 'raimon', position: 'DEL', element: 'bosque', fame: 4,
     stats: { tiro: 99, control: 68, fisico: 49, defensa: 23, velocidad: 56, aguante: 36 },
     techniques: ['dragon-crash', 'dragon-tornado'],
-    signature: ['dragon-crash', 'dragon-tornado', 'wyvern-crash', 'zigzag-spark'],
+    signature: ['dragon-crash', 'dragon-tornado', 'wyvern-crash', 'lightning-accel'],
   },
   {
     id: 'jack-wallside', name: 'Jack Wallside', team: 'raimon', position: 'DEF', element: 'montana', fame: 3,
@@ -737,7 +737,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'earl-eton', name: 'Earl Eton', team: 'kfc', position: 'MED', element: 'bosque', fame: 1,
     stats: { tiro: 33, control: 59, fisico: 25, defensa: 34, velocidad: 36, aguante: 22 },
     techniques: ['warp-drive'],
-    signature: ['warp-drive'],
+    signature: ['britannia-cross'],
   },
   {
     id: 'jamie-cool', name: 'Jamie Cool', team: 'kfc', position: 'MED', element: 'aire', fame: 1,
@@ -1509,7 +1509,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'caleb-stonewall', name: 'Caleb Stonewall', team: 'inazuma-japan', position: 'MED', element: 'fuego', fame: 1,
     stats: { tiro: 33, control: 58, fisico: 30, defensa: 36, velocidad: 31, aguante: 22 },
     techniques: ['koutei-penguin-1gou'],
-    signature: ['koutei-penguin-1gou', 'killer-fields', 'judge-through-2', 'no-escape'],
+    signature: ['koutei-penguin-3gou', 'killer-fields', 'judge-through-2', 'no-escape'],
   },
   {
     id: 'shawn-froste', name: 'Shawn Froste', team: 'inazuma-japan', position: 'DEL', element: 'aire', fame: 1,
@@ -1521,7 +1521,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'austin-hobbes', name: 'Austin Hobbes', team: 'inazuma-japan', position: 'DEL', element: 'bosque', fame: 1,
     stats: { tiro: 58, control: 46, fisico: 31, defensa: 18, velocidad: 35, aguante: 24 },
     techniques: ['tiger-drive'],
-    signature: ['tiger-drive', 'tiger-storm', 'hitori-one-two', 'the-phoenix'],
+    signature: ['tiger-drive', 'tiger-storm', 'hitori-one-two', 'gladius-arch'],
   },
   {
     id: 'thor-stoutberg', name: 'Thor Stoutberg', team: 'inazuma-japan', position: 'DEL', element: 'aire', fame: 1,
@@ -3326,7 +3326,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'mitzi-mittens-holly', name: 'Mitzi "Mittens" Holly', team: 'extra-stars', position: 'DEF', element: 'fuego', fame: 2,
     stats: { tiro: 23, control: 32, fisico: 61, defensa: 64, velocidad: 34, aguante: 38 },
     techniques: ['volcano-cut'],
-    signature: ['volcano-cut'],
+    signature: ['big-scissors'],
   },
   {
     id: 'syon-blaze', name: 'Syon Blaze', team: 'extra-stars', position: 'DEL', element: 'fuego', fame: 2,
@@ -3423,13 +3423,13 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'oswald-bones', name: 'Oswald Bones', team: 'kage-no-hero', position: 'DEL', element: 'bosque', fame: 2,
     stats: { tiro: 71, control: 49, fisico: 35, defensa: 22, velocidad: 37, aguante: 21 },
     techniques: ['kung-fu-head'],
-    signature: ['kung-fu-head'],
+    signature: ['fortissimo'],
   },
   {
     id: 'trey-prongs', name: 'Trey Prongs', team: 'kage-no-hero', position: 'DEF', element: 'aire', fame: 1,
     stats: { tiro: 22, control: 32, fisico: 49, defensa: 52, velocidad: 20, aguante: 33 },
     techniques: ['cyclone'],
-    signature: ['cyclone'],
+    signature: ['sargasso'],
   },
   {
     id: 'esme-hexe', name: 'Esme Hexe', team: 'kage-no-hero', position: 'MED', element: 'bosque', fame: 1,
@@ -3441,13 +3441,13 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'algo-rithm', name: 'Algo Rithm', team: 'kage-no-hero', position: 'DEL', element: 'fuego', fame: 1,
     stats: { tiro: 62, control: 41, fisico: 29, defensa: 18, velocidad: 39, aguante: 19 },
     techniques: ['abisegeri'],
-    signature: ['abisegeri'],
+    signature: ['rocket-head'],
   },
   {
     id: 'verity-quick', name: 'Verity Quick', team: 'kage-no-hero', position: 'DEL', element: 'fuego', fame: 1,
     stats: { tiro: 58, control: 46, fisico: 29, defensa: 18, velocidad: 33, aguante: 21 },
     techniques: ['grenade-shot'],
-    signature: ['grenade-shot'],
+    signature: ['rocket-head'],
   },
   {
     id: 'captain-jokar', name: 'Captain Jokar', team: 'kage-no-hero', position: 'DEL', element: 'bosque', fame: 1,
@@ -3465,7 +3465,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'jack-skipper', name: 'Jack Skipper', team: 'kage-no-hero', position: 'POR', element: 'fuego', fame: 1,
     stats: { tiro: 18, control: 28, fisico: 37, defensa: 63, velocidad: 22, aguante: 36 },
     techniques: ['pressure-punch'],
-    signature: ['pressure-punch'],
+    signature: ['burai-hand'],
   },
   {
     id: 'eric-byrne', name: 'Eric Byrne', team: 'kage-no-hero', position: 'DEL', element: 'montana', fame: 1,
@@ -3792,8 +3792,9 @@ const RAW_PLAYERS: RawPlayer[] = [
   {
     id: 'destin-billows', name: 'Destin Billows', team: 'nagumohara', position: 'MED', element: 'bosque', fame: 1,
     stats: { tiro: 30, control: 55, fisico: 27, defensa: 33, velocidad: 35, aguante: 20 },
-    techniques: ['entertainer'],
-    signature: ['entertainer'],
+    // Llevaba el Entretainer (que es de Cedric Freud): genéricas de su corte.
+    techniques: ['zanzou'],
+    signature: ['zanzou', 'bunshin-feint'],
   },
   {
     id: 'davin-bullock', name: 'Davin Bullock', team: 'nagumohara', position: 'MED', element: 'fuego', fame: 1,
@@ -4145,7 +4146,7 @@ const RAW_PLAYERS: RawPlayer[] = [
     id: 'kieran-knavenly', name: 'Kieran Knavenly', team: 'houreikan', position: 'DEF', element: 'bosque', fame: 1,
     stats: { tiro: 22, control: 33, fisico: 44, defensa: 53, velocidad: 23, aguante: 25 },
     techniques: ['the-matrix'],
-    signature: ['the-matrix'],
+    signature: ['the-mist'],
   },
   {
     id: 'alzen-wasruff', name: 'Alzen Wasruff', team: 'houreikan', position: 'DEF', element: 'montana', fame: 1,
