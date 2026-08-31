@@ -21,7 +21,7 @@ import {
   advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult, matchMedals,
   applyPachangaResult, canLearn, createSave, fullRest, isEliminated, isMapComplete, learnSignature,
   type NewRunOptions,
-  LEVELS_BY_RESULT, startMatch, startPachanga, subActor,
+  startMatch, startPachanga, subActor,
 } from '@/engine/inazuma/game'
 import { actorByUid, advance, chooseOption, otherSide, playerScore, playerSide, reformation, rivalHalftimeSubs, sideOf, substitute, swapOnPitch } from '@/engine/inazuma/match'
 import { nextRound, shoot, type PachangaState } from '@/engine/inazuma/pachanga'
