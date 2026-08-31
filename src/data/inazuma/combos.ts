@@ -55,10 +55,11 @@ export const COMBOS: Combo[] = [
     label: 'con Jude y David',
   },
   {
-    // El Pingüino Emperador Nº 2: Jude, David y Jim, marca de la casa.
+    // El Pingüino Emperador Nº 2: Jude, David y Daniel (Jimon es Daniel
+    // Hatch en el doblaje, no Jim Wraith), marca de la casa.
     techniqueId: 'koutei-penguin-2gou',
-    members: ['jude-sharp', 'david-samford', 'jim-wraith'],
-    label: 'con Jude, David y Jim',
+    members: ['jude-sharp', 'david-samford', 'daniel-hatch'],
+    label: 'con Jude, David y Daniel',
   },
   {
     // El Nº 3, la versión de la selección: Jude, Caleb y David.
@@ -108,6 +109,24 @@ export const COMBOS: Combo[] = [
     techniqueId: 'unicorn-boost',
     members: ['mark-krueger', 'dylan-keats'],
     label: 'con Mark K. y Dylan',
+  },
+  {
+    // El Remate Inazuma original: Mark lanza a Axel por los aires.
+    techniqueId: 'inazuma-1gou-otoshi',
+    members: ['mark-evans', 'axel-blaze'],
+    label: 'con Mark y Axel',
+  },
+  {
+    // Triple Impulso del Raimon: Tod, Sam y Nathan (ep. 65, vs Emperadores).
+    techniqueId: 'triple-boost',
+    members: ['tod-ironside', 'sam-kincaid', 'nathan-swift'],
+    label: 'con Tod, Sam y Nathan',
+  },
+  {
+    // El Pingüino Espacial: la definitiva de la Génesis (mismo trío).
+    techniqueId: 'space-penguin',
+    members: ['xavier-foster', 'isabelle-trick', 'wilbur-watkins'],
+    label: 'con Xavier, Isabelle y Wilbur',
   },
   {
     // GO: el Tornado de Fuego DD de Arion y Victor.
