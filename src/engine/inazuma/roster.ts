@@ -1,7 +1,7 @@
 // Plantilla: crear jugadores, escalarlos por nivel, calcular PT y aplicar
 // fatiga y objetos. Todo son funciones PURAS — el store solo las orquesta.
 import type { RNG } from '@/utils/rng'
-import { getPlayerBase, playersOfTeam, PLAYERS, TEAM_CAPTAINS } from '@/data/inazuma/players'
+import { getPlayerBase, playersOfTeam, PLAYERS, startingSquad, TEAM_CAPTAINS } from '@/data/inazuma/players'
 import { getItem } from '@/data/inazuma/items'
 import { regionOfTeam, type RegionId } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
@@ -109,8 +109,12 @@ export function rarityOf(p: PlayerInstance): number {
  */
 export function upgradeRarity(p: PlayerInstance): PlayerInstance {
   const before = ptMax(p)
-  const next: PlayerInstance = { ...p, rarity: Math.min(MAX_RARITY, rarityOf(p) + 1) }
+  let next: PlayerInstance = { ...p, rarity: Math.min(MAX_RARITY, rarityOf(p) + 1) }
   next.pt = Math.min(ptMax(next), p.pt + Math.max(0, ptMax(next) - before))
+  // Los pasos de cadena que la rareza nueva ABRE y el nivel ya cubre se
+  // despiertan AQUÍ MISMO: quedarse «lista para despertar» sin forma de
+  // despertarla hasta el siguiente nivel era absurdo.
+  next = awakenByLevel(next)
   return next
 }
 
@@ -284,15 +288,28 @@ export function overall(p: PlayerInstance): number {
  * según su nivel.
  */
 export function overallOf(s: Stats, position: Position): number {
+  // NORMALIZADA POR DEMARCACIÓN: la media compara al jugador contra el
+  // REPARTO de su propia posición (RARITY_SHAPE), no contra números crudos.
+  // Con la media cruda, el delantero (cuyo tiro es la fracción más gorda de
+  // cualquier reparto) clavaba el 99 a media partida mientras el resto
+  // remaba — «los delanteros me llegan a 99 enseguida», feedback literal.
   const w = POSITION_WEIGHTS[position]
-  let total = 0
-  let sum = 0
+  const shape = RARITY_SHAPE[position]
+  let num = 0
+  let den = 0
   for (const k of Object.keys(w) as (keyof Stats)[]) {
-    total += s[k] * (w[k] ?? 0)
-    sum += w[k] ?? 0
+    num += s[k] * (w[k] ?? 0)
+    den += shape[k] * OVERALL_CAP * (w[k] ?? 0)
   }
-  return Math.min(99, Math.round(total / sum))
+  return Math.max(1, Math.min(99, Math.round(20 + 79 * (num / den))))
 }
+
+/**
+ * Techo de la media: el presupuesto de un LEGENDARIO (345) a nivel ~40
+ * (×2.17). La media 99 se reserva para el final del torneo — en CUALQUIER
+ * demarcación por construcción, y la escala arranca en ~40 para un inicial.
+ */
+const OVERALL_CAP = 749
 
 /** Peso de cada atributo por demarcación (para la valoración y la IA). */
 export const POSITION_WEIGHTS: Record<Position, Partial<Record<keyof Stats, number>>> = {
@@ -570,6 +587,20 @@ export function rivalStartingXI(teamId: string): PlayerBase[] {
   const picked = [...line('POR', 1), ...line('DEF', 1), ...line('MED', 2), ...line('DEL', 1)]
   if (picked.length < 5) picked.push(...own.filter((p) => !picked.includes(p)).slice(0, 5 - picked.length))
   return picked.slice(0, 5)
+}
+
+/**
+ * El BANQUILLO del rival: LA MISMA lista para el partido y para la previa.
+ * Antes el motor cogía `startingSquad().slice(5, 8)` y la previa enseñaba
+ * `slice(11)` — al descanso el rival metía a gente «que no salía en su
+ * banquillo» porque, literalmente, la previa enseñaba a otros.
+ */
+export function rivalBench(teamId: string): PlayerBase[] {
+  const xi = new Set(rivalStartingXI(teamId).map((b) => b.id))
+  return startingSquad(teamId)
+    .map((id) => getPlayerBase(id))
+    .filter((b) => !xi.has(b.id))
+    .slice(0, 3)
 }
 
 /**

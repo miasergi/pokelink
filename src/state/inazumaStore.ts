@@ -1085,7 +1085,6 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // `applyMatchResult`) + 3 medallas + UN objeto random + un FICHAJE del
     // equipo VENCIDO (al azar, con la rareza que llevaba en el partido, y
     // nunca alguien que ya tengas — por NOMBRE, que el catálogo trae clones).
-    const gained = LEVELS_BY_RESULT[result]
     const pool = lootPool(bossIndexForLayer(next.layer))
     const prize = pool[getRng(next).int(0, pool.length - 1)]
     if (prize) next.bag = [...next.bag, prize.id]
@@ -1164,8 +1163,20 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       matchNode: null,
       revealPlayer: reveal,
       pendingSigning,
-      message: `Niveles +${gained}/+${Math.max(0, gained - 1)} · ${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
-        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg + momentoMsg,
+      // CON NOMBRES Y NIVELES: «Niveles +2/+1» no decía quién subía a qué.
+      message: `${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
+        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg + momentoMsg
+        + (() => {
+          const subidas = next.roster
+            .map((p) => {
+              const antes = save.roster.find((x) => x.uid === p.uid)
+              return antes && p.level > antes.level
+                ? `${getPlayerBase(p.baseId).name.split(' ')[0]} +${p.level - antes.level} (Nv.${p.level})`
+                : null
+            })
+            .filter((x): x is string => !!x)
+          return subidas.length ? `\nSuben: ${subidas.join(' · ')}` : ''
+        })(),
     })
     void persist(next, 'map')
   },
@@ -1582,7 +1593,17 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       const target = roster.find((x) => x.uid === uid)
       if (!target || target.injured) return
       roster = roster.map((p) => (p.uid === uid ? drena(levelUp(p, 5), 50, 0) : p))
-      message = `Entrenamiento intensivo: ${getPlayerBase(target.baseId).name} sube 5 niveles (y acaba reventado).`
+      // CON EL DETALLE de lo que sube: nivel y cada atributo, antes → después.
+      const despues = roster.find((x) => x.uid === uid)!
+      const a = effectiveStats(target)
+      const b = effectiveStats(despues)
+      const LBL: Record<string, string> = { tiro: 'TIR', control: 'CTR', fisico: 'FIS', defensa: 'DEF', velocidad: 'VEL', aguante: 'AGU', portero: 'POR' }
+      const deltas = (Object.keys(LBL) as (keyof typeof a)[])
+        .filter((k) => b[k] > a[k])
+        .map((k) => `${LBL[k as string]} +${b[k] - a[k]}`)
+        .join(' · ')
+      message = `Entrenamiento intensivo: ${getPlayerBase(target.baseId).name} sube a Nv.${despues.level} (+5) y acaba reventado.`
+        + (deltas ? `\n${deltas}` : '')
       play('energia')
     } else if (plan === 'experto') {
       // EXPERTO ELEMENTAL: +1 a todos y +1 extra a los del elemento del
@@ -1597,11 +1618,22 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         const riesgo = mismo ? 0 : desfavorable ? 0.2 : 0.1
         return drena(levelUp(p, mismo ? 2 : 1), rng.int(20, 35), riesgo)
       })
-      message = `Intensivo experto de ${ELEMENT_INFO[element].label}: +1 a todos (+1 extra a los suyos).`
+      // QUIÉN sube QUÉ: los del elemento +2, el resto +1, con nombres.
+      {
+        const nombre = (p: PlayerInstance) => getPlayerBase(p.baseId).name.split(' ')[0]
+        const dobles = roster.filter((p) => !p.injured && getPlayerBase(p.baseId).element === element)
+        const simples = roster.filter((p) => !p.injured && getPlayerBase(p.baseId).element !== element)
+        message = `Intensivo experto de ${ELEMENT_INFO[element].label}:`
+          + (dobles.length ? `\n+2 niveles: ${dobles.map((p) => `${nombre(p)} (Nv.${p.level})`).join(' · ')}` : '')
+          + (simples.length ? `\n+1 nivel: ${simples.map((p) => `${nombre(p)} (Nv.${p.level})`).join(' · ')}` : '')
+      }
       play('energia')
     } else if (plan === 'normal') {
       roster = roster.map((p) => (p.injured ? p : drena(levelUp(p, 1), rng.int(10, 20), 0.05)))
-      message = 'Entrenamiento de equipo: +1 nivel a todos.'
+      message = `Entrenamiento de equipo: +1 nivel a todos.\n${roster
+        .filter((p) => !p.injured)
+        .map((p) => `${getPlayerBase(p.baseId).name.split(' ')[0]} (Nv.${p.level})`)
+        .join(' · ')}`
       play('levelup')
     } else if (plan === 'fisio') {
       const target = roster.find((x) => x.uid === uid)

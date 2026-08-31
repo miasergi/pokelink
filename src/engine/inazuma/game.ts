@@ -2,11 +2,11 @@
 // partida, montar los dos onces de un partido concreto y devolver el desgaste
 // a tu plantilla cuando termina.
 import { RNG } from '@/utils/rng'
-import { formationFor, getPlayerBase, PLAYERS, startingSquad } from '@/data/inazuma/players'
+import { formationFor, getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { type RegionId, getTeam, regionOfTeam, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
-  autoLineup, buildLineup, buildRivalTeam, padLineup, canUpgradeTechnique, createPlayer, effectiveStats,
+  autoLineup, buildLineup, buildRivalTeam, padLineup, canUpgradeTechnique, createPlayer, effectiveStats, rivalBench,
   levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
   rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
@@ -107,8 +107,11 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     pools: opts.pools?.length ? opts.pools : undefined,
     random: opts.random && Object.values(opts.random).some(Boolean) ? opts.random : undefined,
     starterBaseId: starterId,
-    // Nombre y escudo SIEMPRE tuyos: el equipo lo fundas tú.
-    customName: opts.customName?.trim() || 'Nuevo Raimon',
+    // Nombre y escudo SIEMPRE tuyos… y si no escribes nada, el club se llama
+    // como el instituto del ESCUDO elegido (antes salía «Nuevo Raimon» fijo).
+    customName: opts.customName?.trim()
+      || TEAM_BY_ID.get(opts.customCrest ?? teamId)?.name
+      || 'Nuevo Raimon',
     customCrest: opts.customCrest,
     // LA TÁCTICA ESPECIAL canónica de tu club (la del escudo elegido) viene
     // de serie; las demás SE COMPRAN en la tienda — ya no se regalan.
@@ -274,13 +277,10 @@ export function startMatch(
   // El RIVAL también juega con identidad: su filosofía canónica de instituto.
   away.tactics = team.tactic ? [team.tactic] : []
 
-  // El RIVAL también viaja con BANQUILLO (los suplentes de su plantilla real,
-  // 12º-14º): al descanso su banquillo hace hasta 3 cambios, como el tuyo.
-  const xiIds = new Set(rivals.map((r) => r.baseId))
-  away.bench = startingSquad(teamId)
-    .slice(5, 8)
-    .map(getPlayerBase)
-    .filter((b) => !xiIds.has(b.id))
+  // El RIVAL también viaja con BANQUILLO: EXACTAMENTE los tres que enseña la
+  // previa (`rivalBench` es la única fuente) — antes salían del descanso
+  // suplentes que la previa nunca había enseñado.
+  away.bench = rivalBench(teamId)
     .map((b, i) => actorFromRival(rivalFromBase(b, node.level ?? 10, team.power, rivalRarityMap(teamId, bossIdx).get(b.id) ?? rivalRarity(bossIdx)), 100 + i))
 
   return { match: createMatch({ seed: rng.getState(), home, away, decisionMode }, rng), rng, node }

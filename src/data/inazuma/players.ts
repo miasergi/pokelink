@@ -5738,11 +5738,15 @@ const SQUAD_FILL: Record<string, string[]> = {
   // Surf Club): fuera del roster, y estos dos completan la convocatoria.
   oumihara: ['a-woodbridge'],
   'big-waves': ['alain-favreau'],
+  // OJO con las academias Alius: nada de prestar a la MISMA persona en sus
+  // dos épocas (albert-denver y albert-denver-2 son el mismo chaval) ni de
+  // prestarle a un equipo la otra versión de alguien de su propio roster —
+  // se veían «jugadores repetidos». `startingSquad` además lo blinda.
   'gemini-storm': ['albert-denver-2', 'anna-mole', 'ashton-malone'],
   epsilon: ['albert-denver-2', 'ashton-malone', 'ben-blowton-2'],
-  'diamond-dust': ['albert-denver-2', 'ashton-malone', 'ben-blowton-2'],
-  prominence: ['alan-downhill', 'albert-denver', 'albert-denver-2'],
-  genesis: ['alan-downhill', 'albert-denver', 'albert-denver-2'],
+  'diamond-dust': ['ashton-malone', 'ben-blowton-2', 'anna-mole'],
+  prominence: ['alan-downhill', 'albert-denver', 'anna-mole'],
+  genesis: ['alan-downhill', 'albert-denver', 'anna-mole'],
   'the-empire': ['a-woodbridge'],
   hakuren: ['a-woodbridge'],
   'dark-emperors': ['a-woodbridge', 'alain-favreau', 'alan-coe', 'alan-master-2'],
@@ -5779,7 +5783,11 @@ export function startingSquad(teamId: string, formationId?: string): string[] {
   const borrowedKeeper = picked.length && own.some((p) => p.position === 'POR')
     ? []
     : extra.filter((id) => PLAYER_BY_ID.get(id)?.position === 'POR').slice(0, 1)
-  const rest = extra.filter((id) => !borrowedKeeper.includes(id))
+  // BLINDAJE: un préstamo jamás mete a la MISMA PERSONA dos veces en la
+  // convocatoria (albert-denver-2 en el equipo de albert-denver, etc.).
+  const persona = (id: string) => id.replace(/-\d+$/, '')
+  const enCasa = new Set([...borrowedKeeper, ...picked, ...bench].map(persona))
+  const rest = extra.filter((id) => !borrowedKeeper.includes(id) && !enCasa.has(persona(id)))
   const fill = rest.slice(0, Math.max(0, 14 - picked.length - bench.length - borrowedKeeper.length))
   return [...borrowedKeeper, ...picked, ...bench, ...fill]
 }

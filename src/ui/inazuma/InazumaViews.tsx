@@ -22,7 +22,7 @@ import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
   buildLineup, canUpgradeTechnique, effectiveStats, lineupError, ptMax, RARITY_LABEL, rarityOf,
   realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
-  slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
+  rivalBench, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
 import SignatureChain from '@/ui/inazuma/SignatureChain'
 import { SQUAD_SIZE } from '@/engine/inazuma/types'
@@ -34,7 +34,7 @@ import { COMBOS } from '@/data/inazuma/combos'
 import { tacticEffectLines, tacticFitsHint, getTactic, TACTICS, TACTIC_PRICE } from '@/data/inazuma/tactics'
 import { loadMeta } from '@/persistence/db'
 import { shareText } from '@/utils/share'
-import { getPlayerBase, startingSquad, TEAM_NAMES } from '@/data/inazuma/players'
+import { getPlayerBase, TEAM_NAMES } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem, stockFor } from '@/data/inazuma/items'
 import { bossIndexForLayer } from '@/engine/inazuma/tournament'
@@ -483,17 +483,14 @@ export function PreviewView() {
                 })
               }}
             />
-            {/* SU BANQUILLO: los suplentes con los que viaja (y que pueden
-                entrar en su descanso). */}
+            {/* SU BANQUILLO: exactamente los que pueden entrar al descanso
+                (`rivalBench` — la MISMA lista que usa el motor del partido). */}
             <BenchStrip
-              players={startingSquad(matchNode.teamId).slice(11).map((pid) => {
-                const b = getPlayerBase(pid)
-                return {
-                  baseId: b.id, name: b.name, position: b.position, element: b.element,
-                  level: matchNode.level ?? save.layer * 7,
-                  rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
-                }
-              })}
+              players={rivalBench(matchNode.teamId).map((b) => ({
+                baseId: b.id, name: b.name, position: b.position, element: b.element,
+                level: matchNode.level ?? save.layer * 7,
+                rarity: rivalRarityMap(matchNode.teamId!, bossIndexForLayer(matchNode.layer)).get(b.id) ?? 1,
+              }))}
             />
           </>
         )}
@@ -1521,6 +1518,15 @@ export function DraftView() {
             {o.kind === 'fichaje' && (
               <div className="mt-2 flex flex-col gap-1.5">
                 <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
+                {/* El aguante (fuera del grid) y el depósito de PT que trae. */}
+                {(() => {
+                  const agu = scaleStats(getPlayerBase(o.playerId).stats, o.level).aguante
+                  return (
+                    <div className="text-[10px] text-slate-400">
+                      Aguante <b className="text-slate-200">{agu}</b> · PT máx ≈ <b className="text-slate-200">{Math.round(28 + agu * 0.7)}</b>
+                    </div>
+                  )
+                })()}
                 <SigningExtras baseId={o.playerId} save={save} level={o.level} />
                 {/* COMPARAR y FICHAR, cada uno con su botón: la carta ya no
                     ficha al tocarla. */}
@@ -1858,7 +1864,7 @@ export function Toast() {
         style={{ boxShadow: esAviso ? '0 0 30px rgba(244,63,94,.25)' : '0 0 30px rgba(251,191,36,.25)' }}
       >
         <Icon name={esAviso ? 'warning' : 'bolt'} className={`w-8 h-8 mx-auto mb-1.5 ${esAviso ? 'text-rose-400' : 'text-amber-300'}`} />
-        <p className="text-[13px] leading-snug text-slate-100 font-semibold">
+        <p className="text-[13px] leading-snug text-slate-100 font-semibold whitespace-pre-line">
           <CoinText text={message} />
         </p>
         <Button variant="primary" full className="mt-3" onClick={clearMessage}>Entendido</Button>

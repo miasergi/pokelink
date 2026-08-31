@@ -53,7 +53,12 @@ export function ElementChip({ element, className = '' }: { element: Element; cla
 }
 
 /** Barra fina de recurso (PT, aguante). */
-export function Meter({ value, max, color, label }: { value: number; max: number; color: string; label?: string }) {
+export function Meter({ value, max, color, label, detail }: {
+  value: number; max: number; color: string; label?: string
+  /** Apéndice junto al número: el TOPE del depósito o la stat de aguante —
+      «la estadística al lado de su barrita», que pedía el playtest. */
+  detail?: string
+}) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <div className="flex items-center gap-1.5">
@@ -61,7 +66,10 @@ export function Meter({ value, max, color, label }: { value: number; max: number
       <div className="flex-1 h-1.5 rounded-full bg-slate-700/70 overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className="text-[9px] tabular-nums text-slate-400 w-9 text-right shrink-0">{Math.round(value)}</span>
+      <span className="text-[9px] tabular-nums text-slate-400 text-right shrink-0">
+        {Math.round(value)}
+        {detail && <span className="text-slate-500">{detail}</span>}
+      </span>
     </div>
   )
 }
@@ -143,9 +151,9 @@ export function PlayerCard({
             Nv. {player.level}
             {player.item === 'brazalete-capitan' && <span className="ml-1 text-amber-300">· capitán</span>}
           </div>
-          <Meter value={player.pt} max={max} color="#38bdf8" label="PT" />
+          <Meter value={player.pt} max={max} color="#38bdf8" label="PT" detail={`/${max}`} />
           <div className="mt-0.5">
-            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} label="AGU" />
+            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} label="AGU" detail={` · stat ${stats.aguante}`} />
           </div>
         </div>
       </div>
@@ -196,9 +204,11 @@ export function StatGrid({ stats, boosted }: {
   /** Atributo subido por el objeto equipado: se pinta en VERDE. */
   boosted?: keyof Stats
 }) {
+  // SIN el aguante: su sitio es junto a su barrita (ver `Meter detail`), no
+  // entre los atributos de duelo.
   return (
-    <div className="grid grid-cols-7 gap-1">
-      {(Object.keys(STAT_LABEL) as (keyof Stats)[]).map((k) => (
+    <div className="grid grid-cols-6 gap-1">
+      {(Object.keys(STAT_LABEL) as (keyof Stats)[]).filter((k) => k !== 'aguante').map((k) => (
         <div key={k} className={`rounded-md py-0.5 text-center ${k === boosted ? 'bg-emerald-500/15 border border-emerald-500/50' : 'bg-slate-800/70'}`}>
           <div className={`text-[8px] leading-none ${k === boosted ? 'text-emerald-300' : 'text-slate-500'}`}>{STAT_LABEL[k]}</div>
           <div className={`text-[11px] font-bold tabular-nums leading-tight ${k === boosted ? 'text-emerald-300' : ''}`}>{stats[k]}</div>
@@ -262,8 +272,8 @@ export function PlayerRow({
               es la ficha de todas las listas y sin rótulos los números se
               confundían con otra cosa. */}
           <div className="flex-1 flex flex-col gap-0.5">
-            <Meter value={player.pt} max={ptMax(player)} color="#38bdf8" label="PT" />
-            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} label="AGU" />
+            <Meter value={player.pt} max={ptMax(player)} color="#38bdf8" label="PT" detail={`/${ptMax(player)}`} />
+            <Meter value={player.stamina} max={100} color={staminaColor(player.stamina)} label="AGU" detail={` · stat ${effectiveStats(player).aguante}`} />
           </div>
         </div>
       </div>
