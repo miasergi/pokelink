@@ -91,7 +91,35 @@ function chester(e: MatchEvent | undefined, prev?: MatchEvent): { text: string; 
         ]),
       mood: 'drama',
     }
-    case 'penalty': return { text, mood: 'tension' }
+    // La CARRERILLA: pura tensión, sin adelantar nada.
+    case 'penaltyKick': return {
+      text: e.technique
+        ? va([
+          `Penalti ${e.round}: ¡${first(e.shooter)} arma su ${e.technique}!`,
+          `¡${first(e.shooter)} toma carrerilla con ${e.technique}! ${first(e.keeper)} bajo palos…`,
+          `Se hace el silencio: ${first(e.shooter)} y su ${e.technique} contra ${first(e.keeper)}.`,
+        ])
+        : va([
+          `Penalti ${e.round}: lanza ${first(e.shooter)}. ${first(e.keeper)} bajo palos…`,
+          `Se hace el silencio en el estadio: ${first(e.shooter)} toma carrerilla…`,
+        ]),
+      mood: 'tension',
+    }
+    // El VEREDICTO del penalti: ahora sí, a gritarlo.
+    case 'penalty': return {
+      text: e.scored
+        ? va([
+          `¡GOOOOOL! ¡${first(e.shooter)} no falla!`,
+          `¡Dentro! ¡${first(e.shooter)}, infalible desde los once metros!`,
+          `¡La clava en la escuadra ${first(e.shooter)}!`,
+        ])
+        : va([
+          `¡LA SACA ${first(e.keeper).toUpperCase()}! ¡Qué paradón!`,
+          `¡${first(e.keeper)} se hace GIGANTE y la detiene!`,
+          `¡Increíble! ¡${first(e.keeper)} le niega el gol a ${first(e.shooter)}!`,
+        ]),
+      mood: e.scored ? 'euforia' : 'drama',
+    }
     case 'duel': {
       if (e.step === 'definicion' && !e.intercept) {
         // Continuación de un tiro lejano ROZADO: el chut ya se cantó — aquí
@@ -220,14 +248,16 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
           ? e.technique
         : e?.kind === 'save'
           ? (prev?.kind === 'keeperTry' ? undefined : e.technique)
-          : e?.kind === 'penalty'
+          // La imagen de la técnica sale con la CARRERILLA; el veredicto ya
+          // no re-corta (sería la misma imagen, y con spoiler de ritmo).
+          : e?.kind === 'penaltyKick'
             ? e.technique
             : undefined
     // La potencia EFECTIVA que viaja con el evento (mejoras y bonos de combo
     // incluidos): es la que se rotula bajo la imagen.
     const power = e?.kind === 'duel'
       ? (name === e.technique ? e.power : name === e.counter ? e.counterPower : undefined)
-      : e?.kind === 'keeperTry' || e?.kind === 'longshotKick'
+      : e?.kind === 'keeperTry' || e?.kind === 'longshotKick' || e?.kind === 'penaltyKick'
         ? e.power
         : undefined
     if (!name) {

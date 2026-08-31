@@ -245,6 +245,10 @@ export type MatchEvent =
   | { kind: 'injury'; minute: number; side: Side; player: string; playerUid: string; text: string }
   | { kind: 'halftime'; minute: number; score: [number, number] }
   | { kind: 'stage'; minute: number; stage: MatchStage; text: string }
+  /** LA CARRERILLA del penalti: quién lanza y con qué, SIN el desenlace —
+      el veredicto llega en su propio evento, con el mismo compás entre o no
+      (el evento único de antes destripaba el resultado de golpe). */
+  | { kind: 'penaltyKick'; minute: number; side: Side; shooter: string; shooterUid: string; keeper: string; keeperUid: string; technique?: string; power?: number; element?: Element; round: number; text: string }
   | { kind: 'penalty'; minute: number; side: Side; shooter: string; shooterUid: string; keeper: string; keeperUid: string; technique?: string; scored: boolean; text: string; shootout: [number, number] }
   | { kind: 'fulltime'; minute: number; score: [number, number]; result: 'win' | 'draw' | 'loss' }
 

@@ -132,7 +132,11 @@ let revealQueue: MatchEvent[] = []
 function holdFor(e: MatchEvent): number {
   switch (e.kind) {
     case 'goal': return 2500        // la celebración entera (1.9s) + aire
-    case 'penalty': return 4200     // escenario (2.3s) + celebración retardada
+    // La CARRERILLA del penalti: la escena (lanzador contra portero) respira
+    // ANTES de saberse nada — mismo compás entre o no.
+    case 'penaltyKick': return 2400
+    // El VEREDICTO: celebración o paradón, ya sin retardos artificiales.
+    case 'penalty': return 2800
     case 'save': return 2600        // el FX del portero brota en el césped
     case 'duel':
       // TODO disparo retiene lo mismo, entre o no: carga (1.6s) + vuelo
@@ -166,6 +170,7 @@ function holdFor(e: MatchEvent): number {
 function soundFor(e: MatchEvent): void {
   switch (e.kind) {
     case 'goal': play('gol'); break
+    case 'penaltyKick': play(e.technique ? 'supertecnica' : 'kick'); break
     case 'penalty': play(e.scored ? 'gol' : 'parada'); break
     case 'save': play('parada'); break
     case 'injury': play('error'); break
@@ -991,7 +996,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       // El multiplicador de velocidad acelera el trámite, pero los momentos
       // gordos conservan un mínimo: a ×4 el gol y la parada SIGUEN viéndose.
       const factor = speed >= 1000 ? 1.25 : speed >= 400 ? 0.6 : 0.42
-      const important = e.kind === 'goal' || e.kind === 'save' || e.kind === 'penalty'
+      const important = e.kind === 'goal' || e.kind === 'save' || e.kind === 'penalty' || e.kind === 'penaltyKick'
       const hold = Math.max(Math.round(holdFor(e) * factor), important ? 1100 : 320)
       set({ match: { ...match }, feed: [...get().feed, e] })
       ticker = setTimeout(() => get().tick(), hold)

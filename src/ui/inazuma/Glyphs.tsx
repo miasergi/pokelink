@@ -245,7 +245,21 @@ export function KindIcon({ kind, className = 'w-3.5 h-3.5' }: {
   kind: Technique['kind']
   className?: string
 }) {
-  return <Icon name={KIND_ICON[kind]} className={className} title={kind} />
+  // El ICONO OFICIAL de cada clase (los de Victory Road: bola de fuego,
+  // bota, fortaleza y guante) en vez del SVG genérico. Si la imagen no
+  // carga, el SVG de siempre hace de red de seguridad.
+  const [broken, setBroken] = useState(false)
+  if (broken) return <Icon name={KIND_ICON[kind]} className={className} title={kind} />
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL}inazuma/kinds/${kind}.png`}
+      className={`${className} inline-block object-contain`}
+      alt={kind}
+      title={kind}
+      draggable={false}
+      onError={() => setBroken(true)}
+    />
+  )
 }
 
 /**

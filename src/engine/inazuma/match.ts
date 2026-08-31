@@ -1511,13 +1511,41 @@ function resolvePenalty(
     { ...toDuelist(keeper, saveTech, false, undefined), keeper: true },
     rng,
   )
+  const kickNumber = Math.floor(sh.round / 2) + 1
   if (r.success) sh.goals[side === 'home' ? 0 : 1] += 1
   sh.round += 1
   sh.pending = null
   m.chain = null
 
-  const move = shotTech ? `¡${shotTech.name.toUpperCase()}! ` : ''
-  const stop = saveTech ? ` ¡${saveTech.name.toUpperCase()}!` : ''
+  // EN TRES TIEMPOS, como los disparos del partido: la carrerilla (sin
+  // desenlace), el momento del portero si saca técnica, y el veredicto. El
+  // evento único de antes lo contaba todo de golpe — puro spoiler.
+  out.push({
+    kind: 'penaltyKick',
+    minute: m.minute,
+    side,
+    shooter: shooter.name,
+    shooterUid: shooter.uid,
+    keeper: keeper.name,
+    keeperUid: keeper.uid,
+    technique: shotTech?.name,
+    power: shotTech?.power,
+    element: shotTech?.element ?? shooter.element,
+    round: kickNumber,
+    text: `Penalti ${kickNumber}: ${shooter.name} coloca el balón…${shotTech ? ` ¡${shotTech.name.toUpperCase()}!` : ''}`,
+  })
+  if (saveTech) {
+    out.push({
+      kind: 'keeperTry',
+      minute: m.minute,
+      side: otherSide(side),
+      keeper: keeper.name,
+      keeperUid: keeper.uid,
+      technique: saveTech.name,
+      power: saveTech.power,
+      text: `¡${keeper.name} saca su ${saveTech.name}!`,
+    })
+  }
   out.push({
     kind: 'penalty',
     minute: m.minute,
@@ -1530,8 +1558,8 @@ function resolvePenalty(
     scored: r.success,
     shootout: [sh.goals[0], sh.goals[1]],
     text: r.success
-      ? `${move}${shooter.name} la manda dentro.`
-      : `${shooter.name} tira…${stop} ¡${keeper.name} la saca!`,
+      ? `¡GOOOL! ${shooter.name} no falla.`
+      : `¡¡${keeper.name.toUpperCase()} LA SACA!!`,
   })
 
   if (shootoutDecided(sh)) finish(m, out)

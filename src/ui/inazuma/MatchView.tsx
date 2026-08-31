@@ -18,6 +18,7 @@ import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
 import HalftimePanel from '@/ui/inazuma/HalftimePanel'
 import { InjuryBanner } from '@/ui/inazuma/InjuryOverlay'
+import { PenaltyScene, ShootoutBoard, type PenaltyFx } from '@/ui/inazuma/ShootoutScene'
 import { Crest, KindIcon, rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
 import { teamDisplay } from '@/data/inazuma/teams'
 import { getTactic } from '@/data/inazuma/tactics'
@@ -48,6 +49,9 @@ export default function MatchView() {
   const [tacticFx, setTacticFx] = useState<{ key: number; id: string; name: string; mine: boolean } | null>(null)
   // ¡LESIÓN!: overlay grande con el retrato y la cruz — se retira solo.
   const [injuryFx, setInjuryFx] = useState<{ key: number; name: string; baseId?: string } | null>(null)
+  // PENALTI en carrerilla: la escena de lanzador contra portero (sin
+  // desenlace); la retira el evento del veredicto.
+  const [penaltyFx, setPenaltyFx] = useState<PenaltyFx | null>(null)
   useEffect(() => {
     if (!injuryFx) return
     const t = setTimeout(() => setInjuryFx(null), 2000)
@@ -110,30 +114,33 @@ export default function MatchView() {
       // el momento (con el vuelo aún vivo, el rondo no arranca y el campo no
       // se mueve). Lo recoge el veredicto: la parada al segundo, el gol al
       // instante bajo su celebración.
-    } else if (last.kind === 'penalty') {
-      // El penalti es un duelo en sí mismo: escenario, y si entra, celebración.
-      setStage({
+    } else if (last.kind === 'penaltyKick') {
+      // LA CARRERILLA: escena de lanzador contra portero, SIN desenlace (la
+      // cinemática vieja lo enseñaba todo de golpe — puro spoiler). El
+      // veredicto llega en su propio evento y la retira.
+      setPenaltyFx({
         key: feed.length,
-        attacker: { name: last.shooter, baseId: actorByUid(match, last.shooterUid)?.baseId, rarity: actorByUid(match, last.shooterUid)?.rarity, techName: last.technique },
-        defender: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId, rarity: actorByUid(match, last.keeperUid)?.rarity },
-        attackerWins: last.scored,
-        attackerMine: last.side === mine,
-        attackerCrest: crestOf(last.side === mine),
-        defenderCrest: crestOf(last.side !== mine),
-        shootoutScore: last.shootout,
-        kind: 'penalti',
+        round: last.round,
+        mine: last.side === mine,
+        shooter: { name: last.shooter, baseId: actorByUid(match, last.shooterUid)?.baseId },
+        keeper: { name: last.keeper, baseId: actorByUid(match, last.keeperUid)?.baseId },
+        tech: last.technique,
+        power: last.power,
       })
+    } else if (last.kind === 'penalty') {
+      // EL VEREDICTO: fuera la escena, y al momento la celebración (gol) o el
+      // rótulo del paradón. Sin retardos artificiales: este evento ES la
+      // revelación.
+      setPenaltyFx(null)
+      const isMine = last.side === mine
       if (last.scored) {
-        // La celebración espera a que el escenario cuente el lanzamiento: si
-        // saltara a la vez, el gol se sabría antes de ver el penalti. El timer
-        // NO se limpia en el cleanup: con el guard de arriba ya no hay
-        // re-ejecuciones que lo dupliquen, y limpiarlo lo mataba antes de
-        // disparar (el gol de penalti no salía nunca).
-        const isMine = last.side === mine
-        setTimeout(
-          () => setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) }),
-          1900,
-        )
+        setGol({ scorer: last.shooter, mine: isMine, key: feed.length, teamId: crestOf(isMine) })
+      } else {
+        setFlash({
+          key: feed.length,
+          text: `¡PARADA DE ${last.keeper.split(' ')[0].toUpperCase()}!`,
+          color: isMine ? '#f87171' : '#34d399',
+        })
       }
     } else if (last.kind === 'injury') {
       // ¡LESIÓN! Overlay grande con retrato y cruz (el flash pasaba
@@ -311,6 +318,17 @@ export default function MatchView() {
         frozen={frozen}
         clock={clock}
       />
+      {/* EL MARCADOR DE LA TANDA: un punto por lanzamiento (verde/rojo/hueco),
+          construido solo con lo ya contado — se entiende de un vistazo por
+          dónde va la tanda y a quién le toca. */}
+      {match.stage === 'penaltis' && !finished && (
+        <ShootoutBoard
+          feed={shownFeed}
+          match={match}
+          myName={sideOf(match, playerSide(match)).name}
+          theirName={sideOf(match, otherSide(playerSide(match))).name}
+        />
+      )}
       {/* EL PARTIDO EN VIVO: el césped completo con los 22 y el balón es el
           cuerpo de la pantalla. Lee el feed YA CONTADO (sin la línea en
           animación): leer el motor en vivo destriparía la siguiente jugada. */}
@@ -411,6 +429,9 @@ export default function MatchView() {
           pasaba tan deprisa como un regate cualquiera. */}
       {/* ¡LESIÓN!: el retrato con su cruz, en grande — se retira solo. */}
       {injuryFx && <InjuryBanner key={injuryFx.key} name={injuryFx.name} baseId={injuryFx.baseId} />}
+
+      {/* PENALTI: la carrerilla, cara a cara y sin desenlace. */}
+      {penaltyFx && <PenaltyScene fx={penaltyFx} />}
 
       {gol && (
         <GoalOverlay
