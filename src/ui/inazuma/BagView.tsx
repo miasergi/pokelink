@@ -247,7 +247,7 @@ export default function BagView() {
                             y la tira quedaba llena de botones vacíos («no se
                             ven los escudos»). Sin escudo, la inicial. */}
                         <ImgFallback
-                          src={`${import.meta.env.BASE_URL}inazuma/crests/${t.id}.png`}
+                          src={`${import.meta.env.BASE_URL}inazuma/teams/${t.id}.png`}
                           className="w-6 h-6 object-contain"
                           alt={t.name}
                           fallback={<span className="text-[11px] font-black" style={{ color: t.color }}>{t.name.replace(/^Instituto /, '')[0]}</span>}

@@ -673,24 +673,32 @@ export function TeamSelectView() {
           <p className="text-[9px] text-slate-500 mt-0.5">
             El escudo DEFINE tu club: el ojeador siempre te ofrecerá a un canon de este equipo.
           </p>
-          <div className="mt-1 grid grid-cols-8 gap-1.5">
+          {/* CON NOMBRE bajo cada escudo: 60 escudos sin rótulo eran un
+              «adivina el emblema». Y el elegido, cantado en grande debajo. */}
+          <div className="mt-1 grid grid-cols-6 gap-1.5">
             {TEAMS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setCustomCrest(t.id)}
-                className={`aspect-square grid place-items-center rounded-lg border transition active:scale-95 ${
+                className={`flex flex-col items-center gap-0.5 rounded-lg border px-0.5 py-1 transition active:scale-95 ${
                   (customCrest ?? 'raimon') === t.id ? 'border-amber-400 bg-amber-500/15' : 'border-slate-700/60 bg-slate-800/50'
                 }`}
                 title={t.name}
               >
                 <ImgFallback
                   src={`${import.meta.env.BASE_URL}inazuma/teams/${t.id}.png`}
-                  className="w-6 h-6 object-contain"
-                  fallback={<span className="text-[9px] font-extrabold" style={{ color: t.color }}>{t.name[0]}</span>}
+                  className="w-7 h-7 object-contain"
+                  fallback={<span className="text-[10px] font-extrabold" style={{ color: t.color }}>{t.name[0]}</span>}
                 />
+                <span className="w-full truncate text-center text-[7px] leading-tight text-slate-400">
+                  {t.name.replace(/^Instituto /, '')}
+                </span>
               </button>
             ))}
           </div>
+          <p className="mt-1.5 text-center text-[11px] font-bold text-amber-200">
+            {TEAM_BY_ID.get(customCrest ?? 'raimon')?.name}
+          </p>
         </div>
 
         <Button variant="primary" full onClick={begin}>
