@@ -1088,7 +1088,11 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
 }) {
   const info = ELEMENT_INFO[actor.element]
   const active = carrier || marker
-  const ring = actor.rarity === 4 ? 'transparent' : actor.rarity ? rarityBorder(actor.rarity) : '#334155'
+  // El LEGENDARIO también lleva borde sólido (su color de rareza) con el
+  // anillo multicolor animado ENCIMA: con borde transparente su círculo
+  // quedaba descolocado respecto a los demás («abarca menos») — la geometría
+  // debe ser idéntica para las cuatro rarezas.
+  const ring = actor.rarity ? rarityBorder(actor.rarity) : '#334155'
   // Anillo de recursos: PT a la derecha (0→180°), aguante a la izquierda
   // (180→360°). `conic-gradient` desde arriba, en el sentido del reloj.
   const ptDeg = Math.max(0, Math.min(1, actor.pt / Math.max(1, actor.ptMax))) * 180

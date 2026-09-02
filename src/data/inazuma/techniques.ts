@@ -419,6 +419,9 @@ export const TECHNIQUES: Technique[] = [
   { id: 'akaki-mega-hawk', name: "Plumas de Fuego Fénix", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'go', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
   { id: 'majin-victory', name: "Genio de la Victoria Majin", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'vr', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
   { id: 'masou-kensei-clara-bunny', name: "Lanza Sagrada Clearbunny", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'vr', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
+  // Sin 'era': son de la cadena de Neree Swaggy (agente libre, y los libres
+  // son de todas las épocas — con era:'vr' el test de generaciones la vetaba).
+  { id: 'cupids-arrow', name: "Flecha de Cupido", kind: 'tiro', element: 'fuego', power: 52, cost: 22, desc: "Una flecha de amor directa a la escuadra: el portero se queda embobado." },
   { id: 'gryphon', name: "Señor de Aves y Bestias Grifo", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'go', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
   { id: 'kensei-lancelot', name: "Espadachín Heroico Lancelot", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'go', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
   { id: 'taiyou-shin-apollo', name: "Dios del Sol Apolo", kind: 'tiro', element: 'fuego', power: 50, cost: 21, era: 'go', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
@@ -571,6 +574,7 @@ export const TECHNIQUES: Technique[] = [
   { id: 'falco-wing', name: "Garra de Trueno", kind: 'tiro', element: 'aire', power: 86, cost: 36, era: 'go', desc: "El aire se corta por donde pasa el balón." },
   { id: 'luminous-impact', name: "Luminous Orb", kind: 'tiro', element: 'aire', power: 86, cost: 36, era: 'vr', desc: "El aire se corta por donde pasa el balón." },
   { id: 'ballista-shot', name: "Lluvia de Balista", kind: 'tiro', element: 'montana', power: 86, cost: 36, era: 'go', desc: "Pega como una roca cayendo desde arriba." },
+  { id: 'loyal-heart-shot', name: "Tiro del Corazón Real", kind: 'tiro', element: 'fuego', power: 95, cost: 40, desc: "Todo el cariño del mundo concentrado en un disparo envuelto en corazones." },
   { id: 'lost-angel', name: "Estocada de Lancelot", kind: 'tiro', element: 'fuego', power: 95, cost: 40, era: 'go', desc: "El balón sale ardiendo y el portero lo nota en los guantes." },
   { id: 'koutei-penguin-2gou', name: "Pingüino Emperador Nº 2", kind: 'tiro', element: 'bosque', power: 95, cost: 40, desc: "La naturaleza empuja el disparo hacia la red." },
   { id: 'harmonics', name: "Armonía Atómica", kind: 'tiro', element: 'bosque', power: 95, cost: 40, era: 'go', desc: "La naturaleza empuja el disparo hacia la red." },

@@ -5628,6 +5628,15 @@ const RAW_PLAYERS: RawPlayer[] = [
     techniques: ['lightning-accel', 'atomic-flare'],
     signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],
   },
+  {
+    // ORIGINAL como Scor Nelles: la defensa enamoradiza del Resto del mundo.
+    // Su cadena es 100% dulzura: ángeles, flechas de amor y un corazonazo de
+    // remate (las cuatro con vídeo real de Victory Road).
+    id: 'neree-swaggy', name: 'Neree Swaggy', team: 'libre', position: 'DEF', element: 'montana', fame: 5, // original
+    stats: { tiro: 42, control: 60, fisico: 88, defensa: 102, velocidad: 47, aguante: 55 },
+    techniques: ['snow-angel', 'cupids-arrow'],
+    signature: ['snow-angel', 'cupids-arrow', 'angel-ball', 'loyal-heart-shot'],
+  },
   // ============================== CALLEJEROS (scouts de los juegos)
   {
     id: 'dan-nettles', name: 'Dan Nettles', team: 'callejeros', position: 'POR', element: 'bosque', fame: 1,
