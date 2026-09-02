@@ -9,12 +9,14 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow, portraitUrl, ElementChip } from '@/ui/inazuma/PlayerCard'
 import { CoinPrice, ItemIcon, rarityBorder } from '@/ui/inazuma/Glyphs'
-import { MAX_RARITY, RARITY_LABEL, rarityOf, transferValue } from '@/engine/inazuma/roster'
+import { MAX_RARITY, RARITY_LABEL, rarityOf, rarityStats, scaleStats, transferValue } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
+import CompareSheet, { type CompareBlock } from '@/ui/inazuma/CompareSheet'
 
 export default function SigningOverflowSheet() {
   const { save, pendingSigning, resolveSigningSell, resolveSigningSwap } = useInazuma()
   const [pick, setPick] = useState<string | null>(null)
+  const [compare, setCompare] = useState<CompareBlock | null>(null)
   if (!save || !pendingSigning) return null
 
   const base = getPlayerBase(pendingSigning.baseId)
@@ -51,6 +53,26 @@ export default function SigningOverflowSheet() {
             </div>
           </div>
         </div>
+
+        {/* COMPARAR con los tuyos ANTES de decidir a quién vender. */}
+        <Button
+          variant="secondary"
+          full
+          className="mt-2"
+          onClick={() => setCompare({
+            name: base.name,
+            baseId: base.id,
+            position: base.position,
+            element: base.element,
+            level: pendingSigning.level,
+            rarity: tier,
+            stats: scaleStats(rarityStats(base.id, base.position, tier), pendingSigning.level),
+          })}
+        >
+          <span className="inline-flex items-center justify-center gap-1.5 text-[13px]">
+            <Icon name="scales" className="w-4 h-4" /> Comparar con los míos
+          </span>
+        </Button>
 
         {/* Opción A: venderlo a ÉL. */}
         <Button variant="secondary" full className="mt-2" onClick={resolveSigningSell}>
@@ -93,6 +115,7 @@ export default function SigningOverflowSheet() {
           </Button>
         )}
       </div>
+      {compare && <CompareSheet a={compare} onClose={() => setCompare(null)} />}
     </div>,
     document.body,
   )

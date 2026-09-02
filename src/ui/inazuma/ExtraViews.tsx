@@ -12,7 +12,7 @@ import { TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId
 import { STARTERS_BY_SAGA } from '@/data/inazuma/starters'
 import { uniqueByName } from '@/engine/inazuma/rewards'
 import { loadMeta } from '@/persistence/db'
-import type { InazumaSave, PlayerStats } from '@/engine/inazuma/types'
+import type { Element as InazumaElement, InazumaSave, PlayerStats, RandomFlags } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
 // Estadísticas de la partida
@@ -30,9 +30,15 @@ export function StatsBoard({ save }: { save: InazumaSave }) {
   // supertécnicas que usó (con cuántas veces salieron bien).
   const [open, setOpen] = useState<string | null>(null)
 
-  const rows = save.roster
-    .map((p) => ({ p, s: save.playerStats[p.uid] ?? EMPTY }))
-    .sort((a, b) => b.s.goals - a.s.goals || b.s.duelsWon - a.s.duelsWon)
+  // TODOS los que vistieron la camiseta: la plantilla actual Y los ya
+  // TRASPASADOS (sus stats guardan el baseId precisamente para esto).
+  const enPlantilla = new Set(save.roster.map((p) => p.uid))
+  const rows = [
+    ...save.roster.map((p) => ({ uid: p.uid, baseId: p.baseId, vendido: false, s: save.playerStats[p.uid] ?? EMPTY })),
+    ...Object.entries(save.playerStats)
+      .filter(([uid, s]) => !enPlantilla.has(uid) && s.baseId)
+      .map(([uid, s]) => ({ uid, baseId: s.baseId!, vendido: true, s })),
+  ].sort((a, b) => b.s.goals - a.s.goals || b.s.duelsWon - a.s.duelsWon)
   const pichichi = rows.filter((r) => r.s.goals > 0)[0]
   const totalGoals = rows.reduce((a, r) => a + r.s.goals, 0)
 
@@ -44,13 +50,13 @@ export function StatsBoard({ save }: { save: InazumaSave }) {
             <div className="flex items-center gap-3 mt-1">
               <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-500/40 bg-slate-800 grid place-items-center shrink-0">
                 <ImgFallback
-                  src={portraitUrl(pichichi.p.baseId)}
+                  src={portraitUrl(pichichi.baseId)}
                   className="w-full h-full object-cover object-top"
                   fallback={<Icon name="crest" className="w-6 h-6 text-slate-400" />}
                 />
               </div>
               <div className="min-w-0">
-                <div className="font-extrabold">{getPlayerBase(pichichi.p.baseId).name}</div>
+                <div className="font-extrabold">{getPlayerBase(pichichi.baseId).name}</div>
                 <div className="text-[11px] text-slate-400">
                   {pichichi.s.goals} {pichichi.s.goals === 1 ? 'gol' : 'goles'} de los {totalGoals} del equipo
                 </div>
@@ -69,20 +75,21 @@ export function StatsBoard({ save }: { save: InazumaSave }) {
             <span>Jugador</span><span className="w-8 text-right">Gol</span>
             <span className="w-8 text-right">Par</span><span className="w-12 text-right">Duelos</span>
           </div>
-          {rows.map(({ p, s }) => {
-            const base = getPlayerBase(p.baseId)
+          {rows.map(({ uid, baseId, vendido, s }) => {
+            const base = getPlayerBase(baseId)
             const total = s.duelsWon + s.duelsLost
-            const expanded = open === p.uid
+            const expanded = open === uid
             const techs = Object.entries(s.techs ?? {}).sort((a, b) => b[1] - a[1])
             return (
-              <div key={p.uid} className="border-t border-slate-800">
+              <div key={uid} className={`border-t border-slate-800 ${vendido ? 'opacity-70' : ''}`}>
                 <button
-                  onClick={() => setOpen(expanded ? null : p.uid)}
+                  onClick={() => setOpen(expanded ? null : uid)}
                   className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 py-1.5 items-center text-left active:bg-slate-800/40"
                 >
                   <span className="text-[12px] font-bold truncate">
                     {base.name}
                     <span className="text-[9px] text-slate-500 ml-1">{base.position}</span>
+                    {vendido && <span className="text-[8px] uppercase tracking-wide text-rose-300/80 ml-1">traspasado</span>}
                   </span>
                   <span className="w-8 text-right text-[12px] tabular-nums font-bold text-emerald-300">{s.goals || '·'}</span>
                   <span className="w-8 text-right text-[12px] tabular-nums text-sky-300">{s.saves || '·'}</span>
@@ -94,9 +101,12 @@ export function StatsBoard({ save }: { save: InazumaSave }) {
                   <div className="px-2 pb-2 text-[11px] text-slate-300 bg-slate-900/40">
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-400">
                       <span><b className="text-slate-200">{s.matches}</b> partidos</span>
+                      <span><b className="text-slate-200">{s.minutes ?? 0}</b> min</span>
                       <span>duelos <b className="text-emerald-300">{s.duelsWon}</b>–<b className="text-rose-300">{s.duelsLost}</b></span>
                       <span><b className="text-emerald-300">{s.goals}</b> goles</span>
+                      <span><b className="text-amber-300">{s.assists ?? 0}</b> asist.</span>
                       <span><b className="text-sky-300">{s.saves}</b> paradas</span>
+                      <span><b className="text-rose-300">{s.injuries ?? 0}</b> lesiones</span>
                     </div>
                     {techs.length > 0 ? (
                       <div className="mt-1 flex flex-wrap gap-1">
@@ -355,7 +365,7 @@ export function TeamSelectView() {
     if (!poolsTouched.current) setPools([saga as RegionId])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saga])
-  const [random, setRandom] = useState<{ plantillas?: boolean; cuadro?: boolean; inicial?: boolean }>({})
+  const [random, setRandom] = useState<RandomFlags>({})
   // TU CLUB: lo fundas tú — nombre libre y CUALQUIER escudo.
   const [customName, setCustomName] = useState('')
   const [customCrest, setCustomCrest] = useState<string | null>(null)
@@ -378,7 +388,9 @@ export function TeamSelectView() {
       difficulty,
       saga,
       starterId,
-      customName: customName.trim() || 'Nuevo Raimon',
+      // Sin nombre escrito NO se manda nada: `createSave` bautiza al club con
+      // el nombre del instituto del escudo (aquí se colaba «Nuevo Raimon»).
+      customName: customName.trim() || undefined,
       customCrest: customCrest ?? 'raimon',
       pools,
       random,
@@ -495,6 +507,38 @@ export function TeamSelectView() {
               </button>
             ))}
           </div>
+          {/* MONOTIPO (como en Pokémon): con los jugadores al azar, todo lo
+              que entre en tu club puede limitarse a UN elemento. */}
+          {random.inicial && (
+            <div className="mt-2 rounded-xl border border-slate-700 bg-slate-900/40 p-2">
+              <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Reto monotipo</div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setRandom({ ...random, monotipo: undefined })}
+                  className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition active:scale-95 ${
+                    !random.monotipo ? 'border-fuchsia-500/70 bg-fuchsia-500/15 text-fuchsia-200' : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                  }`}
+                >
+                  Libre
+                </button>
+                {(['fuego', 'bosque', 'aire', 'montana'] as InazumaElement[]).map((el) => (
+                  <button
+                    key={el}
+                    onClick={() => setRandom({ ...random, monotipo: random.monotipo === el ? undefined : el })}
+                    title={ELEMENT_INFO[el].label}
+                    className={`grid place-items-center w-9 h-9 rounded-lg border transition active:scale-95 ${
+                      random.monotipo === el ? 'border-fuchsia-500/70 bg-fuchsia-500/15' : 'border-slate-700 bg-slate-800/60 opacity-75'
+                    }`}
+                  >
+                    <Icon name={ELEMENT_ICON[el]} className="w-5 h-5" style={{ color: ELEMENT_INFO[el].color }} />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-slate-500 mt-1 leading-snug">
+                Inicial, ojeador, regalos e intercambios: SOLO jugadores de ese elemento. Los rivales no cambian.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Modalidades: dificultad y plantilla del bombo. */}
@@ -622,7 +666,7 @@ export function TeamSelectView() {
           <input
             value={customName}
             onChange={(e) => setCustomName(e.target.value.slice(0, 24))}
-            placeholder="Nuevo Raimon (ponle nombre)"
+            placeholder="Nombre del club (vacío = el del escudo)"
             className="w-full rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-[13px] font-bold placeholder:text-slate-600 outline-none focus:border-amber-500/60"
           />
           <div className="mt-2 text-[10px] uppercase tracking-widest text-slate-500">Tu equipo (escudo)</div>

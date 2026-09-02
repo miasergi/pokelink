@@ -220,7 +220,7 @@ export type MatchEvent =
   }
   | { kind: 'duel'; minute: number; side: Side; step: ChainStep; attacker: string; attackerUid: string; defender: string; defenderUid: string; technique?: string; counter?: string; /** Potencia EFECTIVA (mejoras y combos incluidos), para pintarla al usarse. */ power?: number; counterPower?: number; element?: Element; effectiveness: number; success: boolean; /** Probabilidad REAL que tenía el atacante (transparencia de la mecánica). */ chance?: number; /** El disparo salió de LEJOS: el césped lo pinta desde su sitio. */ longShot?: boolean; /** Es el CRUCE de un defensa en la trayectoria, no el disparo final. */ intercept?: boolean; text: string }
   | {
-    kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number]
+    kind: 'goal'; minute: number; side: Side; scorer: string; scorerUid: string; technique?: string; score: [number, number]; /** El del último pase, si el gol fue asistido. */ assist?: string; assistUid?: string
     /** La técnica que el portero INTENTÓ y no bastó (para la frase de
         Chester; el momento en sí lo cuenta el evento `keeperTry` previo). */
     keeper?: string; keeperUid?: string; keeperTech?: string
@@ -302,6 +302,14 @@ export interface PlayerStats {
   duelsLost: number
   matches: number  /** Veces que usó cada supertécnica (por NOMBRE), ganando el duelo. */
   techs?: Record<string, number>
+  /** Asistencias: el último pase antes de un gol de OTRO. */
+  assists?: number
+  /** Minutos jugados (90 el que completa; 45 el cambiado o el que entra). */
+  minutes?: number
+  /** Lesiones sufridas EN PARTIDO. */
+  injuries?: number
+  /** Identidad, para que las stats de un TRASPASADO sigan teniendo cara. */
+  baseId?: string
 }
 
 /** Jugador rival: instancia ligera, sin progresión ni uid persistente. */
@@ -437,6 +445,8 @@ export interface MatchState {
   subsLeft: number
   /** Sustituidos: YA no pueden volver a entrar (regla de fútbol de verdad). */
   subbedOut?: string[]
+  /** Los que ENTRARON de cambio (para contar minutos: 45 cada uno). */
+  enteredSubs?: string[]
   /**
    * Todos los que han pisado el campo (once inicial + cambios): son los que
    * cobran los niveles COMPLETOS del partido, salgan o no en el once final.
@@ -457,6 +467,8 @@ export interface ChainState {
   step: ChainStep
   /** uid del que lleva el balón. */
   carrier: string
+  /** uid del último PASADOR de la jugada (candidato a asistencia). */
+  assistFrom?: string
   /**
    * uid del defensor de ESTE eslabón. Se fija al entrar en el eslabón y no se
    * vuelve a sortear: si se re-sorteara al confirmar la decisión, las
@@ -627,6 +639,10 @@ export interface RandomFlags {
   /** TU inicial se sortea del pool, y el ojeador trae solo 3 al azar (ni
    * canon del club ni Fichaje personalizado): caos también en tu lado. */
   inicial?: boolean
+  /** MONOTIPO (como en el modo Pokémon): TODO lo que entra en tu plantilla
+   * (inicial, ojeador, regalos, intercambios, fichaje estrella) es de este
+   * elemento. Solo tiene sentido con `inicial` activo. */
+  monotipo?: Element
 }
 
 export interface InazumaSave {

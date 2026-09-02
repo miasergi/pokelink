@@ -15,7 +15,7 @@ import { currentUser, saveCloudMeta } from '@/persistence/supabase'
 import { checkInazumaAchievements } from '@/engine/inazuma/achievements'
 import { getItem, lootPool } from '@/data/inazuma/items'
 import { getEvent } from '@/data/inazuma/events'
-import { getPlayerBase, playersOfTeam } from '@/data/inazuma/players'
+import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import {
   advanceLayer, applyConsumable, applyConsumableToActor, applyEventEffect, applyMatchResult, matchMedals,
@@ -31,7 +31,7 @@ import { teamDisplay, TEAM_BY_ID } from '@/data/inazuma/teams'
 import { ELEMENT_INFO, elementMultiplier } from '@/engine/inazuma/elements'
 import {
   autoLineup, canUpgradeTechnique, createPlayer, effectiveStats, levelUp, lineupError, ptMax,
-  MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalRarityMap, slotRole, transferValue, upgradeTechnique,
+  MAX_RARITY, padLineup, RARITY_LABEL, rarityOf, rivalBench, rivalRarityMap, rivalStartingXI, slotRole, transferValue, upgradeTechnique,
 } from '@/engine/inazuma/roster'
 import { availableNextNodes, bossIndexForLayer, layerName } from '@/engine/inazuma/tournament'
 import { getFormation } from '@/data/inazuma/formations'
@@ -330,6 +330,9 @@ interface InazumaState {
   uiBusy: boolean
   setUiBusy: (v: boolean) => void
   message: string | null
+  /** FILAS con retrato para el modal de aviso: quién sube qué (nombre +
+   * detalle tipo «+2 → Nv.12» o «TIR +6 · CTR +3»). */
+  messageDetail: { baseId: string; name: string; sub: string }[] | null
 
   initInazuma: () => Promise<void>
   exitInazuma: () => void
@@ -508,6 +511,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   pendingSigning: null,
   uiBusy: false,
   message: null,
+  messageDetail: null,
   itemFx: null,
   halftimeBreak: false,
   halftimeSubsSummary: null,
@@ -622,7 +626,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     set({ phase })
   },
 
-  clearMessage: () => set({ message: null }),
+  clearMessage: () => set({ message: null, messageDetail: null }),
 
   // -------------------------------------------------------------- mapa ----
   chooseNode: (nodeId) => {
@@ -1094,7 +1098,13 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     let pendingSigning: InazumaState['pendingSigning'] = null
     if (result === 'win' && matchNode.teamId && (matchNode.kind === 'jefe' || matchNode.kind === 'final')) {
       const ownedNames = new Set(next.roster.map((p) => getPlayerBase(p.baseId).name))
-      const beatenPool = playersOfTeam(matchNode.teamId).filter((b) => !ownedNames.has(b.name))
+      // SOLO de los 8 que has visto jugar (el cinco titular y su banquillo):
+      // antes tocaba cualquiera de la convocatoria de 14 y a veces llegaba
+      // «uno que no había salido en todo el partido».
+      const beatenPool = [...rivalStartingXI(matchNode.teamId), ...rivalBench(matchNode.teamId)]
+        .filter((b) => !ownedNames.has(b.name))
+        // MONOTIPO: si nadie del equipo caído encaja, no hay regalo.
+        .filter((b) => !next.random?.monotipo || b.element === next.random.monotipo)
       const pick = beatenPool.length ? beatenPool[getRng(next).int(0, beatenPool.length - 1)] : null
       if (pick) {
         const rarity = rivalRarityMap(matchNode.teamId, bossIndexForLayer(matchNode.layer)).get(pick.id) ?? 1
@@ -1163,20 +1173,18 @@ export const useInazuma = create<InazumaState>((set, get) => ({
       matchNode: null,
       revealPlayer: reveal,
       pendingSigning,
-      // CON NOMBRES Y NIVELES: «Niveles +2/+1» no decía quién subía a qué.
+      // CON RETRATOS, NOMBRES Y NIVELES: «Niveles +2/+1» no decía quién
+      // subía a qué (las filas las pinta el modal de aviso).
       message: `${matchMedals(bossIndexForLayer(matchNode.layer))} Medallas de talento`
-        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg + momentoMsg
-        + (() => {
-          const subidas = next.roster
-            .map((p) => {
-              const antes = save.roster.find((x) => x.uid === p.uid)
-              return antes && p.level > antes.level
-                ? `${getPlayerBase(p.baseId).name.split(' ')[0]} +${p.level - antes.level} (Nv.${p.level})`
-                : null
-            })
-            .filter((x): x is string => !!x)
-          return subidas.length ? `\nSuben: ${subidas.join(' · ')}` : ''
-        })(),
+        + (prize ? ` · ${prize.name}` : '') + recruitMsg + tacticMsg + momentoMsg,
+      messageDetail: next.roster
+        .map((p) => {
+          const antes = save.roster.find((x) => x.uid === p.uid)
+          return antes && p.level > antes.level
+            ? { baseId: p.baseId, name: getPlayerBase(p.baseId).name, sub: `+${p.level - antes.level} → Nv.${p.level}` }
+            : null
+        })
+        .filter((x): x is { baseId: string; name: string; sub: string } => !!x),
     })
     void persist(next, 'map')
   },
@@ -1589,6 +1597,11 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // versión tiraba el resultado y el intensivo «cansaba pero no subía».
     let roster = save.roster.map((p) => ({ ...p }))
     let message: string
+    // Las FILAS del modal: retrato + nombre + qué ha subido exactamente.
+    let detail: { baseId: string; name: string; sub: string }[] | null = null
+    const fila = (p: PlayerInstance, sub: string) => ({
+      baseId: p.baseId, name: getPlayerBase(p.baseId).name, sub,
+    })
     if (plan === 'uno') {
       const target = roster.find((x) => x.uid === uid)
       if (!target || target.injured) return
@@ -1602,8 +1615,8 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         .filter((k) => b[k] > a[k])
         .map((k) => `${LBL[k as string]} +${b[k] - a[k]}`)
         .join(' · ')
-      message = `Entrenamiento intensivo: ${getPlayerBase(target.baseId).name} sube a Nv.${despues.level} (+5) y acaba reventado.`
-        + (deltas ? `\n${deltas}` : '')
+      message = 'Entrenamiento intensivo (y acaba reventado):'
+      detail = [fila(despues, `+5 → Nv.${despues.level}${deltas ? ` · ${deltas}` : ''}`)]
       play('energia')
     } else if (plan === 'experto') {
       // EXPERTO ELEMENTAL: +1 a todos y +1 extra a los del elemento del
@@ -1618,22 +1631,16 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         const riesgo = mismo ? 0 : desfavorable ? 0.2 : 0.1
         return drena(levelUp(p, mismo ? 2 : 1), rng.int(20, 35), riesgo)
       })
-      // QUIÉN sube QUÉ: los del elemento +2, el resto +1, con nombres.
-      {
-        const nombre = (p: PlayerInstance) => getPlayerBase(p.baseId).name.split(' ')[0]
-        const dobles = roster.filter((p) => !p.injured && getPlayerBase(p.baseId).element === element)
-        const simples = roster.filter((p) => !p.injured && getPlayerBase(p.baseId).element !== element)
-        message = `Intensivo experto de ${ELEMENT_INFO[element].label}:`
-          + (dobles.length ? `\n+2 niveles: ${dobles.map((p) => `${nombre(p)} (Nv.${p.level})`).join(' · ')}` : '')
-          + (simples.length ? `\n+1 nivel: ${simples.map((p) => `${nombre(p)} (Nv.${p.level})`).join(' · ')}` : '')
-      }
+      // QUIÉN sube QUÉ: los del elemento +2, el resto +1, con su retrato.
+      message = `Intensivo experto de ${ELEMENT_INFO[element].label}:`
+      detail = roster
+        .filter((p) => !p.injured)
+        .map((p) => fila(p, `${getPlayerBase(p.baseId).element === element ? '+2' : '+1'} → Nv.${p.level}`))
       play('energia')
     } else if (plan === 'normal') {
       roster = roster.map((p) => (p.injured ? p : drena(levelUp(p, 1), rng.int(10, 20), 0.05)))
-      message = `Entrenamiento de equipo: +1 nivel a todos.\n${roster
-        .filter((p) => !p.injured)
-        .map((p) => `${getPlayerBase(p.baseId).name.split(' ')[0]} (Nv.${p.level})`)
-        .join(' · ')}`
+      message = 'Entrenamiento de equipo: +1 nivel a todos.'
+      detail = roster.filter((p) => !p.injured).map((p) => fila(p, `+1 → Nv.${p.level}`))
       play('levelup')
     } else if (plan === 'fisio') {
       const target = roster.find((x) => x.uid === uid)
@@ -1659,7 +1666,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // Lo DESPERTADO en el entrenamiento se anuncia con su animación.
     const learned = learnedBetween(save.roster, roster)
     set({
-      save: next, matchNode: null, phase: 'map', message,
+      save: next, matchNode: null, phase: 'map', message, messageDetail: detail,
       learnFx: [...get().learnFx, ...learned],
       // El MODAL de lesión: el toast se perdía entre mensajes.
       injuredFx: rotos.length ? rotos : get().injuredFx,

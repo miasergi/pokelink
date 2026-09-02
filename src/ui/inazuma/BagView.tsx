@@ -12,7 +12,8 @@ import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { PlayerRow } from '@/ui/inazuma/PlayerCard'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import { CoinPrice, Crest, ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { CoinPrice, ELEMENT_ICON, ItemIcon, rarityBorder, TechniqueBadge } from '@/ui/inazuma/Glyphs'
+import { ImgFallback } from '@/ui/components/kit'
 import { signatureNext } from '@/engine/inazuma/game'
 import { canUpgradeTechnique, MAX_RARITY, RARITY_LABEL, rarityOf, realTechniquePower, techLevel, techniqueCostFor } from '@/engine/inazuma/roster'
 import { getItem } from '@/data/inazuma/items'
@@ -199,6 +200,8 @@ export default function BagView() {
               const pool = PLAYERS.filter((b) => {
                 if (ownedNames.has(b.name)) return false
                 if (fTeam && b.team !== fTeam) return false
+                // MONOTIPO: solo el elemento de la run.
+                if (save.random?.monotipo && b.element !== save.random.monotipo) return false
                 if (vistos.has(b.name)) return false
                 vistos.add(b.name)
                 return true
@@ -240,7 +243,15 @@ export default function BagView() {
                           fTeam === t.id ? 'border-amber-500/80 bg-amber-500/15' : 'border-slate-700 bg-slate-800/60 opacity-75'
                         }`}
                       >
-                        <Crest teamId={t.id} className="w-6 h-6" />
+                        {/* Con RESPALDO: `Crest` se esfuma si falta la imagen
+                            y la tira quedaba llena de botones vacíos («no se
+                            ven los escudos»). Sin escudo, la inicial. */}
+                        <ImgFallback
+                          src={`${import.meta.env.BASE_URL}inazuma/crests/${t.id}.png`}
+                          className="w-6 h-6 object-contain"
+                          alt={t.name}
+                          fallback={<span className="text-[11px] font-black" style={{ color: t.color }}>{t.name.replace(/^Instituto /, '')[0]}</span>}
+                        />
                       </button>
                     ))}
                     <button

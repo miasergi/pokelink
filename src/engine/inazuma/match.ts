@@ -643,6 +643,7 @@ function executeDuelInner(
       ? attackerFor(nextStep, atkSide, rng)
       : receiver0
     if (receiver.uid !== attacker.uid) {
+      chain.assistFrom = attacker.uid
       out.push({
         kind: 'possession',
         minute: m.minute,
@@ -679,6 +680,7 @@ function executeDuelInner(
         text: `¡Córner! El rechace se pasea y ${header.name} llega al remate…`,
       })
       chain.carrier = header.uid
+      chain.assistFrom = undefined
       chain.defenderUid = defSide.keeper.uid
       // El remate del córner es a bocajarro: si el tiro anterior era lejano,
       // la distancia ya no pinta nada.
@@ -790,8 +792,13 @@ function scoreGoal(m: MatchState, out: MatchEvent[], scorer: Actor, tech: Techni
   addBurst(atkSide, BURST_ON_GOAL)
   addBurst(defSide, BURST_ON_CONCEDE)
   if (chain.side === playerSide(m)) m.scorers.push(scorer.name)
+  // La ASISTENCIA: el último pase de la jugada, si el gol es de OTRO.
+  const assistant = chain.assistFrom && chain.assistFrom !== scorer.uid
+    ? findActor(sideOf(m, chain.side), chain.assistFrom)
+    : null
   out.push({
     kind: 'goal', minute: m.minute, side: chain.side, scorer: scorer.name, scorerUid: scorer.uid, technique: tech?.name, score: score(m),
+    assist: assistant?.name, assistUid: assistant?.uid,
     // El intento FALLIDO del portero viaja con el gol: gastó sus PT y la
     // retransmisión debe contarlo (si no, «desaparecían» sin explicación).
     keeper: keeper?.name, keeperUid: keeper?.uid, keeperTech: keeperTech?.name,
@@ -1376,6 +1383,8 @@ export function chooseOption(m: MatchState, rng: RNG, optionId: string): MatchEv
     // «pase buscado» — un solo pase por posesión, o esto sería un peloteo
     // infinito — y se vuelve a preguntar con el nuevo dueño del balón.
     const mate = findActor(atkSide, optionId.slice(5))
+    // ASISTENCIA en ciernes: si el que recibe acaba marcando, el pase cuenta.
+    chain.assistFrom = attacker.uid
     chain.carrier = mate.uid
     chain.passed = true
     const out: MatchEvent[] = [{
@@ -1586,6 +1595,7 @@ export function substitute(m: MatchState, outUid: string, incoming: Actor): stri
     else line[i] = incoming
     m.subsLeft -= 1
     m.subbedOut = [...(m.subbedOut ?? []), outUid]
+    m.enteredSubs = [...(m.enteredSubs ?? []), incoming.uid]
     // El que entra también participa: niveles completos al final.
     if (!m.participants?.includes(incoming.uid)) m.participants = [...(m.participants ?? []), incoming.uid]
     return null

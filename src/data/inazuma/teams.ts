@@ -266,6 +266,29 @@ export const TEAMS: TeamBase[] = [
     lineup: [],
   },
   {
+    // El RAIMON DE LA 2.ª TEMPORADA: la caravana al completo (Darren, Hurley,
+    // Scott, Shawn… y Jude tras su fichaje). Vive en el ojeador y como equipo
+    // jugable de la saga Alius — el cuadro sigue siendo el de siempre.
+    id: 'raimon-2', name: 'Raimon (T2)', color: '#f59e0b', kit: ['#fde68a', '#b45309'], element: 'fuego', power: 1.0, tactic: 'remontada',
+    taunt: '¡La caravana no ha venido hasta aquí para perder!',
+    lineup: [],
+  },
+  {
+    id: 'callejeros', name: 'Los Callejeros', color: '#84cc16', kit: ['#bef264', '#3f6212'], element: 'bosque', power: 0.7, tactic: 'toque',
+    taunt: 'Nosotros aprendimos en la calle. Sin árbitro.',
+    lineup: [],
+  },
+  {
+    id: 'trotamundos', name: 'Trotamundos FC', color: '#38bdf8', kit: ['#bae6fd', '#075985'], element: 'aire', power: 0.7, tactic: 'contragolpe',
+    taunt: 'Hemos jugado en mil campos. Este es uno más.',
+    lineup: [],
+  },
+  {
+    id: 'forasteros', name: 'Los Forasteros', color: '#f97316', kit: ['#fdba74', '#7c2d12'], element: 'fuego', power: 0.7, tactic: 'fondo-fisico',
+    taunt: 'Nadie nos conoce. Mejor para nosotros.',
+    lineup: [],
+  },
+  {
     id: 'ouja-raimon', name: 'Raimon Soberano', color: '#dc2626', kit: ['#f87171', '#1d4ed8'], element: 'montana', power: 1.05, tactic: 'vibracion',
     taunt: 'El nombre pesa. Nosotros lo llevamos bien.',
     lineup: [],
@@ -434,16 +457,18 @@ export const SAGAS: Saga[] = [
     teams: ['raimon', 'occult', 'otaku', 'mikage', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus'],
     playable: ['raimon', 'occult', 'royal'],
     scoutTeams: ['kfc', 'oumihara', 'manyuuji', 'yokato', 'windies', 'extra-stars', 'kage-no-hero',
-      'kasamino', 'senbayama', 'the-fires', 'the-mountains', 'the-woods'],
+      'kasamino', 'senbayama', 'the-fires', 'the-mountains', 'the-woods',
+      'callejeros', 'trotamundos', 'forasteros'],
   },
   {
     id: 'alius',
     name: 'Inazuma Eleven 2',
     desc: 'La segunda temporada: la caravana Raimon contra los equipos alienígenas.',
     teams: ['raimon', 'yokato', 'oumihara', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis'],
-    playable: ['raimon', 'genesis'],
+    playable: ['raimon', 'raimon-2', 'genesis'],
     scoutTeams: ['occult', 'otaku', 'shuriken', 'farm', 'kirkwood', 'royal', 'zeus', 'kfc', 'mikage', 'manyuuji', 'windies', 'extra-stars', 'kage-no-hero',
-      'hakuren', 'shin-teikoku', 'dark-emperors', 'epsilon-kai'],
+      'hakuren', 'shin-teikoku', 'dark-emperors', 'epsilon-kai', 'raimon-2',
+      'callejeros', 'trotamundos', 'forasteros'],
   },
   {
     id: 'ffi',
@@ -452,7 +477,8 @@ export const SAGAS: Saga[] = [
     teams: ['inazuma-japan', 'big-waves', 'desert-lion', 'knights-of-queen', 'fire-dragon', 'the-empire', 'unicorn', 'orpheus', 'little-gigant'],
     playable: ['inazuma-japan', 'orpheus', 'unicorn'],
     scoutTeams: ['raimon', 'royal', 'zeus', 'kirkwood', 'gemini-storm', 'epsilon', 'diamond-dust', 'prominence', 'chaos', 'genesis', 'windies', 'extra-stars', 'kage-no-hero',
-      'the-kingdom', 'rose-griffon', 'brockenborg', 'ogre', 'neo-japan', 'gaia'],
+      'the-kingdom', 'rose-griffon', 'brockenborg', 'ogre', 'neo-japan', 'gaia',
+      'raimon-2', 'callejeros', 'trotamundos', 'forasteros'],
   },
   {
     id: 'go',
@@ -563,8 +589,12 @@ const EXTRA_REGION: Record<string, RegionId> = {
   'extra-stars': 'ff', 'kage-no-hero': 'ff', kasamino: 'ff', senbayama: 'ff',
  'the-fires': 'ff', 'the-mountains': 'ff', 'the-woods': 'ff',
   mikage: 'ff',
+  // Los equipos FICTICIOS de scouts de los juegos originales (reclutables
+  // sin instituto, tipo Nev Erin): época clásica.
+  callejeros: 'ff', trotamundos: 'ff', forasteros: 'ff',
   // IE2: la temporada del Instituto Alius.
   hakuren: 'alius', 'shin-teikoku': 'alius', 'dark-emperors': 'alius', 'epsilon-kai': 'alius',
+  'raimon-2': 'alius',
   // IE3: el Mundial.
   'the-kingdom': 'ffi', 'rose-griffon': 'ffi', brockenborg: 'ffi', ogre: 'ffi',
   'neo-japan': 'ffi', gaia: 'ffi',

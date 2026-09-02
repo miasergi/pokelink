@@ -982,7 +982,16 @@ function BagPanel({
         const fila = ({ id, count, item }: (typeof grouped)[number]) => (
           <button
             key={id}
-            onClick={() => setUse(id)}
+            // El FICHAJE ESTRELLA no se «da a un jugador»: abre su buscador de
+            // catálogo en la mochila completa (aquí salía tu propia plantilla).
+            onClick={() => {
+              if (id === 'fichaje-estrella') {
+                useInazuma.setState({ fichajeAutoOpen: true })
+                useInazuma.getState().goTo('bag')
+                return
+              }
+              setUse(id)
+            }}
             className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.99] transition"
           >
             <ItemIcon itemId={id} className="w-6 h-6 shrink-0" />
@@ -1847,7 +1856,7 @@ function Stat({ label, value }: { label: string; value: number }) {
  * pachanga no se podía elegir la siguiente casilla sin quitar antes el aviso.
  */
 export function Toast() {
-  const { message, clearMessage } = useInazuma()
+  const { message, messageDetail, clearMessage } = useInazuma()
   if (!message) return null
   // MODAL, no toast: los avisos del rogue (niveles, dinero, técnicas
   // aprendidas…) pasaban desapercibidos abajo y desaparecían solos a los 4 s.
@@ -1867,6 +1876,25 @@ export function Toast() {
         <p className="text-[13px] leading-snug text-slate-100 font-semibold whitespace-pre-line">
           <CoinText text={message} />
         </p>
+        {/* LAS FILAS con retrato: quién sube exactamente qué. */}
+        {messageDetail && messageDetail.length > 0 && (
+          <div className="mt-2.5 flex flex-col gap-1 max-h-[42svh] overflow-y-auto text-left">
+            {messageDetail.map((r, i) => (
+              <div key={`${r.baseId}-${i}`} className="flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-800/60 px-2 py-1">
+                <span className="w-8 h-8 shrink-0 rounded-lg overflow-hidden bg-slate-900 grid place-items-center">
+                  <ImgFallback
+                    src={portraitUrl(r.baseId)}
+                    className="w-full h-full object-cover object-top"
+                    alt={r.name}
+                    fallback={<span className="text-[10px] font-extrabold text-slate-400">{r.name.slice(0, 2).toUpperCase()}</span>}
+                  />
+                </span>
+                <span className="min-w-0 flex-1 text-[12px] font-bold truncate">{r.name}</span>
+                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-emerald-300">{r.sub}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <Button variant="primary" full className="mt-3" onClick={clearMessage}>Entendido</Button>
       </div>
     </div>,

@@ -81,6 +81,8 @@ export function createSave(seed: number, teamId = 'raimon', opts: NewRunOptions 
     const vistos = new Set<string>()
     const pool = PLAYERS.filter((b) => {
       if (!eras.has(regionOfTeam(b.team)) || vistos.has(b.name)) return false
+      // MONOTIPO: el inicial también es del elemento elegido.
+      if (opts.random?.monotipo && b.element !== opts.random.monotipo) return false
       vistos.add(b.name)
       return true
     })
@@ -350,14 +352,25 @@ function catchUp(p: PlayerInstance, ref: number): PlayerInstance {
 }
 
 /** Suma al acumulado de la partida lo que ha hecho cada jugador tuyo. */
-export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUids: Set<string>): void {
+export function recordMatchStats(
+  save: InazumaSave, events: MatchEvent[], mineUids: Set<string>,
+  /** Identidad y cambios: para MINUTOS (90/45) y para que las estadísticas de
+   * un jugador TRASPASADO conserven nombre y cara al cierre del torneo. */
+  extra?: { ids?: Map<string, string>; subbedOut?: string[]; enteredSubs?: string[] },
+): void {
   const stats = { ...save.playerStats }
-  const bump = (uid: string, key: 'goals' | 'saves' | 'duelsWon' | 'duelsLost' | 'matches', n = 1) => {
+  const bump = (uid: string, key: 'goals' | 'saves' | 'duelsWon' | 'duelsLost' | 'matches' | 'assists' | 'injuries' | 'minutes', n = 1) => {
     if (!mineUids.has(uid)) return
     const cur = stats[uid] ?? { goals: 0, saves: 0, duelsWon: 0, duelsLost: 0, matches: 0 }
-    stats[uid] = { ...cur, [key]: (cur[key] ?? 0) + n }
+    stats[uid] = { ...cur, baseId: extra?.ids?.get(uid) ?? cur.baseId, [key]: (cur[key] ?? 0) + n }
   }
-  for (const uid of mineUids) bump(uid, 'matches')
+  const salio = new Set(extra?.subbedOut ?? [])
+  const entro = new Set(extra?.enteredSubs ?? [])
+  for (const uid of mineUids) {
+    bump(uid, 'matches')
+    // MINUTOS: 90 el que completa, 45 el cambiado y 45 el que entra.
+    bump(uid, 'minutes', salio.has(uid) || entro.has(uid) ? 45 : 90)
+  }
   // Técnicas GANADORAS: qué usó cada uno cuando salió bien (para la ficha).
   const bumpTech = (uid: string, name: string) => {
     if (!mineUids.has(uid)) return
@@ -369,8 +382,10 @@ export function recordMatchStats(save: InazumaSave, events: MatchEvent[], mineUi
   for (const e of events) {
     if (e.kind === 'goal') {
       bump(e.scorerUid, 'goals')
+      if (e.assistUid) bump(e.assistUid, 'assists')
       if (e.technique) bumpTech(e.scorerUid, e.technique)
     }
+    else if (e.kind === 'injury') bump(e.playerUid, 'injuries')
     else if (e.kind === 'save') {
       bump(e.keeperUid, 'saves')
       if (e.technique) bumpTech(e.keeperUid, e.technique)
@@ -401,7 +416,11 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
   // al medio tiempo perdía sus +4. Estados viejos sin la lista caen al once
   // final.
   const played = new Set(match.participants ?? [...byUid.keys()])
-  recordMatchStats(save, match.events, played)
+  recordMatchStats(save, match.events, played, {
+    ids: new Map([...byUid.values(), ...(mine.gone ?? [])].map((a) => [a.uid, a.baseId])),
+    subbedOut: match.subbedOut,
+    enteredSubs: match.enteredSubs,
+  })
 
   // Media de los que jugaron TRAS su subida: referencia del catch-up.
   const xiLevels = save.roster.filter((p) => played.has(p.uid)).map((p) => p.level + MATCH_LEVELS_PLAYED)

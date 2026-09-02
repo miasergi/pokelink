@@ -94,6 +94,8 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
     // Los AGENTES LIBRES (equipo 'libre', como Scor Nelles) son de TODAS las
     // épocas: el filtro de eras los dejaba infichables.
     .filter((p) => !eras.size || p.team === 'libre' || eras.has(regionOfTeam(p.team)))
+    // MONOTIPO: a tu club solo entra gente del elemento elegido.
+    .filter((p) => !save.random?.monotipo || p.element === save.random.monotipo)
   // Los OFRECIDOS hace poco no se repiten («siempre salen los mismos») —
   // salvo que el pool se quede en los huesos, que entonces vale cualquiera.
   const seen = new Set(save.scoutSeen ?? [])
@@ -175,6 +177,8 @@ function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeN
   const seenIds = new Set(save.scoutSeen ?? [])
   const pool = uniqueByName(PLAYERS.filter((p) => p.team === team))
     .filter((p) => !owned.has(p.name) && !exclude.has(p.id) && !excludeNames.has(p.name))
+    // MONOTIPO: el canon del club también tiene que ser del elemento.
+    .filter((p) => !save.random?.monotipo || p.element === save.random.monotipo)
   if (!pool.length) return null
   const fresh = pool.filter((p) => !seenIds.has(p.id))
   const pick = weightedPick(fresh.length ? fresh : pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)

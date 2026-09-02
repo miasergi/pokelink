@@ -449,7 +449,7 @@ export const TECHNIQUES: Technique[] = [
   { id: 'corodra-shoot', name: "Dragón Bebé", kind: 'tiro', element: 'aire', power: 50, cost: 21, desc: "El aire se corta por donde pasa el balón." },
   { id: 'megalodon', name: "Megalodon", kind: 'tiro', element: 'aire', power: 50, cost: 21, desc: "El aire se corta por donde pasa el balón." },
   { id: 'silver-wolf-legend', name: "Lobo Plateado Legendario", kind: 'tiro', element: 'aire', power: 50, cost: 21, era: 'vr', desc: "El aire se corta por donde pasa el balón." },
-  { id: 'tenkuu-thunder', name: "Heavenly Thunder", kind: 'tiro', element: 'aire', power: 50, cost: 21, era: 'vr', desc: "El aire se corta por donde pasa el balón." },
+  { id: 'tenkuu-thunder', name: "Trueno Celestial", kind: 'tiro', element: 'aire', power: 50, cost: 21, era: 'vr', desc: "El aire se corta por donde pasa el balón." },
   { id: 'flying-marlin', name: "Flying Marlin", kind: 'tiro', element: 'aire', power: 50, cost: 21, era: 'vr', desc: "El aire se corta por donde pasa el balón." },
   { id: 'sengoku-bushin-musashi', name: "Samurái Valiente Musashi", kind: 'tiro', element: 'montana', power: 50, cost: 21, era: 'go', desc: "Pega como una roca cayendo desde arriba." },
   { id: 'tekki-hei-knight-w', name: "Caballo Blanco Acorazado", kind: 'tiro', element: 'montana', power: 50, cost: 21, era: 'go', desc: "Pega como una roca cayendo desde arriba." },

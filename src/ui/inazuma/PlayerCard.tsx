@@ -9,13 +9,14 @@
 // PNG y no en webp a propósito: sin `sharp` instalado no hay forma de
 // convertirlos, y un PNG con extensión .webp NO se decodifica (GitHub Pages
 // sirve el Content-Type por extensión).
+import { useRef } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import { ComboMark, InjuryCross, rarityBorder, rarityCardStyle } from '@/ui/inazuma/Glyphs'
 import { comboOf } from '@/data/inazuma/combos'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Icon from '@/ui/components/Icon'
 import { ELEMENT_ICON, ItemIcon, TechIcons, useTechSheet } from '@/ui/inazuma/Glyphs'
-import { effectiveStats, overall, ptMax, RARITY_LABEL, rarityOf, techniqueCostFor, techniquePower } from '@/engine/inazuma/roster'
+import { effectiveStats, ptMax, RARITY_LABEL, rarityOf, techniqueCostFor, techniquePower } from '@/engine/inazuma/roster'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem } from '@/data/inazuma/items'
@@ -96,6 +97,10 @@ export function PlayerCard({
   const stats = effectiveStats(player)
   const max = ptMax(player)
   const tier = rarityOf(player)
+  // BLINDAJE anti toque-fantasma: la carta suele montarse dentro de un modal
+  // recién abierto, y el segundo tap de un doble toque caía sobre un chip de
+  // técnica — «al tocar un jugador se abre su primera supertécnica».
+  const mountedAt = useRef(Date.now())
 
   return (
     <div
@@ -107,8 +112,9 @@ export function PlayerCard({
       // multicolor degradado). El elemento pasa a icono junto al nombre.
       style={rarityCardStyle(tier)}
     >
-      {/* Franja superior: rareza en texto, demarcación y la MEDIA global
-          (tipo FIFA, 1-99): el número que resume al jugador de un vistazo. */}
+      {/* Franja superior: rareza en texto y demarcación. (La MEDIA tipo FIFA
+          se probó y se retiró a petición: con stats por encima de 100 el
+          número saturaba enseguida y no contaba nada útil.) */}
       <div className="flex items-center gap-1.5 px-2 pt-2">
         <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold ${POSITION_COLOR[base.position]}`}>
           {base.position}
@@ -118,10 +124,6 @@ export function PlayerCard({
           style={{ color: rarityBorder(tier) }}
         >
           {RARITY_LABEL[tier]}
-        </span>
-        <span className="ml-auto inline-flex items-baseline gap-1 rounded-md bg-slate-950/50 px-1.5 py-0.5">
-          <span className="text-base font-black tabular-nums leading-none text-amber-300">{overall(player)}</span>
-          <span className="text-[8px] font-extrabold uppercase tracking-widest text-slate-500">med</span>
         </span>
       </div>
 
@@ -171,7 +173,10 @@ export function PlayerCard({
               return (
                 <span
                   key={id}
-                  onClick={(e) => { e.stopPropagation(); useTechSheet.getState().open(t, player) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (Date.now() - mountedAt.current > 350) useTechSheet.getState().open(t, player)
+                  }}
                   className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border cursor-pointer active:scale-95 transition"
                   style={{ color: ti.color, borderColor: `${ti.color}55`, background: `${ti.color}14` }}
                 >
@@ -265,7 +270,6 @@ export function PlayerRow({
           <span className="font-bold text-[13px] truncate">{base.name}</span>
           <Icon name={ELEMENT_ICON[base.element]} className="w-3 h-3 shrink-0" style={{ color: info.color }} />
           <span className="text-[10px] text-slate-500 shrink-0">Nv.{player.level}</span>
-          <span className="ml-auto shrink-0 text-[12px] font-black tabular-nums text-amber-300">{overall(player)}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           {/* PT y aguante, SIEMPRE los que le quedan y CON etiqueta: la fila
