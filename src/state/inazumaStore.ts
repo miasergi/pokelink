@@ -955,7 +955,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         // Parado en cinemáticas y en el descanso. Y con la cola VACÍA, solo
         // corre si se está jugando — pero si queda algo por contar, el reloj
         // sigue hasta contarlo (los revelados nunca dependieron de `playing`).
-        if (st.uiBusy || st.halftimeBreak) return
+        if (st.uiBusy || st.halftimeBreak || st.halftimeSubsSummary) return
         if (!st.playing && !revealQueue.length) return
         const rate = clockRate(st.speed)
         const cap = st.match.stage === 'reglamentario' ? 90 : 120
@@ -977,6 +977,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // césped a mitad de animación (los emparejamientos «bailaban») y dejaba
     // cinemáticas en cola una detrás de otra. `setUiBusy(false)` retoma.
     if (get().uiBusy) { ticker = setTimeout(() => get().tick(), 180); return }
+    // El PANEL DE CAMBIOS del descanso también para el mundo: la segunda
+    // parte no arranca (ni narra por debajo) hasta su «¡Segunda parte!».
+    if (get().halftimeSubsSummary) { ticker = setTimeout(() => get().tick(), 250); return }
 
     // 1) Si hay eventos esperando, se revela UNO y se le da su tiempo en
     //    pantalla. Mientras la cola no esté vacía el motor no avanza, así que

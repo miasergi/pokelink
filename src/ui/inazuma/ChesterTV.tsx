@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import { techniqueByName } from '@/ui/inazuma/DuelStage'
 import { techVideo } from '@/data/inazuma/tech-videos'
+import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import type { MatchEvent } from '@/engine/inazuma/types'
 
@@ -193,6 +194,9 @@ function chester(e: MatchEvent | undefined, prev?: MatchEvent): { text: string; 
 export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: number }) {
   const last = feed[feed.length - 1]
   const { text, mood } = chester(last, feed[feed.length - 2])
+  // La velocidad del partido, para que el VÍDEO de la técnica quepa entero
+  // en su ventana de pantalla (ver playbackRate más abajo).
+  const speed = useInazuma((s) => s.speed)
 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
@@ -335,9 +339,26 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
                   src={techVideo(techInfo.id)}
                   className="absolute inset-0 w-full h-full object-cover"
                   autoPlay
-                  loop
                   muted
                   playsInline
+                  // VELOCIDAD ADAPTATIVA: el vídeo entero cabe en su ventana
+                  // de pantalla (que encoge a ×2/×4) — la cinemática se ve
+                  // completa sin frenar el partido.
+                  onLoadedMetadata={(e) => {
+                    const v = e.currentTarget
+                    const f = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
+                    const ventana = 2.6 * f
+                    if (v.duration && isFinite(v.duration)) {
+                      v.playbackRate = Math.min(4, Math.max(0.9, (v.duration - 0.25) / ventana))
+                    }
+                  }}
+                  // Y CONGELADO justo antes del final: el vídeo de una parada
+                  // no «completa» la parada — quien remata es el veredicto
+                  // (la foto del gol o la del paradón), que entra de golpe.
+                  onTimeUpdate={(e) => {
+                    const v = e.currentTarget
+                    if (v.duration && v.duration - v.currentTime < 0.25) v.pause()
+                  }}
                   onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none' }}
                 />
               )}
