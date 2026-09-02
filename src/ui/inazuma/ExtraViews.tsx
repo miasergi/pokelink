@@ -12,6 +12,7 @@ import { TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId
 import { STARTERS_BY_SAGA } from '@/data/inazuma/starters'
 import { uniqueByName } from '@/engine/inazuma/rewards'
 import { loadMeta } from '@/persistence/db'
+import { useCromo } from '@/ui/inazuma/CromoCard'
 import type { Element as InazumaElement, InazumaSave, PlayerStats, RandomFlags } from '@/engine/inazuma/types'
 
 // ---------------------------------------------------------------------------
@@ -210,7 +211,9 @@ export function AlbumView() {
                   return (
                     <div
                       key={p.id}
-                      className="rounded-xl border p-1 text-center"
+                      // Tocar un cromo CONSEGUIDO lo abre en grande (CromoCard).
+                      onClick={has ? () => useCromo.getState().open(p.id) : undefined}
+                      className={`rounded-xl border p-1 text-center ${has ? 'cursor-pointer active:scale-95 transition' : ''}`}
                       style={{
                         borderColor: has ? `${info.color}55` : '#1e293b',
                         background: has ? `${info.color}14` : 'rgba(15,23,42,.5)',

@@ -20,6 +20,7 @@ import { effectiveStats, ptMax, RARITY_LABEL, rarityOf, techniqueCostFor, techni
 import { getPlayerBase } from '@/data/inazuma/players'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getItem } from '@/data/inazuma/items'
+import { useCromo } from '@/ui/inazuma/CromoCard'
 import type { Element, PlayerInstance, Position, Stats } from '@/engine/inazuma/types'
 
 const BASE = import.meta.env.BASE_URL
@@ -128,9 +129,15 @@ export function PlayerCard({
       </div>
 
       <div className="flex items-center gap-2.5 px-2 py-2">
+        {/* Tocar el RETRATO abre su CROMO (con el guard anti toque-fantasma
+            de siempre: la carta suele nacer dentro de un modal recién abierto). */}
         <div
-          className="w-14 h-14 shrink-0 rounded-xl overflow-hidden grid place-items-center border"
+          className="w-14 h-14 shrink-0 rounded-xl overflow-hidden grid place-items-center border cursor-pointer active:scale-95 transition"
           style={{ borderColor: `${info.color}55`, background: `${info.color}22` }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (Date.now() - mountedAt.current > 350) useCromo.getState().open(base.id, player)
+          }}
         >
           <ImgFallback
             src={portraitUrl(base.id)}

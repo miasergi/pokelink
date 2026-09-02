@@ -17,6 +17,7 @@ import PlayerRevealOverlay from '@/ui/inazuma/PlayerRevealOverlay'
 import InjuryRogueOverlay from '@/ui/inazuma/InjuryOverlay'
 import TechniqueLearnOverlay from '@/ui/inazuma/TechniqueLearnOverlay'
 import TechniqueSheet from '@/ui/inazuma/TechniqueSheet'
+import CromoOverlay from '@/ui/inazuma/CromoCard'
 import SigningOverflowSheet from '@/ui/inazuma/SigningOverflowSheet'
 import {
   AlbumView, InazumaOnboarding, StatsView, TeamSelectView, markOnboarded, shouldShowOnboarding,
@@ -85,6 +86,7 @@ export default function InazumaScreen() {
       <TechniqueLearnOverlay />
       {/* Visor global de supertécnica: se abre al tocar cualquier estampa. */}
       <TechniqueSheet />
+      <CromoOverlay />
       {/* Plantilla llena + fichaje entrante: decidir a quién vender. */}
       <SigningOverflowSheet />
       <Toast />
