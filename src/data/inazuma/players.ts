@@ -5634,8 +5634,8 @@ const RAW_PLAYERS: RawPlayer[] = [
     // fiesta de flores de remate (las cuatro con vídeo real de Victory Road).
     id: 'neree-swaggy', name: 'Neree Swaggy', team: 'libre', position: 'DEF', element: 'montana', fame: 5, // original
     stats: { tiro: 42, control: 60, fisico: 88, defensa: 102, velocidad: 47, aguante: 55 },
-    techniques: ['snow-angel', 'cupids-arrow'],
-    signature: ['snow-angel', 'cupids-arrow', 'prima-donna', 'floral-fiesta'],
+    techniques: ['sleeping-dust', 'cupids-arrow'],
+    signature: ['sleeping-dust', 'cupids-arrow', 'prima-donna', 'floral-fiesta'],
   },
   // ============================== CALLEJEROS (scouts de los juegos)
   {

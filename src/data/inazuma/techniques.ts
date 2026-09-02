@@ -108,6 +108,7 @@ export const TECHNIQUES: Technique[] = [
   { id: 'elephant-press', name: "Sándwich Gigante", kind: 'bloqueo', element: 'montana', power: 68, cost: 29, era: 'go', desc: "Aquí no pasa nadie." },
   { id: 'viva-banri-no-choujou', name: "Gran Muralla", kind: 'bloqueo', element: 'montana', power: 68, cost: 29, era: 'go', desc: "Aquí no pasa nadie." },
   // Cadena de Neree Swaggy (sin 'era': los agentes libres son de todas las épocas).
+  { id: 'sleeping-dust', name: "Polvo del Sueño", kind: 'bloqueo', element: 'bosque', power: 48, cost: 20, desc: "Una nube de polvo dorado y el rival se queda dormido de pie." },
   { id: 'floral-fiesta', name: "Fiesta Floral", kind: 'bloqueo', element: 'montana', power: 72, cost: 30, desc: "Un estallido de flores envuelve al rival y el balón cambia de dueño entre pétalos." },
   { id: 'good-smell', name: "Polvo Somnífero", kind: 'bloqueo', element: 'bosque', power: 72, cost: 30, desc: "El terreno atrapa las piernas del rival." },
   { id: 'desert-storm', name: "Ráfaga del Desierto", kind: 'bloqueo', element: 'aire', power: 72, cost: 30, desc: "Una ráfaga le quita el balón de los pies." },

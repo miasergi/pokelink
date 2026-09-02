@@ -331,6 +331,7 @@ export const TECH_MEDIA: Record<string, TechMedia> = {
   'cupids-arrow': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/9/q/9qdqxie5rnu.webm', vrPower: 60, vrTension: 60 },
   'loyal-heart-shot': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/t/d/tdxqa_2w00e.webm', vrPower: 100, vrTension: 100 },
   'floral-fiesta': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/9/n/9nxizbpfqsm.webm', vrPower: 80, vrTension: 80 },
+  'sleeping-dust': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/a/o/aoto7qdknps.webm', vrPower: 70, vrTension: 70 },
 }
 
 export function techVideo(id: string): string | undefined {
