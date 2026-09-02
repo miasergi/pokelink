@@ -1425,7 +1425,15 @@ export function DraftView() {
   const { save, draft, draftPicks, draftFromMatch, pickDraft } = useInazuma()
   // Comparar un FICHAJE con tu gente ANTES de decidir (sin fichar por ello).
   const [compareWith, setCompareWith] = useState<CompareBlock | null>(null)
+  // EL ÁLBUM, en la decisión: saber si el candidato es un cromo NUEVO (nunca
+  // lo has tenido en ninguna partida) o ya está conseguido pesa al elegir.
+  const [albumIds, setAlbumIds] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    void loadMeta().then((m) => setAlbumIds(new Set(m.inazumaSigned ?? [])))
+  }, [])
   if (!save) return null
+  const enAlbum = (baseId: string) =>
+    albumIds.has(baseId) || save.roster.some((p) => p.baseId === baseId)
   // El marcador SOLO cuando el draft viene de un partido: en la casilla de
   // objeto salía el resultado del último partido, que no pintaba nada allí.
   const last = draftFromMatch ? save.lastMatch : null
@@ -1511,6 +1519,16 @@ export function DraftView() {
                       {RARITY_LABEL[1]}
                     </span>
                     <ElementChip element={getPlayerBase(o.playerId).element} />
+                    {/* ¿Lo tienes ya en el ÁLBUM o sería un cromo nuevo? */}
+                    {enAlbum(o.playerId) ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-400">
+                        <Icon name="album" className="w-2.5 h-2.5" /> en el álbum
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide text-amber-300">
+                        <Icon name="album" className="w-2.5 h-2.5" /> ¡cromo nuevo!
+                      </span>
+                    )}
                   </div>
                 )}
                 <div className="text-[11px] text-slate-400"><CoinText text={o.desc} coin="w-3 h-3" /></div>
@@ -1603,16 +1621,42 @@ function SigningExtras({ baseId, save, level }: { baseId: string; save: InazumaS
   const chain = base.signature ?? []
   const rosterIds = new Set(save.roster.map((p) => p.baseId))
   const combos = COMBOS.filter((c) => c.members.includes(baseId))
+  // La cadena, PLEGADA por defecto: tres cartas de fichaje con la escalera
+  // entera desplegada no cabían en una pantalla. El resumen (iconos de las 4
+  // técnicas) sigue a la vista; tocar despliega la escalera completa.
+  const [showChain, setShowChain] = useState(false)
   if (!chain.length && !combos.length) return null
 
   return (
     <div className="flex flex-col gap-1">
       {chain.length > 0 && (
         <div>
-          <div className="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Cadena de supertécnicas</div>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowChain((v) => !v) }}
+            className="w-full flex items-center gap-1.5 rounded-lg border border-slate-700/80 bg-slate-800/50 px-2 py-1.5 active:scale-[0.99] transition"
+          >
+            <span className="text-[9px] uppercase tracking-widest text-slate-500">
+              Cadena · {chain.length}
+            </span>
+            {/* El AVANCE: los iconos de sus técnicas, aun plegada. */}
+            <span className="flex items-center gap-1 min-w-0">
+              {chain.map((id) => {
+                const t = getTechnique(id)
+                return t ? <TechIcons key={id} tech={t} className="w-3 h-3 shrink-0" /> : null
+              })}
+            </span>
+            <Icon
+              name="arrowRight"
+              className={`ml-auto w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform ${showChain ? 'rotate-90' : ''}`}
+            />
+          </button>
           {/* EL MISMO formato de cadena que la ficha del jugador: escalera con
               su estado (los pasos ya paran la burbuja, no fichan sin querer). */}
-          <SignatureChain baseId={baseId} level={level} rarity={1} />
+          {showChain && (
+            <div className="mt-1">
+              <SignatureChain baseId={baseId} level={level} rarity={1} />
+            </div>
+          )}
         </div>
       )}
       {combos.map((c) => {
