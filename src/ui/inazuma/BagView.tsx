@@ -232,8 +232,12 @@ export default function BagView() {
                     className="mb-1.5 w-full rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-[13px] outline-none focus:border-amber-500/60"
                   />
                   {/* EQUIPOS: tira de escudos (toca para filtrar, re-toca para
-                      quitar). Al final, los agentes libres. */}
-                  <div className="mb-1.5 flex gap-1 overflow-x-auto pb-1">
+                      quitar). Al final, los agentes libres.
+                      OJO al `shrink-0`: un hijo flex con overflow tiene altura
+                      mínima 0 — cuando la lista de resultados pedía espacio,
+                      la tira quedaba APLASTADA y solo asomaba su scrollbar
+                      («no puedo escoger los equipos»). */}
+                  <div className="mb-1.5 shrink-0 flex gap-1 overflow-x-auto pb-1">
                     {teamsWithPlayers.map((t) => (
                       <button
                         key={t.id}

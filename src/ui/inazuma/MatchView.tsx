@@ -634,6 +634,15 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
   const myGoals = mineSide === 'home' ? score[0] : score[1]
   const theirGoals = mineSide === 'home' ? score[1] : score[0]
 
+  // LOS GOLEADORES, de lo revelado: cada gol con su autor y su minuto, bajo
+  // el equipo que lo marcó — el marcador cuenta el partido, no solo el número.
+  const myScorers: { scorer: string; minute: number }[] = []
+  const theirScorers: { scorer: string; minute: number }[] = []
+  for (const e of feed) {
+    if (e.kind !== 'goal') continue
+    ;(e.side === mineSide ? myScorers : theirScorers).push({ scorer: e.scorer, minute: e.minute })
+  }
+
   return (
     <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 pt-2 pb-2">
       <div className="flex items-center gap-2">
@@ -644,6 +653,30 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
         </div>
         <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
       </div>
+      {/* Goleador y minuto bajo su equipo (los tuyos a la izquierda, los del
+          rival a la derecha), como en el croquis del marcador de la tele. */}
+      {(myScorers.length > 0 || theirScorers.length > 0) && (
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {myScorers.map((g, i) => (
+              <div key={i} className="flex items-center gap-1 text-[9px] text-slate-300 leading-tight">
+                <SvgBall className="w-2.5 h-2.5 shrink-0 opacity-80" />
+                <span className="truncate font-bold">{g.scorer}</span>
+                <span className="tabular-nums text-slate-500 shrink-0">{g.minute}′</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 min-w-0">
+            {theirScorers.map((g, i) => (
+              <div key={i} className="flex flex-row-reverse items-center gap-1 text-[9px] text-slate-400 leading-tight">
+                <SvgBall className="w-2.5 h-2.5 shrink-0 opacity-60" />
+                <span className="truncate font-bold">{g.scorer}</span>
+                <span className="tabular-nums text-slate-500 shrink-0">{g.minute}′</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* LAS FILOSOFÍAS de los DOS equipos: la tuya acumulada y la canónica
           del rival. TOCAR la fila abre la hoja que explica qué hace cada una
           (el `title` del ratón no existe en el móvil y nadie sabía qué eran). */}
@@ -709,29 +742,42 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
           })()}
         </div>
       )}
-      {/* Barras de Ruptura. Con la Supervibración activa, el rótulo del centro
-          cuenta las acciones gratis que quedan: antes había que adivinarlo. */}
-      <div className="mt-1.5 flex items-center gap-2">
-        <BurstBar value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} color="#f59e0b" />
-        <span className={`text-[9px] uppercase tracking-widest shrink-0 ${
-          burst.mineTurns > 0 || burst.theirsTurns > 0 || burst.mineTactic || burst.theirsTactic || burst.mine >= 100
-            ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
-        }`}>
-          {burst.mineTactic
-            ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Táctica'} · ${burst.mineTactic.turns}`}</>
-            : burst.mineTurns > 0
-              ? `¡Supervibración! quedan ${burst.mineTurns}`
-              : burst.theirsTactic
-                ? `Rival: ${getTactic(burst.theirsTactic.id)?.name ?? 'filosofía'} · ${burst.theirsTactic.turns}`
-                : burst.theirsTurns > 0
-                  ? `Rival vibrando · ${burst.theirsTurns}`
-                  // LLENA: se dice claro qué toca hacer — era el gran «¿y esto
-                  // para qué sirve?» del playtest.
-                  : burst.mine >= 100
-                    ? '¡Táctica especial LISTA! Actívala en tu próxima jugada'
-                    : 'Táctica especial'}
-        </span>
-        <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
+      {/* Barras de Ruptura, CADA UNA EN SU LADO con su propio rótulo (del
+          croquis del playtest): la tuya a la izquierda y la del rival a la
+          derecha, cada una contando su estado — el rótulo único del centro
+          mezclaba a los dos equipos y no se sabía de quién hablaba. */}
+      <div className="mt-1.5 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <BurstBar value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} color="#f59e0b" />
+          <div className={`mt-0.5 text-[8px] uppercase tracking-wider truncate ${
+            burst.mineTactic || burst.mineTurns > 0 || burst.mine >= 100
+              ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
+          }`}>
+            {burst.mineTactic
+              ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Táctica'} · ${burst.mineTactic.turns}`}</>
+              : burst.mineTurns > 0
+                ? `¡Supervibración! quedan ${burst.mineTurns}`
+                // LLENA: se dice claro qué toca hacer — era el gran «¿y esto
+                // para qué sirve?» del playtest.
+                : burst.mine >= 100
+                  ? '¡LISTA! Actívala en tu próxima jugada'
+                  : 'Táctica especial'}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 text-right">
+          <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
+          <div className={`mt-0.5 text-[8px] uppercase tracking-wider truncate ${
+            burst.theirsTactic || burst.theirsTurns > 0 ? 'text-orange-300 font-extrabold animate-pulse' : 'text-slate-600'
+          }`}>
+            {burst.theirsTactic
+              ? <>{`${getTactic(burst.theirsTactic.id)?.name ?? 'Filosofía'} · ${burst.theirsTactic.turns}`}<Icon name="flame" className="inline w-3 h-3 -mt-0.5 ml-0.5 text-orange-400" /></>
+              : burst.theirsTurns > 0
+                ? `Vibrando · quedan ${burst.theirsTurns}`
+                : burst.theirs >= 100
+                  ? 'Rival a punto de encenderla'
+                  : 'Táctica del rival'}
+          </div>
+        </div>
       </div>
     </div>
   )

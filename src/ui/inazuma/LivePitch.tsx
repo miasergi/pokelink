@@ -1117,7 +1117,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
       >
         {/* borde de rareza + retrato sobre el ESCUDO del equipo (o su color) */}
         <div
-          className={`relative rounded-full overflow-hidden border-2 grid place-items-center ${active ? 'w-8 h-8' : 'w-7 h-7'}`}
+          className={`relative rounded-full overflow-hidden border-2 grid place-items-center ${active ? 'w-10 h-10' : 'w-9 h-9'}`}
           style={{ borderColor: ring, background: teamColor }}
         >
           {crest && (
@@ -1146,7 +1146,7 @@ function LiveDot({ actor, spot, teamColor, crest, carrier, marker, showNames, di
           del lance). El icono de elemento se quitó: era ruido — el color ya
           vive en el anillo y en las fichas, y así el partido se LEE mejor. */}
       {(showNames || active) && (
-        <span className={`mt-0.5 inline-flex items-center max-w-[62px] rounded px-1 leading-tight ${
+        <span className={`mt-0.5 inline-flex items-center max-w-[76px] rounded px-1 leading-tight ${
           active ? 'bg-black/75 text-white text-[8px] font-bold' : 'bg-black/50 text-white/85 text-[7px] font-bold'
         }`}>
           <span className="truncate">{actor.name.split(' ')[0]}</span>
