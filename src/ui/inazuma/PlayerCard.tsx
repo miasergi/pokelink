@@ -126,6 +126,14 @@ export function PlayerCard({
         >
           {RARITY_LABEL[tier]}
         </span>
+        {/* Las ESTRELLAS del cromo, también en la ficha: el peso del jugador
+            en la serie (informativo — lo que juega son sus stats). Solo aquí
+            y no en las filas de lista, que ya van cargadas. */}
+        <span className="ml-auto flex gap-[1px]" title={`Peso en la serie: ${base.fame}/5`}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Icon key={i} name="star" className="w-3 h-3" style={{ color: i < base.fame ? '#fbbf24' : '#334155' }} />
+          ))}
+        </span>
       </div>
 
       <div className="flex items-center gap-2.5 px-2 py-2">
