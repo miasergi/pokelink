@@ -2377,6 +2377,14 @@ const RAW_PLAYERS: RawPlayer[] = [
     signature: ['ice-ground', 'snow-angel', 'rainbow-loop', 'aurora-dribble'],
   },
   {
+    // El HERMANO: Atsuya, delantero de fuego del Hakuren (Ares) — y creador
+    // original de la Ventisca Eterna, que corona su cadena.
+    id: 'aiden-froste', name: 'Aiden Froste', team: 'hakuren', position: 'DEL', element: 'fuego', fame: 3,
+    stats: { tiro: 62, control: 44, fisico: 31, defensa: 18, velocidad: 35, aguante: 24 },
+    techniques: ['grenade-shot'],
+    signature: ['grenade-shot', 'meteor-attack', 'eternal-blizzard'],
+  },
+  {
     id: 'shawn-froste-2', name: 'Shawn Froste', team: 'hakuren', position: 'DEL', element: 'aire', fame: 4,
     stats: { tiro: 103, control: 67, fisico: 46, defensa: 25, velocidad: 60, aguante: 32 },
     techniques: ['eternal-blizzard', 'wolf-legend'],
