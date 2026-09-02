@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
 import { techniqueByName } from '@/ui/inazuma/DuelStage'
+import { techVideo } from '@/data/inazuma/tech-videos'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import type { MatchEvent } from '@/engine/inazuma/types'
 
@@ -319,12 +320,27 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
             </div>
           ) : techInfo ? (
             <div key={tech!.key} className="absolute inset-0 animate-pop-in">
+              {/* Con VÍDEO de la técnica cuando lo hay (streaming del CDN de
+                  inazumo): la tele enseña la supertécnica DE VERDAD. La
+                  imagen queda DEBAJO como póster y respaldo si el vídeo
+                  falla o aún carga. */}
               <ImgFallback
                 src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
                 alt={techInfo.name}
                 fallback={<span className="grid place-items-center w-full h-full text-[10px] font-bold text-slate-400 px-1 text-center">{techInfo.name}</span>}
               />
+              {techVideo(techInfo.id) && (
+                <video
+                  src={techVideo(techInfo.id)}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none' }}
+                />
+              )}
               {/* Nombre y POTENCIA EFECTIVA bien visibles: «no veo su
                   potencia» era feedback literal del playtest. */}
               <span

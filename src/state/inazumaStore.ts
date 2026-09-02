@@ -1473,17 +1473,16 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   },
 
   halftimeFormation: (formationId) => {
-    const { match, save } = get()
-    if (!match || !save || !get().halftimeBreak) return
+    const { match } = get()
+    if (!match || !get().halftimeBreak) return
     const f = getFormation(formationId)
     const err = reformation(match, f.defs, f.mids, f.fwds)
     if (err) { set({ message: err }); return }
     play('select')
-    // También queda como formación de la partida: es la que verás al volver
-    // al vestuario.
-    const nextSave = { ...save, formation: formationId }
-    set({ match: { ...match }, save: nextSave, message: `Formación: ${f.name}.` })
-    void persist(nextSave, get().phase)
+    // SOLO para este partido: un parche de urgencia del descanso no cambia tu
+    // formación de cabecera — al acabar, vuelves a la que tenías planificada
+    // (antes se guardaba y «se quedaba la táctica del descanso»).
+    set({ match: { ...match }, message: `Formación: ${f.name} (solo este partido).` })
   },
 
   /**

@@ -2,6 +2,7 @@
 // técnica en el modo. Imagen en grande, clase, elemento, potencia y coste —
 // y si la abre su DUEÑO, los valores EFECTIVOS con sus Mejoras (V2, V3…)
 // junto a los base, para que se entienda qué está pagando y qué está pegando.
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
@@ -11,6 +12,7 @@ import { TECH_LEVEL_BONUS, techniqueCostFor } from '@/engine/inazuma/roster'
 import { COMBO_COST_MULT, COMBO_MULT, COMBO_MULT_AFINIDAD, comboOf } from '@/data/inazuma/combos'
 import { getPlayerBase } from '@/data/inazuma/players'
 import { ComboMark, ELEMENT_ICON, KindIcon, techniqueImage, useTechSheet } from '@/ui/inazuma/Glyphs'
+import { TECH_MEDIA } from '@/data/inazuma/tech-videos'
 
 export default function TechniqueSheet() {
   const { tech, holder, close } = useTechSheet()
@@ -35,17 +37,13 @@ export default function TechniqueSheet() {
           <Icon name="x" className="w-4 h-4" />
         </button>
 
-        {/* LA IMAGEN, en grande. */}
+        {/* EL VÍDEO de la técnica (streaming del CDN de inazumo), con la
+            imagen de siempre como póster y respaldo si no hay o no carga. */}
         <div
-          className="mx-auto w-56 h-56 rounded-2xl overflow-hidden border-2 grid place-items-center bg-slate-950"
+          className="mx-auto w-full aspect-video rounded-2xl overflow-hidden border-2 grid place-items-center bg-slate-950"
           style={{ borderColor: `${info.color}66` }}
         >
-          <ImgFallback
-            src={techniqueImage(tech.id)}
-            alt={tech.name}
-            className="w-full h-full object-cover"
-            fallback={<Icon name={ELEMENT_ICON[tech.element]} className="w-20 h-20" style={{ color: info.color }} />}
-          />
+          <TechVideo key={tech.id} techId={tech.id} name={tech.name} color={info.color} element={tech.element} />
         </div>
 
         <div className="mt-3 text-center">
@@ -76,6 +74,15 @@ export default function TechniqueSheet() {
           </Stat>
         </div>
 
+        {/* Los DATOS OFICIALES de Victory Road, de referencia (el balance del
+            modo es el nuestro — el suyo es un sistema plano de 6 escalones). */}
+        {TECH_MEDIA[tech.id]?.vrPower != null && (
+          <p className="mt-1.5 text-center text-[10px] text-slate-500">
+            Datos oficiales VR: potencia <b className="text-slate-300">{TECH_MEDIA[tech.id].vrPower}</b> · tensión{' '}
+            <b className="text-slate-300">{TECH_MEDIA[tech.id].vrTension}</b>
+          </p>
+        )}
+
         {/* TÉCNICA COMBINADA: con quién se lanza y el plus de AFINIDAD. */}
         {(() => {
           const combo = comboOf(tech.id)
@@ -105,6 +112,36 @@ export default function TechniqueSheet() {
       </div>
     </div>,
     document.body,
+  )
+}
+
+/** El vídeo con red de seguridad: si no hay o falla, la imagen de siempre. */
+function TechVideo({ techId, name, color, element }: {
+  techId: string; name: string; color: string; element: keyof typeof ELEMENT_ICON
+}) {
+  const [broken, setBroken] = useState(false)
+  const video = TECH_MEDIA[techId]?.video
+  if (video && !broken) {
+    return (
+      <video
+        src={video}
+        poster={techniqueImage(techId)}
+        className="w-full h-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+        onError={() => setBroken(true)}
+      />
+    )
+  }
+  return (
+    <ImgFallback
+      src={techniqueImage(techId)}
+      alt={name}
+      className="w-full h-full object-cover"
+      fallback={<Icon name={ELEMENT_ICON[element]} className="w-20 h-20" style={{ color }} />}
+    />
   )
 }
 
