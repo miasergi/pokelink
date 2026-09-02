@@ -194,9 +194,29 @@ function chester(e: MatchEvent | undefined, prev?: MatchEvent): { text: string; 
 export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: number }) {
   const last = feed[feed.length - 1]
   const { text, mood } = chester(last, feed[feed.length - 2])
-  // La velocidad del partido, para que el VÍDEO de la técnica quepa entero
-  // en su ventana de pantalla (ver playbackRate más abajo).
-  const speed = useInazuma((s) => s.speed)
+
+  // LA RETENCIÓN DEL VÍDEO: mientras una supertécnica se reproduce, el
+  // partido entero espera (reloj y revelado, vía `videoHold` del store) y el
+  // vídeo va SIEMPRE a velocidad real — a ×2/×4 no se apreciaba nada
+  // (decisión de playtest). `holdKey` ata la retención a SU vídeo: liberarla
+  // dos veces o desde un vídeo viejo no puede pisar a uno nuevo.
+  const holdKey = useRef<number | null>(null)
+  const releaseHold = (key: number, clearAfter = 1200) => {
+    if (holdKey.current !== key) return
+    holdKey.current = null
+    useInazuma.getState().setVideoHold(false)
+    // El fotograma congelado aguanta un respiro por si el veredicto (gol,
+    // parada) entra a pisarlo; si no viene nada, vuelve Chester.
+    setTimeout(() => setTech((s) => (s?.key === key ? null : s)), clearAfter)
+  }
+  // Si la tele se desmonta con la retención puesta, se libera SIEMPRE: un
+  // partido no puede quedarse congelado por un componente que ya no existe.
+  useEffect(() => () => {
+    if (holdKey.current != null) {
+      holdKey.current = null
+      useInazuma.getState().setVideoHold(false)
+    }
+  }, [])
 
   // LA TÉCNICA EN PANTALLA: al contarse un evento con supertécnica, la tele
   // corta a su imagen 2.6 s y vuelve a Chester.
@@ -280,8 +300,12 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
     // OJO: SIN cleanup. Si el timer se limpiara al llegar el siguiente
     // evento (como hacía), una imagen cuyo evento retiene menos de 2.6 s se
     // quedaba PILLADA para siempre — el guard por `key` ya evita que un
-    // timer viejo borre una imagen más nueva.
-    setTimeout(() => setTech((s) => (s?.key === key ? null : s)), 2600)
+    // timer viejo borre una imagen más nueva. Con VÍDEO en marcha (hold de
+    // esta key), el temporizador no la toca: la limpia su propia liberación.
+    setTimeout(() => {
+      if (holdKey.current === key) return
+      setTech((s) => (s?.key === key ? null : s))
+    }, 2600)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed.length])
 
@@ -341,25 +365,38 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
                   autoPlay
                   muted
                   playsInline
-                  // VELOCIDAD ADAPTATIVA: el vídeo entero cabe en su ventana
-                  // de pantalla (que encoge a ×2/×4) — la cinemática se ve
-                  // completa sin frenar el partido.
-                  onLoadedMetadata={(e) => {
+                  // A VELOCIDAD REAL, siempre — aunque el partido vaya a ×2 o
+                  // ×4. La cinemática se ve como es, y el partido ESPERA
+                  // (videoHold) hasta que termina.
+                  onLoadedMetadata={(e) => { e.currentTarget.playbackRate = 1 }}
+                  // La retención arranca cuando el vídeo REPRODUCE de verdad
+                  // (no al montarse: si el CDN no responde, nada se congela),
+                  // con un perro guardián por si el stream se atasca a mitad.
+                  onPlaying={(e) => {
+                    const key = tech!.key
+                    if (holdKey.current === key) return
+                    holdKey.current = key
+                    useInazuma.getState().setVideoHold(true)
                     const v = e.currentTarget
-                    const f = speed >= 1000 ? 1 : speed >= 400 ? 0.6 : 0.42
-                    const ventana = 2.6 * f
-                    if (v.duration && isFinite(v.duration)) {
-                      v.playbackRate = Math.min(4, Math.max(0.9, (v.duration - 0.25) / ventana))
-                    }
+                    const max = v.duration && isFinite(v.duration) ? Math.min(9000, v.duration * 1000 + 1500) : 9000
+                    setTimeout(() => releaseHold(key, 0), max)
                   }}
                   // Y CONGELADO justo antes del final: el vídeo de una parada
                   // no «completa» la parada — quien remata es el veredicto
                   // (la foto del gol o la del paradón), que entra de golpe.
+                  // Congelar LIBERA la retención: el partido sigue ya.
                   onTimeUpdate={(e) => {
                     const v = e.currentTarget
-                    if (v.duration && v.duration - v.currentTime < 0.25) v.pause()
+                    if (v.duration && v.duration - v.currentTime < 0.25) {
+                      v.pause()
+                      releaseHold(tech!.key)
+                    }
                   }}
-                  onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none' }}
+                  onEnded={() => releaseHold(tech!.key)}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLVideoElement).style.display = 'none'
+                    releaseHold(tech!.key, 0)
+                  }}
                 />
               )}
               {/* Nombre y POTENCIA EFECTIVA bien visibles: «no veo su

@@ -51,7 +51,11 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // cinco titular (antes se repartían con el banquillo por el orden de plantilla
 // de la wiki) — el rival juega mejor colocado en TODAS las rondas y la banda
 // cayó de 1/150 a 0/150. Un punto menos del tramo 2 en adelante lo compensa.
-export const RIVAL_LEVELS = [5, 8, 12, 18, 24, 30, 36, 43]
+// Y otro punto en el tramo temprano al RAREFICAR las lesiones por fatiga
+// (umbral 60→40, desgaste 12/3→10/2.5): las lesiones del RIVAL eran medio
+// triunfo — con rivales que ya no se rompen, las primeras rondas medían más
+// duras y la banda cayó al filo (2.2/8).
+export const RIVAL_LEVELS = [4, 7, 11, 17, 24, 30, 36, 43]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

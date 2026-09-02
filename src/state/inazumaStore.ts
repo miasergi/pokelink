@@ -329,6 +329,14 @@ interface InazumaState {
    */
   uiBusy: boolean
   setUiBusy: (v: boolean) => void
+  /**
+   * true mientras un VÍDEO de supertécnica está reproduciéndose en la tele de
+   * Chester: reloj y revelado esperan a que termine. Los vídeos van SIEMPRE a
+   * velocidad real (decisión de playtest: a ×2/×4 no se apreciaban) y el
+   * partido no se reanuda hasta que acaban.
+   */
+  videoHold: boolean
+  setVideoHold: (v: boolean) => void
   message: string | null
   /** FILAS con retrato para el modal de aviso: quién sube qué (nombre +
    * detalle tipo «+2 → Nv.12» o «TIR +6 · CTR +3»). */
@@ -510,6 +518,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
   pendingTarget: null,
   pendingSigning: null,
   uiBusy: false,
+  videoHold: false,
   message: null,
   messageDetail: null,
   itemFx: null,
@@ -522,6 +531,13 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     if (get().uiBusy === v) return
     set({ uiBusy: v })
     // Al liberarse la pantalla, la retransmisión retoma el latido en el acto.
+    if (!v && get().match) { stopTicker(); ticker = setTimeout(() => get().tick(), 120) }
+  },
+
+  setVideoHold: (v) => {
+    if (get().videoHold === v) return
+    set({ videoHold: v })
+    // Al terminar el vídeo, el partido retoma el latido en el acto.
     if (!v && get().match) { stopTicker(); ticker = setTimeout(() => get().tick(), 120) }
   },
 
@@ -955,7 +971,7 @@ export const useInazuma = create<InazumaState>((set, get) => ({
         // Parado en cinemáticas y en el descanso. Y con la cola VACÍA, solo
         // corre si se está jugando — pero si queda algo por contar, el reloj
         // sigue hasta contarlo (los revelados nunca dependieron de `playing`).
-        if (st.uiBusy || st.halftimeBreak || st.halftimeSubsSummary) return
+        if (st.uiBusy || st.videoHold || st.halftimeBreak || st.halftimeSubsSummary) return
         if (!st.playing && !revealQueue.length) return
         const rate = clockRate(st.speed)
         const cap = st.match.stage === 'reglamentario' ? 90 : 120
@@ -977,6 +993,9 @@ export const useInazuma = create<InazumaState>((set, get) => ({
     // césped a mitad de animación (los emparejamientos «bailaban») y dejaba
     // cinemáticas en cola una detrás de otra. `setUiBusy(false)` retoma.
     if (get().uiBusy) { ticker = setTimeout(() => get().tick(), 180); return }
+    // Un VÍDEO de técnica en la tele también para el mundo: se ve entero, a
+    // velocidad real, y el partido se reanuda al terminar.
+    if (get().videoHold) { ticker = setTimeout(() => get().tick(), 180); return }
     // El PANEL DE CAMBIOS del descanso también para el mundo: la segunda
     // parte no arranca (ni narra por debajo) hasta su «¡Segunda parte!».
     if (get().halftimeSubsSummary) { ticker = setTimeout(() => get().tick(), 250); return }

@@ -49,9 +49,12 @@ export const TACTIC_DURATION = 9
 // apenas baja, ni el mío ni el del rival». Con 10/2 el que disputa 3-4 duelos
 // entra en penalización clara en la segunda parte y el cambio del descanso
 // vale lo que cuesta.
-const STAMINA_PER_DUEL = 12
+// Rebajado de 12/3 a 10/2.5 en el playtest («el aguante se fulmina en pocos
+// minutos»): el que disputa sus duelos sigue llegando tocado al tramo final,
+// pero la primera parte ya no funde a nadie por el mero pasar de los minutos.
+const STAMINA_PER_DUEL = 10
 /** Desgaste por posesión para TODOS los que están sobre el campo. */
-const STAMINA_PER_PLAY = 3
+const STAMINA_PER_PLAY = 2.5
 
 export interface MatchConfig {
   seed: number
@@ -374,13 +377,17 @@ function attackerFor(step: ChainStep, atk: MatchSide, rng: RNG): Actor {
  */
 function injuryCheck(m: MatchState, out: MatchEvent[], a: Actor, side: Side, rng: RNG): void {
   if (a.injured) return
-  // Fresco NO te rompes: el dado solo existe por debajo de 60 de aguante
-  // (0 % → 3.5 % a medida que te vacías), y quedarse a CERO sigue siendo
+  // Fresco NO te rompes: el dado solo existe por debajo de 40 de aguante
+  // (0 % → 3 % a medida que te vacías), y quedarse a CERO sigue siendo
   // lesión segura. Recalibrado a la baja (5 → 3.5) al SELLAR de verdad a los
   // lesionados: antes «seguían jugando» si caía la línea entera, y al
   // arreglarlo los partidos con lesiones pasaron a jugarse en inferioridad
   // real — la banda del bot se desplomó a 0/150 títulos.
-  const p = a.stamina <= 0 ? 1 : a.stamina >= 60 ? 0 : 0.035 * (1 - a.stamina / 60)
+  // Y el umbral bajado de 60 a 40 (con el dado en 3 %) tras el playtest «se
+  // lesionan con demasiada frecuencia»: en la primera parte, con el aguante
+  // por encima de 40, romperse por fatiga debe ser CASI imposible — el
+  // riesgo real es de la segunda parte, cuando ya vas vacío y no cambias.
+  const p = a.stamina <= 0 ? 1 : a.stamina >= 40 ? 0 : 0.03 * (1 - a.stamina / 40)
   if (p <= 0 || !rng.chance(p)) return
   a.injured = true
   out.push({

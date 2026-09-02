@@ -43,7 +43,16 @@ export default function SigningOverflowSheet() {
             />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="font-extrabold text-[13px] truncate">{base.name}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-[13px] truncate">{base.name}</span>
+              {/* Sus ESTRELLAS de peso en la serie: la decisión de quedárselo
+                  o venderlo se toma también con esto delante. */}
+              <span className="ml-auto shrink-0 flex gap-[1px]" title={`Peso en la serie: ${base.fame}/5`}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Icon key={i} name="star" className="w-3 h-3" style={{ color: i < base.fame ? '#fbbf24' : '#334155' }} />
+                ))}
+              </span>
+            </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: rarityBorder(tier) }}>
                 {RARITY_LABEL[tier]}
