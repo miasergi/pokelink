@@ -6158,12 +6158,14 @@ export function startingSquad(teamId: string, formationId?: string): string[] {
 export const RAIMON_STARTING_XI: string[] = startingSquad('raimon').slice(0, 11)
 
 // ---------------------------------------------------------------------------
-// LA CADENA SIEMPRE DE MENOS A MÁS: en la serie se aprende primero la versión
-// floja y después la evolución, pero el crawl traía algunas cadenas giradas
-// (Joseph King despertaba el Escudo Total antes que el Escudo). Se reordena
-// por potencia al cargar, y lo que cada jugador SABE de salida pasa a ser el
-// principio de su cadena ordenada (más lo que tuviera de fuera de ella).
-import { getTechnique as __getTech } from '@/data/inazuma/techniques'
+// LA CADENA VA EN ORDEN DE LORE: el orden escrito en el catálogo ES el
+// canónico (El Muro abre la de Wallside, el Tornado de Fuego la de Axel…) y
+// se respeta TAL CUAL. Antes se reordenaba por potencia al cargar — venía de
+// cuando el crawl traía cadenas giradas — pero desde la limpieza de cadenas
+// canónicas ese sort solo servía para ROMPER el lore: la técnica insignia de
+// cada uno caía a mitad de escalera si un paso posterior era más flojo.
+// Lo que cada jugador SABE de salida se normaliza al principio de su cadena
+// (más lo que tuviera de fuera de ella).
 for (const p of PLAYERS) {
   // EL ATRIBUTO DE PORTERO, calculado al cargar (el bloque generado es de 6
   // stats): el portero hereda su oficio de la defensa que traía tuneada de
@@ -6174,9 +6176,7 @@ for (const p of PLAYERS) {
       : Math.round(p.stats.defensa * 0.3 + p.stats.fisico * 0.2)
   }
   if (!p.signature?.length) continue
-  const antes = p.signature
-  p.signature = [...antes].sort((a, b) => (__getTech(a)?.power ?? 0) - (__getTech(b)?.power ?? 0))
-  const deCadena = p.techniques.filter((t) => antes.includes(t)).length
-  const deFuera = p.techniques.filter((t) => !antes.includes(t))
+  const deCadena = p.techniques.filter((t) => p.signature!.includes(t)).length
+  const deFuera = p.techniques.filter((t) => !p.signature!.includes(t))
   p.techniques = [...p.signature.slice(0, deCadena), ...deFuera]
 }

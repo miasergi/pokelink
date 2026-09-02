@@ -141,7 +141,10 @@ export const TECH_MEDIA: Record<string, TechMedia> = {
   'capoeira-snatch': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/l/g/lghkajqhwxs.webm', vrPower: 60, vrTension: 60 },
   'fence-of-gaia': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/n/o/nok5tig8g1k.webm', vrPower: 60, vrTension: 60 },
   'mugen-the-hand': { video: 'https://www.youtube.com/watch?v=9FI9fkXOGUY', vrPower: 80, vrTension: 80 },
-  'god-hand-x': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/b/x/bx2nypvc85c.webm', vrPower: 80, vrTension: 80 },
+  // OJO: el vídeo que inazumo asigna a la Mano Celestial X es en realidad el
+  // del Drill Smasher (rótulo ドリルスマッシャー en el propio vídeo) — la X se
+  // queda sin vídeo hasta que exista uno de verdad.
+  'god-hand-x': { vrPower: 80, vrTension: 80 },
   'god-hand-v': { video: 'https://www.youtube.com/watch?v=5wgAcJPNAh8', vrPower: 80, vrTension: 80 },
   'majin-the-hand': { video: 'https://www.youtube.com/watch?v=QWrzOxEUUiI', vrPower: 80, vrTension: 80 },
   'magic': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/x/t/xt5ycql4lns.webm', vrPower: 50, vrTension: 50 },
