@@ -849,13 +849,6 @@ export function SquadView() {
         </>}
 
         <BagPanel save={save} onUse={useConsumable} onEquip={equip} />
-        {/* La vista COMPLETA de la mochila (vender, convertir medallas y el
-            Fichaje estrella) vive aquí desde que el botón del mapa se quitó. */}
-        <Button variant="ghost" full onClick={() => goTo('bag')}>
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Icon name="bag" className="w-4 h-4" /> Mochila completa (vender y convertir)
-          </span>
-        </Button>
       </div>
 
       <div className="shrink-0 border-t border-slate-800 bg-slate-900/90 p-2 safe-bottom flex gap-2">
@@ -1384,12 +1377,23 @@ export function ShopView() {
 
         {stock.map((item) => {
           const afford = save.coins >= item.price
+          // CUÁNTOS tienes ya (mochila + equipados): para saber si merece la
+          // pena comprar más — comprabas a ciegas.
+          const owned = save.bag.filter((x) => x === item.id).length
+            + save.roster.filter((p) => p.item === item.id).length
           return (
             <Card key={item.id} className={`p-3 ${afford ? '' : 'opacity-50'}`} onClick={afford ? () => buy(item.id) : undefined}>
               <div className="flex items-center gap-2.5">
                 <ItemIcon itemId={item.id} className="w-6 h-6 shrink-0 text-slate-300" />
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-sm">{item.name}</div>
+                  <div className="font-bold text-sm">
+                    {item.name}
+                    {owned > 0 && (
+                      <span className="ml-1.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-300 align-middle">
+                        tienes ×{owned}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[11px] text-slate-400">{item.desc}</div>
                 </div>
                 <span className="text-sm font-extrabold text-amber-300 tabular-nums shrink-0">

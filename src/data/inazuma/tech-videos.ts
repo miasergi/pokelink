@@ -286,7 +286,7 @@ export const TECH_MEDIA: Record<string, TechMedia> = {
   'god-cannon': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/v/e/ve_-gzrddts.webm', vrPower: 70, vrTension: 70 },
   'odin-sword': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/8/6/86alvmdugs0.webm', vrPower: 70, vrTension: 70 },
   'double-jaw': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/c/6/c6ojbegoyv8.webm', vrPower: 60, vrTension: 60 },
-  'koutei-penguin-x': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/g/4/g4q2wiqdeg0.webm', vrPower: 80, vrTension: 80 },
+  'koutei-penguin-x': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/g/4/g4q2wiqdeg0.webm', vrPower: 50, vrTension: 50 },
   'maximum-fire': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/1/x/1xclzuev2zc.webm', vrPower: 60, vrTension: 60 },
   'tiger-storm': { video: 'https://www.youtube.com/watch?v=1ziNmOV3Ag4', vrPower: 80, vrTension: 80 },
   'dark-matter': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/k/2/k2ofnmnnuge.webm', vrPower: 60, vrTension: 60 },
