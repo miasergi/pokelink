@@ -1525,7 +1525,18 @@ export function DraftView() {
                   −<CoinPrice amount={o.cost} />
                 </span>
               ) : null}
-              <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
+              {/* En los FICHAJES la carta ya no se elige tocándola (tiene su
+                  botón «Fichar»), así que la flecha no contaba nada: en su
+                  lugar, las estrellas de peso en la serie del candidato. */}
+              {o.kind === 'fichaje' ? (
+                <span className="shrink-0 flex gap-[1px]" title={`Peso en la serie: ${getPlayerBase(o.playerId).fame}/5`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Icon key={i} name="star" className="w-3 h-3" style={{ color: i < getPlayerBase(o.playerId).fame ? '#fbbf24' : '#334155' }} />
+                  ))}
+                </span>
+              ) : (
+                <Icon name="arrowRight" className="w-4 h-4 text-slate-500 shrink-0" />
+              )}
             </div>
             {/* Los atributos con los que llegaría, para no fichar a ciegas. */}
             {o.kind === 'fichaje' && (

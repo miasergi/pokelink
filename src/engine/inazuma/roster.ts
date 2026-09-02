@@ -731,10 +731,11 @@ function applyPower(s: Stats, power: number): Stats {
 export function rivalKnownTechniques(b: PlayerBase, level: number, rarity: number, elite = false): string[] {
   const chain = (b.signature ?? []).slice(0, Math.max(1, Math.min(MAX_RARITY, rarity)))
   let known = chain.filter((_, i) => level >= signatureLevelFor(b.id, i))
-  // El paso EXTRA de los cracks ★5 solo a partir del tramo alto (nivel 30+):
-  // desde el primer partido hacía que «el rival no para de usar supertécnicas»
-  // mientras tu equipo aún despertaba las suyas.
-  if (elite && b.fame >= 5 && level >= 30 && known.length < chain.length) known = chain.slice(0, known.length + 1)
+  // El paso EXTRA de los cracks ★5 solo en el TRAMO FINAL (nivel 37+, las dos
+  // últimas eliminatorias). Antes saltaba desde nivel 30, calibrado para los
+  // 12 ★5 del catálogo viejo; con la fama oficial de Victory Road hay 33
+  // cracks ★5 y ese extra en semis hundía la tasa de títulos del bot a 0.
+  if (elite && b.fame >= 5 && level >= 37 && known.length < chain.length) known = chain.slice(0, known.length + 1)
   return known
 }
 

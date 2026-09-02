@@ -46,7 +46,12 @@ import type { InazumaMap, MapSegment, NodeKind, Technique, TournamentNode } from
 // lesionados fuera del césped (antes, con una línea entera rota, «seguían
 // jugando»), cada lesión es jugar en inferioridad y la banda cayó a 0/150.
 // Un punto menos por ronda intermedia lo devuelve a su sitio.
-export const RIVAL_LEVELS = [5, 8, 13, 19, 25, 31, 37, 44]
+// Y re-recalibrada con la FAMA OFICIAL de Victory Road: con el peso real de
+// cada personaje, las platas y oros del plan rival caen ahora de verdad en su
+// cinco titular (antes se repartían con el banquillo por el orden de plantilla
+// de la wiki) — el rival juega mejor colocado en TODAS las rondas y la banda
+// cayó de 1/150 a 0/150. Un punto menos del tramo 2 en adelante lo compensa.
+export const RIVAL_LEVELS = [5, 8, 12, 18, 24, 30, 36, 43]
 /** Niveles extra de una casilla arriesgada. */
 export const RISKY_LEVEL_BONUS = 4
 /** Casillas de ruta por tramo (más el jefe que lo cierra). */

@@ -26,7 +26,12 @@ export function signingLevel(save: InazumaSave): number {
  */
 function rarityWeight(rarity: number, bossIndex: number): number {
   const progress = Math.min(1, bossIndex / 7)
-  const target = 1.6 + progress * 2.6 // 1.6 → 4.2
+  // Curva recalibrada a la FAMA OFICIAL de Victory Road: el catálogo viejo
+  // tenía mediana ★1 y el objetivo arrancaba en 1.6; con los pesos reales la
+  // mediana es ★3, y dejarlo en 1.6 confinaba las ofertas tempranas a los
+  // fondos de armario auténticos (cadenas flojas) — la banda del bot cayó a
+  // 0 títulos por inanición de plantilla, no por el rival.
+  const target = 2.3 + progress * 2.2 // 2.3 → 4.5
   const d = Math.abs(rarity - target)
   // Suelo subido (0.05 → 0.14) y pendiente más suave: el peso viejo confinaba
   // las ofertas tempranas al mismo mar de suplentes de catálogo bajo — otra
