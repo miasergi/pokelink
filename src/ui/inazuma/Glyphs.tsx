@@ -192,12 +192,10 @@ const SPRITE_ALIAS: Record<string, string> = {
   'espinilleras-muro': 'espinilleras',
   'guantes-guardameta': 'guantes-portero',
   'bidon-inagotable': 'bebida-doble',
-  'pocion-pt': 'bebida-isotonica',
-  'superpocion-pt': 'bebida-doble',
-  'pocion-pt-max': 'bebida-doble',
-  'pocion-aguante': 'masaje',
-  'superpocion-aguante': 'masaje',
-  'pocion-aguante-max': 'ramen-especial',
+  // Las POCIONES ya tienen sprite propio (los del juego DS: agua isotónica,
+  // mineral y medicinal para el aguante; barrita, chocolate y artefacto para
+  // los PT) — y también la medalla (chapa), la Mejora (decreto) y el
+  // brazalete: fuera los alias prestados.
   'elixir-equipo': 'concentrado',
 }
 
