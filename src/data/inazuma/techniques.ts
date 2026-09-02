@@ -264,7 +264,7 @@ export const TECHNIQUES: Technique[] = [
   { id: 'tatsumaki-senpuu', name: "Torbellino", kind: 'regate', element: 'aire', power: 31, cost: 13, desc: "Acelera hasta que el defensa deja de verle." },
   { id: 'dash-accel', name: "Aceleración", kind: 'regate', element: 'montana', power: 31, cost: 13, desc: "Se abre camino a hombros, sin frenar." },
   { id: 'super-armadillo', name: "Súper Armadillo", kind: 'regate', element: 'montana', power: 31, cost: 13, desc: "Se abre camino a hombros, sin frenar." },
-  { id: 'heat-tackle', name: "Entrada Ardiente", kind: 'regate', element: 'fuego', power: 32, cost: 13, desc: "Entra en llamas, y no es una forma de hablar." },
+  { id: 'heat-tackle', name: "Entrada de Llamas", kind: 'regate', element: 'fuego', power: 32, cost: 13, desc: "Entra en llamas, y no es una forma de hablar." },
   { id: 'zanzou', name: "Espejismo", kind: 'regate', element: 'bosque', power: 32, cost: 13, desc: "Se escurre entre la maleza y aparece por el otro lado." },
   { id: 'judge-through', name: "Avance Imparable", kind: 'regate', element: 'fuego', power: 33, cost: 14, desc: "Un quiebro con las botas humeando." },
   { id: 'meteor-shower', name: "Lluvia de Meteoros", kind: 'regate', element: 'fuego', power: 33, cost: 14, desc: "Un quiebro con las botas humeando." },

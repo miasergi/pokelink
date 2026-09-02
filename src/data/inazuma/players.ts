@@ -5625,8 +5625,8 @@ const RAW_PLAYERS: RawPlayer[] = [
   {
     id: 'scor-nelles', name: 'Scor Nelles', team: 'libre', position: 'MED', element: 'fuego', fame: 5, // original
     stats: { tiro: 74, control: 82, fisico: 58, defensa: 55, velocidad: 70, aguante: 62 },
-    techniques: ['lightning-accel', 'atomic-flare'],
-    signature: ['flame-dance', 'atomic-flare', 'lightning-accel', 'bakunetsu-storm'],
+    techniques: ['heat-tackle', 'atomic-flare'],
+    signature: ['flame-dance', 'atomic-flare', 'heat-tackle', 'bakunetsu-storm'],
   },
   {
     // ORIGINAL como Scor Nelles: la defensa enamoradiza del Resto del mundo.
