@@ -5630,12 +5630,12 @@ const RAW_PLAYERS: RawPlayer[] = [
   },
   {
     // ORIGINAL como Scor Nelles: la defensa enamoradiza del Resto del mundo.
-    // Su cadena es 100% dulzura: ángeles, flechas de amor y un corazonazo de
-    // remate (las cuatro con vídeo real de Victory Road).
+    // Su cadena es 100% dulzura: ángel, flecha de amor, giro de bailarina y
+    // fiesta de flores de remate (las cuatro con vídeo real de Victory Road).
     id: 'neree-swaggy', name: 'Neree Swaggy', team: 'libre', position: 'DEF', element: 'montana', fame: 5, // original
     stats: { tiro: 42, control: 60, fisico: 88, defensa: 102, velocidad: 47, aguante: 55 },
     techniques: ['snow-angel', 'cupids-arrow'],
-    signature: ['snow-angel', 'cupids-arrow', 'angel-ball', 'loyal-heart-shot'],
+    signature: ['snow-angel', 'cupids-arrow', 'prima-donna', 'floral-fiesta'],
   },
   // ============================== CALLEJEROS (scouts de los juegos)
   {

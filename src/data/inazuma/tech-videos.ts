@@ -330,6 +330,7 @@ export const TECH_MEDIA: Record<string, TechMedia> = {
   // Añadidas a mano para la cadena de Neree Swaggy (la 'era' vr del catálogo).
   'cupids-arrow': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/9/q/9qdqxie5rnu.webm', vrPower: 60, vrTension: 60 },
   'loyal-heart-shot': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/t/d/tdxqa_2w00e.webm', vrPower: 100, vrTension: 100 },
+  'floral-fiesta': { video: 'https://dxi4wb638ujep.cloudfront.net/1/k/9/n/9nxizbpfqsm.webm', vrPower: 80, vrTension: 80 },
 }
 
 export function techVideo(id: string): string | undefined {

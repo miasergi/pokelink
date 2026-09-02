@@ -107,6 +107,8 @@ export const TECHNIQUES: Technique[] = [
   { id: 'the-tower', name: "La Torre", kind: 'bloqueo', element: 'aire', power: 68, cost: 29, desc: "Una torre de piedra corta el pasillo." },
   { id: 'elephant-press', name: "Sándwich Gigante", kind: 'bloqueo', element: 'montana', power: 68, cost: 29, era: 'go', desc: "Aquí no pasa nadie." },
   { id: 'viva-banri-no-choujou', name: "Gran Muralla", kind: 'bloqueo', element: 'montana', power: 68, cost: 29, era: 'go', desc: "Aquí no pasa nadie." },
+  // Cadena de Neree Swaggy (sin 'era': los agentes libres son de todas las épocas).
+  { id: 'floral-fiesta', name: "Fiesta Floral", kind: 'bloqueo', element: 'montana', power: 72, cost: 30, desc: "Un estallido de flores envuelve al rival y el balón cambia de dueño entre pétalos." },
   { id: 'good-smell', name: "Polvo Somnífero", kind: 'bloqueo', element: 'bosque', power: 72, cost: 30, desc: "El terreno atrapa las piernas del rival." },
   { id: 'desert-storm', name: "Ráfaga del Desierto", kind: 'bloqueo', element: 'aire', power: 72, cost: 30, desc: "Una ráfaga le quita el balón de los pies." },
   { id: 'twin-mixer', name: "Corte y Recorte", kind: 'bloqueo', element: 'fuego', power: 77, cost: 32, era: 'go', desc: "Un muro de fuego cierra el pasillo." },
