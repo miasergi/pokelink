@@ -9,6 +9,7 @@
 // (verde), lista para despertar, o el candado con el nivel y la rareza que lo
 // abren. Tocar un paso abre la ficha de la técnica (sin burbujear: dentro de
 // cartas clicables no dispara nada más).
+import { useRef } from 'react'
 import Icon from '@/ui/components/Icon'
 import { getTechnique } from '@/data/inazuma/techniques'
 import { getPlayerBase } from '@/data/inazuma/players'
@@ -28,6 +29,10 @@ export default function SignatureChain({ baseId, player, level, rarity }: {
   level?: number
   rarity?: number
 }) {
+  // BLINDAJE anti toque-fantasma (el mismo de PlayerCard): la cadena nace
+  // dentro de una ficha recién abierta, y el segundo tap de un doble toque
+  // caía sobre un paso — «al abrir la ficha se me abre una de sus técnicas».
+  const mountedAt = useRef(Date.now())
   const chain = getPlayerBase(baseId).signature ?? []
   if (!chain.length) {
     return <div className="text-[11px] text-slate-600">Sin cadena de supertécnicas.</div>
@@ -64,7 +69,10 @@ export default function SignatureChain({ baseId, player, level, rarity }: {
               {i < chain.length - 1 && <span className="flex-1 w-px bg-slate-700/70 my-0.5" />}
             </div>
             <div
-              onClick={(e) => { e.stopPropagation(); useTechSheet.getState().open(t, player) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (Date.now() - mountedAt.current > 350) useTechSheet.getState().open(t, player)
+              }}
               className={`flex-1 min-w-0 mb-1.5 flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer active:scale-[0.99] transition ${learned ? '' : 'opacity-75'}`}
               style={rarityChipStyle(needRarity, learned ? `${info.color}12` : 'rgba(30,41,59,0.45)')}
             >

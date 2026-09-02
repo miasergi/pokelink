@@ -1162,7 +1162,9 @@ function PlayerDetail({
                     return (
                       <div
                         key={id}
-                        onClick={() => useTechSheet.getState().open(t, player)}
+                        onClick={() => {
+                          if (Date.now() - openedAt.current > 350) useTechSheet.getState().open(t, player)
+                        }}
                         className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5 cursor-pointer active:scale-[0.99] transition"
                       >
                         <TechniqueBadge tech={t} size={30} holder={player} />
@@ -1194,7 +1196,7 @@ function PlayerDetail({
         <div className="flex flex-col gap-1.5 mt-1">
           {player.item && (
             <button
-              onClick={() => onEquip(undefined)}
+              onClick={() => { if (Date.now() - openedAt.current > 350) onEquip(undefined) }}
               className="flex items-center gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-left active:scale-[0.99] transition"
             >
               <ItemIcon itemId={player.item} className="w-6 h-6 shrink-0" />
