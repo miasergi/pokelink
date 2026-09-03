@@ -659,11 +659,6 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed.length])
 
-  // La táctica ARMADA de cada banda, para rotular su barra cuando está en
-  // reposo (antes decía «Táctica especial» a secas y no contaba cuál era).
-  const armedMine = getTactic((mine.tactics ?? [])[0] ?? '')?.name
-  const armedTheirs = getTactic((theirs.tactics ?? [])[0] ?? '')?.name
-
   return (
     <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2 pt-1.5 pb-1.5">
       {/* EL MARCADOR DE RETRANSMISIÓN: una franja por equipo (el tuyo arriba,
@@ -673,19 +668,19 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
       <div className="rounded-2xl border border-slate-800 bg-slate-950/70 overflow-hidden">
         <ScoreStrip
           name={mine.name} teamId={myTeamId} color={mine.color} goals={myGoals} scorers={myScorers}
-          value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} armedName={armedMine} mineRow
+          value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} armedId={(mine.tactics ?? [])[0]} mineRow
           fx={golFx && golFx.side === mineSide ? golFx : null}
           onTacticTap={() => setShowTactics(true)}
         />
         <div className="relative h-px bg-slate-800">
           {/* El minuto vive en la juntura, sobre la columna de goles. */}
-          <span className="absolute left-[100px] top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-1.5 py-0.5 rounded-md border border-slate-700 bg-slate-900 text-[9px] font-bold tabular-nums text-slate-300">
+          <span className="absolute left-[80px] top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-1.5 py-0.5 rounded-md border border-slate-700 bg-slate-900 text-[9px] font-bold tabular-nums text-slate-300">
             {minute}′
           </span>
         </div>
         <ScoreStrip
           name={theirs.name} teamId={rivalTeamId} color={theirs.color} goals={theirGoals} scorers={theirScorers}
-          value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} armedName={armedTheirs}
+          value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} armedId={(theirs.tactics ?? [])[0]}
           fx={golFx && golFx.side !== mineSide ? golFx : null}
           onTacticTap={() => setShowTactics(true)}
         />
@@ -722,7 +717,7 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
  * hoja de filosofías) y los goleadores en columnas de dos. Con `fx`, la banda
  * de gol del club barre la franja entera al estilo Premier League.
  */
-function ScoreStrip({ name, teamId, color, goals, scorers, value, turns, tactic, armedName, mineRow, fx, onTacticTap }: {
+function ScoreStrip({ name, teamId, color, goals, scorers, value, turns, tactic, armedId, mineRow, fx, onTacticTap }: {
   name: string
   teamId?: string
   color: string
@@ -731,46 +726,53 @@ function ScoreStrip({ name, teamId, color, goals, scorers, value, turns, tactic,
   value: number
   turns: number
   tactic: { id: string; turns: number } | null
-  armedName?: string
+  /** La táctica ARMADA de esta banda: rotula e ilustra la barra en reposo. */
+  armedId?: string
   mineRow?: boolean
   fx: { key: number; scorer: string } | null
   onTacticTap: () => void
 }) {
-  const t = tactic ? getTactic(tactic.id) : undefined
+  // La táctica QUE SE ENSEÑA: la encendida si arde, si no la armada.
+  const shown = tactic ? getTactic(tactic.id) : armedId ? getTactic(armedId) : undefined
   // Los colores de la CAMISETA para la banda de gol (sin kit, el del escudo).
   const kit = (teamId ? TEAM_BY_ID.get(teamId)?.kit : undefined) ?? [color, '#0f172a']
   const ready = !tactic && turns <= 0 && value >= 100
   return (
     <div className="relative h-[52px] flex items-center gap-2 px-2">
-      {/* Escudo arriba, nombre debajo: el espacio FIJO del equipo. */}
-      <div className="w-16 shrink-0 flex flex-col items-center justify-center min-w-0">
+      {/* El escudo, en su espacio fijo. */}
+      <div className="w-11 shrink-0 grid place-items-center">
         {teamId
-          ? <Crest teamId={teamId} className="w-8 h-8" />
-          : <span className="w-8 h-8 rounded-full border border-slate-700" style={{ background: color }} />}
-        <span className="mt-0.5 max-w-full truncate text-[8px] font-extrabold uppercase tracking-wide text-slate-300">
-          {name.replace('Instituto ', '')}
-        </span>
+          ? <Crest teamId={teamId} className="w-9 h-9" />
+          : <span className="w-9 h-9 rounded-full border border-slate-700" style={{ background: color }} />}
       </div>
-      {/* Sus goles, en su cuadrito. */}
-      <div
-        className="w-10 h-10 shrink-0 grid place-items-center rounded-xl border border-slate-700 bg-slate-900 text-2xl font-black tabular-nums"
-        style={{ boxShadow: `inset 0 -3px 0 ${color}` }}
-      >
+      {/* Sus goles, en su cuadrito — en ámbar, que es EL número del partido. */}
+      <div className="w-10 h-10 shrink-0 grid place-items-center rounded-xl border border-amber-500/40 bg-slate-900 text-2xl font-black tabular-nums text-amber-300">
         {goals}
       </div>
-      {/* Su táctica: la barra y el nombre (tocar abre qué hace cada una). */}
-      <button onClick={onTacticTap} className="w-[104px] shrink-0 flex flex-col justify-center gap-1 text-left active:scale-[0.98] transition">
-        <BurstBar value={value} turns={turns} tactic={tactic} color={mineRow ? '#f59e0b' : '#64748b'} />
-        <span className={`text-[8px] leading-tight uppercase tracking-wider truncate ${
+      {/* El NOMBRE DEL EQUIPO encima y, debajo, su táctica: el icono a la
+          izquierda de la barra y el estado al pie (tocar abre qué hace). */}
+      <button onClick={onTacticTap} className="w-[118px] shrink-0 flex flex-col justify-center gap-[3px] text-left active:scale-[0.98] transition">
+        <span className="max-w-full truncate text-[9px] font-extrabold uppercase tracking-wide text-slate-200 leading-none">
+          {name.replace('Instituto ', '')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Icon
+            name={shown?.icon ?? 'bolt'}
+            className="w-3.5 h-3.5 shrink-0"
+            style={{ color: shown?.color ?? '#475569' }}
+          />
+          <BurstBar value={value} turns={turns} tactic={tactic} color={mineRow ? '#f59e0b' : '#64748b'} />
+        </span>
+        <span className={`text-[8px] leading-none uppercase tracking-wider truncate ${
           tactic || turns > 0 || ready ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-500'
         }`}>
           {tactic
-            ? `${t?.name ?? 'Táctica'} · ${tactic.turns}`
+            ? `${shown?.name ?? 'Táctica'} · ${tactic.turns}`
             : turns > 0
               ? `¡Supervibración! · ${turns}`
               : ready
-                ? `¡${armedName ?? 'Táctica'} LISTA!`
-                : armedName ?? 'Táctica especial'}
+                ? `¡${shown?.name ?? 'Táctica'} LISTA!`
+                : shown?.name ?? 'Táctica especial'}
         </span>
       </button>
       {/* Los goleadores, de dos en dos, llenando el espacio que queda. */}
