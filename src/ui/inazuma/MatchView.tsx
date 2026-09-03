@@ -811,16 +811,22 @@ function BurstBar({ value, turns, tactic, color, flip }: {
 }) {
   const active = turns > 0
   const fire = !!tactic
-  // Ardiendo, la barra se VACÍA con los usos que quedan: se ve consumirse.
-  const width = fire ? (tactic!.turns / 7) * 100 : active ? 100 : value
+  // Ardiendo, la barra se queda LLENA con un brillo que respira (el vaciado
+  // progresivo «se consumía» demasiado — feedback del playtest); el contador
+  // de usos ya lo canta el rótulo. Al terminar, el relleno se va DE GOLPE.
+  const width = fire || active ? 100 : value
   // LLENA y sin gastar: parpadea — en tu siguiente jugada clave saldrán los
   // botones para quemarla (Supervibración o tu Filosofía). Antes no había
   // ninguna señal y la barra «no se entendía».
   const ready = !active && !fire && value >= 100
   return (
     <div className={`flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden ${flip ? 'rotate-180' : ''}`}>
+      {/* La `key` remonta el relleno al cambiar de estado: sin ella, el paso
+          de ardiendo a vacía se ANIMABA con la transición de anchura y el
+          final de la táctica parecía un desinflado en vez de un corte. */}
       <div
-        className={`h-full rounded-full transition-all ${active || fire || ready ? 'animate-flame-flicker' : ''}`}
+        key={fire ? 'fire' : active ? 'vibr' : 'idle'}
+        className={`h-full rounded-full ${fire ? 'fx-tactic-glow' : 'transition-all'} ${active || ready ? 'animate-flame-flicker' : ''}`}
         style={{
           width: `${width}%`,
           background: fire

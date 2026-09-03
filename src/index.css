@@ -473,6 +473,15 @@ body {
 }
 .animate-ball-bob { animation: ball-bob 1s ease-in-out infinite; }
 
+/* TÁCTICA ARDIENDO: la barra llena RESPIRA — brillo suave a fuerte, como un
+   parpadeo lento — mientras dura; el vaciado progresivo se retiró (el rótulo
+   ya cuenta los usos y el consumo animado «era demasiado»). */
+@keyframes tactic-glow {
+  0%, 100% { opacity: 1; filter: brightness(1); box-shadow: 0 0 3px rgba(251, 146, 60, 0.55); }
+  50% { opacity: 0.8; filter: brightness(1.4); box-shadow: 0 0 8px rgba(251, 146, 60, 0.95); }
+}
+.fx-tactic-glow { animation: tactic-glow 1.15s ease-in-out infinite; }
+
 /* GOL EN EL MARCADOR (estilo Premier League): la banda con los colores del
    club entra barriendo la franja de su equipo, canta el gol y se retira. */
 @keyframes gol-sweep {
