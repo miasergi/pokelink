@@ -473,6 +473,16 @@ body {
 }
 .animate-ball-bob { animation: ball-bob 1s ease-in-out infinite; }
 
+/* GOL EN EL MARCADOR (estilo Premier League): la banda con los colores del
+   club entra barriendo la franja de su equipo, canta el gol y se retira. */
+@keyframes gol-sweep {
+  0% { transform: translateX(-101%); }
+  14% { transform: translateX(0); }
+  86% { transform: translateX(0); }
+  100% { transform: translateX(101%); }
+}
+.fx-gol-sweep { animation: gol-sweep 2.9s cubic-bezier(.22, .9, .3, 1) both; }
+
 .mc-ring {
   position: absolute;
   inset: 0;

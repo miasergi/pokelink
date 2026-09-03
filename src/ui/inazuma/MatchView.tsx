@@ -20,12 +20,12 @@ import HalftimePanel from '@/ui/inazuma/HalftimePanel'
 import { InjuryBanner } from '@/ui/inazuma/InjuryOverlay'
 import { PenaltyScene, ShootoutBoard, type PenaltyFx } from '@/ui/inazuma/ShootoutScene'
 import { Crest, KindIcon, rarityBorder, SvgBall } from '@/ui/inazuma/Glyphs'
-import { teamDisplay } from '@/data/inazuma/teams'
+import { TEAM_BY_ID, teamDisplay } from '@/data/inazuma/teams'
 import { getTactic } from '@/data/inazuma/tactics'
 import { actorByUid, playerSide, sideOf, otherSide } from '@/engine/inazuma/match'
 import { Meter, portraitUrl, staminaColor } from '@/ui/inazuma/PlayerCard'
 import { ImgFallback } from '@/ui/components/kit'
-import type { Actor, ChainStep, Element, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
+import type { Actor, ChainStep, Element, MatchEvent, MatchState, Side, Technique } from '@/engine/inazuma/types'
 
 export default function MatchView() {
   const {
@@ -643,83 +643,53 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
     ;(e.side === mineSide ? myScorers : theirScorers).push({ scorer: e.scorer, minute: e.minute })
   }
 
+  // CINEMÁTICA DE GOL en el propio marcador (estilo Premier League): al
+  // revelarse el gol, una banda con los colores del club barre la FRANJA de
+  // su equipo, canta el gol con su autor y se retira sola.
+  const [golFx, setGolFx] = useState<{ key: number; side: Side; scorer: string } | null>(null)
+  const seenGoal = useRef(feed.length)
+  useEffect(() => {
+    if (feed.length === seenGoal.current) return
+    seenGoal.current = feed.length
+    const e = feed[feed.length - 1]
+    if (e?.kind !== 'goal') return
+    const key = feed.length
+    setGolFx({ key, side: e.side, scorer: e.scorer })
+    setTimeout(() => setGolFx((s) => (s?.key === key ? null : s)), 3100)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feed.length])
+
+  // La táctica ARMADA de cada banda, para rotular su barra cuando está en
+  // reposo (antes decía «Táctica especial» a secas y no contaba cuál era).
+  const armedMine = getTactic((mine.tactics ?? [])[0] ?? '')?.name
+  const armedTheirs = getTactic((theirs.tactics ?? [])[0] ?? '')?.name
+
   return (
-    <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 pt-2 pb-2">
-      <div className="flex items-center gap-2">
-        <TeamBadge name={mine.name} color={mine.color} teamId={myTeamId} />
-        <div className="text-center px-2">
-          <div className="text-2xl font-extrabold tabular-nums leading-none">{myGoals} – {theirGoals}</div>
-          <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">min. {minute}′</div>
+    <div className="safe-top shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-2 pt-1.5 pb-1.5">
+      {/* EL MARCADOR DE RETRANSMISIÓN: una franja por equipo (el tuyo arriba,
+          el rival abajo), cada una con su espacio fijo — escudo con el nombre
+          debajo, el cuadrito de goles, la barra de táctica con su nombre y
+          los goleadores fluyendo en columnas hasta llenar el hueco. */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/70 overflow-hidden">
+        <ScoreStrip
+          name={mine.name} teamId={myTeamId} color={mine.color} goals={myGoals} scorers={myScorers}
+          value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} armedName={armedMine} mineRow
+          fx={golFx && golFx.side === mineSide ? golFx : null}
+          onTacticTap={() => setShowTactics(true)}
+        />
+        <div className="relative h-px bg-slate-800">
+          {/* El minuto vive en la juntura, sobre la columna de goles. */}
+          <span className="absolute left-[100px] top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-1.5 py-0.5 rounded-md border border-slate-700 bg-slate-900 text-[9px] font-bold tabular-nums text-slate-300">
+            {minute}′
+          </span>
         </div>
-        <TeamBadge name={theirs.name} color={theirs.color} teamId={rivalTeamId} right />
+        <ScoreStrip
+          name={theirs.name} teamId={rivalTeamId} color={theirs.color} goals={theirGoals} scorers={theirScorers}
+          value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} armedName={armedTheirs}
+          fx={golFx && golFx.side !== mineSide ? golFx : null}
+          onTacticTap={() => setShowTactics(true)}
+        />
       </div>
-      {/* Goleador y minuto bajo su equipo (los tuyos a la izquierda, los del
-          rival a la derecha), como en el croquis del marcador de la tele. */}
-      {(myScorers.length > 0 || theirScorers.length > 0) && (
-        <div className="mt-1 flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            {myScorers.map((g, i) => (
-              <div key={i} className="flex items-center gap-1 text-[9px] text-slate-300 leading-tight">
-                <SvgBall className="w-2.5 h-2.5 shrink-0 opacity-80" />
-                <span className="truncate font-bold">{g.scorer}</span>
-                <span className="tabular-nums text-slate-500 shrink-0">{g.minute}′</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex-1 min-w-0">
-            {theirScorers.map((g, i) => (
-              <div key={i} className="flex flex-row-reverse items-center gap-1 text-[9px] text-slate-400 leading-tight">
-                <SvgBall className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                <span className="truncate font-bold">{g.scorer}</span>
-                <span className="tabular-nums text-slate-500 shrink-0">{g.minute}′</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* LAS FILOSOFÍAS de los DOS equipos: la tuya acumulada y la canónica
-          del rival. TOCAR la fila abre la hoja que explica qué hace cada una
-          (el `title` del ratón no existe en el móvil y nadie sabía qué eran). */}
-      {(!!(mine.tactics ?? []).length || !!(theirs.tactics ?? []).length) && (
-        <button
-          onClick={() => setShowTactics(true)}
-          className="mt-1.5 w-full flex items-center justify-center gap-1 flex-wrap active:scale-[0.99] transition"
-        >
-          {(mine.tactics ?? []).map((id) => {
-            const t = getTactic(id)
-            if (!t) return null
-            return (
-              <span
-                key={id}
-                className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide"
-                style={{ borderColor: `${t.color}88`, background: `${t.color}1a`, color: t.color }}
-              >
-                <Icon name={t.icon} className="w-2.5 h-2.5" />
-                {t.name}
-              </span>
-            )
-          })}
-          {!!(theirs.tactics ?? []).length && (
-            <span className="inline-flex items-center gap-1">
-              <span className="text-[8px] uppercase tracking-widest text-slate-600">vs</span>
-              {(theirs.tactics ?? []).map((id) => {
-                const t = getTactic(id)
-                if (!t) return null
-                return (
-                  <span
-                    key={id}
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-600/70 bg-slate-800/60 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-slate-400"
-                  >
-                    <Icon name={t.icon} className="w-2.5 h-2.5" />
-                    {t.name}
-                  </span>
-                )
-              })}
-            </span>
-          )}
-          <Icon name="question" className="w-3 h-3 text-slate-600" />
-        </button>
-      )}
 
       {showTactics && (
         <TacticsSheet
@@ -742,56 +712,89 @@ function Scoreboard({ match, feed, myTeamId, rivalTeamId, frozen, clock }: {
           })()}
         </div>
       )}
-      {/* Barras de Ruptura, CADA UNA EN SU LADO con su propio rótulo (del
-          croquis del playtest): la tuya a la izquierda y la del rival a la
-          derecha, cada una contando su estado — el rótulo único del centro
-          mezclaba a los dos equipos y no se sabía de quién hablaba. */}
-      <div className="mt-1.5 flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <BurstBar value={burst.mine} turns={burst.mineTurns} tactic={burst.mineTactic} color="#f59e0b" />
-          <div className={`mt-0.5 text-[8px] uppercase tracking-wider truncate ${
-            burst.mineTactic || burst.mineTurns > 0 || burst.mine >= 100
-              ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-600'
-          }`}>
-            {burst.mineTactic
-              ? <><Icon name="flame" className="inline w-3 h-3 -mt-0.5 mr-0.5 text-orange-400" />{`${getTactic(burst.mineTactic.id)?.name ?? 'Táctica'} · ${burst.mineTactic.turns}`}</>
-              : burst.mineTurns > 0
-                ? `¡Supervibración! quedan ${burst.mineTurns}`
-                // LLENA: se dice claro qué toca hacer — era el gran «¿y esto
-                // para qué sirve?» del playtest.
-                : burst.mine >= 100
-                  ? '¡LISTA! Actívala en tu próxima jugada'
-                  : 'Táctica especial'}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0 text-right">
-          <BurstBar value={burst.theirs} turns={burst.theirsTurns} tactic={burst.theirsTactic} color="#64748b" flip />
-          <div className={`mt-0.5 text-[8px] uppercase tracking-wider truncate ${
-            burst.theirsTactic || burst.theirsTurns > 0 ? 'text-orange-300 font-extrabold animate-pulse' : 'text-slate-600'
-          }`}>
-            {burst.theirsTactic
-              ? <>{`${getTactic(burst.theirsTactic.id)?.name ?? 'Filosofía'} · ${burst.theirsTactic.turns}`}<Icon name="flame" className="inline w-3 h-3 -mt-0.5 ml-0.5 text-orange-400" /></>
-              : burst.theirsTurns > 0
-                ? `Vibrando · quedan ${burst.theirsTurns}`
-                : burst.theirs >= 100
-                  ? 'Rival a punto de encenderla'
-                  : 'Táctica del rival'}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
 
-function TeamBadge({ name, color, teamId, right }: { name: string; color: string; teamId?: string; right?: boolean }) {
+/**
+ * LA FRANJA de un equipo en el marcador de retransmisión: escudo con nombre
+ * debajo, cuadrito de goles, barra de táctica con su nombre (tocar abre la
+ * hoja de filosofías) y los goleadores en columnas de dos. Con `fx`, la banda
+ * de gol del club barre la franja entera al estilo Premier League.
+ */
+function ScoreStrip({ name, teamId, color, goals, scorers, value, turns, tactic, armedName, mineRow, fx, onTacticTap }: {
+  name: string
+  teamId?: string
+  color: string
+  goals: number
+  scorers: { scorer: string; minute: number }[]
+  value: number
+  turns: number
+  tactic: { id: string; turns: number } | null
+  armedName?: string
+  mineRow?: boolean
+  fx: { key: number; scorer: string } | null
+  onTacticTap: () => void
+}) {
+  const t = tactic ? getTactic(tactic.id) : undefined
+  // Los colores de la CAMISETA para la banda de gol (sin kit, el del escudo).
+  const kit = (teamId ? TEAM_BY_ID.get(teamId)?.kit : undefined) ?? [color, '#0f172a']
+  const ready = !tactic && turns <= 0 && value >= 100
   return (
-    <div className={`flex-1 min-w-0 flex items-center gap-1.5 ${right ? 'flex-row-reverse text-right' : ''}`}>
-      {/* El escudo acompaña SIEMPRE al nombre; la barrita de color queda de
-          respaldo para equipos sin escudo (las pachangas de barrio). */}
-      {teamId
-        ? <Crest teamId={teamId} className="w-6 h-6" />
-        : <span className="w-2.5 h-6 rounded-sm shrink-0" style={{ background: color }} />}
-      <span className="text-[11px] font-bold truncate">{name}</span>
+    <div className="relative h-[52px] flex items-center gap-2 px-2">
+      {/* Escudo arriba, nombre debajo: el espacio FIJO del equipo. */}
+      <div className="w-16 shrink-0 flex flex-col items-center justify-center min-w-0">
+        {teamId
+          ? <Crest teamId={teamId} className="w-8 h-8" />
+          : <span className="w-8 h-8 rounded-full border border-slate-700" style={{ background: color }} />}
+        <span className="mt-0.5 max-w-full truncate text-[8px] font-extrabold uppercase tracking-wide text-slate-300">
+          {name.replace('Instituto ', '')}
+        </span>
+      </div>
+      {/* Sus goles, en su cuadrito. */}
+      <div
+        className="w-10 h-10 shrink-0 grid place-items-center rounded-xl border border-slate-700 bg-slate-900 text-2xl font-black tabular-nums"
+        style={{ boxShadow: `inset 0 -3px 0 ${color}` }}
+      >
+        {goals}
+      </div>
+      {/* Su táctica: la barra y el nombre (tocar abre qué hace cada una). */}
+      <button onClick={onTacticTap} className="w-[104px] shrink-0 flex flex-col justify-center gap-1 text-left active:scale-[0.98] transition">
+        <BurstBar value={value} turns={turns} tactic={tactic} color={mineRow ? '#f59e0b' : '#64748b'} />
+        <span className={`text-[8px] leading-tight uppercase tracking-wider truncate ${
+          tactic || turns > 0 || ready ? 'text-amber-300 font-extrabold animate-pulse' : 'text-slate-500'
+        }`}>
+          {tactic
+            ? `${t?.name ?? 'Táctica'} · ${tactic.turns}`
+            : turns > 0
+              ? `¡Supervibración! · ${turns}`
+              : ready
+                ? `¡${armedName ?? 'Táctica'} LISTA!`
+                : armedName ?? 'Táctica especial'}
+        </span>
+      </button>
+      {/* Los goleadores, de dos en dos, llenando el espacio que queda. */}
+      <div className="flex-1 min-w-0 self-stretch py-1 flex flex-col flex-wrap content-start gap-x-2.5 overflow-hidden">
+        {scorers.map((g, i) => (
+          <span key={i} className="h-1/2 flex items-center gap-1 text-[9px] leading-none text-slate-300">
+            <SvgBall className="w-2.5 h-2.5 shrink-0 opacity-80" />
+            <span className="truncate max-w-[64px] font-bold">{g.scorer.split(' ')[0]}</span>
+            <span className="tabular-nums text-slate-500">{g.minute}′</span>
+          </span>
+        ))}
+      </div>
+      {/* LA CINEMÁTICA DE GOL: la banda del club barre la franja entera. */}
+      {fx && (
+        <div key={fx.key} className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 fx-gol-sweep flex items-center justify-center gap-2 px-3"
+            style={{ background: `linear-gradient(105deg, ${kit[0]} 0%, ${kit[0]} 33%, ${kit[1]} 35%, ${kit[1]} 65%, ${kit[0]} 67%)` }}
+          >
+            <span className="text-xl font-black italic tracking-tight text-white drop-shadow-[0_2px_0_rgba(0,0,0,.55)]">¡GOOOL!</span>
+            <span className="min-w-0 truncate text-[12px] font-extrabold text-white/95 drop-shadow-[0_1px_0_rgba(0,0,0,.5)]">{fx.scorer}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
