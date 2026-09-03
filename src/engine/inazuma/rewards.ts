@@ -186,7 +186,11 @@ function canonOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeN
     .filter((p) => !save.random?.monotipo || p.element === save.random.monotipo)
   if (!pool.length) return null
   const fresh = pool.filter((p) => !seenIds.has(p.id))
-  const pick = weightedPick(fresh.length ? fresh : pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)
+  // SORTEO UNIFORME, sin pesos de fama: reconstruir TU club debe ir al azar
+  // puro. Con los pesos globales (que frenan a las leyendas al principio),
+  // el puñado de ★4 de la plantilla salía casi siempre por delante de los ★5
+  // y cada run parecía repartir a los mismos en el mismo orden.
+  const pick = rng.pick(fresh.length ? fresh : pool)
   if (!pick) return null
   exclude.add(pick.id)
   excludeNames.add(pick.name)
