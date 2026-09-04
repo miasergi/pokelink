@@ -157,8 +157,8 @@ export default function HomeScreen() {
           logo={`${import.meta.env.BASE_URL}despedida/logo.svg`}
           alt="Despedida de Óscar"
           title="Despedida de Óscar"
-          color="#f472b6"
-          status="12 y 13 sept · retos, puntos y premios"
+          color="#D7FF3E"
+          status="12 y 13 sept · programa, marcador y premios"
           cta="Entrar"
           onPlay={() => navigate('despedida')}
         />

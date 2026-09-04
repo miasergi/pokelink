@@ -1,10 +1,11 @@
 // El momento de abrir caja. Salta sola en cuanto los puntos cruzan un umbral,
-// en TODAS las pantallas de la sección (también en la tele), porque es el único
-// evento del día que merece interrumpir lo que estés mirando.
+// en toda la sección (también en la tele y en el panel del juez), porque es el
+// único evento del día que merece interrumpir lo que estés mirando.
 import { useEffect } from 'react'
 import { RECOMPENSAS } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
+import { Antetitulo, FILETE, LIMA, NEGRO } from './despedidaKit'
 
 export default function Celebracion() {
   const celebrando = useDespedida((s) => s.celebrando)
@@ -19,21 +20,40 @@ export default function Celebracion() {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center p-6 backdrop-blur-sm animate-fade-in"
-      style={{ background: 'radial-gradient(60% 50% at 50% 38%, rgba(251,191,36,.22), rgba(3,6,17,.97) 62%), rgba(3,6,17,.96)' }}
+      className="fixed inset-0 z-[60] grid place-items-center p-6 animate-fade-in font-festui"
+      style={{ background: 'rgba(8,8,10,.97)' }}
       onClick={() => { play('confirm'); cerrar(null) }}
       role="dialog"
-      aria-label={`Premio desbloqueado: ${r.titulo}`}
+      aria-label={`Caja abierta: ${r.titulo}`}
     >
-      <div className="max-w-xs w-full text-center animate-pop-in">
-        <div className="text-[11px] font-black uppercase tracking-[0.35em] text-amber-300 mb-3">Premio desbloqueado</div>
-        <div className="text-[84px] leading-none animate-float">{r.emoji}</div>
-        <div className="mt-3 text-3xl font-black text-amber-100 leading-tight">{r.titulo}</div>
-        <div className="mt-2 text-[13px] text-slate-300 leading-snug">{r.detalle}</div>
-        <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-amber-200">
-          {r.umbral} puntos
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: `radial-gradient(45% 40% at 50% 42%, ${LIMA}26, transparent 70%)` }}
+      />
+
+      <div className="relative w-full max-w-lg animate-pop-in">
+        <Antetitulo color={LIMA} className="text-center">Caja abierta</Antetitulo>
+
+        <div className="border mt-5" style={{ borderColor: `${LIMA}44`, background: '#0B0B0E' }}>
+          <div className="grid place-items-center py-10 border-b" style={{ borderColor: FILETE }}>
+            <div className="text-[86px] leading-none animate-float">{r.emoji}</div>
+          </div>
+          <div className="p-7 text-center">
+            <h2 className="font-fest uppercase text-white text-5xl sm:text-6xl leading-[0.85]">{r.titulo}</h2>
+            <p className="text-[14px] text-zinc-400 mt-4 leading-relaxed">{r.detalle}</p>
+          </div>
+          <div
+            className="py-4 text-center font-fest uppercase text-3xl leading-none tabular-nums border-t"
+            style={{ borderColor: FILETE, background: LIMA, color: NEGRO }}
+          >
+            {r.umbral} puntos
+          </div>
         </div>
-        <div className="mt-6 text-[11px] text-slate-500">Toca para seguir</div>
+
+        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-600 text-center mt-6">
+          Toca para seguir
+        </p>
       </div>
     </div>
   )

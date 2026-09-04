@@ -659,3 +659,49 @@ body {
      en línea del elemento, así que basta con cortar la animación. */
   .dg-form-aura { animation: none; }
 }
+
+/* ============================================================
+   DESPEDIDA DE ÓSCAR — la sección vive en su propio mundo.
+   Nada de aquí lo usa la sala de juegos y viceversa: es una
+   landing de evento metida dentro de una app mobile-first.
+   ============================================================ */
+
+/* El shell de la app encierra TODO en una columna de 560 px. Una landing de
+   evento necesita el ancho entero (y la tele, más todavía), así que la
+   pantalla de la despedida suelta ese corsé mientras está montada. */
+#root.root-ancho {
+  max-width: none;
+}
+
+/* Cinta de titulares del hero. Se duplica el contenido y se desplaza media
+   vuelta: así el bucle no tiene costura. */
+@keyframes marquesina {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquesina { animation: marquesina 32s linear infinite; }
+
+/* Aparición de las secciones al hacer scroll (la clase la pone el observador). */
+.revela {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .7s ease-out, transform .7s cubic-bezier(.2, .8, .2, 1);
+}
+.revela.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Rayado diagonal para las cintas y los bloques "pendientes". */
+.rayado-fest {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, .06) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revela { opacity: 1; transform: none; transition: none; }
+  .animate-marquesina { animation: none; }
+}

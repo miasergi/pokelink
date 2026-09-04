@@ -15,6 +15,7 @@ import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
 import CyberScreen from '@/ui/screens/CyberScreen'
 import PartyScreen from '@/ui/screens/PartyScreen'
 import DespedidaScreen from '@/ui/screens/DespedidaScreen'
+import PanelJuez from '@/ui/despedida/PanelJuez'
 import { useDespedida } from '@/state/despedidaStore'
 import { RECOMPENSAS, RETOS } from '@/data/despedida'
 import PicoloView from '@/ui/party/PicoloView'
@@ -116,15 +117,23 @@ describe('render de pantallas (smoke)', () => {
     expect(mount(() => createElement(OcaView, { players, onBack: () => {} }))).toContain('Tirar')
   })
 
-  it('Despedida de Óscar: horario, retos, premios e invitación montan', () => {
+  it('Despedida de Óscar: la landing entera y el panel del juez montan', () => {
     useGame.setState({ loaded: true, screen: { name: 'despedida' } })
     useDespedida.getState().reiniciar()
 
-    // Hub: siempre entra por el horario en directo.
-    expect(mount(DespedidaScreen)).toContain('Despedida de Óscar')
+    // La landing pinta sus seis piezas de una tacada (no hay pestañas).
+    const landing = mount(DespedidaScreen)
+    for (const trozo of ['Óscar26', 'Programa', 'Marcador', 'Los retos', 'Las cajas', 'Aviso de raid']) {
+      expect(landing, `falta "${trozo}"`).toContain(trozo)
+    }
+    // Y los premios siguen sin destriparse: solo el umbral y la pista.
+    expect(landing).toContain(RECOMPENSAS[0].pista)
+    expect(landing).not.toContain(RECOMPENSAS[0].titulo)
 
-    // Con juez y un reto marcado, el marcador refleja los puntos.
+    // El panel del juez es lo único que marca retos.
     useDespedida.setState({ juez: true })
+    expect(mount(() => createElement(PanelJuez, { onCerrar: () => {} }))).toContain('Panel del juez')
+
     const reto = RETOS.find((r) => !r.castigo)!
     useDespedida.getState().marcarReto(reto.id)
     expect(useDespedida.getState().puntos()).toBe(reto.puntos)
@@ -135,12 +144,11 @@ describe('render de pantallas (smoke)', () => {
     useDespedida.getState().desmarcarReto(reto.id)
     expect(useDespedida.getState().puntos()).toBe(0)
 
-    // Cruzar un umbral abre la caja y dispara la celebración.
+    // Cruzar un umbral abre la caja, dispara la celebración y ya sí se lee.
     const primera = RECOMPENSAS[0]
     useDespedida.getState().ajustar(primera.umbral, 'test')
     expect(useDespedida.getState().celebrando).toBe(primera.id)
-    const html = mount(DespedidaScreen)
-    expect(html).toContain(primera.titulo)
+    expect(mount(DespedidaScreen)).toContain(primera.titulo)
 
     useDespedida.getState().celebrar(null)
     useDespedida.getState().reiniciar()

@@ -185,7 +185,11 @@ export default function App() {
           <Current />
         </Suspense>
       </div>
-      {showIntro && (
+      {/* El tutorial es de la sala de juegos. Quien llega por el enlace de la
+          despedida no ha venido a jugar a nada: si se lo comiera encima de la
+          landing, la primera impresión de todo el grupo sería un tour de
+          PokéRogue. Se le enseñará si alguna vez entra al hub. */}
+      {showIntro && screen.name !== 'despedida' && (
         <Onboarding
           onClose={() => {
             try {

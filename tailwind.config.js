@@ -30,6 +30,10 @@ export default {
         display: ['"Baloo 2"', 'system-ui', 'sans-serif'],
         // Fuente pixel del LCD de la Cyber PokéBall
         lcd: ['"Press Start 2P"', 'monospace'],
+        // DESPEDIDA: la sección no comparte tipografía con la sala de juegos.
+        // Anton para los titulares de cartel, Space Grotesk para todo lo demás.
+        fest: ['Anton', 'Impact', 'system-ui', 'sans-serif'],
+        festui: ['"Space Grotesk"', 'system-ui', '-apple-system', 'sans-serif'],
       },
       keyframes: {
         shake: {

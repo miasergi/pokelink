@@ -1,22 +1,33 @@
-// Piezas compartidas de la DESPEDIDA: reloj vivo, cabecera, marcador y
-// chapas. Todo lo visual de la sección sale de aquí para que el móvil, la tele
-// y la invitación se vean como la misma cosa.
-import { useEffect, useState } from 'react'
-import Icon from '@/ui/components/Icon'
-import { play } from '@/utils/sfx'
-import { BLOQUES, PUNTOS_MAXIMOS, RECOMPENSAS, type Bloque } from '@/data/despedida'
-import { proximaRecompensa } from '@/state/despedidaStore'
+// LENGUAJE VISUAL DE LA DESPEDIDA — cartel de festival, no app de juegos.
+//
+// La sala de juegos es redondeada, azul pizarra y de colorines. Esto es lo
+// contrario a propósito: negro casi puro, UN acento de neón, titulares
+// condensados en mayúsculas y filetes de un píxel. Solo comparte dominio con
+// el resto de la web.
+//
+// Todas las piezas de la landing salen de aquí para que las seis secciones,
+// el panel del juez y la tele se vean como el mismo sitio.
+import { useEffect, useRef, useState } from 'react'
+import { BLOQUES, rangoDe, type Bloque } from '@/data/despedida'
 
-/** Color de la sección (el rosa "Sailor" manda en toda la despedida). */
-export const ROSA = '#f472b6'
-export const FONDO = 'radial-gradient(85% 55% at 80% -10%, #f472b62e, transparent 55%), radial-gradient(75% 55% at 0% 105%, #38bdf824, transparent 60%), #080c18'
+// ---------------------------------------------------------------- tokens
 
-/**
- * Hora actual, refrescada sola. El horario es el corazón de la pantalla: si no
- * se mueve solo, alguien tiene que recargar y nadie lo va a hacer con el
- * Valorant abierto.
- */
-export function useAhora(intervaloMs = 20_000): Date {
+export const NEGRO = '#08080A'
+export const CARBON = '#101014'
+export const FILETE = '#24242C'
+export const LIMA = '#D7FF3E'
+/** Rojo de "en directo". Se usa con cuentagotas: si todo grita, nada grita. */
+export const DIRECTO = '#FF3D57'
+
+/** Instante en que arranca la despedida (primer bloque del sábado). */
+export const ARRANQUE = rangoDe(BLOQUES[0]).desde
+/** Y el final: cuando acaba el último bloque del domingo. */
+export const FINAL = rangoDe(BLOQUES[BLOQUES.length - 1]).hasta
+
+// ---------------------------------------------------------------- tiempo
+
+/** Hora actual, refrescada sola. */
+export function useAhora(intervaloMs = 1000): Date {
   const [ahora, setAhora] = useState(() => new Date())
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), intervaloMs)
@@ -25,34 +36,29 @@ export function useAhora(intervaloMs = 20_000): Date {
   return ahora
 }
 
-export function DespedidaHeader({ onBack, right, titulo }: {
-  onBack: () => void
-  right?: React.ReactNode
-  titulo: string
-}) {
-  return (
-    <div className="safe-top sticky top-0 z-20 bg-slate-950/85 backdrop-blur-md border-b border-slate-800">
-      <div className="flex items-center justify-between px-3 h-12 gap-2">
-        <button
-          onClick={() => { play('back'); onBack() }}
-          className="shrink-0 w-9 h-9 grid place-items-center rounded-full border border-slate-700 bg-slate-800/80 text-slate-300 active:scale-95 transition"
-          aria-label="Volver"
-        >
-          <Icon name="arrowRight" className="w-4 h-4 rotate-180" />
-        </button>
-        <div className="flex-1 text-center font-extrabold tracking-wide truncate">{titulo}</div>
-        <div className="shrink-0 min-w-9 flex justify-end">{right}</div>
-      </div>
-    </div>
-  )
+export interface CuentaAtras {
+  dias: number
+  horas: number
+  minutos: number
+  segundos: number
+  /** true cuando ya ha llegado la hora. */
+  llegada: boolean
 }
 
-/** 'HH:MM' de un Date, con dos dígitos. */
-export function hhmm(d: Date): string {
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+export function cuentaAtras(ahora: Date, hasta: Date): CuentaAtras {
+  const ms = hasta.getTime() - ahora.getTime()
+  if (ms <= 0) return { dias: 0, horas: 0, minutos: 0, segundos: 0, llegada: true }
+  const seg = Math.floor(ms / 1000)
+  return {
+    dias: Math.floor(seg / 86400),
+    horas: Math.floor((seg % 86400) / 3600),
+    minutos: Math.floor((seg % 3600) / 60),
+    segundos: seg % 60,
+    llegada: false,
+  }
 }
 
-/** "1 h 20 min" / "12 min" — para cuentas atrás legibles de un vistazo. */
+/** "1 h 20 min" / "12 min" — cuentas atrás legibles de un vistazo. */
 export function duracion(ms: number): string {
   const min = Math.max(0, Math.round(ms / 60_000))
   if (min < 60) return `${min} min`
@@ -61,104 +67,160 @@ export function duracion(ms: number): string {
   return m ? `${h} h ${m} min` : `${h} h`
 }
 
-/**
- * EL MARCADOR. Puntos grandes + barra hasta la siguiente recompensa (no hasta
- * el máximo: lo que motiva es "me faltan 12 para abrir la caja", no "voy por
- * el 31 % del total").
- */
-export function Marcador({ puntos, compacto = false }: { puntos: number; compacto?: boolean }) {
-  const proxima = proximaRecompensa(puntos)
-  const anterior = [...RECOMPENSAS].reverse().find((r) => puntos >= r.umbral)
-  const desde = anterior?.umbral ?? 0
-  const hasta = proxima?.umbral ?? PUNTOS_MAXIMOS
-  const pct = hasta > desde ? Math.min(100, Math.max(0, ((puntos - desde) / (hasta - desde)) * 100)) : 100
-
-  return (
-    <div className="rounded-3xl border border-pink-500/30 bg-slate-900/70 p-4" style={{ boxShadow: `0 20px 40px -28px ${ROSA}` }}>
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold">Puntos de Óscar</div>
-          <div className={`font-black leading-none tabular-nums ${compacto ? 'text-4xl' : 'text-6xl'}`} style={{ color: ROSA, textShadow: `0 6px 26px ${ROSA}66` }}>
-            {puntos}
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          {proxima ? (
-            <>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Siguiente premio</div>
-              <div className="text-2xl font-black text-amber-300 tabular-nums">{Math.max(0, proxima.umbral - puntos)}</div>
-              <div className="text-[10px] text-slate-400 font-bold -mt-0.5">puntos</div>
-            </>
-          ) : (
-            <div className="text-[11px] font-black text-emerald-300 uppercase tracking-widest">Todo<br />desbloqueado</div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-3 h-2.5 rounded-full bg-slate-800 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-[width] duration-700 ease-out"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${ROSA}, #fbbf24)` }}
-        />
-      </div>
-      {proxima && !compacto && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-          <Icon name="lock" className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-          <span className="truncate italic">{proxima.pista}</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Chapa de estado de un bloque en la agenda. */
-export function EstadoChip({ estado }: { estado: 'pasado' | 'ahora' | 'futuro' }) {
-  if (estado === 'ahora') {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 border border-rose-400/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-rose-300">
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" /> En directo
-      </span>
-    )
-  }
-  if (estado === 'pasado') {
-    return <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Hecho</span>
-  }
-  return <span className="rounded-full bg-slate-800/60 border border-slate-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Pendiente</span>
-}
-
-/** Lista de participantes de un bloque, con Óscar destacado. */
-export function Participantes({ nombres }: { nombres: string[] }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {nombres.map((n) => (
-        <span
-          key={n}
-          className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-            n === 'Óscar'
-              ? 'border-pink-400/50 bg-pink-500/15 text-pink-200'
-              : 'border-slate-700 bg-slate-800/70 text-slate-300'
-          }`}
-        >
-          {n}
-        </span>
-      ))}
-    </div>
-  )
+/** Bloque en curso: manda el fijado a mano si lo hay, si no el reloj. */
+export function bloqueActual(ahora: Date, fijado: string | null): Bloque | null {
+  if (fijado) return BLOQUES.find((b) => b.id === fijado) ?? null
+  return BLOQUES.find((b) => {
+    const { desde, hasta } = rangoDe(b)
+    return ahora >= desde && ahora < hasta
+  }) ?? null
 }
 
 /**
- * Estado de un bloque respecto al reloj. Si el juez ha FIJADO un bloque (porque
- * el horario se ha ido de madre, que se irá), manda el orden del guion y no la
- * hora: lo anterior al fijado es pasado y lo posterior, futuro.
+ * Estado de un bloque. Con un bloque fijado manda el ORDEN del guion y no la
+ * hora: si el juez retrasa la despedida, lo posterior sigue siendo futuro.
  */
-export function estadoDe(b: Bloque, ahora: Date, fijado: string | null, rango: { desde: Date; hasta: Date }): 'pasado' | 'ahora' | 'futuro' {
+export function estadoDe(b: Bloque, ahora: Date, fijado: string | null): 'pasado' | 'ahora' | 'futuro' {
   if (fijado) {
     const i = BLOQUES.findIndex((x) => x.id === b.id)
     const j = BLOQUES.findIndex((x) => x.id === fijado)
-    if (i === j) return 'ahora'
-    return i < j ? 'pasado' : 'futuro'
+    return i === j ? 'ahora' : i < j ? 'pasado' : 'futuro'
   }
-  if (ahora >= rango.hasta) return 'pasado'
-  if (ahora >= rango.desde) return 'ahora'
+  const { desde, hasta } = rangoDe(b)
+  if (ahora >= hasta) return 'pasado'
+  if (ahora >= desde) return 'ahora'
   return 'futuro'
+}
+
+// ---------------------------------------------------------------- scroll
+
+/**
+ * Aparición al entrar en pantalla. Una landing sin esto se siente muerta; con
+ * más de esto, mareante. Una sola vez por elemento y se acabó.
+ */
+export function useRevela<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') { el.classList.add('visible'); return }
+    const obs = new IntersectionObserver(
+      (entradas) => {
+        for (const e of entradas) {
+          if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) }
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.08 },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  return ref
+}
+
+/**
+ * Lleva la vista a una sección de la landing. A propósito NO usa anclas de
+ * verdad: el hash está reservado para el enlace directo (#/despedidaOscar) y
+ * si el nav lo pisara, copiar la URL a mitad de página dejaría de funcionar.
+ */
+export function irA(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// ---------------------------------------------------------------- piezas
+
+/** Etiquetita de arriba: "12–13 SEPT 2026", "EN DIRECTO"… */
+export function Antetitulo({ children, color = '#8A8A94', className = '' }: {
+  children: React.ReactNode
+  color?: string
+  className?: string
+}) {
+  return (
+    <div
+      className={`font-festui text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.34em] ${className}`}
+      style={{ color }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Cabecera de sección numerada, con el filete a lo ancho. Es el patrón que
+ * marca el ritmo de toda la página: número, título enorme, raya.
+ */
+export function Seccion({ n, titulo, apunte, id, children }: {
+  n: string
+  titulo: string
+  apunte?: string
+  id: string
+  children: React.ReactNode
+}) {
+  const ref = useRevela<HTMLElement>()
+  return (
+    <section id={id} ref={ref} className="revela scroll-mt-16 px-5 sm:px-8 lg:px-14 py-14 sm:py-20">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-baseline gap-3 sm:gap-5">
+          <span className="font-festui text-[11px] sm:text-sm font-bold tabular-nums" style={{ color: LIMA }}>{n}</span>
+          <h2 className="font-fest uppercase leading-[0.85] tracking-[-0.01em] text-[13vw] sm:text-6xl lg:text-7xl text-white">
+            {titulo}
+          </h2>
+        </div>
+        {apunte && (
+          <p className="font-festui text-[13px] sm:text-[15px] text-zinc-500 mt-3 max-w-xl leading-relaxed">{apunte}</p>
+        )}
+        <div className="h-px w-full mt-6 sm:mt-8" style={{ background: FILETE }} />
+        <div className="mt-8 sm:mt-10">{children}</div>
+      </div>
+    </section>
+  )
+}
+
+/** Botón principal: rectángulo de lima, mayúsculas, sin redondeo de app. */
+export function BotonLima({ children, onClick, href, className = '' }: {
+  children: React.ReactNode
+  onClick?: () => void
+  href?: string
+  className?: string
+}) {
+  const clase = `inline-flex items-center justify-center gap-2 font-festui text-[12px] sm:text-[13px] font-bold uppercase tracking-[0.18em] px-7 py-4 transition active:scale-[0.97] hover:brightness-110 ${className}`
+  const estilo = { background: LIMA, color: NEGRO }
+  if (href) return <a href={href} className={clase} style={estilo}>{children}</a>
+  return <button onClick={onClick} className={clase} style={estilo}>{children}</button>
+}
+
+/** Botón secundario: solo contorno. */
+export function BotonLinea({ children, onClick, href, className = '' }: {
+  children: React.ReactNode
+  onClick?: () => void
+  href?: string
+  className?: string
+}) {
+  const clase = `inline-flex items-center justify-center gap-2 font-festui text-[12px] sm:text-[13px] font-bold uppercase tracking-[0.18em] px-7 py-4 border text-white transition active:scale-[0.97] hover:bg-white/5 ${className}`
+  const estilo = { borderColor: FILETE }
+  if (href) return <a href={href} className={clase} style={estilo}>{children}</a>
+  return <button onClick={onClick} className={clase} style={estilo}>{children}</button>
+}
+
+/** Chapa de "EN DIRECTO" con el punto que late. */
+export function ChapaDirecto({ grande = false }: { grande?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 font-festui font-bold uppercase tracking-[0.28em] border px-3 py-1.5 ${grande ? 'text-[12px] sm:text-sm' : 'text-[10px]'}`}
+      style={{ color: DIRECTO, borderColor: `${DIRECTO}66`, background: `${DIRECTO}14` }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: DIRECTO }} />
+      En directo
+    </span>
+  )
+}
+
+/** Dato suelto en rejilla: cifra grande + etiqueta. */
+export function Cifra({ valor, etiqueta, color = '#FFFFFF' }: { valor: React.ReactNode; etiqueta: string; color?: string }) {
+  return (
+    <div className="border-t pt-3" style={{ borderColor: FILETE }}>
+      <div className="font-fest text-4xl sm:text-5xl leading-none tabular-nums" style={{ color }}>{valor}</div>
+      <div className="font-festui text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 mt-1.5">{etiqueta}</div>
+    </div>
+  )
 }
