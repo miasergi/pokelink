@@ -15,7 +15,7 @@ const REQUISITOS = [
 /** Enlace directo a la sección, para pegarlo en el grupo. */
 function enlace(): string {
   if (typeof window === 'undefined') return ''
-  return `${window.location.origin}${import.meta.env.BASE_URL}#/despedidaOscar`
+  return `${window.location.origin}${import.meta.env.BASE_URL}despedidaOscar`
 }
 
 export default function InvitacionSection() {

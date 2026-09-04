@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useGame, type ScreenName } from '@/state/gameStore'
 import { useSettings } from '@/state/settingsStore'
 import { startMusic, stopMusic } from '@/utils/music'
@@ -82,11 +82,22 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
 
 const ONBOARD_KEY = 'pokerogue:onboarded'
 
-// ENLACE DIRECTO a la despedida de Óscar: .../#/despedidaOscar. Es la única
-// pantalla con URL propia (la app navega por estado, no por rutas): se pega en
-// el grupo de WhatsApp y quien lo abre entra ahí, sin explicarle dónde tocar.
-const ENLACE_DESPEDIDA = '#/despedidaoscar'
-const llegaPorEnlace = typeof window !== 'undefined' && window.location.hash.toLowerCase() === ENLACE_DESPEDIDA
+// La despedida de Óscar es la única pantalla con URL propia (el resto de la app
+// navega por estado, no por rutas) y NO tiene puerta en la sala de juegos: él
+// entra a jugar de vez en cuando y no puede tropezarse con su propia
+// despedida. Se llega solo por el enlace que corre por WhatsApp.
+const RUTA_DESPEDIDA = '/despedidaoscar'
+/** El enlace viejo con almohadilla sigue valiendo: ya está compartido. */
+const HASH_DESPEDIDA = '#/despedidaoscar'
+
+function enRutaDespedida(): boolean {
+  return window.location.pathname.toLowerCase().replace(/\/+$/, '').endsWith(RUTA_DESPEDIDA)
+}
+
+// Se mira UNA vez, al cargar el módulo: si se comprobara dentro de un efecto,
+// el efecto que limpia la URL al salir podría haberla borrado antes.
+const llegaPorEnlace = typeof window !== 'undefined'
+  && (enRutaDespedida() || window.location.hash.toLowerCase() === HASH_DESPEDIDA)
 
 export default function App() {
   const { screen, init, loaded } = useGame()
@@ -106,21 +117,33 @@ export default function App() {
   }, [init])
 
   // Se aplica cuando el estado ya está cargado, para que `init` no pise el
-  // destino. Al consumirlo se limpia el hash: recargar más tarde no te vuelve
-  // a meter en la despedida sin querer.
+  // destino. La URL se deja en la ruta buena mientras estás dentro: recargar
+  // durante la despedida te devuelve a la despedida, que es lo que quieres el
+  // sábado con el móvil en la mano.
   useEffect(() => {
     if (!loaded) return
     const entrar = () => {
       useGame.getState().navigate('despedida')
-      history.replaceState(null, '', window.location.pathname + window.location.search)
+      // El enlace viejo con almohadilla se convierte en la ruta de verdad.
+      if (window.location.hash) history.replaceState(null, '', `${import.meta.env.BASE_URL}despedidaOscar`)
     }
     if (llegaPorEnlace) entrar()
     const alCambiarHash = () => {
-      if (window.location.hash.toLowerCase() === ENLACE_DESPEDIDA) entrar()
+      if (window.location.hash.toLowerCase() === HASH_DESPEDIDA) entrar()
     }
     window.addEventListener('hashchange', alCambiarHash)
     return () => window.removeEventListener('hashchange', alCambiarHash)
   }, [loaded])
+
+  // Al SALIR de la despedida se devuelve la URL a la raíz. Si no, quien pulse
+  // «volver a la sala de juegos» y luego recargue acabaría otra vez dentro.
+  const estuvoDentro = useRef(false)
+  useEffect(() => {
+    if (screen.name === 'despedida') { estuvoDentro.current = true; return }
+    if (!estuvoDentro.current) return
+    estuvoDentro.current = false
+    if (enRutaDespedida()) history.replaceState(null, '', import.meta.env.BASE_URL)
+  }, [screen.name])
 
   // Música de fondo según la pantalla.
   useEffect(() => {

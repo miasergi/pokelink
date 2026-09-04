@@ -1,10 +1,34 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'node:fs'
 import path from 'node:path'
 
 // En GitHub Pages el sitio vive bajo /pokelink/. En local, en la raíz.
 const base = process.env.GITHUB_PAGES ? '/pokelink/' : '/'
+
+/**
+ * La despedida de Óscar vive en su propia RUTA (…/despedidaOscar) y no tiene
+ * puerta en la sala de juegos: él entra a jugar de vez en cuando y no debe
+ * tropezarse con su propia despedida.
+ *
+ * GitHub Pages sirve ficheros estáticos, así que esa ruta necesita su propio
+ * index.html o devuelve un 404. Es una copia del de la raíz; la app mira la
+ * URL al arrancar y decide qué pintar. (En `vite dev` no hace falta: el
+ * servidor ya cae a index.html para cualquier ruta desconocida.)
+ */
+function rutaDespedida(): Plugin {
+  return {
+    name: 'ruta-despedida',
+    apply: 'build',
+    closeBundle() {
+      const dist = path.resolve(__dirname, 'dist')
+      const destino = path.join(dist, 'despedidaOscar')
+      fs.mkdirSync(destino, { recursive: true })
+      fs.copyFileSync(path.join(dist, 'index.html'), path.join(destino, 'index.html'))
+    },
+  }
+}
 
 export default defineConfig({
   base,
@@ -85,6 +109,7 @@ export default defineConfig({
       },
       devOptions: { enabled: false },
     }),
+    rutaDespedida(),
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
