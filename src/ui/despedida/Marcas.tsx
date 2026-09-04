@@ -15,7 +15,7 @@
 /** Las once del programa y las siete de las cajas. */
 export type MarcaId =
   | 'directo' | 'onepiece' | 'elsword' | 'comida' | 'valorant' | 'fortnite'
-  | 'lol' | 'minecraft' | 'luna' | 'dado' | 'balon'
+  | 'lol' | 'minecraft' | 'luna' | 'dado' | 'balon' | 'reloj'
   | 'vaso' | 'caramelo' | 'comodin' | 'kebab' | 'cascos' | 'cafe' | 'regalo'
 
 const TRAZOS: Record<MarcaId, string> = {
@@ -96,6 +96,12 @@ const TRAZOS: Record<MarcaId, string> = {
     + 'M2.2 11.2h19.6v1.6H2.2Z'
     + 'M6.9 2.9 8 4.2A9.9 9.9 0 0 0 8 19.8l-1.1 1.3a11.6 11.6 0 0 1 0-18.2Z'
     + 'M17.1 2.9a11.6 11.6 0 0 1 0 18.2L16 19.8a9.9 9.9 0 0 0 0-15.6Z',
+
+  // Reloj: los retos que valen a cualquier hora del fin de semana.
+  reloj:
+    'M12 1.4a10.6 10.6 0 1 0 0 21.2 10.6 10.6 0 0 0 0-21.2Z'
+    + 'M12 4.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6Z'
+    + 'M11.1 6.4h1.8v6.1l4.1 2.4-.9 1.5-5-2.9Z',
 
   // --- Las cajas ---
 

@@ -3,7 +3,8 @@
 // sábado por la mañana, cuando ya no hay tiempo de arreglar nada.
 import { describe, it, expect } from 'vitest'
 import {
-  BLOQUES, PUNTOS_MAXIMOS, RECOMPENSAS, RETOS, bloqueEnCurso, bloqueSiguiente, rangoDe,
+  BLOQUES, BLOQUE_GLOBAL, PUNTOS_MAXIMOS, PUNTOS_POR_DIFICULTAD, RECOMPENSAS, RETOS,
+  bloqueEnCurso, bloqueSiguiente, puntosDe, rangoDe,
 } from './despedida'
 
 describe('datos de la despedida', () => {
@@ -14,14 +15,30 @@ describe('datos de la despedida', () => {
   })
 
   it('todos los retos cuelgan de un bloque que existe', () => {
-    const ids = new Set(BLOQUES.map((b) => b.id))
+    const ids = new Set<string>([BLOQUE_GLOBAL.id, ...BLOQUES.map((b) => b.id)])
     for (const r of RETOS) expect(ids.has(r.bloque), `reto ${r.id}`).toBe(true)
+  })
+
+  it('cada bloque del horario tiene al menos un reto', () => {
+    // Un bloque sin retos sale en el cartel sin puntos en juego y parece roto.
+    for (const b of BLOQUES) {
+      expect(RETOS.some((r) => r.bloque === b.id), `bloque ${b.id} sin retos`).toBe(true)
+    }
+  })
+
+  it('los puntos salen de la dificultad salvo que se pongan a mano', () => {
+    for (const r of RETOS) {
+      if (r.puntos === undefined) {
+        expect(puntosDe(r), `reto ${r.id}`).toBe(PUNTOS_POR_DIFICULTAD[r.dificultad])
+      }
+      expect(puntosDe(r), `reto ${r.id}`).not.toBe(0)
+    }
   })
 
   it('los castigos restan y el resto suma', () => {
     for (const r of RETOS) {
-      if (r.castigo) expect(r.puntos, `reto ${r.id}`).toBeLessThan(0)
-      else expect(r.puntos, `reto ${r.id}`).toBeGreaterThan(0)
+      if (r.castigo) expect(puntosDe(r), `reto ${r.id}`).toBeLessThan(0)
+      else expect(puntosDe(r), `reto ${r.id}`).toBeGreaterThan(0)
     }
   })
 

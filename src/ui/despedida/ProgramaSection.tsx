@@ -1,11 +1,11 @@
 // 01 — PROGRAMA. El Excel de Luis convertido en cartel: cada bloque es una
 // línea de lineup con la hora enorme a la izquierda. Lo pasado se apaga, lo
 // que toca ahora se enciende. Nada de tarjetitas redondeadas.
-import { BLOQUES, retosDe, type Bloque, type Dia } from '@/data/despedida'
+import { BLOQUES, puntosDe, retosDe, type Bloque, type Dia } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import Marca, { type MarcaId } from './Marcas'
 import {
-  Antetitulo, ChapaDirecto, DIRECTO, FILETE, LIMA, Seccion, estadoDe, useAhora,
+  Antetitulo, ChapaDirecto, DIRECTO, FILETE, LIMA, Seccion, estaRevelado, estadoDe, useAhora,
 } from './despedidaKit'
 
 const DIAS: Array<{ id: Dia; rotulo: string; fecha: string }> = [
@@ -16,13 +16,16 @@ const DIAS: Array<{ id: Dia; rotulo: string; fecha: string }> = [
 export default function ProgramaSection() {
   const ahora = useAhora(30_000)
   const fijado = useDespedida((s) => s.save.bloqueFijado)
+  const juez = useDespedida((s) => s.juez)
+  const revelados = useDespedida((s) => s.revelados)
+  const revelar = useDespedida((s) => s.revelar)
 
   return (
     <Seccion
       id="programa"
       n="01"
       titulo="Programa"
-      apunte="Once bloques entre el sábado por la mañana y el domingo al mediodía. Los horarios son una intención, no una promesa."
+      apunte="Once bloques entre el sábado por la mañana y el domingo al mediodía. Sabes cuándo, pero no qué: cada uno se destapa al tocarlo o cuando le llega la hora."
     >
       <div className="flex flex-col gap-12 sm:gap-16">
         {DIAS.map((d) => (
@@ -33,7 +36,13 @@ export default function ProgramaSection() {
             </div>
             <div className="border-t" style={{ borderColor: FILETE }}>
               {BLOQUES.filter((b) => b.dia === d.id).map((b) => (
-                <Linea key={b.id} bloque={b} estado={estadoDe(b, ahora, fijado)} />
+                <Linea
+                  key={b.id}
+                  bloque={b}
+                  estado={estadoDe(b, ahora, fijado)}
+                  revelado={estaRevelado(b, ahora, juez, revelados)}
+                  onRevelar={() => revelar(b.id)}
+                />
               ))}
             </div>
           </div>
@@ -43,9 +52,14 @@ export default function ProgramaSection() {
   )
 }
 
-function Linea({ bloque: b, estado }: { bloque: Bloque; estado: 'pasado' | 'ahora' | 'futuro' }) {
+function Linea({ bloque: b, estado, revelado, onRevelar }: {
+  bloque: Bloque
+  estado: 'pasado' | 'ahora' | 'futuro'
+  revelado: boolean
+  onRevelar: () => void
+}) {
   const retos = retosDe(b.id).filter((r) => !r.castigo)
-  const puntosEnJuego = retos.reduce((n, r) => n + r.puntos, 0)
+  const puntosEnJuego = retos.reduce((n, r) => n + puntosDe(r), 0)
   const pasado = estado === 'pasado'
   const enCurso = estado === 'ahora'
 
@@ -55,7 +69,14 @@ function Linea({ bloque: b, estado }: { bloque: Bloque; estado: 'pasado' | 'ahor
       style={{ borderColor: FILETE, background: enCurso ? `${DIRECTO}0A` : undefined }}
     >
       {/* Filo de color del bloque: el único resto de la paleta del Excel. */}
-      <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: enCurso ? DIRECTO : b.color, opacity: enCurso ? 1 : 0.45 }} />
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{
+          // Tapado va en gris: el color del bloque también es una pista.
+          background: enCurso ? DIRECTO : revelado ? b.color : '#3F3F46',
+          opacity: enCurso ? 1 : 0.45,
+        }}
+      />
 
       <div className="pl-5 sm:pl-7 pr-1 py-5 sm:py-7 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-8">
         {/* Hora */}
@@ -66,37 +87,55 @@ function Linea({ bloque: b, estado }: { bloque: Bloque; estado: 'pasado' | 'ahor
           </div>
         </div>
 
-        {/* Cuerpo */}
+        {/* Cuerpo. Tapado hasta que lo destape él o le llegue la hora: la
+            gracia es que vea que a las 16:00 hay ALGO, no qué. */}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h4 className="flex items-center gap-2.5 font-fest uppercase text-white text-2xl sm:text-4xl leading-none">
-              <Marca id={b.marca as MarcaId} className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" style={{ color: enCurso ? DIRECTO : b.color }} />
-              {b.titulo}
-            </h4>
-            {enCurso && <ChapaDirecto />}
-          </div>
-          <p className="font-festui text-[13px] sm:text-[15px] text-zinc-400 mt-2.5 leading-relaxed max-w-2xl">{b.desc}</p>
+          {revelado ? (
+            <>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h4 className="flex items-center gap-2.5 font-fest uppercase text-white text-2xl sm:text-4xl leading-none">
+                  <Marca id={b.marca as MarcaId} className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" style={{ color: enCurso ? DIRECTO : b.color }} />
+                  {b.titulo}
+                </h4>
+                {enCurso && <ChapaDirecto />}
+              </div>
+              <p className="font-festui text-[13px] sm:text-[15px] text-zinc-400 mt-2.5 leading-relaxed max-w-2xl">{b.desc}</p>
 
-          <div className="flex flex-wrap gap-1.5 mt-3.5">
-            {b.participantes.map((n) => (
+              <div className="flex flex-wrap gap-1.5 mt-3.5">
+                {b.participantes.map((n) => (
+                  <span
+                    key={n}
+                    className="font-festui text-[10.5px] font-bold uppercase tracking-[0.12em] px-2 py-1 border"
+                    style={
+                      n === 'Óscar'
+                        ? { color: LIMA, borderColor: `${LIMA}55`, background: `${LIMA}12` }
+                        : { color: '#A1A1AA', borderColor: FILETE }
+                    }
+                  >
+                    {n}
+                  </span>
+                ))}
+              </div>
+
+              {b.logistica && (
+                <p className="font-festui text-[12px] text-zinc-600 mt-3 italic border-l pl-3" style={{ borderColor: FILETE }}>
+                  {b.logistica}
+                </p>
+              )}
+            </>
+          ) : (
+            <button onClick={onRevelar} className="text-left group w-full">
+              <h4 className="flex items-center gap-2.5 font-fest uppercase text-zinc-700 text-2xl sm:text-4xl leading-none tracking-[0.18em]">
+                <Candado />
+                ??????
+              </h4>
               <span
-                key={n}
-                className="font-festui text-[10.5px] font-bold uppercase tracking-[0.12em] px-2 py-1 border"
-                style={
-                  n === 'Óscar'
-                    ? { color: LIMA, borderColor: `${LIMA}55`, background: `${LIMA}12` }
-                    : { color: '#A1A1AA', borderColor: FILETE }
-                }
+                className="inline-flex items-center gap-2 mt-3 font-festui text-[11px] font-bold uppercase tracking-[0.2em] px-4 py-2.5 border transition group-hover:bg-white/5"
+                style={{ borderColor: FILETE, color: LIMA }}
               >
-                {n}
+                Destapar
               </span>
-            ))}
-          </div>
-
-          {b.logistica && (
-            <p className="font-festui text-[12px] text-zinc-600 mt-3 italic border-l pl-3" style={{ borderColor: FILETE }}>
-              {b.logistica}
-            </p>
+            </button>
           )}
         </div>
 
@@ -113,5 +152,14 @@ function Linea({ bloque: b, estado }: { bloque: Bloque; estado: 'pasado' | 'ahor
         )}
       </div>
     </div>
+  )
+}
+
+function Candado() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-7 sm:h-7 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <rect x="5" y="10.5" width="14" height="10" rx="1" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+    </svg>
   )
 }

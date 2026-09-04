@@ -6,7 +6,7 @@
 // deshacer una cosa mal marcada es quitar una línea, no "restar a ojo" — que
 // es exactamente donde estos marcadores acaban en discusión.
 import { create } from 'zustand'
-import { RETOS, RECOMPENSAS, type Reto } from '@/data/despedida'
+import { RETOS, RECOMPENSAS, puntosDe, type Reto } from '@/data/despedida'
 
 const KEY = 'pokerogue:despedida'
 
@@ -64,6 +64,23 @@ function guardar(s: DespedidaSave) {
 const JUEZ_KEY = 'pokerogue:despedida-juez'
 export const PIN_JUEZ = '1209'
 
+/**
+ * Bloques que este dispositivo ya ha destapado. También es DEL DISPOSITIVO y
+ * no de la partida: la gracia es que Óscar los vaya descubriendo él, así que
+ * lo que destape un organizador en su móvil no puede destapárselo a él.
+ */
+const REVELADOS_KEY = 'pokerogue:despedida-revelados'
+
+function cargarRevelados(): string[] {
+  try {
+    const raw = localStorage.getItem(REVELADOS_KEY)
+    const arr = raw ? (JSON.parse(raw) as unknown) : []
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 export interface Movimiento {
   /** Clave única para React y para deshacer. */
   key: string
@@ -79,6 +96,8 @@ export interface Movimiento {
 interface DespedidaState {
   save: DespedidaSave
   juez: boolean
+  /** Bloques destapados a mano en ESTE dispositivo. */
+  revelados: string[]
   /** Recompensa recién desbloqueada pendiente de celebrar (overlay). */
   celebrando: string | null
   puntos: () => number
@@ -90,6 +109,7 @@ interface DespedidaState {
   borrarAjuste: (ajusteId: string) => void
   fijarBloque: (bloqueId: string | null) => void
   celebrar: (recompensaId: string | null) => void
+  revelar: (bloqueId: string) => void
   entrarJuez: (pin: string) => boolean
   salirJuez: () => void
   reiniciar: () => void
@@ -100,12 +120,16 @@ const RETO_POR_ID = new Map<string, Reto>(RETOS.map((r) => [r.id, r]))
 export const useDespedida = create<DespedidaState>((set, get) => ({
   save: cargar(),
   juez: (() => { try { return localStorage.getItem(JUEZ_KEY) === '1' } catch { return false } })(),
+  revelados: cargarRevelados(),
   celebrando: null,
 
   puntos: () => {
     const { retos, ajustes } = get().save
     let total = 0
-    for (const id of Object.keys(retos)) total += RETO_POR_ID.get(id)?.puntos ?? 0
+    for (const id of Object.keys(retos)) {
+      const r = RETO_POR_ID.get(id)
+      if (r) total += puntosDe(r)
+    }
     for (const a of ajustes) total += a.delta
     return total
   },
@@ -118,7 +142,7 @@ export const useDespedida = create<DespedidaState>((set, get) => ({
     for (const [id, ts] of Object.entries(retos)) {
       const r = RETO_POR_ID.get(id)
       if (!r) continue
-      movs.push({ key: `r:${id}`, tipo: 'reto', texto: r.texto, puntos: r.puntos, ts, retoId: id })
+      movs.push({ key: `r:${id}`, tipo: 'reto', texto: r.texto, puntos: puntosDe(r), ts, retoId: id })
     }
     for (const a of ajustes) {
       movs.push({ key: `a:${a.id}`, tipo: 'ajuste', texto: a.motivo || 'Ajuste manual', puntos: a.delta, ts: a.ts, ajusteId: a.id })
@@ -189,6 +213,14 @@ export const useDespedida = create<DespedidaState>((set, get) => ({
       return
     }
     set({ celebrando: recompensaId })
+  },
+
+  revelar: (bloqueId) => {
+    const { revelados } = get()
+    if (revelados.includes(bloqueId)) return
+    const next = [...revelados, bloqueId]
+    set({ revelados: next })
+    try { localStorage.setItem(REVELADOS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
   },
 
   entrarJuez: (pin) => {

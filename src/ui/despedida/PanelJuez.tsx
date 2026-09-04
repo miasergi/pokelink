@@ -7,7 +7,7 @@
 // SIEMPRE en el bloque que toca ahora: nadie debería buscar su juego en una
 // lista de once mientras los demás gritan por Discord.
 import { useState } from 'react'
-import { BLOQUES, retosDe, type Reto } from '@/data/despedida'
+import { BLOQUES, BLOQUE_GLOBAL, puntosDe, retosDe, type Reto } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { proximaRecompensa } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
@@ -20,9 +20,16 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
   const puntos = useDespedida((s) => s.puntos())
   const hecho = useDespedida((s) => s.hecho)
 
+  // El bloque global es una pestaña más, la primera: sus retos (el baño, María)
+  // caen a cualquier hora y el juez tiene que poder marcarlos siempre.
+  const PESTANAS = [
+    { id: BLOQUE_GLOBAL.id, titulo: BLOQUE_GLOBAL.titulo, marca: BLOQUE_GLOBAL.marca, color: BLOQUE_GLOBAL.color, hora: '' },
+    ...BLOQUES.map((b) => ({ id: b.id, titulo: b.titulo, marca: b.marca, color: b.color, hora: b.inicio })),
+  ]
   const enCurso = bloqueActual(ahora, save.bloqueFijado)
   const [bloqueId, setBloqueId] = useState(() => enCurso?.id ?? BLOQUES[0].id)
-  const bloque = BLOQUES.find((b) => b.id === bloqueId) ?? BLOQUES[0]
+  const bloque = PESTANAS.find((b) => b.id === bloqueId) ?? PESTANAS[0]
+  const esGlobal = bloque.id === BLOQUE_GLOBAL.id
   const proxima = proximaRecompensa(puntos)
 
   const alternar = (r: Reto) => {
@@ -58,7 +65,7 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
 
         {/* Selector de bloque, en cinta horizontal */}
         <div className="flex gap-px overflow-x-auto no-scrollbar px-4 pb-3 max-w-3xl mx-auto">
-          {BLOQUES.map((b) => {
+          {PESTANAS.map((b) => {
             const activo = b.id === bloqueId
             const esAhora = enCurso?.id === b.id
             return (
@@ -72,7 +79,7 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
                   background: activo ? `${LIMA}12` : 'transparent',
                 }}
               >
-                {esAhora && '● '}{b.inicio} {b.titulo}
+                {esAhora && '● '}{[b.hora, b.titulo].filter(Boolean).join(' ')}
               </button>
             )
           })}
@@ -87,17 +94,19 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
               <Marca id={bloque.marca as MarcaId} className="w-6 h-6 shrink-0" style={{ color: bloque.color }} />
               <span className="truncate">{bloque.titulo}</span>
             </h2>
-            <button
-              onClick={() => { play('tap'); fijarBloque(save.bloqueFijado === bloque.id ? null : bloque.id) }}
-              className="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] px-3 py-2 border transition"
-              style={
-                save.bloqueFijado === bloque.id
-                  ? { borderColor: DIRECTO, color: DIRECTO, background: `${DIRECTO}12` }
-                  : { borderColor: FILETE, color: '#71717A' }
-              }
-            >
-              {save.bloqueFijado === bloque.id ? 'Fijado' : 'Fijar aquí'}
-            </button>
+            {!esGlobal && (
+              <button
+                onClick={() => { play('tap'); fijarBloque(save.bloqueFijado === bloque.id ? null : bloque.id) }}
+                className="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] px-3 py-2 border transition"
+                style={
+                  save.bloqueFijado === bloque.id
+                    ? { borderColor: DIRECTO, color: DIRECTO, background: `${DIRECTO}12` }
+                    : { borderColor: FILETE, color: '#71717A' }
+                }
+              >
+                {save.bloqueFijado === bloque.id ? 'Fijado' : 'Fijar aquí'}
+              </button>
+            )}
           </div>
 
           {save.bloqueFijado && save.bloqueFijado !== bloque.id && (
@@ -138,7 +147,7 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
                     className="shrink-0 font-fest text-2xl leading-none tabular-nums"
                     style={{ color: castigo ? DIRECTO : ok ? LIMA : '#52525B' }}
                   >
-                    {r.puntos > 0 ? `+${r.puntos}` : r.puntos}
+                    {puntosDe(r) > 0 ? `+${puntosDe(r)}` : puntosDe(r)}
                   </span>
                 </button>
               )

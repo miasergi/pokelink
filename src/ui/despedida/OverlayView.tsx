@@ -1,7 +1,7 @@
 // MODO TELE. La misma información, para verse a tres metros o metida como
 // browser source en el OBS del directo: sin nav, sin botones, todo en una
 // pantalla y con la tipografía al máximo. Es el cartel del evento, en vivo.
-import { retosDe } from '@/data/despedida'
+import { puntosDe, retosDe } from '@/data/despedida'
 import { proximaRecompensa, useDespedida } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
 import {
@@ -124,7 +124,7 @@ export default function OverlayView({ onSalir }: { onSalir: () => void }) {
                             className="shrink-0 font-fest text-2xl lg:text-4xl leading-none tabular-nums"
                             style={{ color: ok ? LIMA : '#3F3F46' }}
                           >
-                            +{r.puntos}
+                            +{puntosDe(r)}
                           </span>
                         </div>
                       )

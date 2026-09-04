@@ -17,7 +17,7 @@ import PartyScreen from '@/ui/screens/PartyScreen'
 import DespedidaScreen from '@/ui/screens/DespedidaScreen'
 import PanelJuez from '@/ui/despedida/PanelJuez'
 import { MARCAS } from '@/ui/despedida/Marcas'
-import { BLOQUES } from '@/data/despedida'
+import { BLOQUES, puntosDe } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { RECOMPENSAS, RETOS } from '@/data/despedida'
 import PicoloView from '@/ui/party/PicoloView'
@@ -145,7 +145,7 @@ describe('render de pantallas (smoke)', () => {
 
     const reto = RETOS.find((r) => !r.castigo)!
     useDespedida.getState().marcarReto(reto.id)
-    expect(useDespedida.getState().puntos()).toBe(reto.puntos)
+    expect(useDespedida.getState().puntos()).toBe(puntosDe(reto))
     expect(useDespedida.getState().historial()[0].texto).toBe(reto.texto)
 
     // Deshacer devuelve el marcador a cero: es la salvaguarda contra el

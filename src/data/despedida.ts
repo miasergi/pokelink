@@ -133,7 +133,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'minecraft',
     titulo: 'Minecraft',
     color: '#34d399',
-    desc: 'Servidor para todos con minijuegos y retos. Si se va de hora, se recorta.',
+    desc: 'PENDIENTE decidir el formato: mundo normal a por logros, contrarreloj o partida conjunta a matar al dragón.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla', 'Agus', 'Greñas'],
     logistica: 'Al acabar: se le entrega el disfraz a Óscar.',
   },
@@ -157,7 +157,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'dado',
     titulo: 'La noche',
     color: '#a78bfa',
-    desc: 'Juego de mesa, peli o One Piece hasta que caiga el último.',
+    desc: 'PENDIENTE decidir: juegos de mesa, una run rápida de Pokémon tipo soullocke o un juego de terror con castigos.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla'],
   },
   {
@@ -173,88 +173,138 @@ export const BLOQUES: Bloque[] = [
   },
 ]
 
+/** Nivel de un reto. Los puntos salen de aquí, no a ojo. */
+export type Dificultad = 'facil' | 'medio' | 'dificil' | 'brutal'
+
+/**
+ * La tabla de conversión. Está sola y a la vista A PROPÓSITO: para renivelar
+ * toda la despedida basta con tocar estos cuatro números, en vez de repasar
+ * sesenta retos uno por uno.
+ */
+export const PUNTOS_POR_DIFICULTAD: Record<Dificultad, number> = {
+  facil: 5,
+  medio: 10,
+  dificil: 20,
+  brutal: 35,
+}
+
 export interface Reto {
   id: string
-  /** Bloque al que pertenece (id de BLOQUES). */
+  /** Bloque al que pertenece (id de BLOQUES, o 'global'). */
   bloque: string
   texto: string
-  puntos: number
+  dificultad: Dificultad
+  /** Puntos a mano. Solo para los castigos y para lo que no encaje en la tabla. */
+  puntos?: number
   /** Condición de validación, para que no se discuta en caliente. */
   detalle?: string
-  /** Los negativos restan: son las cagadas con premio inverso. */
+  /** Los castigos restan: son las cagadas con premio inverso. */
   castigo?: boolean
 }
 
+/** Lo que vale un reto: su dificultad, salvo que lleve puntos propios. */
+export function puntosDe(r: Reto): number {
+  return r.puntos ?? PUNTOS_POR_DIFICULTAD[r.dificultad]
+}
+
+/**
+ * Los retos que NO son de ningún bloque: valen a cualquier hora de los dos
+ * días. Vive fuera de BLOQUES porque no ocupa hueco en el horario y rompería
+ * el orden del cartel.
+ */
+export const BLOQUE_GLOBAL = {
+  id: 'global',
+  titulo: 'Todo el fin de semana',
+  marca: 'reloj',
+  color: '#A1A1AA',
+  desc: 'Valen a cualquier hora, del sábado a las diez al domingo por la tarde.',
+} as const
+
 export const RETOS: Reto[] = [
+  // --- Todo el fin de semana ---
+  { id: 'glo-1', bloque: 'global', texto: 'Cada vez que va al baño', dificultad: 'facil', puntos: -5, castigo: true, detalle: 'Una marca por viaje. Sí, cuenta el del bar.' },
+  { id: 'glo-2', bloque: 'global', texto: 'Cada vez que le pillen hablando con María', dificultad: 'facil', puntos: -20, castigo: true },
+
   // --- Inauguración ---
-  { id: 'ina-1', bloque: 'inauguracion', texto: 'Leer el manifiesto de la despedida a cámara', puntos: 5, detalle: 'De pie y sin reírse. Si se ríe, se repite.' },
-  { id: 'ina-2', bloque: 'inauguracion', texto: 'Poner "ÓscarSeCasa" como título del directo', puntos: 5 },
-  { id: 'ina-3', bloque: 'inauguracion', texto: 'Presentar a los ocho de la cuadrilla sin guion', puntos: 10, detalle: 'Un fallo de nombre y no cuenta.' },
+  { id: 'ina-1', bloque: 'inauguracion', texto: 'Leer el manifiesto de la despedida a cámara', dificultad: 'facil', detalle: 'De pie y sin reírse. Si se ríe, se repite.' },
+  { id: 'ina-2', bloque: 'inauguracion', texto: 'Poner "ÓscarSeCasa" como título del directo', dificultad: 'facil' },
+  { id: 'ina-3', bloque: 'inauguracion', texto: 'Presentar bien a los ocho de la cuadrilla sin guion', dificultad: 'medio', detalle: 'Un fallo de nombre y no cuenta.' },
 
   // --- One Piece TCG ---
-  { id: 'op-1', bloque: 'onepiece', texto: 'Ganar una partida', puntos: 10 },
-  { id: 'op-2', bloque: 'onepiece', texto: 'Ganar con 3 o más de vida restante', puntos: 15 },
-  { id: 'op-3', bloque: 'onepiece', texto: 'Ganar con un mazo elegido por otro', puntos: 15, detalle: 'Elige el mazo quien no juegue esa ronda.' },
-  { id: 'op-4', bloque: 'onepiece', texto: 'Cerrar la partida con el ataque del líder', puntos: 10 },
-  { id: 'op-5', bloque: 'onepiece', texto: 'Perder contra Luis P.', puntos: -5, castigo: true },
+  { id: 'op-0', bloque: 'onepiece', texto: 'Explicar qué es el OPTCG y qué significa para él', dificultad: 'facil' },
+  { id: 'op-1', bloque: 'onepiece', texto: 'Ganar una partida', dificultad: 'medio' },
+  { id: 'op-2', bloque: 'onepiece', texto: 'Ganar con 3 o más de vida restante', dificultad: 'dificil' },
+  { id: 'op-4', bloque: 'onepiece', texto: 'Cerrar la partida con el ataque del líder', dificultad: 'medio' },
+  { id: 'op-5', bloque: 'onepiece', texto: 'Perder contra Luis P.', dificultad: 'facil', puntos: -5, castigo: true },
 
   // --- Elsword ---
-  { id: 'els-1', bloque: 'elsword', texto: 'Subir un personaje nuevo a nivel 20', puntos: 15 },
-  { id: 'els-2', bloque: 'elsword', texto: 'Que los tres noobs acaben una mazmorra sin morir', puntos: 20, detalle: 'Luis M., Sergi y Román vivos al final.' },
-  { id: 'els-3', bloque: 'elsword', texto: 'Completar una mazmorra con rango S', puntos: 15 },
-  { id: 'els-4', bloque: 'elsword', texto: 'Explicar el lore de Elsword en menos de 60 s', puntos: 10, detalle: 'Con cronómetro. Vale que nadie lo entienda.' },
-  { id: 'els-5', bloque: 'elsword', texto: 'Morir en la primera mazmorra siendo el experto', puntos: -10, castigo: true },
+  { id: 'els-4', bloque: 'elsword', texto: 'Explicar el lore de Elsword en menos de 60 s', dificultad: 'facil', detalle: 'Con cronómetro. Vale que nadie lo entienda.' },
+  { id: 'els-1', bloque: 'elsword', texto: 'Subir un personaje nuevo a nivel 20', dificultad: 'medio', detalle: 'PENDIENTE: nadie sabe si esto es un paseo o imposible. Que lo ajuste quien controle.' },
+  { id: 'els-2', bloque: 'elsword', texto: 'Que los tres noobs aguanten el bloque entero sin morir', dificultad: 'dificil', detalle: 'Luis M., Sergi y Román. Una sola mazmorra era demasiado fácil.' },
+  { id: 'els-3', bloque: 'elsword', texto: 'Completar tres mazmorras con rango S', dificultad: 'medio' },
 
   // --- Comida ---
-  { id: 'com-1', bloque: 'comida', texto: 'Brindis en japonés antes de empezar', puntos: 5 },
-  { id: 'com-2', bloque: 'comida', texto: 'Comerse el primer plato sin usar las manos', puntos: 10 },
+  { id: 'com-1', bloque: 'comida', texto: 'Brindis en japonés antes de empezar', dificultad: 'facil' },
+  { id: 'com-2', bloque: 'comida', texto: 'Comerse el primer plato sin usar las manos', dificultad: 'dificil' },
+  { id: 'com-3', bloque: 'comida', texto: 'Comerse el segundo plato sin cubiertos', dificultad: 'medio', detalle: 'Uno excluye al otro: decidid cuál va en cada plato.' },
 
   // --- Valorant ---
-  { id: 'val-1', bloque: 'valorant', texto: 'Conseguir un ace', puntos: 25 },
-  { id: 'val-2', bloque: 'valorant', texto: 'Ganar un duelo a pistola en la primera ronda', puntos: 10 },
-  { id: 'val-3', bloque: 'valorant', texto: 'Matar a alguien solo con el cuchillo', puntos: 15 },
-  { id: 'val-4', bloque: 'valorant', texto: 'Ganar la partida', puntos: 20 },
-  { id: 'val-5', bloque: 'valorant', texto: 'Matar a un compañero por error', puntos: -5, castigo: true },
+  { id: 'val-0', bloque: 'valorant', texto: 'Explicar el lore de Valorant o soltar una anécdota', dificultad: 'facil' },
+  { id: 'val-6', bloque: 'valorant', texto: 'Jugar una partida con agente aleatorio', dificultad: 'facil' },
+  { id: 'val-1', bloque: 'valorant', texto: 'Conseguir un ace', dificultad: 'dificil' },
+  { id: 'val-2', bloque: 'valorant', texto: 'Ganar un duelo a pistola en la primera ronda', dificultad: 'medio' },
+  { id: 'val-3', bloque: 'valorant', texto: 'Matar a alguien solo con el cuchillo', dificultad: 'dificil' },
+  { id: 'val-4', bloque: 'valorant', texto: 'Ganar la partida', dificultad: 'medio' },
+  { id: 'val-7', bloque: 'valorant', texto: 'Conseguir matar a un compañero', dificultad: 'dificil', detalle: 'En Valorant no se puede por error: tiene que buscarlo. Por eso SUMA.' },
 
   // --- Fortnite ---
-  { id: 'for-1', bloque: 'fortnite', texto: 'Victory Royale', puntos: 25 },
-  { id: 'for-2', bloque: 'fortnite', texto: 'Una eliminación con el pico', puntos: 15 },
-  { id: 'for-3', bloque: 'fortnite', texto: 'Quedar entre los 5 últimos con la squad', puntos: 10 },
-  { id: 'for-4', bloque: 'fortnite', texto: 'Bailar encima de un rival eliminado', puntos: 5 },
+  { id: 'for-0', bloque: 'fortnite', texto: 'Presentarse explicando el lore o una anécdota', dificultad: 'facil' },
+  { id: 'for-4', bloque: 'fortnite', texto: 'Bailar encima de un rival eliminado', dificultad: 'facil' },
+  { id: 'for-3', bloque: 'fortnite', texto: 'Quedar entre los 5 últimos con la squad', dificultad: 'medio' },
+  { id: 'for-2', bloque: 'fortnite', texto: 'Una eliminación con el pico', dificultad: 'dificil' },
+  { id: 'for-1', bloque: 'fortnite', texto: 'Victory Royale', dificultad: 'dificil' },
 
   // --- LoL ---
-  { id: 'lol-1', bloque: 'lol', texto: 'Ganar una ranked', puntos: 20 },
-  { id: 'lol-2', bloque: 'lol', texto: 'Pentakill', puntos: 30, detalle: 'El clip se guarda o no ha pasado.' },
-  { id: 'lol-3', bloque: 'lol', texto: 'Jugar una partida con campeón aleatorio', puntos: 15, detalle: 'Lo sortea la cuadrilla, no lo elige él.' },
-  { id: 'lol-4', bloque: 'lol', texto: 'Acabar una partida con 10 o más kills', puntos: 15 },
-  { id: 'lol-5', bloque: 'lol', texto: 'Acabar una partida sin morir ni una vez', puntos: 20 },
-  { id: 'lol-6', bloque: 'lol', texto: 'Morir antes del minuto 3', puntos: -10, castigo: true },
+  { id: 'lol-0', bloque: 'lol', texto: 'Presentarse explicando el lore o una anécdota', dificultad: 'facil' },
+  { id: 'lol-1', bloque: 'lol', texto: 'Ganar una ranked', dificultad: 'medio' },
+  { id: 'lol-2', bloque: 'lol', texto: 'Pentakill', dificultad: 'brutal', detalle: 'El clip se guarda o no ha pasado.' },
+  { id: 'lol-3', bloque: 'lol', texto: 'Jugar una partida con campeón aleatorio', dificultad: 'facil' },
+  { id: 'lol-7', bloque: 'lol', texto: 'AllRandom: ganar una ranked todos polivalentes y con campeón aleatorio', dificultad: 'brutal' },
+  { id: 'lol-8', bloque: 'lol', texto: 'Por los viejos tiempos: ganar con las posiciones y campeones míticos de cada uno', dificultad: 'medio' },
+  { id: 'lol-9', bloque: 'lol', texto: 'Por los viejos tiempos: perder esa misma partida', dificultad: 'facil', puntos: -10, castigo: true },
+  { id: 'lol-10', bloque: 'lol', texto: "Jugar de Cho'Gath sin comprar botas", dificultad: 'facil' },
+  { id: 'lol-11', bloque: 'lol', texto: 'Conseguir que Agustín no se tiltee', dificultad: 'dificil' },
+  { id: 'lol-4', bloque: 'lol', texto: 'Acabar una partida con 10 o más kills', dificultad: 'medio' },
+  { id: 'lol-5', bloque: 'lol', texto: 'Acabar una partida sin morir ni una vez', dificultad: 'dificil' },
+  { id: 'lol-6', bloque: 'lol', texto: 'Morir antes del minuto 3', dificultad: 'facil', puntos: -10, castigo: true },
 
   // --- Minecraft ---
-  { id: 'mc-1', bloque: 'minecraft', texto: 'Sobrevivir la primera noche sin morir', puntos: 10 },
-  { id: 'mc-2', bloque: 'minecraft', texto: 'Construir una réplica reconocible de su casa', puntos: 20, detalle: 'Se vota a mano alzada: 4 de 6 y cuenta.' },
-  { id: 'mc-3', bloque: 'minecraft', texto: 'Bajar al Nether y volver vivo', puntos: 20 },
-  { id: 'mc-4', bloque: 'minecraft', texto: 'Ganar el minijuego que monte la cuadrilla', puntos: 15 },
-  { id: 'mc-5', bloque: 'minecraft', texto: 'Morir en la lava con el inventario lleno', puntos: -10, castigo: true },
+  { id: 'mc-1', bloque: 'minecraft', texto: 'Sobrevivir la primera noche sin morir', dificultad: 'facil' },
+  { id: 'mc-6', bloque: 'minecraft', texto: 'Montarse en un cerdo', dificultad: 'medio' },
+  { id: 'mc-7', bloque: 'minecraft', texto: 'Encontrar una mazmorra', dificultad: 'medio' },
+  { id: 'mc-2', bloque: 'minecraft', texto: 'Acabar con una casa más chula que la de Luis P.', dificultad: 'medio', detalle: 'Se vota a mano alzada: 4 de 6 y cuenta.' },
+  { id: 'mc-3', bloque: 'minecraft', texto: 'Bajar al Nether y volver vivo', dificultad: 'dificil' },
+  { id: 'mc-5', bloque: 'minecraft', texto: 'Morir en la lava con el inventario lleno', dificultad: 'facil', puntos: -10, castigo: true },
 
   // --- Cena disfrazado (aquí está la sal de la despedida) ---
-  { id: 'cen-1', bloque: 'cena', texto: 'Salir de casa disfrazado y sin taparse', puntos: 20 },
-  { id: 'cen-2', bloque: 'cena', texto: 'Pedir el kebab sin salirse del personaje', puntos: 15 },
-  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación de Sailor Moon en plena calle', puntos: 20 },
-  { id: 'cen-4', bloque: 'cena', texto: 'Que un desconocido se haga una foto con él', puntos: 15 },
-  { id: 'cen-5', bloque: 'cena', texto: 'Discurso lunar en alto antes de cenar', puntos: 10 },
-  { id: 'cen-6', bloque: 'cena', texto: 'Convencer a un camarero de que es su despedida', puntos: 15 },
+  { id: 'cen-1', bloque: 'cena', texto: 'Salir de casa disfrazado y sin taparse', dificultad: 'medio' },
+  { id: 'cen-2', bloque: 'cena', texto: 'Pedir el kebab sin salirse del personaje', dificultad: 'medio' },
+  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación de Sailor Moon en plena calle', dificultad: 'facil' },
+  { id: 'cen-4', bloque: 'cena', texto: 'Que un desconocido se haga una foto con él o salude al directo', dificultad: 'medio' },
+  { id: 'cen-7', bloque: 'cena', texto: 'Conseguir que un desconocido le siga en Twitch y salte la alerta', dificultad: 'dificil' },
+  { id: 'cen-5', bloque: 'cena', texto: 'Discurso lunar en alto antes de cenar', dificultad: 'facil' },
+  { id: 'cen-6', bloque: 'cena', texto: 'Convencer a un camarero de que es su despedida', dificultad: 'facil' },
 
   // --- La noche ---
-  { id: 'noc-1', bloque: 'noche', texto: 'Ganar la partida al juego de mesa', puntos: 10 },
-  { id: 'noc-2', bloque: 'noche', texto: 'Aguantar despierto hasta el final de la peli', puntos: 10 },
-  { id: 'noc-3', bloque: 'noche', texto: 'Ser el último en irse a dormir', puntos: 15 },
+  { id: 'noc-1', bloque: 'noche', texto: 'Ganar la partida al juego de mesa', dificultad: 'medio' },
+  { id: 'noc-2', bloque: 'noche', texto: 'Aguantar despierto hasta el final de la peli', dificultad: 'facil' },
+  { id: 'noc-3', bloque: 'noche', texto: 'Ser el último en irse a dormir', dificultad: 'medio' },
 
   // --- Domingo: baloncesto ---
-  { id: 'bas-1', bloque: 'basquet', texto: 'Meter un triple', puntos: 15 },
-  { id: 'bas-2', bloque: 'basquet', texto: 'Ganar el partido con su equipo', puntos: 20 },
-  { id: 'bas-3', bloque: 'basquet', texto: 'Encestar con los ojos cerrados', puntos: 10 },
-  { id: 'bas-4', bloque: 'basquet', texto: 'Meter desde medio campo', puntos: 25 },
+  { id: 'bas-1', bloque: 'basquet', texto: 'Meter un triple', dificultad: 'medio' },
+  { id: 'bas-2', bloque: 'basquet', texto: 'Ganar el partido con su equipo', dificultad: 'medio' },
+  { id: 'bas-3', bloque: 'basquet', texto: 'Encestar con los ojos cerrados', dificultad: 'medio' },
+  { id: 'bas-4', bloque: 'basquet', texto: 'Meter desde medio campo', dificultad: 'dificil' },
 ]
 
 export interface Recompensa {
@@ -333,7 +383,7 @@ export const RECOMPENSAS: Recompensa[] = [
 ]
 
 /** Suma de todo lo ganable (los castigos no cuentan para el techo). */
-export const PUNTOS_MAXIMOS = RETOS.reduce((n, r) => n + Math.max(0, r.puntos), 0)
+export const PUNTOS_MAXIMOS = RETOS.reduce((n, r) => n + Math.max(0, puntosDe(r)), 0)
 
 export function retosDe(bloqueId: string): Reto[] {
   return RETOS.filter((r) => r.bloque === bloqueId)

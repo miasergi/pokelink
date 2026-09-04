@@ -92,6 +92,17 @@ export function estadoDe(b: Bloque, ahora: Date, fijado: string | null): 'pasado
   return 'futuro'
 }
 
+/**
+ * ¿Se puede ver ya lo que es este bloque? El grupo decidió que el programa se
+ * descubra poco a poco: Óscar ve que a las 16:00 hay ALGO, pero no qué, hasta
+ * que lo destapa él o le llega la hora. Los organizadores lo ven todo: alguien
+ * tiene que poder prepararlo.
+ */
+export function estaRevelado(b: Bloque, ahora: Date, juez: boolean, revelados: string[]): boolean {
+  if (juez || revelados.includes(b.id)) return true
+  return ahora >= rangoDe(b).desde
+}
+
 // ---------------------------------------------------------------- scroll
 
 /**
