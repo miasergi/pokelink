@@ -10,6 +10,7 @@ import {
   Antetitulo, BotonLima, BotonLinea, bloqueActual, cuentaAtras, duracion, irA, useAhora,
 } from './despedidaKit'
 import { rangoDe } from '@/data/despedida'
+import Marca, { type MarcaId } from './Marcas'
 
 const TITULARES = [
   '26 horas de directo',
@@ -55,7 +56,7 @@ export default function HeroSection() {
           <Antetitulo>Elfia 12 · Benicarló</Antetitulo>
         </div>
 
-        <h1 className="font-fest uppercase text-white leading-[0.88] tracking-[-0.02em] mt-5 text-[19vw] sm:text-[13vw] lg:text-[11rem]">
+        <h1 className="font-fest uppercase text-white leading-[0.96] tracking-[-0.02em] mt-5 text-[19vw] sm:text-[13vw] lg:text-[11rem]">
           Despedida
           <br />
           <span style={{ color: LIMA }}>Óscar</span>
@@ -144,8 +145,9 @@ function EnMarcha({ puntos, bloque, ahora, fijado }: {
       <div className="flex flex-col sm:flex-row">
         <div className="flex-1 p-5 sm:p-7 min-w-0">
           <ChapaDirecto grande />
-          <div className="font-fest uppercase text-white text-[11vw] sm:text-6xl leading-[0.9] mt-4 break-words">
-            {bloque ? `${bloque.emoji} ${bloque.titulo}` : 'Pausa'}
+          <div className="flex items-center gap-3 sm:gap-4 font-fest uppercase text-white text-[11vw] sm:text-6xl leading-[0.9] mt-4">
+            {bloque && <Marca id={bloque.marca as MarcaId} className="w-9 h-9 sm:w-14 sm:h-14 shrink-0" style={{ color: DIRECTO }} />}
+            <span className="min-w-0 break-words">{bloque ? bloque.titulo : 'Pausa'}</span>
           </div>
           {bloque && (
             <div className="font-festui text-[13px] sm:text-base text-zinc-400 mt-3">

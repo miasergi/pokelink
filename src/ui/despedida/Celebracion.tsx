@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { RECOMPENSAS } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
+import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, FILETE, LIMA, NEGRO } from './despedidaKit'
 
 export default function Celebracion() {
@@ -37,7 +38,7 @@ export default function Celebracion() {
 
         <div className="border mt-5" style={{ borderColor: `${LIMA}44`, background: '#0B0B0E' }}>
           <div className="grid place-items-center py-10 border-b" style={{ borderColor: FILETE }}>
-            <div className="text-[86px] leading-none animate-float">{r.emoji}</div>
+            <Marca id={r.marca as MarcaId} className="w-24 h-24 animate-float" style={{ color: LIMA }} />
           </div>
           <div className="p-7 text-center">
             <h2 className="font-fest uppercase text-white text-5xl sm:text-6xl leading-[0.85]">{r.titulo}</h2>

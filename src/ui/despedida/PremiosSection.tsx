@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { PUNTOS_MAXIMOS, RECOMPENSAS, type Recompensa } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
+import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, FILETE, LIMA, Seccion } from './despedidaKit'
 
 export default function PremiosSection() {
@@ -83,7 +84,9 @@ function Caja({ n, recompensa: r, puntos, espiar }: {
           className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 grid place-items-center text-2xl sm:text-3xl border"
           style={{ borderColor: abierta ? `${LIMA}55` : FILETE, background: abierta ? `${LIMA}12` : '#0E0E12' }}
         >
-          {abierta ? r.emoji : <Candado />}
+          {abierta
+            ? <Marca id={r.marca as MarcaId} className="w-6 h-6 sm:w-8 sm:h-8" style={{ color: LIMA }} />
+            : <Candado />}
         </span>
 
         <div className="min-w-0 flex-1">

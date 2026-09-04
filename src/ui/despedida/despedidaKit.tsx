@@ -110,7 +110,11 @@ export function useRevela<T extends HTMLElement>() {
           if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) }
         }
       },
-      { rootMargin: '0px 0px -12% 0px', threshold: 0.08 },
+      // OJO con el umbral: si se pide un PORCENTAJE del elemento, una sección
+      // larga (la de retos mide 7.500 px) no llega a cumplirlo nunca en una
+      // pantalla pequeña y se queda invisible para siempre. Con 0 basta con
+      // que asome un píxel, que es lo que se quería decir.
+      { rootMargin: '0px 0px -80px 0px', threshold: 0 },
     )
     obs.observe(el)
     return () => obs.disconnect()

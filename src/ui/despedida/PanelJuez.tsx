@@ -11,6 +11,7 @@ import { BLOQUES, retosDe, type Reto } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { proximaRecompensa } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
+import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, DIRECTO, FILETE, LIMA, NEGRO, bloqueActual, useAhora } from './despedidaKit'
 
 export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
@@ -82,8 +83,9 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <div className="max-w-3xl mx-auto px-4 py-5 flex flex-col gap-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-fest uppercase text-white text-3xl leading-none min-w-0 truncate">
-              <span className="mr-2">{bloque.emoji}</span>{bloque.titulo}
+            <h2 className="flex items-center gap-2.5 font-fest uppercase text-white text-3xl leading-none min-w-0">
+              <Marca id={bloque.marca as MarcaId} className="w-6 h-6 shrink-0" style={{ color: bloque.color }} />
+              <span className="truncate">{bloque.titulo}</span>
             </h2>
             <button
               onClick={() => { play('tap'); fijarBloque(save.bloqueFijado === bloque.id ? null : bloque.id) }}

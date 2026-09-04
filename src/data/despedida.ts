@@ -30,7 +30,8 @@ export interface Bloque {
   /** 'HH:MM' en horario local. */
   inicio: string
   fin: string
-  emoji: string
+  /** Símbolo del cartel. Los dibujos viven en `ui/despedida/Marcas`. */
+  marca: string
   titulo: string
   /** Color de acento del bloque (mismo criterio que el Excel de Luis). */
   color: string
@@ -48,7 +49,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '10:00',
     fin: '11:00',
-    emoji: '🎬',
+    marca: 'directo',
     titulo: 'Inauguración',
     color: '#38bdf8',
     desc: 'Montar el streaming, presentar el calendario y explicarle a Óscar en qué se ha metido.',
@@ -60,7 +61,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '11:00',
     fin: '12:30',
-    emoji: '☠️',
+    marca: 'onepiece',
     titulo: 'One Piece TCG',
     color: '#f87171',
     desc: 'Torneo 2vs2 con proxies, cambiando parejas según dé tiempo.',
@@ -72,7 +73,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '12:30',
     fin: '14:30',
-    emoji: '⚔️',
+    marca: 'elsword',
     titulo: 'Elsword',
     color: '#4ade80',
     desc: 'Óscar enseña Elsword a completos noobs. Román juega desde el PC de María.',
@@ -84,7 +85,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '14:30',
     fin: '15:30',
-    emoji: '🍽️',
+    marca: 'comida',
     titulo: 'Comida',
     color: '#fb923c',
     desc: 'One Piece de fondo y a reponer fuerzas.',
@@ -95,7 +96,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '15:30',
     fin: '16:30',
-    emoji: '🎯',
+    marca: 'valorant',
     titulo: 'Valorant',
     color: '#facc15',
     desc: 'Partidas de 5. Se conectan los de fuera.',
@@ -106,7 +107,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '16:30',
     fin: '17:30',
-    emoji: '🪂',
+    marca: 'fortnite',
     titulo: 'Fortnite',
     color: '#22d3ee',
     desc: 'Squad a por la Victory Royale.',
@@ -117,7 +118,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '17:30',
     fin: '19:00',
-    emoji: '🧙',
+    marca: 'lol',
     titulo: 'League of Legends',
     color: '#c084fc',
     desc: 'Rankeds de LIX. Quizá una en clásico para calentar.',
@@ -129,7 +130,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '19:00',
     fin: '21:00',
-    emoji: '⛏️',
+    marca: 'minecraft',
     titulo: 'Minecraft',
     color: '#34d399',
     desc: 'Servidor para todos con minijuegos y retos. Si se va de hora, se recorta.',
@@ -141,7 +142,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '21:00',
     fin: '23:00',
-    emoji: '🌙',
+    marca: 'luna',
     titulo: 'Cena disfrazado',
     color: '#f472b6',
     desc: 'Al puerto, a cenar un kebab con Óscar de Sailor Moon. Aquí caen los retos gordos.',
@@ -153,7 +154,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'sab',
     inicio: '23:00',
     fin: '02:00',
-    emoji: '🃏',
+    marca: 'dado',
     titulo: 'La noche',
     color: '#a78bfa',
     desc: 'Juego de mesa, peli o One Piece hasta que caiga el último.',
@@ -164,7 +165,7 @@ export const BLOQUES: Bloque[] = [
     dia: 'dom',
     inicio: '11:00',
     fin: '13:00',
-    emoji: '🏀',
+    marca: 'balon',
     titulo: 'Partido de baloncesto',
     color: '#38bdf8',
     desc: 'Pista por confirmar. Y hay que conseguir una pelota.',
@@ -260,7 +261,8 @@ export interface Recompensa {
   id: string
   /** Puntos necesarios para abrirla. */
   umbral: number
-  emoji: string
+  /** Símbolo del cartel. Los dibujos viven en `ui/despedida/Marcas`. */
+  marca: string
   /** Lo que hay dentro. SECRETO hasta que se desbloquea. */
   titulo: string
   detalle: string
@@ -275,7 +277,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r1',
     umbral: 30,
-    emoji: '🥤',
+    marca: 'vaso',
     titulo: 'Combustible',
     detalle: 'Se abren las Monster y los refrescos. Hasta aquí, agua del grifo.',
     pista: 'Está frío y lleva demasiada cafeína.',
@@ -283,7 +285,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r2',
     umbral: 70,
-    emoji: '🍫',
+    marca: 'caramelo',
     titulo: 'Merienda desbloqueada',
     detalle: 'Salen las chuches y la bollería escondidas en la cocina.',
     pista: 'Lleva azúcar y estaba escondido en tu propia casa.',
@@ -291,7 +293,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r3',
     umbral: 120,
-    emoji: '🃏',
+    marca: 'comodin',
     titulo: 'Comodín anti-putada',
     detalle: 'Vale por librarse de UN reto de la cena. Se gasta una sola vez y no se guarda para el domingo.',
     pista: 'Te va a salvar de algo que pasará vestido de marinerita.',
@@ -299,7 +301,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r4',
     umbral: 170,
-    emoji: '🥙',
+    marca: 'kebab',
     titulo: 'Derecho a elegir la cena',
     detalle: 'Elige él el sitio y lo que se pide. Sin derecho a veto.',
     pista: 'Decides tú algo que normalmente decidimos nosotros.',
@@ -307,7 +309,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r5',
     umbral: 220,
-    emoji: '🎧',
+    marca: 'cascos',
     titulo: 'Amo de la música',
     detalle: 'Manda en la lista de reproducción de toda la noche.',
     pista: 'Se oye, y todos vamos a tener que aguantarlo.',
@@ -315,7 +317,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r6',
     umbral: 280,
-    emoji: '🥐',
+    marca: 'cafe',
     titulo: 'Desayuno de campeones',
     detalle: 'Domingo con desayuno de verdad comprado por la cuadrilla, no galletas rancias.',
     pista: 'Mañana por la mañana lo vas a agradecer mucho.',
@@ -323,7 +325,7 @@ export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r7',
     umbral: 340,
-    emoji: '🎁',
+    marca: 'regalo',
     titulo: 'El regalo',
     detalle: 'PENDIENTE: decidid entre todos qué va aquí y editadlo antes del sábado.',
     pista: 'Lo último de todo. Y no se come.',

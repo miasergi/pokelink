@@ -8,6 +8,7 @@ import {
   Antetitulo, DIRECTO, FILETE, LIMA, NEGRO, bloqueActual, duracion, useAhora,
 } from './despedidaKit'
 import { rangoDe } from '@/data/despedida'
+import Marca, { type MarcaId } from './Marcas'
 
 export default function OverlayView({ onSalir }: { onSalir: () => void }) {
   const ahora = useAhora(5000)
@@ -85,8 +86,9 @@ export default function OverlayView({ onSalir }: { onSalir: () => void }) {
                   <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: DIRECTO }} />
                   En directo
                 </span>
-                <h1 className="font-fest uppercase leading-[0.85] text-white text-[11vw] lg:text-[6.5vw] mt-3">
-                  {actual.emoji} {actual.titulo}
+                <h1 className="flex items-center gap-4 lg:gap-6 font-fest uppercase leading-[0.85] text-white text-[11vw] lg:text-[6.5vw] mt-3">
+                  <Marca id={actual.marca as MarcaId} className="w-[9vw] h-[9vw] lg:w-[5vw] lg:h-[5vw] shrink-0" style={{ color: actual.color }} />
+                  <span className="min-w-0">{actual.titulo}</span>
                 </h1>
                 <div className="text-base lg:text-2xl text-zinc-400 mt-3">
                   {actual.inicio} – {actual.fin}

@@ -3,6 +3,7 @@
 // que toca ahora se enciende. Nada de tarjetitas redondeadas.
 import { BLOQUES, retosDe, type Bloque, type Dia } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
+import Marca, { type MarcaId } from './Marcas'
 import {
   Antetitulo, ChapaDirecto, DIRECTO, FILETE, LIMA, Seccion, estadoDe, useAhora,
 } from './despedidaKit'
@@ -68,8 +69,9 @@ function Linea({ bloque: b, estado }: { bloque: Bloque; estado: 'pasado' | 'ahor
         {/* Cuerpo */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h4 className="font-fest uppercase text-white text-2xl sm:text-4xl leading-none">
-              <span className="mr-2">{b.emoji}</span>{b.titulo}
+            <h4 className="flex items-center gap-2.5 font-fest uppercase text-white text-2xl sm:text-4xl leading-none">
+              <Marca id={b.marca as MarcaId} className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" style={{ color: enCurso ? DIRECTO : b.color }} />
+              {b.titulo}
             </h4>
             {enCurso && <ChapaDirecto />}
           </div>

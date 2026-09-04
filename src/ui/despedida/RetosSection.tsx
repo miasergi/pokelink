@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { BLOQUES, retosDe, type Reto } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
+import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, DIRECTO, FILETE, LIMA, Seccion } from './despedidaKit'
 
 export default function RetosSection() {
@@ -37,8 +38,9 @@ export default function RetosSection() {
           return (
             <div key={b.id}>
               <div className="flex items-baseline justify-between gap-4 pb-3 border-b" style={{ borderColor: FILETE }}>
-                <h3 className="font-fest uppercase text-white text-2xl sm:text-3xl leading-none min-w-0 truncate">
-                  <span className="mr-2">{b.emoji}</span>{b.titulo}
+                <h3 className="flex items-center gap-2.5 font-fest uppercase text-white text-2xl sm:text-3xl leading-none min-w-0">
+                  <Marca id={b.marca as MarcaId} className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" style={{ color: b.color }} />
+                  <span className="truncate">{b.titulo}</span>
                 </h3>
                 <Antetitulo>{listos} / {total}</Antetitulo>
               </div>
@@ -57,7 +59,7 @@ function Tarjeta({ reto: r, ok }: { reto: Reto; ok: boolean }) {
   const castigo = !!r.castigo
   return (
     <div
-      className="relative p-5 flex flex-col justify-between min-h-[130px] transition-colors"
+      className="relative p-5 flex flex-col justify-between sm:min-h-[130px] transition-colors"
       style={{ background: ok ? (castigo ? '#170B0E' : '#0F1408') : '#0B0B0E' }}
     >
       <div className="flex items-start justify-between gap-4">

@@ -16,6 +16,8 @@ import CyberScreen from '@/ui/screens/CyberScreen'
 import PartyScreen from '@/ui/screens/PartyScreen'
 import DespedidaScreen from '@/ui/screens/DespedidaScreen'
 import PanelJuez from '@/ui/despedida/PanelJuez'
+import { MARCAS } from '@/ui/despedida/Marcas'
+import { BLOQUES } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import { RECOMPENSAS, RETOS } from '@/data/despedida'
 import PicoloView from '@/ui/party/PicoloView'
@@ -115,6 +117,13 @@ describe('render de pantallas (smoke)', () => {
     expect(mount(() => createElement(BotellaView, { players, onBack: () => {} }))).toContain('botella')
     expect(mount(() => createElement(KingsView, { onBack: () => {} }))).toContain('rey')
     expect(mount(() => createElement(OcaView, { players, onBack: () => {} }))).toContain('Tirar')
+  })
+
+  it('Despedida de Óscar: toda marca pedida por los datos está dibujada', () => {
+    // Un id mal escrito en `data/despedida` no reventaría: pintaría un hueco
+    // y nadie se daría cuenta hasta tener el cartel delante.
+    for (const b of BLOQUES) expect(MARCAS, `bloque ${b.id}`).toContain(b.marca)
+    for (const r of RECOMPENSAS) expect(MARCAS, `premio ${r.id}`).toContain(r.marca)
   })
 
   it('Despedida de Óscar: la landing entera y el panel del juez montan', () => {
