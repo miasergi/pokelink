@@ -14,6 +14,9 @@ import PokedexScreen from '@/ui/screens/PokedexScreen'
 import StarterSelectScreen from '@/ui/screens/StarterSelectScreen'
 import CyberScreen from '@/ui/screens/CyberScreen'
 import PartyScreen from '@/ui/screens/PartyScreen'
+import DespedidaScreen from '@/ui/screens/DespedidaScreen'
+import { useDespedida } from '@/state/despedidaStore'
+import { RECOMPENSAS, RETOS } from '@/data/despedida'
 import PicoloView from '@/ui/party/PicoloView'
 import YoNuncaView from '@/ui/party/YoNuncaView'
 import BotellaView from '@/ui/party/BotellaView'
@@ -111,6 +114,37 @@ describe('render de pantallas (smoke)', () => {
     expect(mount(() => createElement(BotellaView, { players, onBack: () => {} }))).toContain('botella')
     expect(mount(() => createElement(KingsView, { onBack: () => {} }))).toContain('rey')
     expect(mount(() => createElement(OcaView, { players, onBack: () => {} }))).toContain('Tirar')
+  })
+
+  it('Despedida de Óscar: horario, retos, premios e invitación montan', () => {
+    useGame.setState({ loaded: true, screen: { name: 'despedida' } })
+    useDespedida.getState().reiniciar()
+
+    // Hub: siempre entra por el horario en directo.
+    expect(mount(DespedidaScreen)).toContain('Despedida de Óscar')
+
+    // Con juez y un reto marcado, el marcador refleja los puntos.
+    useDespedida.setState({ juez: true })
+    const reto = RETOS.find((r) => !r.castigo)!
+    useDespedida.getState().marcarReto(reto.id)
+    expect(useDespedida.getState().puntos()).toBe(reto.puntos)
+    expect(useDespedida.getState().historial()[0].texto).toBe(reto.texto)
+
+    // Deshacer devuelve el marcador a cero: es la salvaguarda contra el
+    // "eso no te lo había dado" de las 3 de la mañana.
+    useDespedida.getState().desmarcarReto(reto.id)
+    expect(useDespedida.getState().puntos()).toBe(0)
+
+    // Cruzar un umbral abre la caja y dispara la celebración.
+    const primera = RECOMPENSAS[0]
+    useDespedida.getState().ajustar(primera.umbral, 'test')
+    expect(useDespedida.getState().celebrando).toBe(primera.id)
+    const html = mount(DespedidaScreen)
+    expect(html).toContain(primera.titulo)
+
+    useDespedida.getState().celebrar(null)
+    useDespedida.getState().reiniciar()
+    useDespedida.setState({ juez: false })
   })
 
   it('Cyber PokéBall: título, mapa y centro renderizan', () => {

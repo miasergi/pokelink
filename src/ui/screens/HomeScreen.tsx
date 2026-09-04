@@ -149,6 +149,20 @@ export default function HomeScreen() {
       </div>
 
       <div className="w-full max-w-sm mx-auto flex flex-col gap-2.5 my-auto">
+        {/* ---- DESPEDIDA DE ÓSCAR (evento: 12 y 13 de septiembre) ----
+             Va la primera A PROPÓSITO: durante esa semana es lo único que la
+             cuadrilla va a abrir aquí. Cuando pase, se quita y punto. */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}covers/despedida-cover.svg`}
+          logo={`${import.meta.env.BASE_URL}despedida/logo.svg`}
+          alt="Despedida de Óscar"
+          title="Despedida de Óscar"
+          color="#f472b6"
+          status="12 y 13 sept · retos, puntos y premios"
+          cta="Entrar"
+          onPlay={() => navigate('despedida')}
+        />
+
         {/* ---- POKÉMON ---- */}
         <CoverCard
           art={`${import.meta.env.BASE_URL}covers/pokemon-cover.jpg`}

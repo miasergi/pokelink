@@ -41,6 +41,7 @@ const CyberScreen = lazy(() => import('@/ui/screens/CyberScreen'))
 const InazumaScreen = lazy(() => import('@/ui/screens/InazumaScreen'))
 const PartyScreen = lazy(() => import('@/ui/screens/PartyScreen'))
 const DragonScreen = lazy(() => import('@/ui/screens/DragonScreen'))
+const DespedidaScreen = lazy(() => import('@/ui/screens/DespedidaScreen'))
 
 const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
@@ -76,9 +77,16 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   inazuma: InazumaScreen,
   party: PartyScreen,
   dragon: DragonScreen,
+  despedida: DespedidaScreen,
 }
 
 const ONBOARD_KEY = 'pokerogue:onboarded'
+
+// ENLACE DIRECTO a la despedida de Óscar: .../#/despedidaOscar. Es la única
+// pantalla con URL propia (la app navega por estado, no por rutas): se pega en
+// el grupo de WhatsApp y quien lo abre entra ahí, sin explicarle dónde tocar.
+const ENLACE_DESPEDIDA = '#/despedidaoscar'
+const llegaPorEnlace = typeof window !== 'undefined' && window.location.hash.toLowerCase() === ENLACE_DESPEDIDA
 
 export default function App() {
   const { screen, init, loaded } = useGame()
@@ -96,6 +104,23 @@ export default function App() {
   useEffect(() => {
     void init()
   }, [init])
+
+  // Se aplica cuando el estado ya está cargado, para que `init` no pise el
+  // destino. Al consumirlo se limpia el hash: recargar más tarde no te vuelve
+  // a meter en la despedida sin querer.
+  useEffect(() => {
+    if (!loaded) return
+    const entrar = () => {
+      useGame.getState().navigate('despedida')
+      history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+    if (llegaPorEnlace) entrar()
+    const alCambiarHash = () => {
+      if (window.location.hash.toLowerCase() === ENLACE_DESPEDIDA) entrar()
+    }
+    window.addEventListener('hashchange', alCambiarHash)
+    return () => window.removeEventListener('hashchange', alCambiarHash)
+  }, [loaded])
 
   // Música de fondo según la pantalla.
   useEffect(() => {
