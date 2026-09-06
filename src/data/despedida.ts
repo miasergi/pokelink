@@ -64,7 +64,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'onepiece',
     titulo: 'One Piece TCG',
     color: '#f87171',
-    desc: 'Torneo 2vs2 con proxies, cambiando parejas según dé tiempo.',
+    desc: 'Torneo 2vs2 con proxies y mazos preparados aposta por Luis P. y Cla.',
     participantes: ['Óscar', 'Cla', 'Román', 'Luis P.'],
     logistica: 'Sergi y Luis M. se desplazan a casa de Óscar.',
   },
@@ -76,7 +76,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'elsword',
     titulo: 'Elsword',
     color: '#4ade80',
-    desc: 'Óscar enseña Elsword a completos noobs. Román juega desde el PC de María.',
+    desc: 'Run de dos horas contando la preparación y la creación de personajes. Óscar enseña a completos noobs; Román juega desde el PC de María.',
     participantes: ['Óscar', 'Luis M.', 'Sergi', 'Román'],
     logistica: 'Luis P. y Cla preparan la comida.',
   },
@@ -111,7 +111,7 @@ export const BLOQUES: Bloque[] = [
     titulo: 'Fortnite',
     color: '#22d3ee',
     desc: 'Squad a por la Victory Royale.',
-    participantes: ['Óscar', 'Greñas', 'Luis M.'],
+    participantes: ['Óscar', 'Greñas', 'Luis M.', 'Cla'],
   },
   {
     id: 'lol',
@@ -231,11 +231,15 @@ export const RETOS: Reto[] = [
   { id: 'ina-3', bloque: 'inauguracion', texto: 'Presentar bien a los ocho de la cuadrilla sin guion', dificultad: 'medio', detalle: 'Un fallo de nombre y no cuenta.' },
 
   // --- One Piece TCG ---
-  { id: 'op-0', bloque: 'onepiece', texto: 'Explicar qué es el OPTCG y qué significa para él', dificultad: 'facil' },
-  { id: 'op-1', bloque: 'onepiece', texto: 'Ganar una partida', dificultad: 'medio' },
-  { id: 'op-2', bloque: 'onepiece', texto: 'Ganar con 3 o más de vida restante', dificultad: 'dificil' },
-  { id: 'op-4', bloque: 'onepiece', texto: 'Cerrar la partida con el ataque del líder', dificultad: 'medio' },
-  { id: 'op-5', bloque: 'onepiece', texto: 'Perder contra Luis P.', dificultad: 'facil', puntos: -5, castigo: true },
+  // Los cerraron Luis P. y Cla montando los mazos del torneo, con sus puntos
+  // ya asignados a mano: aquí manda su nivelación, no la tabla.
+  { id: 'op-0', bloque: 'onepiece', texto: 'Explicar a cámara por qué este juego le importa', dificultad: 'facil', puntos: 5 },
+  { id: 'op-1', bloque: 'onepiece', texto: 'Jugar un Trafalgar Law', dificultad: 'facil', puntos: 5 },
+  { id: 'op-2', bloque: 'onepiece', texto: 'Superando a los creadores: ganar una partida contra Cla y Luis P.', dificultad: 'medio', puntos: 15 },
+  { id: 'op-3', bloque: 'onepiece', texto: '¡Déjame jugar!: inutilizar los characters rivales dos turnos seguidos', dificultad: 'medio', puntos: 10 },
+  { id: 'op-4', bloque: 'onepiece', texto: 'Detergente: impactar un double attack banish con el líder', dificultad: 'medio', puntos: 10 },
+  { id: 'op-6', bloque: 'onepiece', texto: 'Soy un chico EXCELENTE: jugar tres costes 9 o más en una misma partida', dificultad: 'medio', puntos: 15 },
+  { id: 'op-7', bloque: 'onepiece', texto: 'Inclusivo: trashear cartas al rival de tres colores distintos', dificultad: 'dificil', puntos: 25 },
 
   // --- Elsword ---
   { id: 'els-4', bloque: 'elsword', texto: 'Explicar el lore de Elsword en menos de 60 s', dificultad: 'facil', detalle: 'Con cronómetro. Vale que nadie lo entienda.' },
@@ -318,67 +322,149 @@ export interface Recompensa {
   detalle: string
   /** Lo único que Óscar ve antes de llegar al umbral. */
   pista: string
+  /**
+   * Premio con fecha de caducidad: hay que abrirlo ANTES de que empiece este
+   * bloque. Si llega la hora sin abrirlo, se destapa igual pero con castigo.
+   */
+  limite?: string
+  penalizacion?: string
+  /** De los gordos: un regalo de verdad, no una tontería. */
+  jugoso?: boolean
+  /** El premio del que tiene que creerse que es de verdad. */
+  legendario?: boolean
+  /** Solo para los organizadores: el montaje que hay detrás. */
+  nota?: string
 }
 
-// De menor a mayor umbral. Los umbrales están calibrados sobre el total de
-// puntos posibles: la pantalla de recompensas avisa si el último queda por
-// encima del máximo (pasaría si quitáis retos sin tocar esto).
+/**
+ * Los premios, tal y como los dejó Luis en su Word. Tres cosas a tener claras:
+ *
+ *  - El ORDEN de la lista es el orden de los umbrales, de menor a mayor.
+ *  - Los umbrales de los tres primeros los fijó él (10, 25, 50) para que caigan
+ *    en momentos concretos: el primero en mitad de la inauguración, el segundo
+ *    jugando al One Piece y el tercero al empezar Elsword como muy tarde. El
+ *    resto son una curva propuesta sobre esos anclajes; se tocan sin miedo.
+ *  - Los que llevan `limite` son los que TIENE que conseguir antes de una hora.
+ *    Si no llega, la caja se abre sola con la penalización dentro.
+ */
 export const RECOMPENSAS: Recompensa[] = [
   {
-    id: 'r1',
-    umbral: 30,
-    marca: 'vaso',
+    id: 'r01', umbral: 10, marca: 'comodin', jugoso: true,
+    titulo: 'Vale de 5 € en Cardmarket',
+    detalle: 'Cinco euros de cartón, a gastar en lo que quieras.',
+    pista: 'Sirve para comprar cartón. Del que te gusta.',
+  },
+  {
+    id: 'r02', umbral: 25, marca: 'micro',
+    titulo: 'Que cante otro',
+    detalle: 'Vale para obligar a quien tú digas a cantar en el directo el opening que tú elijas.',
+    pista: 'Alguien va a hacer el ridículo. Y no eres tú.',
+  },
+  {
+    id: 'r03', umbral: 50, marca: 'comida', jugoso: true,
+    limite: 'comida',
+    titulo: 'Chefs expertos',
+    detalle: 'Cla y Luis P. te cocinan los macarrones con salchichas.',
+    pista: 'Hoy alguien se pone el delantal. Corre, que la comida no espera.',
+    penalizacion: 'No llegaste a tiempo: los macarrones te los cocinas tú.',
+  },
+  {
+    id: 'r04', umbral: 65, marca: 'vaso',
     titulo: 'Combustible',
-    detalle: 'Se abren las Monster y los refrescos. Hasta aquí, agua del grifo.',
-    pista: 'Está frío y lleva demasiada cafeína.',
+    detalle: 'Una Monster para cuando el cuerpo la pida.',
+    pista: 'Frío, verde y con demasiada cafeína.',
   },
   {
-    id: 'r2',
-    umbral: 70,
-    marca: 'caramelo',
-    titulo: 'Merienda desbloqueada',
-    detalle: 'Salen las chuches y la bollería escondidas en la cocina.',
-    pista: 'Lleva azúcar y estaba escondido en tu propia casa.',
+    id: 'r05', umbral: 80, marca: 'wc',
+    titulo: 'Meada gratis',
+    detalle: 'Un viaje al baño sin que te reste puntos. Uno, y no acumula.',
+    pista: 'Un viaje sale gratis. Solo uno.',
   },
   {
-    id: 'r3',
-    umbral: 120,
-    marca: 'comodin',
-    titulo: 'Comodín anti-putada',
-    detalle: 'Vale por librarse de UN reto de la cena. Se gasta una sola vez y no se guarda para el domingo.',
-    pista: 'Te va a salvar de algo que pasará vestido de marinerita.',
+    id: 'r06', umbral: 95, marca: 'onepiece',
+    titulo: '¡SOMOS MUGIWARA!',
+    detalle: 'Se pone la canción a todo lo que dé el equipo. Ahora mismo.',
+    pista: 'Se va a oír en todo el edificio.',
   },
   {
-    id: 'r4',
-    umbral: 170,
-    marca: 'kebab',
-    titulo: 'Derecho a elegir la cena',
-    detalle: 'Elige él el sitio y lo que se pide. Sin derecho a veto.',
-    pista: 'Decides tú algo que normalmente decidimos nosotros.',
+    id: 'r07', umbral: 115, marca: 'caramelo',
+    titulo: 'Picoteo',
+    detalle: 'Se abren las papas y las bebidas. A partir de aquí se pica durante todo el día.',
+    pista: 'Cruje, y se comparte.',
   },
   {
-    id: 'r5',
-    umbral: 220,
-    marca: 'cascos',
-    titulo: 'Amo de la música',
-    detalle: 'Manda en la lista de reproducción de toda la noche.',
-    pista: 'Se oye, y todos vamos a tener que aguantarlo.',
+    id: 'r08', umbral: 140, marca: 'mando', jugoso: true,
+    titulo: 'Vale de 5 € en Steam',
+    detalle: 'Cinco euros para gastar sin salir de casa.',
+    pista: 'Para gastarlo sin levantarte de la silla.',
   },
   {
-    id: 'r6',
-    umbral: 280,
-    marca: 'cafe',
+    id: 'r09', umbral: 165, marca: 'pesa',
+    titulo: 'Diez flexiones ajenas',
+    detalle: 'Vale para obligar a un amigo a hacer 10 flexiones en el directo.',
+    pista: 'Alguien va a sudar. Tú no.',
+  },
+  {
+    id: 'r10', umbral: 195, marca: 'luna', legendario: true,
+    limite: 'cena',
+    titulo: 'Skin legendaria',
+    detalle: 'Desbloqueas el disfraz de Sailor Moon.',
+    pista: 'La recompensa más rara del día. Te va a cambiar el aspecto.',
+    penalizacion: 'No la desbloqueaste: te toca algo todavía más ridículo. Y cantando.',
+    nota: 'Es EL premio. Montadlo como si fuera un drop de verdad para que se lo crea.',
+  },
+  {
+    id: 'r11', umbral: 225, marca: 'dado',
+    titulo: 'Derecho a retar',
+    detalle: 'Vale para retar a quien quieras entre las 21:00 y las 23:00. Lo que se te ocurra.',
+    pista: 'Entre las nueve y las once mandas tú una vez.',
+  },
+  {
+    id: 'r12', umbral: 255, marca: 'balon', jugoso: true,
+    limite: 'basquet',
+    titulo: 'La pelota es tuya',
+    detalle: 'Te llevas la pelota de básquet. Tuya para siempre.',
+    pista: 'Naranja, bota, y mañana la vas a necesitar.',
+    penalizacion: 'No llegaste: vas andando hasta la pista botándola todo el camino.',
+  },
+  {
+    id: 'r13', umbral: 285, marca: 'cafe',
+    limite: 'basquet',
     titulo: 'Desayuno de campeones',
-    detalle: 'Domingo con desayuno de verdad comprado por la cuadrilla, no galletas rancias.',
+    detalle: 'Desayuno de verdad el domingo, comprado por la cuadrilla.',
     pista: 'Mañana por la mañana lo vas a agradecer mucho.',
+    penalizacion: 'Todos desayunamos lo que hemos traído. Tú, lo que encuentres por casa.',
   },
   {
-    id: 'r7',
-    umbral: 340,
-    marca: 'regalo',
-    titulo: 'El regalo',
-    detalle: 'PENDIENTE: decidid entre todos qué va aquí y editadlo antes del sábado.',
-    pista: 'Lo último de todo. Y no se come.',
+    id: 'r14', umbral: 330, marca: 'antifaz', jugoso: true,
+    titulo: 'Striptease',
+    detalle: 'Striptease. No hay más que explicar.',
+    pista: 'Va a entrar alguien por esa puerta.',
+    nota: 'El montaje: antifaz y esposas, música, y hacemos como que entra alguien en casa. Él solo debe ver el desbloqueo.',
+  },
+  {
+    id: 'r15', umbral: 375, marca: 'comodin', jugoso: true,
+    titulo: 'Otros 5 € en Cardmarket',
+    detalle: 'Más cartón.',
+    pista: 'Otra vez lo del principio.',
+  },
+  {
+    id: 'r16', umbral: 420, marca: 'mando', jugoso: true,
+    titulo: 'Otros 5 € en Steam',
+    detalle: 'Más biblioteca.',
+    pista: 'Y otra vez lo otro.',
+  },
+  {
+    id: 'r17', umbral: 465, marca: 'comodin', jugoso: true,
+    titulo: 'Y otros 5 € en Cardmarket',
+    detalle: 'Sí, más cartón todavía.',
+    pista: 'A estas alturas ya sabes de qué va.',
+  },
+  {
+    id: 'r18', umbral: 510, marca: 'mando', jugoso: true,
+    titulo: 'Y otros 5 € en Steam',
+    detalle: 'El último. Si has llegado aquí, te lo has ganado.',
+    pista: 'El último de todos. Nadie espera que llegues.',
   },
 ]
 

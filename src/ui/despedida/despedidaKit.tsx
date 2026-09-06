@@ -8,7 +8,7 @@
 // Todas las piezas de la landing salen de aquí para que las seis secciones,
 // el panel del juez y la tele se vean como el mismo sitio.
 import { useEffect, useRef, useState } from 'react'
-import { BLOQUES, rangoDe, type Bloque } from '@/data/despedida'
+import { BLOQUES, rangoDe, type Bloque, type Recompensa } from '@/data/despedida'
 
 // ---------------------------------------------------------------- tokens
 
@@ -101,6 +101,17 @@ export function estadoDe(b: Bloque, ahora: Date, fijado: string | null): 'pasado
 export function estaRevelado(b: Bloque, ahora: Date, juez: boolean, revelados: string[]): boolean {
   if (juez || revelados.includes(b.id)) return true
   return ahora >= rangoDe(b).desde
+}
+
+/**
+ * Un premio con fecha de caducidad al que se le ha pasado la hora sin abrirse.
+ * Se destapa solo, con el castigo dentro. Va por reloj y no por un botón a
+ * propósito: nadie se va a acordar de revelarlo en mitad de la comida.
+ */
+export function premioFallado(r: Recompensa, ahora: Date, puntos: number): boolean {
+  if (!r.limite || !r.penalizacion || puntos >= r.umbral) return false
+  const b = BLOQUES.find((x) => x.id === r.limite)
+  return !!b && ahora >= rangoDe(b).desde
 }
 
 // ---------------------------------------------------------------- scroll

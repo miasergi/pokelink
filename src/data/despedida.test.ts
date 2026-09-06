@@ -74,6 +74,31 @@ describe('datos de la despedida', () => {
     for (const b of BLOQUES) expect(b.participantes, `bloque ${b.id}`).toContain('Óscar')
   })
 
+  it('las cajas con caducidad apuntan a un bloque real y traen castigo', () => {
+    const ids = new Set(BLOQUES.map((b) => b.id))
+    for (const r of RECOMPENSAS) {
+      if (!r.limite) continue
+      // Una caducidad sin castigo no caduca de nada, y una que apunta a un
+      // bloque inexistente no salta nunca: las dos pasarían desapercibidas.
+      expect(ids.has(r.limite), `premio ${r.id} caduca en un bloque que no existe`).toBe(true)
+      expect(r.penalizacion, `premio ${r.id} caduca pero no dice qué pasa`).toBeTruthy()
+    }
+  })
+
+  it('cada caja se puede abrir antes de caducar', () => {
+    // Si el umbral pide más puntos de los que se pueden tener cuando llega su
+    // hora límite, el castigo es automático y la caja es decorativa.
+    for (const r of RECOMPENSAS) {
+      if (!r.limite) continue
+      const corte = rangoDe(BLOQUES.find((b) => b.id === r.limite)!).desde
+      const alcanzable = BLOQUES
+        .filter((b) => rangoDe(b).hasta <= corte)
+        .flatMap((b) => RETOS.filter((x) => x.bloque === b.id))
+        .reduce((n, x) => n + Math.max(0, puntosDe(x)), 0)
+      expect(alcanzable, `el premio ${r.id} caduca antes de poder pagarse`).toBeGreaterThanOrEqual(r.umbral)
+    }
+  })
+
   it('el reloj sabe qué bloque toca', () => {
     const dentro = new Date(rangoDe(BLOQUES[0]).desde.getTime() + 60_000)
     expect(bloqueEnCurso(dentro)?.id).toBe(BLOQUES[0].id)

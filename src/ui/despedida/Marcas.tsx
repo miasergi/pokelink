@@ -17,6 +17,7 @@ export type MarcaId =
   | 'directo' | 'onepiece' | 'elsword' | 'comida' | 'valorant' | 'fortnite'
   | 'lol' | 'minecraft' | 'luna' | 'dado' | 'balon' | 'reloj'
   | 'vaso' | 'caramelo' | 'comodin' | 'kebab' | 'cascos' | 'cafe' | 'regalo'
+  | 'micro' | 'mando' | 'pesa' | 'antifaz' | 'wc'
 
 const TRAZOS: Record<MarcaId, string> = {
   // Cámara de directo: montar el streaming es el primer bloque del sábado.
@@ -102,6 +103,37 @@ const TRAZOS: Record<MarcaId, string> = {
     'M12 1.4a10.6 10.6 0 1 0 0 21.2 10.6 10.6 0 0 0 0-21.2Z'
     + 'M12 4.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6Z'
     + 'M11.1 6.4h1.8v6.1l4.1 2.4-.9 1.5-5-2.9Z',
+
+  // Micrófono: los vales para obligar a otro a cantar en el directo.
+  micro:
+    'M12 2.2a3.4 3.4 0 0 0-3.4 3.4v6a3.4 3.4 0 0 0 6.8 0v-6A3.4 3.4 0 0 0 12 2.2Z'
+    + 'M5.4 10.6H7.2a4.8 4.8 0 0 0 9.6 0h1.8a6.6 6.6 0 0 1-5.7 6.5v2.9h3v1.8H8.1v-1.8h3v-2.9a6.6 6.6 0 0 1-5.7-6.5Z',
+
+  // Mando: los vales de Steam.
+  mando:
+    'M7.6 6.4h8.8a5.2 5.2 0 0 1 5.1 4.2l1 5.4c.35 1.9-1.1 3.6-3 3.6-1.25 0-2.4-.7-3-1.8l-.9-1.7H8.4l-.9 1.7c-.6 1.1-1.75 1.8-3 1.8-1.9 0-3.35-1.7-3-3.6l1-5.4a5.2 5.2 0 0 1 5.1-4.2Z'
+    + 'M6.9 9.9h1.8v1.7h1.7v1.8H8.7v1.7H6.9v-1.7H5.2v-1.8h1.7Z'
+    + 'M15.6 10.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z'
+    + 'M18.2 13.1a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z',
+
+  // Pesa: el vale de las diez flexiones.
+  pesa:
+    'M2.2 9.2h2.3v5.6H2.2Z'
+    + 'M5.5 7.4h2.6v9.2H5.5Z'
+    + 'M15.9 7.4h2.6v9.2h-2.6Z'
+    + 'M19.5 9.2h2.3v5.6h-2.3Z'
+    + 'M9.1 11.1h5.8v1.8H9.1Z',
+
+  // Antifaz: la recompensa que no se nombra.
+  antifaz:
+    'M2.6 8.4h18.8c.5 0 .9.5.8 1l-.5 2.7a5.4 5.4 0 0 1-5.3 4.4h-.6a4 4 0 0 1-3.4-1.9l-.4-.7-.4.7a4 4 0 0 1-3.4 1.9h-.6a5.4 5.4 0 0 1-5.3-4.4l-.5-2.7c-.1-.5.3-1 .8-1Z'
+    + 'M6.9 10.6a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z'
+    + 'M17.1 10.6a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',
+
+  // Váter: el vale para ir una vez sin que reste puntos.
+  wc:
+    'M5.4 3.2h11.2c1 0 1.8.8 1.8 1.8v3.6c0 1-.8 1.8-1.8 1.8h-.6l1 2.5a5.6 5.6 0 0 1-3.9 7.5v1.4H8.5v-1.5a5.6 5.6 0 0 1-4.3-5.4v-2.7h1.8v2.7a3.8 3.8 0 0 0 3.8 3.8h2.1a3.8 3.8 0 0 0 3.5-5.2l-1.3-3.1H5.4a1.8 1.8 0 0 1-1.8-1.8V5c0-1 .8-1.8 1.8-1.8Z'
+    + 'M5.4 5v3.6h11.2V5Z',
 
   // --- Las cajas ---
 
