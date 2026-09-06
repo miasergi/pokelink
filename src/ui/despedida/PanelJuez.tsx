@@ -13,12 +13,14 @@ import { proximaRecompensa } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
 import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, DIRECTO, FILETE, LIMA, NEGRO, bloqueActual, useAhora } from './despedidaKit'
+import type { SaludNube } from '@/persistence/despedidaNube'
 
 export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
   const ahora = useAhora(30_000)
   const { save, marcarReto, desmarcarReto, fijarBloque, salirJuez } = useDespedida()
   const puntos = useDespedida((s) => s.puntos())
   const hecho = useDespedida((s) => s.hecho)
+  const nube = useDespedida((s) => s.nube)
 
   // El bloque global es una pestaña más, la primera: sus retos (el baño, María)
   // caen a cualquier hora y el juez tiene que poder marcarlos siempre.
@@ -53,6 +55,7 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
               )}
             </div>
           </div>
+          <EstadoNube salud={nube} />
           <button
             onClick={() => { play('back'); onCerrar() }}
             className="shrink-0 w-10 h-10 grid place-items-center border text-zinc-400 active:scale-95 transition"
@@ -275,5 +278,32 @@ function Historial() {
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * Si lo que marcas llega o no a los demás. Es lo primero que hay que saber el
+ * sábado: un juez marcando contra su propio móvil sin enterarse arruina el
+ * marcador entero.
+ */
+function EstadoNube({ salud }: { salud: SaludNube }) {
+  const info = {
+    ok: { texto: 'Compartido', color: LIMA, ayuda: 'Lo que marques lo ven todos.' },
+    'sin-red': { texto: 'Sin conexión', color: DIRECTO, ayuda: 'Se subirá solo al recuperar la red.' },
+    'sin-tabla': { texto: 'Solo aquí', color: '#F59E0B', ayuda: 'Falta crear la tabla en Supabase.' },
+    apagada: { texto: 'Solo aquí', color: '#71717A', ayuda: 'Este móvil lleva su propio marcador.' },
+  }[salud]
+
+  return (
+    <span
+      className="shrink-0 flex items-center gap-2 px-2.5 py-2 border"
+      style={{ borderColor: `${info.color}55` }}
+      title={info.ayuda}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: info.color }} />
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: info.color }}>
+        {info.texto}
+      </span>
+    </span>
   )
 }

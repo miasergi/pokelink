@@ -42,6 +42,11 @@ export default function DespedidaScreen() {
   const [scrolleado, setScrolleado] = useState(false)
   const scroller = useRef<HTMLDivElement | null>(null)
 
+  // Marcador compartido: mientras la sección esté abierta, se trae lo que
+  // hayan marcado los demás. Si no hay tabla o no hay red, no pasa nada: la
+  // sección sigue funcionando con lo de este móvil.
+  useEffect(() => useDespedida.getState().arrancarSync(), [])
+
   // El shell de la app encierra todo en 560 px. Una landing de evento necesita
   // el ancho entero, así que mientras esta pantalla está montada se lo quita.
   useEffect(() => {
