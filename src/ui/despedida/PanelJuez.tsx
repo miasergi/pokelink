@@ -66,8 +66,12 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
           </button>
         </div>
 
-        {/* Selector de bloque, en cinta horizontal */}
-        <div className="flex gap-px overflow-x-auto no-scrollbar px-4 pb-3 max-w-3xl mx-auto">
+        {/* Selector de bloque. En CINTA NO: con doce pestañas se salían de la
+            pantalla y en escritorio no había forma de llegar a las últimas — el
+            scroll horizontal no tiene barra ni responde a la rueda. Envueltas
+            se ven todas de golpe, que además es lo que quiere el juez el
+            sábado: saltar a un bloque sin buscarlo. */}
+        <div className="flex flex-wrap gap-1 px-4 pb-3 max-w-3xl mx-auto">
           {PESTANAS.map((b) => {
             const activo = b.id === bloqueId
             const esAhora = enCurso?.id === b.id
@@ -75,11 +79,11 @@ export default function PanelJuez({ onCerrar }: { onCerrar: () => void }) {
               <button
                 key={b.id}
                 onClick={() => { play('tap'); setBloqueId(b.id) }}
-                className="shrink-0 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] border transition whitespace-nowrap"
+                className="shrink-0 px-2.5 py-2 text-[11px] font-bold uppercase tracking-[0.1em] border transition whitespace-nowrap active:scale-95"
                 style={{
-                  borderColor: activo ? LIMA : FILETE,
+                  borderColor: activo ? LIMA : esAhora ? `${DIRECTO}66` : FILETE,
                   color: activo ? LIMA : esAhora ? DIRECTO : '#71717A',
-                  background: activo ? `${LIMA}12` : 'transparent',
+                  background: activo ? `${LIMA}12` : esAhora ? `${DIRECTO}0D` : 'transparent',
                 }}
               >
                 {esAhora && '● '}{[b.hora, b.titulo].filter(Boolean).join(' ')}
