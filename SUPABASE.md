@@ -176,8 +176,28 @@ que el resto lo vea al refrescar**. Sin esto los puntos viven en el móvil de
 cada uno y el marcador no significa nada.
 
 Es **una sola fila** (`id = 'oscar26'`) con todo el estado en un `jsonb`: los
-retos marcados, los ajustes a mano y el bloque fijado. Pega esto en el **SQL
-Editor** de Supabase; se puede ejecutar más de una vez sin romper nada.
+retos marcados, los ajustes a mano y el bloque fijado.
+
+El SQL vive en [`supabase/despedida.sql`](supabase/despedida.sql) y se aplica
+con un comando, sin pasar por el editor web:
+
+```bash
+npm run db:despedida
+```
+
+Necesita un **token personal** en `.env` (que está en .gitignore). La clave
+`anon` del proyecto no sirve: es pública y solo puede leer y escribir filas,
+nunca crear tablas.
+
+```
+SUPABASE_ACCESS_TOKEN=sbp_...
+```
+
+Se saca en https://supabase.com/dashboard/account/tokens. Con eso puesto, este
+y cualquier otro cambio de esquema se aplican desde el repo en vez de a mano.
+
+Si prefieres no crear un token, el contenido del fichero se puede seguir
+pegando en el **SQL Editor**; se puede ejecutar más de una vez sin romper nada.
 
 ```sql
 -- Marcador compartido de la despedida de Óscar.

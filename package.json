@@ -16,7 +16,8 @@
     "fetch-dragon": "node scripts/fetch-dragon-portraits.mjs",
     "fetch-dragon-forms": "node scripts/fetch-dragon-forms.mjs",
     "audit-dragon": "node scripts/audit-dragon-portraits.mjs",
-    "audit-dragon-forms": "node scripts/audit-dragon-portraits.mjs --formas"
+    "audit-dragon-forms": "node scripts/audit-dragon-portraits.mjs --formas",
+    "db:despedida": "node scripts/supabase-sql.mjs supabase/despedida.sql"
   },
   "dependencies": {
     "idb": "^8.0.0",
