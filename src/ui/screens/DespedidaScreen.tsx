@@ -18,6 +18,7 @@ import ProgramaSection from '@/ui/despedida/ProgramaSection'
 import MarcadorSection from '@/ui/despedida/MarcadorSection'
 import RetosSection from '@/ui/despedida/RetosSection'
 import PremiosSection from '@/ui/despedida/PremiosSection'
+import AlbumSection from '@/ui/despedida/AlbumSection'
 import InvitacionSection from '@/ui/despedida/InvitacionSection'
 import PanelJuez from '@/ui/despedida/PanelJuez'
 import OverlayView from '@/ui/despedida/OverlayView'
@@ -28,6 +29,7 @@ const ENLACES = [
   { id: 'marcador', rotulo: 'Marcador' },
   { id: 'retos', rotulo: 'Retos' },
   { id: 'premios', rotulo: 'Premios' },
+  { id: 'album', rotulo: 'Álbum' },
   { id: 'invitacion', rotulo: 'Invitación' },
 ]
 
@@ -146,6 +148,7 @@ export default function DespedidaScreen() {
       <MarcadorSection />
       <RetosSection />
       <PremiosSection />
+      <AlbumSection />
       <InvitacionSection />
 
       {/* --- Pie --- */}

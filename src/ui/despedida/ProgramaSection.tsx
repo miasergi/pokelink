@@ -4,6 +4,8 @@
 import { BLOQUES, puntosDe, retosDe, type Bloque, type Dia } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import Marca, { type MarcaId } from './Marcas'
+import { Sticker } from './Memes'
+import { meme } from '@/data/memes'
 import {
   Antetitulo, ChapaDirecto, DIRECTO, FILETE, LIMA, Seccion, estaRevelado, estadoDe, useAhora,
 } from './despedidaKit'
@@ -26,6 +28,7 @@ export default function ProgramaSection() {
       n="01"
       titulo="Programa"
       apunte="Once bloques entre el sábado por la mañana y el domingo al mediodía. Sabes cuándo, pero no qué: cada uno se destapa al tocarlo o cuando le llega la hora."
+      sticker={<Sticker meme={meme('resignado')!} ancho={130} giro={5} />}
     >
       <div className="flex flex-col gap-12 sm:gap-16">
         {DIAS.map((d) => (

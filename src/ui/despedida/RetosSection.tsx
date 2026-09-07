@@ -6,6 +6,8 @@ import { BLOQUES, BLOQUE_GLOBAL, puntosDe, retosDe, type Reto } from '@/data/des
 import { useDespedida } from '@/state/despedidaStore'
 import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, DIRECTO, FILETE, LIMA, Seccion, estaRevelado, useAhora } from './despedidaKit'
+import { Sticker } from './Memes'
+import { meme } from '@/data/memes'
 
 export default function RetosSection() {
   const ahora = useAhora(30_000)
@@ -21,6 +23,7 @@ export default function RetosSection() {
       n="03"
       titulo="Los retos"
       apunte="Puntos por dificultad y condición escrita, para que a las tres de la mañana no haya nada que discutir. Los marcados con calavera restan."
+      sticker={<Sticker meme={meme('facepalm')!} ancho={150} giro={6} />}
     >
       <div className="flex justify-end mb-6">
         <button

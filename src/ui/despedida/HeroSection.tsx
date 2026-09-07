@@ -11,6 +11,7 @@ import {
 } from './despedidaKit'
 import { rangoDe } from '@/data/despedida'
 import Marca, { type MarcaId } from './Marcas'
+import { meme, rutaMeme } from '@/data/memes'
 
 // Las cifras SALEN DE LOS DATOS. Escritas a mano se quedaban viejas cada vez
 // que el grupo añadía un reto o un premio, y una cinta que presume de "47
@@ -53,6 +54,8 @@ export default function HeroSection() {
           WebkitMaskImage: 'radial-gradient(70% 60% at 50% 30%, #000, transparent 75%)',
         }}
       />
+
+      <Retrato />
 
       <div className="relative px-5 sm:px-8 lg:px-14 pt-24 sm:pt-32 pb-12 sm:pb-16 max-w-6xl mx-auto">
         <div className="flex flex-wrap items-center gap-3">
@@ -189,5 +192,28 @@ function Final({ puntos }: { puntos: number }) {
         </span>
       </div>
     </div>
+  )
+}
+
+/**
+ * El recorte de cuerpo entero al modo de los carteles de festival: grande, a
+ * un lado y DETRÁS del texto. Solo en pantallas anchas — en el móvil el
+ * titular ya ocupa todo el ancho y meterlo ahí sería taparlo.
+ */
+function Retrato() {
+  const m = meme('paseando')
+  if (!m) return null
+  return (
+    <img
+      src={rutaMeme(m)}
+      alt=""
+      aria-hidden
+      className="hidden lg:block absolute right-[3vw] bottom-0 h-[82%] w-auto pointer-events-none select-none"
+      style={{
+        filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 40px ${LIMA}22)`,
+        maskImage: 'linear-gradient(to bottom, #000 78%, transparent)',
+        WebkitMaskImage: 'linear-gradient(to bottom, #000 78%, transparent)',
+      }}
+    />
   )
 }

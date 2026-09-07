@@ -11,6 +11,8 @@ import { PUNTOS_MAXIMOS, RECOMPENSAS, bloquePorId, type Recompensa } from '@/dat
 import { useDespedida } from '@/state/despedidaStore'
 import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, DIRECTO, FILETE, LIMA, Seccion, premioFallado, useAhora } from './despedidaKit'
+import { Sticker } from './Memes'
+import { meme } from '@/data/memes'
 
 export default function PremiosSection() {
   const ahora = useAhora(30_000)
@@ -27,6 +29,7 @@ export default function PremiosSection() {
       n="04"
       titulo="Las cajas"
       apunte="Se abren solas al llegar a los puntos. Lo que hay dentro no se sabe hasta ese momento: solo la pista y lo que falta. Y algunas caducan."
+      sticker={<Sticker meme={meme('pulgar')!} ancho={120} giro={-5} />}
     >
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <Antetitulo color={LIMA}>{abiertas} de {RECOMPENSAS.length} abiertas</Antetitulo>

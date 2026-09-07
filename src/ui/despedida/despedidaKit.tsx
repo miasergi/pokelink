@@ -175,17 +175,22 @@ export function Antetitulo({ children, color = '#8A8A94', className = '' }: {
  * Cabecera de sección numerada, con el filete a lo ancho. Es el patrón que
  * marca el ritmo de toda la página: número, título enorme, raya.
  */
-export function Seccion({ n, titulo, apunte, id, children }: {
+export function Seccion({ n, titulo, apunte, id, sticker, children }: {
   n: string
   titulo: string
   apunte?: string
   id: string
+  /** Recorte de Óscar en el hueco del titular. Solo en pantallas anchas. */
+  sticker?: React.ReactNode
   children: React.ReactNode
 }) {
   const ref = useRevela<HTMLElement>()
   return (
     <section id={id} ref={ref} className="revela scroll-mt-16 px-5 sm:px-8 lg:px-14 py-14 sm:py-20">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto relative">
+        {sticker && (
+          <div className="hidden lg:block absolute right-0 -top-6 z-10">{sticker}</div>
+        )}
         <div className="flex items-baseline gap-3 sm:gap-5">
           <span className="font-festui text-[11px] sm:text-sm font-bold tabular-nums" style={{ color: LIMA }}>{n}</span>
           <h2 className="font-fest uppercase leading-[0.85] tracking-[-0.01em] text-[13vw] sm:text-6xl lg:text-7xl text-white">

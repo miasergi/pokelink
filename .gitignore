@@ -11,3 +11,7 @@ coverage
 # Entorno local (claves Supabase)
 .env
 .env.local
+
+# Fotos originales de la despedida: solo se suben los recortes ya hechos
+# (public/despedida/oscar). El script las lee de aquí.
+fotos-oscar/

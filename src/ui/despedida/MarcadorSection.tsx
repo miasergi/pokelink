@@ -4,6 +4,8 @@
 import { PUNTOS_MAXIMOS, RETOS } from '@/data/despedida'
 import { proximaRecompensa, useDespedida } from '@/state/despedidaStore'
 import { Antetitulo, Cifra, FILETE, LIMA, Seccion } from './despedidaKit'
+import { Sticker } from './Memes'
+import { meme } from '@/data/memes'
 
 export default function MarcadorSection() {
   const puntos = useDespedida((s) => s.puntos())
@@ -20,6 +22,7 @@ export default function MarcadorSection() {
       n="02"
       titulo="Marcador"
       apunte="Cada reto vale unos puntos decididos de antemano. Solo el juez los da, y todo movimiento queda anotado."
+      sticker={<Sticker meme={meme('maria')!} ancho={155} giro={-7} />}
     >
       <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16">
         {/* La cifra */}
@@ -58,7 +61,7 @@ export default function MarcadorSection() {
 
           <div className="grid grid-cols-3 gap-4 sm:gap-6 mt-10">
             <Cifra valor={hechos} etiqueta="retos hechos" />
-            <Cifra valor={RETOS.filter((r) => !r.castigo).length} etiqueta="retos totales" />
+            <Cifra valor={RETOS.filter((r) => !r.castigo).length} etiqueta="retos que suman" />
             <Cifra valor={save.ajustes.length} etiqueta="a mano" />
           </div>
         </div>

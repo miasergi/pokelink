@@ -3,6 +3,8 @@
 // entrada. Se le manda el enlace y ya está avisado, a su manera.
 import { useState } from 'react'
 import { Antetitulo, BotonLima, FILETE, LIMA, Seccion } from './despedidaKit'
+import { Sticker } from './Memes'
+import { meme } from '@/data/memes'
 
 const REQUISITOS = [
   { n: '01', texto: 'Deshazte de mujeres y mascotas antes del asalto' },
@@ -40,9 +42,10 @@ export default function InvitacionSection() {
   return (
     <Seccion
       id="invitacion"
-      n="05"
+      n="06"
       titulo="Aviso de raid"
       apunte="Esto es lo que le llega a Óscar. Todo lo demás de esta página se lo puede mirar también: los premios ya se encargan de guardar el secreto."
+      sticker={<Sticker meme={meme('mascarilla')!} ancho={140} giro={7} />}
     >
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-14 items-start">
         <div className="border p-6 sm:p-10" style={{ borderColor: FILETE, background: '#0B0B0E' }}>

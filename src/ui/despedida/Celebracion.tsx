@@ -7,6 +7,7 @@ import { useDespedida } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
 import Marca, { type MarcaId } from './Marcas'
 import { Antetitulo, FILETE, LIMA, NEGRO } from './despedidaKit'
+import { CaraCelebracion } from './Memes'
 
 export default function Celebracion() {
   const celebrando = useDespedida((s) => s.celebrando)
@@ -36,7 +37,8 @@ export default function Celebracion() {
       <div className="relative w-full max-w-lg animate-pop-in">
         <Antetitulo color={LIMA} className="text-center">Caja abierta</Antetitulo>
 
-        <div className="border mt-5" style={{ borderColor: `${LIMA}44`, background: '#0B0B0E' }}>
+        <div className="relative border mt-5" style={{ borderColor: `${LIMA}44`, background: '#0B0B0E' }}>
+          <CaraCelebracion />
           <div className="grid place-items-center py-10 border-b" style={{ borderColor: FILETE }}>
             <Marca id={r.marca as MarcaId} className="w-24 h-24 animate-float" style={{ color: LIMA }} />
           </div>
