@@ -705,3 +705,101 @@ body {
   .revela { opacity: 1; transform: none; transition: none; }
   .animate-marquesina { animation: none; }
 }
+
+/* ============================================================
+   ABRIR UNA CAJA. Es EL momento del día: pasa hasta dieciocho
+   veces en dos días y tiene que seguir emocionando la última.
+   La coreografía va entera en CSS con retardos encadenados —
+   nada de fases en JavaScript— para que no se entrecorte en un
+   móvil que además está sincronizando por detrás.
+   ============================================================ */
+
+/* 0 ms · el fogonazo. Lo primero que ve el ojo. */
+@keyframes caja-fogonazo {
+  0% { opacity: 0; }
+  8% { opacity: .7; }
+  100% { opacity: 0; }
+}
+.caja-fogonazo { animation: caja-fogonazo .55s ease-out both; }
+
+/* 0 ms · un empujón a toda la escena. Muy corto: si se nota, sobra. */
+@keyframes caja-sacudida {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(-7px, 3px, 0); }
+  30% { transform: translate3d(6px, -4px, 0); }
+  45% { transform: translate3d(-4px, -2px, 0); }
+  60% { transform: translate3d(3px, 2px, 0); }
+  80% { transform: translate3d(-2px, 0, 0); }
+}
+.caja-sacudida { animation: caja-sacudida .45s ease-out both; }
+
+/* 60 ms · el haz de luz vertical, como los drops de los juegos. */
+@keyframes caja-haz {
+  0% { opacity: 0; transform: scaleY(0) scaleX(.3); }
+  35% { opacity: .9; transform: scaleY(1) scaleX(1); }
+  100% { opacity: .25; transform: scaleY(1) scaleX(.85); }
+}
+.caja-haz { animation: caja-haz 1s cubic-bezier(.2, .9, .2, 1) .06s both; transform-origin: 50% 100%; }
+
+/* 120 ms · el aro de choque que se abre y se desvanece. */
+@keyframes caja-aro {
+  0% { opacity: .9; transform: scale(.2); border-width: 6px; }
+  100% { opacity: 0; transform: scale(2.6); border-width: 1px; }
+}
+.caja-aro { animation: caja-aro .8s cubic-bezier(.1, .8, .3, 1) .12s both; }
+
+/* 220 ms · la metralla. Cada esquirla lleva su ángulo y su alcance
+   en --a y --d, puestos desde el componente. */
+@keyframes caja-esquirla {
+  0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.4); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(.9); }
+}
+.caja-esquirla { animation: caja-esquirla .9s cubic-bezier(.15, .85, .25, 1) .22s both; }
+
+/* 320 ms · el símbolo del premio sale del estallido y se asienta. */
+@keyframes caja-simbolo {
+  0% { opacity: 0; transform: scale(.2) rotate(-25deg); }
+  55% { opacity: 1; transform: scale(1.18) rotate(6deg); }
+  75% { transform: scale(.95) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.caja-simbolo { animation: caja-simbolo .85s cubic-bezier(.2, 1.2, .3, 1) .32s both; }
+
+/* 560 ms en adelante · el texto entra por abajo y se enfoca. */
+@keyframes caja-texto {
+  0% { opacity: 0; transform: translateY(26px); filter: blur(10px); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+.caja-texto { animation: caja-texto .6s cubic-bezier(.2, .9, .2, 1) both; }
+
+/* Confeti para las gordas y la legendaria. */
+@keyframes caja-confeti {
+  0% { opacity: 0; transform: translateY(-12vh) rotate(0); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(105vh) rotate(720deg); }
+}
+.caja-confeti { animation: caja-confeti var(--t) linear var(--r) both; }
+
+/* La legendaria lleva además un aro que no para de girar: es la señal
+   de que esto no es una caja más. */
+@keyframes caja-orbita {
+  to { transform: rotate(360deg); }
+}
+.caja-orbita { animation: caja-orbita 9s linear infinite; }
+
+@keyframes caja-latido {
+  0%, 100% { opacity: .35; transform: scale(1); }
+  50% { opacity: .7; transform: scale(1.06); }
+}
+.caja-latido { animation: caja-latido 2.4s ease-in-out infinite; }
+
+/* Quien haya pedido menos movimiento ve el resultado, no el número. */
+@media (prefers-reduced-motion: reduce) {
+  .caja-fogonazo, .caja-sacudida, .caja-haz, .caja-aro,
+  .caja-esquirla, .caja-confeti, .caja-orbita, .caja-latido {
+    animation: none;
+    opacity: 0;
+  }
+  .caja-simbolo, .caja-texto { animation: none; opacity: 1; transform: none; filter: none; }
+}

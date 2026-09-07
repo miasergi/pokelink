@@ -156,15 +156,16 @@ export function irA(id: string) {
 // ---------------------------------------------------------------- piezas
 
 /** Etiquetita de arriba: "12–13 SEPT 2026", "EN DIRECTO"… */
-export function Antetitulo({ children, color = '#8A8A94', className = '' }: {
+export function Antetitulo({ children, color = '#8A8A94', className = '', style }: {
   children: React.ReactNode
   color?: string
   className?: string
+  style?: React.CSSProperties
 }) {
   return (
     <div
       className={`font-festui text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.34em] ${className}`}
-      style={{ color }}
+      style={{ color, ...style }}
     >
       {children}
     </div>
