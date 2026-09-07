@@ -3,7 +3,7 @@
 //
 // Tres estados, porque el mismo enlace se abre la semana de antes, durante y
 // el lunes siguiente: cuenta atrás → en directo → se acabó.
-import { BLOQUES } from '@/data/despedida'
+import { BLOQUES, PANDILLA, RECOMPENSAS, RETOS } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
 import {
   ARRANQUE, ChapaDirecto, DIRECTO, FILETE, FINAL, LIMA, NEGRO,
@@ -12,12 +12,17 @@ import {
 import { rangoDe } from '@/data/despedida'
 import Marca, { type MarcaId } from './Marcas'
 
+// Las cifras SALEN DE LOS DATOS. Escritas a mano se quedaban viejas cada vez
+// que el grupo añadía un reto o un premio, y una cinta que presume de "47
+// retos" cuando hay sesenta es peor que no poner el número.
+const HORAS = Math.round((FINAL.getTime() - ARRANQUE.getTime()) / 3_600_000)
+
 const TITULARES = [
-  '26 horas de directo',
-  '47 retos',
-  '7 premios bajo llave',
+  `${HORAS} horas de despedida`,
+  `${RETOS.length} retos`,
+  `${RECOMPENSAS.length} premios bajo llave`,
   '1 disfraz de Sailor Moon',
-  '8 asaltantes',
+  `${PANDILLA.length} asaltantes`,
   'Elfia 12 será raideado',
 ]
 
