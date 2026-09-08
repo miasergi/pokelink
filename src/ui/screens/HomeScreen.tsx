@@ -19,6 +19,14 @@ import { getSpecies } from '@/data'
 import { loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
 import { setInazumaEntry } from '@/state/inazumaStore'
 import { dragonSummary } from '@/state/dragonStore'
+
+/**
+ * Dragon Ball Rogue OCULTO de momento: el modo no convence y se aparta de la
+ * vista sin desmontarlo. Todo sigue en su sitio —motor, pantallas, retratos y
+ * la partida guardada, que no se toca—, así que volver a enseñarlo es poner
+ * esto en `true` y ya.
+ */
+const MOSTRAR_DRAGON = false
 import TypeBadge from '@/ui/components/TypeBadge'
 import { layerName } from '@/engine/inazuma/tournament'
 
@@ -114,7 +122,7 @@ export default function HomeScreen() {
   const today = dailyChallenge().date
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
-    void loadDragon().then((s) => setDragonRun(s && !s.finished ? dragonSummary(s) : null))
+    if (MOSTRAR_DRAGON) void loadDragon().then((s) => setDragonRun(s && !s.finished ? dragonSummary(s) : null))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
   // Incluye una detección retroactiva: partidas ganadas hoy con la misma región e
@@ -187,17 +195,19 @@ export default function HomeScreen() {
           <Chip icon={<Icon name="gear" className="w-3.5 h-3.5 text-slate-400" />} label="Opciones" onClick={() => { setInazumaEntry('title'); navigate('inazuma') }} />
         </div>
 
-        {/* ---- DRAGON BALL ROGUE ---- */}
-        <CoverCard
-          art={`${import.meta.env.BASE_URL}covers/dragon-cover.jpg`}
-          logo={`${import.meta.env.BASE_URL}dragon/logo.png`}
-          alt="Dragon Ball Rogue"
-          title="Dragon Ball Rogue"
-          color="#f97316"
-          status={dragonRun ?? 'Cuatro sagas, una sola vida'}
-          cta={dragonRun ? 'Continuar' : 'Jugar'}
-          onPlay={() => navigate('dragon')}
-        />
+        {/* ---- DRAGON BALL ROGUE (oculto, ver MOSTRAR_DRAGON) ---- */}
+        {MOSTRAR_DRAGON && (
+          <CoverCard
+            art={`${import.meta.env.BASE_URL}covers/dragon-cover.jpg`}
+            logo={`${import.meta.env.BASE_URL}dragon/logo.png`}
+            alt="Dragon Ball Rogue"
+            title="Dragon Ball Rogue"
+            color="#f97316"
+            status={dragonRun ?? 'Cuatro sagas, una sola vida'}
+            cta={dragonRun ? 'Continuar' : 'Jugar'}
+            onPlay={() => navigate('dragon')}
+          />
+        )}
 
         {/* ---- LA PREVIA (juegos de beber) ---- */}
         <CoverCard

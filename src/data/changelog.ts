@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.71',
+    date: '2026-09-08',
+    title: 'Dragon Ball Rogue se retira del menú',
+    changes: [
+      'Dragon Ball Rogue deja de aparecer en la pantalla de inicio. No convencía, así que se aparta de la vista mientras se decide qué hacer con él: el modo sigue entero por dentro y la partida guardada no se ha tocado.',
+    ],
+  },
+  {
     version: 'v6.70',
     date: '2026-08-25',
     title: 'Dragon Ball Rogue: logo oficial y objetos con dibujo propio',
