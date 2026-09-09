@@ -16,6 +16,7 @@ import CyberScreen from '@/ui/screens/CyberScreen'
 import PartyScreen from '@/ui/screens/PartyScreen'
 import DespedidaScreen from '@/ui/screens/DespedidaScreen'
 import PanelJuez from '@/ui/despedida/PanelJuez'
+import InvitacionScreen from '@/ui/screens/InvitacionScreen'
 import { MARCAS } from '@/ui/despedida/Marcas'
 import { BLOQUES, puntosDe } from '@/data/despedida'
 import { useDespedida } from '@/state/despedidaStore'
@@ -130,6 +131,22 @@ describe('render de pantallas (smoke)', () => {
     useGame.setState({ loaded: true, screen: { name: 'despedida' } })
     useDespedida.getState().reiniciar()
 
+    // ANTES DE LA HORA el sitio está cerrado: lo pidió el grupo para que Óscar
+    // no vea nada hasta el sábado. Sin PIN no debe asomar ni una sección.
+    const cerrado = mount(DespedidaScreen)
+    expect(cerrado).toContain('Acceso cerrado')
+    for (const secreto of ['Los retos', 'Las cajas', 'El álbum']) {
+      expect(cerrado, `el cerrojo deja ver "${secreto}"`).not.toContain(secreto)
+    }
+
+    // La invitación sí se ve siempre: es lo único que recibe él.
+    const puerta = mount(InvitacionScreen)
+    expect(puerta).toContain('Aviso de raid')
+    expect(puerta, 'la invitación destripa las cajas').not.toContain(RECOMPENSAS[0].pista)
+
+    // Con el PIN, los organizadores entran a preparar.
+    useDespedida.setState({ juez: true })
+
     // La landing pinta sus seis piezas de una tacada (no hay pestañas).
     const landing = mount(DespedidaScreen)
     for (const trozo of ['Óscar26', 'Programa', 'Marcador', 'Los retos', 'Las cajas', 'Aviso de raid']) {
@@ -140,7 +157,6 @@ describe('render de pantallas (smoke)', () => {
     expect(landing).not.toContain(RECOMPENSAS[0].titulo)
 
     // El panel del juez es lo único que marca retos.
-    useDespedida.setState({ juez: true })
     expect(mount(() => createElement(PanelJuez, { onCerrar: () => {} }))).toContain('Panel del juez')
 
     const reto = RETOS.find((r) => !r.castigo)!

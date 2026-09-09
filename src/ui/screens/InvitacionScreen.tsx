@@ -165,20 +165,39 @@ export default function InvitacionScreen() {
             </div>
           </div>
 
-          {/* --- La puerta --- */}
+          {/* --- La puerta. Cerrada hasta la hora: antes del sábado no hay
+              botón que valga, y decirlo es mejor que enseñar un botón que
+              lleva a un cartel de "todavía no". --- */}
           <div className="mt-12 flex flex-col sm:flex-row sm:items-center gap-6">
-            <button
-              onClick={() => { play('confirm'); navigate('despedida') }}
-              className="inline-flex items-center justify-center gap-3 text-[13px] font-bold uppercase tracking-[0.18em] px-9 py-5 transition active:scale-[0.97] hover:brightness-110"
-              style={{ background: LIMA, color: NEGRO }}
-            >
-              Aceptar el raid
-              <Marca id={'reloj' as MarcaId} className="w-4 h-4" />
-            </button>
-            <p className="text-[12.5px] text-zinc-600 leading-relaxed max-w-xs">
-              Detrás de ese botón está el programa, el marcador y lo que puedes
-              ganar. No hay vuelta atrás.
-            </p>
+            {cuenta.llegada || acabado ? (
+              <>
+                <button
+                  onClick={() => { play('confirm'); navigate('despedida') }}
+                  className="inline-flex items-center justify-center gap-3 text-[13px] font-bold uppercase tracking-[0.18em] px-9 py-5 transition active:scale-[0.97] hover:brightness-110"
+                  style={{ background: LIMA, color: NEGRO }}
+                >
+                  Aceptar el raid
+                  <Marca id={'reloj' as MarcaId} className="w-4 h-4" />
+                </button>
+                <p className="text-[12.5px] text-zinc-600 leading-relaxed max-w-xs">
+                  Detrás de ese botón está el programa, el marcador y lo que
+                  puedes ganar. No hay vuelta atrás.
+                </p>
+              </>
+            ) : (
+              <div className="border px-7 py-6 w-full" style={{ borderColor: FILETE, background: '#0C0C10' }}>
+                <div className="flex items-center gap-3">
+                  <Marca id={'reloj' as MarcaId} className="w-5 h-5 shrink-0" style={{ color: LIMA }} />
+                  <span className="text-[13px] font-bold uppercase tracking-[0.18em]" style={{ color: LIMA }}>
+                    El acceso se abre el sábado a las 10:00
+                  </span>
+                </div>
+                <p className="text-[12.5px] text-zinc-500 leading-relaxed mt-3">
+                  Hasta entonces esto es todo lo que hay. Lo demás se abre solo
+                  cuando llegue la hora.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* El único chiste visual de la página: al final del todo. */}

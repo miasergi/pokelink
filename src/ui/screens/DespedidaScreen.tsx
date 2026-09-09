@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useGame } from '@/state/gameStore'
 import { useDespedida } from '@/state/despedidaStore'
 import { play } from '@/utils/sfx'
-import { Antetitulo, FILETE, LIMA, NEGRO, irA } from '@/ui/despedida/despedidaKit'
+import { ARRANQUE, Antetitulo, FILETE, LIMA, NEGRO, irA, useAhora } from '@/ui/despedida/despedidaKit'
+import Cerrojo from '@/ui/despedida/Cerrojo'
 import HeroSection from '@/ui/despedida/HeroSection'
 import ProgramaSection from '@/ui/despedida/ProgramaSection'
 import MarcadorSection from '@/ui/despedida/MarcadorSection'
@@ -36,6 +37,9 @@ const ENLACES = [
 export default function DespedidaScreen() {
   const { navigate } = useGame()
   const juez = useDespedida((s) => s.juez)
+  // Se comprueba cada segundo para que el sitio se abra SOLO al dar la hora,
+  // sin que nadie tenga que recargar nada el sábado por la mañana.
+  const ahora = useAhora()
   const puntos = useDespedida((s) => s.puntos())
   const [menu, setMenu] = useState(false)
   const [pin, setPin] = useState(false)
@@ -68,6 +72,12 @@ export default function DespedidaScreen() {
     }).catch(() => { /* sin wake lock: se apagará la pantalla y ya está */ })
     return () => { vivo = false; void sentinel?.release().catch(() => {}) }
   }, [tele])
+
+  // ACCESO CERRADO hasta la hora de inicio. Lo pidió el grupo: Óscar recibe la
+  // invitación con días, pero el programa, el marcador y las cajas no se ven
+  // hasta el sábado. Los organizadores entran con el PIN desde el propio
+  // cerrojo, que si no se quedarían fuera ellos también.
+  if (ahora < ARRANQUE && !juez) return <Cerrojo />
 
   if (tele) {
     return (
