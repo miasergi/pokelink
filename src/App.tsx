@@ -42,6 +42,7 @@ const InazumaScreen = lazy(() => import('@/ui/screens/InazumaScreen'))
 const PartyScreen = lazy(() => import('@/ui/screens/PartyScreen'))
 const DragonScreen = lazy(() => import('@/ui/screens/DragonScreen'))
 const DespedidaScreen = lazy(() => import('@/ui/screens/DespedidaScreen'))
+const InvitacionScreen = lazy(() => import('@/ui/screens/InvitacionScreen'))
 
 const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
@@ -78,6 +79,7 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   party: PartyScreen,
   dragon: DragonScreen,
   despedida: DespedidaScreen,
+  invitacion: InvitacionScreen,
 }
 
 const ONBOARD_KEY = 'pokerogue:onboarded'
@@ -86,18 +88,30 @@ const ONBOARD_KEY = 'pokerogue:onboarded'
 // navega por estado, no por rutas) y NO tiene puerta en la sala de juegos: él
 // entra a jugar de vez en cuando y no puede tropezarse con su propia
 // despedida. Se llega solo por el enlace que corre por WhatsApp.
-const RUTA_DESPEDIDA = '/despedidaoscar'
+// Dos rutas, y la diferencia importa: la INVITACIÓN es lo único que recibe
+// Óscar, y solo enseña el aviso de raid. La despedida entera (programa,
+// marcador, cajas, álbum) está detrás del botón de esa página.
+const RUTAS: Record<string, 'despedida' | 'invitacion'> = {
+  '/despedidaoscar': 'despedida',
+  '/invitacion': 'invitacion',
+}
 /** El enlace viejo con almohadilla sigue valiendo: ya está compartido. */
 const HASH_DESPEDIDA = '#/despedidaoscar'
 
-function enRutaDespedida(): boolean {
-  return window.location.pathname.toLowerCase().replace(/\/+$/, '').endsWith(RUTA_DESPEDIDA)
+/** Qué pantalla pide la URL actual, si es que pide alguna. */
+function rutaActual(): 'despedida' | 'invitacion' | null {
+  const p = window.location.pathname.toLowerCase().replace(/\/+$/, '')
+  for (const [ruta, pantalla] of Object.entries(RUTAS)) {
+    if (p.endsWith(ruta)) return pantalla
+  }
+  return null
 }
 
 // Se mira UNA vez, al cargar el módulo: si se comprobara dentro de un efecto,
 // el efecto que limpia la URL al salir podría haberla borrado antes.
-const llegaPorEnlace = typeof window !== 'undefined'
-  && (enRutaDespedida() || window.location.hash.toLowerCase() === HASH_DESPEDIDA)
+const destinoInicial: 'despedida' | 'invitacion' | null = typeof window === 'undefined'
+  ? null
+  : rutaActual() ?? (window.location.hash.toLowerCase() === HASH_DESPEDIDA ? 'despedida' : null)
 
 export default function App() {
   const { screen, init, loaded } = useGame()
@@ -122,14 +136,14 @@ export default function App() {
   // sábado con el móvil en la mano.
   useEffect(() => {
     if (!loaded) return
-    const entrar = () => {
-      useGame.getState().navigate('despedida')
+    const entrar = (pantalla: 'despedida' | 'invitacion') => {
+      useGame.getState().navigate(pantalla)
       // El enlace viejo con almohadilla se convierte en la ruta de verdad.
       if (window.location.hash) history.replaceState(null, '', `${import.meta.env.BASE_URL}despedidaOscar`)
     }
-    if (llegaPorEnlace) entrar()
+    if (destinoInicial) entrar(destinoInicial)
     const alCambiarHash = () => {
-      if (window.location.hash.toLowerCase() === HASH_DESPEDIDA) entrar()
+      if (window.location.hash.toLowerCase() === HASH_DESPEDIDA) entrar('despedida')
     }
     window.addEventListener('hashchange', alCambiarHash)
     return () => window.removeEventListener('hashchange', alCambiarHash)
@@ -139,10 +153,18 @@ export default function App() {
   // «volver a la sala de juegos» y luego recargue acabaría otra vez dentro.
   const estuvoDentro = useRef(false)
   useEffect(() => {
-    if (screen.name === 'despedida') { estuvoDentro.current = true; return }
+    if (screen.name === 'despedida' || screen.name === 'invitacion') {
+      estuvoDentro.current = true
+      // Al pasar de la invitación a la despedida, la URL acompaña: si recarga
+      // el sábado con el móvil en la mano, vuelve al sitio y no a la puerta.
+      if (screen.name === 'despedida' && rutaActual() === 'invitacion') {
+        history.replaceState(null, '', `${import.meta.env.BASE_URL}despedidaOscar`)
+      }
+      return
+    }
     if (!estuvoDentro.current) return
     estuvoDentro.current = false
-    if (enRutaDespedida()) history.replaceState(null, '', import.meta.env.BASE_URL)
+    if (rutaActual()) history.replaceState(null, '', import.meta.env.BASE_URL)
   }, [screen.name])
 
   // Música de fondo según la pantalla.
@@ -212,7 +234,7 @@ export default function App() {
           despedida no ha venido a jugar a nada: si se lo comiera encima de la
           landing, la primera impresión de todo el grupo sería un tour de
           PokéRogue. Se le enseñará si alguna vez entra al hub. */}
-      {showIntro && screen.name !== 'despedida' && (
+      {showIntro && screen.name !== 'despedida' && screen.name !== 'invitacion' && (
         <Onboarding
           onClose={() => {
             try {

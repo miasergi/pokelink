@@ -14,10 +14,13 @@ const REQUISITOS = [
   { n: '05', texto: 'Obediencia. Ya no mandas en tu casa' },
 ]
 
-/** Enlace directo a la sección, para pegarlo en el grupo. */
+/**
+ * Lo que se le manda a Óscar es la PUERTA, no el sitio: la invitación tiene su
+ * propia página y no enseña ni el marcador ni las cajas ni el álbum.
+ */
 function enlace(): string {
   if (typeof window === 'undefined') return ''
-  return `${window.location.origin}${import.meta.env.BASE_URL}despedidaOscar`
+  return `${window.location.origin}${import.meta.env.BASE_URL}invitacion`
 }
 
 export default function InvitacionSection() {
@@ -75,7 +78,8 @@ export default function InvitacionSection() {
           <div className="mt-9">
             <BotonLima onClick={compartir}>{copiado ? 'Enlace copiado' : 'Enviar la invitación'}</BotonLima>
             <p className="font-festui text-[12px] text-zinc-600 mt-3 max-w-sm leading-relaxed">
-              Se comparte el enlace de esta página: quien lo abra ve el programa y el marcador en directo.
+              Se comparte la página de la invitación, que solo enseña esto. El programa,
+              el marcador y las cajas quedan detrás de su botón.
             </p>
           </div>
         </div>

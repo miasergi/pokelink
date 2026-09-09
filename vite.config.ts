@@ -17,15 +17,17 @@ const base = process.env.GITHUB_PAGES ? '/pokelink/' : '/'
  * URL al arrancar y decide qué pintar. (En `vite dev` no hace falta: el
  * servidor ya cae a index.html para cualquier ruta desconocida.)
  */
-function rutaDespedida(): Plugin {
+function rutasEstaticas(): Plugin {
   return {
-    name: 'ruta-despedida',
+    name: 'rutas-estaticas',
     apply: 'build',
     closeBundle() {
       const dist = path.resolve(__dirname, 'dist')
-      const destino = path.join(dist, 'despedidaOscar')
-      fs.mkdirSync(destino, { recursive: true })
-      fs.copyFileSync(path.join(dist, 'index.html'), path.join(destino, 'index.html'))
+      for (const ruta of ['despedidaOscar', 'invitacion']) {
+        const destino = path.join(dist, ruta)
+        fs.mkdirSync(destino, { recursive: true })
+        fs.copyFileSync(path.join(dist, 'index.html'), path.join(destino, 'index.html'))
+      }
     },
   }
 }
@@ -109,7 +111,7 @@ export default defineConfig({
       },
       devOptions: { enabled: false },
     }),
-    rutaDespedida(),
+    rutasEstaticas(),
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
