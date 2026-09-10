@@ -1488,15 +1488,28 @@ describe('coherencia', () => {
   })
 
   it('el ojeador ofrece SIEMPRE a un canon de tu club (y jamás repite nombres)', () => {
+    // EMERGENCIA DE PORTERO: sin nadie bajo palos, el ojeador deja el canon
+    // a un lado y trae TRES porteros a elegir (regla de playtest).
+    const sinPortero = createSave(3, 'raimon', { starterId: 'axel-blaze' })
+    const emergencia = buildScoutOffer(sinPortero, new RNG(2)).filter((o) => o.kind === 'fichaje')
+    expect(emergencia.length, 'sin portero, el ojeador debe traer tres').toBe(3)
+    for (const o of emergencia) {
+      if (o.kind === 'fichaje') {
+        expect(getPlayerBase(o.playerId).position, 'la emergencia solo trae porteros').toBe('POR')
+      }
+    }
     // EL ESCUDO define el club: fundas con escudo del Royal (aunque tu
-    // inicial sea Axel) y el canon del ojeador es del ROYAL.
+    // inicial sea Axel) y el canon del ojeador es del ROYAL. (Con portero en
+    // plantilla: la emergencia ya no aplica.)
     const royal = createSave(3, 'raimon', { starterId: 'axel-blaze', customCrest: 'royal' })
+    royal.roster.push(createPlayer('mark-evans', 5))
     const oferta = buildScoutOffer(royal, new RNG(2)).filter((o) => o.kind === 'fichaje')
     if (oferta[0]?.kind === 'fichaje') {
       expect(getPlayerBase(oferta[0].playerId).team, 'el canon no sale del escudo elegido').toBe('royal')
     }
     // Sin escudo con plantilla, cae al equipo del inicial (Raimon).
     const save = createSave(21, 'raimon', { starterId: 'axel-blaze' })
+    save.roster.push(createPlayer('joseph-king', 5))
     for (let i = 0; i < 8; i++) {
       const offer = buildScoutOffer(save, new RNG(i))
       const signs = offer.filter((o) => o.kind === 'fichaje')
