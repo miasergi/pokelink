@@ -314,7 +314,15 @@ export default function MatchView() {
       <HalftimePanel />
       {/* LA TELE: Chester Horse comenta el partido desde su cabina, con la
           imagen de cada supertécnica cuando salta una. Sustituye al ticker. */}
-      {!finished && <ChesterTV feed={shownFeed} clock={clock} />}
+      {!finished && (
+        <ChesterTV
+          feed={shownFeed}
+          clock={clock}
+          match={match}
+          myCrest={teamDisplay(save ?? {}).crestId}
+          theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+        />
+      )}
       <Scoreboard
         match={match}
         feed={feed}

@@ -3,13 +3,17 @@
 // en los goles, flash en las paradas, borde del elemento en las técnicas) y
 // cuando salta una supertécnica enseña SU imagen de la wiki con nombre y
 // potencia. Sustituye al ticker de texto: el partido se cuenta AQUÍ.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ImgFallback } from '@/ui/components/kit'
+import Icon from '@/ui/components/Icon'
 import { techniqueByName } from '@/ui/inazuma/DuelStage'
 import { techVideo } from '@/data/inazuma/tech-videos'
 import { useInazuma } from '@/state/inazumaStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
-import type { MatchEvent } from '@/engine/inazuma/types'
+import { actorByUid } from '@/engine/inazuma/match'
+import { KindIcon } from '@/ui/inazuma/Glyphs'
+import { portraitUrl } from '@/ui/inazuma/PlayerCard'
+import type { Actor, MatchEvent, MatchState, Technique } from '@/engine/inazuma/types'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -191,9 +195,75 @@ function chester(e: MatchEvent | undefined, prev?: MatchEvent): { text: string; 
   }
 }
 
-export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: number }) {
+export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
+  feed: MatchEvent[]
+  clock: number
+  /** El partido, para ilustrar la narración (retratos, escudos, elementos). */
+  match?: MatchState
+  myCrest?: string
+  theirCrest?: string
+}) {
   const last = feed[feed.length - 1]
   const { text, mood } = chester(last, feed[feed.length - 2])
+
+  // LA NARRACIÓN ILUSTRADA: cada nombre que Chester pronuncia sale con su
+  // retrato al lado (tamaño emoji), y cada equipo con su escudo. Se decoran
+  // las apariciones de nombres CONOCIDOS (los 10-22 del partido y los dos
+  // clubes) — nada de adivinar sobre texto libre.
+  type Ent = { key: string; render: (matched: string, i: number) => ReactNode }
+  const entities: Ent[] = []
+  if (match) {
+    const chip = (src: string, matched: string, i: number, round = true) => (
+      <span key={`e${i}`} className="inline-flex items-baseline gap-[3px]">
+        <img
+          src={src}
+          alt=""
+          className={`self-center w-4 h-4 shrink-0 object-cover object-top border border-slate-600 bg-slate-800 ${round ? 'rounded-full' : 'rounded-[3px]'}`}
+          onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+        <b>{matched}</b>
+      </span>
+    )
+    const sides = [match.home, match.away]
+    for (const s of sides) {
+      const actors: Actor[] = [s.keeper, ...s.defs, ...s.mids, ...s.fwds, ...(s.bench ?? [])]
+      for (const a of actors) {
+        const render = (m: string, i: number) => chip(portraitUrl(a.baseId), m, i)
+        entities.push({ key: a.name, render })
+        const first = a.name.split(' ')[0]
+        if (first && first !== a.name) entities.push({ key: first, render })
+      }
+    }
+    const crestOf = (isPlayer: boolean) => (isPlayer ? myCrest : theirCrest)
+    for (const s of sides) {
+      const crest = crestOf(!!s.isPlayer)
+      if (!crest) continue
+      const render = (m: string, i: number) => chip(`${BASE}inazuma/teams/${crest}.png`, m, i, false)
+      entities.push({ key: s.name, render })
+    }
+    // Los nombres LARGOS mandan al empatar posición («Mark Evans» antes que
+    // «Mark»): se ordenan de más largo a más corto una sola vez.
+    entities.sort((a, b) => b.key.length - a.key.length)
+  }
+  const decorate = (t: string): ReactNode => {
+    if (!entities.length) return t
+    const out: ReactNode[] = []
+    let rest = t
+    let k = 0
+    while (rest) {
+      let best: { idx: number; ent: Ent } | null = null
+      for (const ent of entities) {
+        const idx = rest.indexOf(ent.key)
+        if (idx < 0) continue
+        if (!best || idx < best.idx) best = { idx, ent }
+      }
+      if (!best) { out.push(rest); break }
+      if (best.idx > 0) out.push(rest.slice(0, best.idx))
+      out.push(best.ent.render(best.ent.key, k++))
+      rest = rest.slice(best.idx + best.ent.key.length)
+    }
+    return out
+  }
 
   // LA RETENCIÓN DEL VÍDEO: mientras una supertécnica se reproduce, el
   // partido entero espera (reloj y revelado, vía `videoHold` del store) y el
@@ -434,10 +504,52 @@ export default function ChesterTV({ feed, clock }: { feed: MatchEvent[]; clock: 
             <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horse · comentarista</span>
           </div>
           <p key={feed.length} className="mt-1 text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
-            {text || 'El balón circula. Se mastica la tensión, señores.'}
+            {text ? decorate(text) : 'El balón circula. Se mastica la tensión, señores.'}
           </p>
+          {/* LA PIZARRA DEL DUELO: clase de acción y elemento de cada bando,
+              la ventaja/desventaja de tipo y las potencias finales. */}
+          {last?.kind === 'duel' && <DuelInfo e={last} match={match} />}
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * LA PIZARRA DEL DUELO bajo el comentario: qué clase de acción lanza cada
+ * bando (tiro/regate contra parada/bloqueo) con su elemento, la ventaja o
+ * desventaja de tipo del atacante (el `effectiveness` real del motor) y las
+ * potencias finales de las técnicas (mejoras y combos incluidos).
+ */
+function DuelInfo({ e, match }: { e: Extract<MatchEvent, { kind: 'duel' }>; match?: MatchState }) {
+  const atkActor = match ? actorByUid(match, e.attackerUid) : undefined
+  const defActor = match ? actorByUid(match, e.defenderUid) : undefined
+  const shot = e.step === 'definicion' && !e.intercept
+  const atkKind: Technique['kind'] = shot || e.intercept ? 'tiro' : 'regate'
+  const defKind: Technique['kind'] = shot ? 'parada' : 'bloqueo'
+  const atkEl = e.element ?? (e.technique ? techniqueByName(e.technique)?.element : undefined) ?? atkActor?.element
+  const defEl = (e.counter ? techniqueByName(e.counter)?.element : undefined) ?? defActor?.element
+  const eff = e.effectiveness
+  const lado = (kind: Technique['kind'], el: typeof atkEl, power: number | undefined, winner: boolean) => (
+    <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${winner ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-700 bg-slate-900/60'}`}>
+      <KindIcon kind={kind} className="w-3 h-3 text-slate-300" />
+      {el && <Icon name={ELEMENT_INFO[el].icon} className="w-3 h-3" style={{ color: ELEMENT_INFO[el].color }} />}
+      <span className={`font-black tabular-nums ${power != null ? 'text-amber-300' : 'text-slate-500'}`}>
+        {power != null ? power : 'a pelo'}
+      </span>
+    </span>
+  )
+  return (
+    <div className="mt-1 flex items-center gap-1.5 text-[9px] leading-none">
+      {lado(atkKind, atkEl, e.power, e.success)}
+      <span
+        className={`shrink-0 font-extrabold uppercase tracking-wide ${
+          eff > 1 ? 'text-emerald-300' : eff < 1 ? 'text-rose-300' : 'text-slate-500'
+        }`}
+      >
+        {eff > 1 ? `ventaja ×${eff.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : eff < 1 ? `desventaja ×${eff.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : 'tipo neutro'}
+      </span>
+      {lado(defKind, defEl, e.counterPower, !e.success)}
     </div>
   )
 }
