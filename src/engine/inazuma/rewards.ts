@@ -7,7 +7,7 @@ import { TACTICS } from '@/data/inazuma/tactics'
 import { getTeam, regionOfTeam } from '@/data/inazuma/teams'
 import { getPlayerBase, PLAYERS, playersOfTeam } from '@/data/inazuma/players'
 import { getTechnique, TECHNIQUES } from '@/data/inazuma/techniques'
-import type { DraftOption, InazumaSave, PlayerBase } from './types'
+import type { DraftOption, InazumaSave, PlayerBase, Position } from './types'
 import { bossIndexForLayer } from './tournament'
 
 
@@ -109,10 +109,13 @@ export function availableSignings(save: InazumaSave): PlayerBase[] {
   return fresh.length >= 6 ? fresh : uniq
 }
 
-function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>): DraftOption | null {
+function signingOption(save: InazumaSave, rng: RNG, exclude: Set<string>, excludeNames: Set<string>, pos?: Position): DraftOption | null {
   // Se excluye por id Y por NOMBRE: el catálogo trae al mismo chaval con
   // varios ids, y la oferta canónica podía duplicarse con la aleatoria.
-  const pool = availableSignings(save).filter((p) => !exclude.has(p.id) && !excludeNames.has(p.name))
+  // Con `pos`, la oferta se limita a esa demarcación (emergencia de portero).
+  const pool = availableSignings(save)
+    .filter((p) => !exclude.has(p.id) && !excludeNames.has(p.name))
+    .filter((p) => !pos || p.position === pos)
   if (!pool.length) return null
   const pick = weightedPick(pool, (p) => rarityWeight(p.fame, bossIndexForLayer(save.layer)), rng)
   if (!pick) return null
@@ -209,13 +212,27 @@ export function buildScoutOffer(save: InazumaSave, rng: RNG): DraftOption[] {
   const seen = new Set<string>()
   const seenNames = new Set<string>()
   const out: DraftOption[] = []
-  // La primera ficha sobre la mesa: el CANON de tu club (si queda alguien).
-  const canon = canonOption(save, rng, seen, seenNames)
-  if (canon) out.push(canon)
-  while (out.length < 3) {
-    const o = signingOption(save, rng, seen, seenNames)
-    if (!o) break
-    out.push(o)
+  // EMERGENCIA DE PORTERO: sin nadie bajo palos en la plantilla, el ojeador
+  // deja lo que esté haciendo y trae TRES porteros a elegir — un club sin
+  // portero no es un club (y jugar con uno improvisado, un suplicio).
+  const sinPortero = !save.roster.some((p) => getPlayerBase(p.baseId).position === 'POR')
+  if (sinPortero) {
+    while (out.length < 3) {
+      const o = signingOption(save, rng, seen, seenNames, 'POR')
+      if (!o) break
+      o.desc += ' · ¡te falta portero!'
+      out.push(o)
+    }
+  }
+  if (!out.length) {
+    // La primera ficha sobre la mesa: el CANON de tu club (si queda alguien).
+    const canon = canonOption(save, rng, seen, seenNames)
+    if (canon) out.push(canon)
+    while (out.length < 3) {
+      const o = signingOption(save, rng, seen, seenNames)
+      if (!o) break
+      out.push(o)
+    }
   }
   // Y SIEMPRE, la cuarta carta: el FICHAJE PERSONALIZADO — pagas 1.000 ₽ y
   // eliges EXACTAMENTE a quién fichar del catálogo. En una run random
