@@ -386,12 +386,13 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
     <div className="shrink-0 px-2 pt-1.5">
       <div
         key={mood === 'euforia' ? `gol-${feed.length}` : 'tv'}
-        className={`relative flex h-[120px] rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
+        className={`relative flex flex-col rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
         style={{ borderColor: accent, boxShadow: `0 0 18px ${accent}44` }}
       >
-        {/* LA PANTALLA: Chester (o la técnica, cuando salta una; o el PLANO
-            DE GOL, con Chester en éxtasis, cuando el balón entra). */}
-        <div className="relative w-[190px] shrink-0 overflow-hidden bg-slate-900">
+        {/* LA PANTALLA a TODO LO ANCHO (rediseño de playtest: con la cabina a
+            un lado, la narración «se descuadraba» al crecer la pizarra):
+            Chester, la técnica en vídeo o el plano de gol, en panorámico. */}
+        <div className="relative h-[96px] w-full shrink-0 overflow-hidden bg-slate-900">
           {golCam ? (
             <div key={`gol-${golCam.key}`} className="absolute inset-0 animate-pop-in">
               <ImgFallback
@@ -495,15 +496,18 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
           </span>
         </div>
 
-        {/* EL COMENTARIO: lo que antes contaba el ticker, con voz propia. */}
-        <div className="flex-1 min-w-0 px-2.5 py-1.5 flex flex-col">
+        {/* EL COMENTARIO, DEBAJO y a todo lo ancho: el minuto y la firma en
+            una línea, el texto ilustrado en dos como mucho, y la pizarra del
+            duelo con espacio de sobra para no descuadrarse nunca. */}
+        <div className="w-full min-w-0 px-2.5 py-1.5 flex flex-col border-t border-slate-800/70 bg-slate-950/85">
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-black tabular-nums" style={{ color: accent === '#334155' ? '#94a3b8' : accent }}>
               {Math.min(120, Math.max(0, Math.floor(clock)))}&apos;
             </span>
             <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horse · comentarista</span>
           </div>
-          <p key={feed.length} className="mt-1 text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
+          {/* min-h de dos líneas: que la caja no baile entre frase y frase. */}
+          <p key={feed.length} className="mt-0.5 min-h-[32px] text-[12px] leading-snug text-slate-200 font-semibold line-clamp-2 animate-fade-in">
             {text ? decorate(text) : 'El balón circula. Se mastica la tensión, señores.'}
           </p>
           {/* LA PIZARRA DEL DUELO: clase de acción y elemento de cada bando,

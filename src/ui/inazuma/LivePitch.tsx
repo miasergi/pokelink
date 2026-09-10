@@ -824,7 +824,7 @@ export default function LivePitch({ match, feed, current, myCrest, theirCrest, f
   const danger = step === 'definicion'
 
   return (
-    <div className="relative flex-1 min-h-0 mx-2 my-1.5">
+    <div className="relative flex-1 min-h-0 mx-2 my-1">
       <div
         className="absolute inset-0 rounded-2xl border border-emerald-900/70 overflow-hidden"
         style={{ background: 'repeating-linear-gradient(0deg, #14532d 0 9%, #166534 9% 18%)' }}

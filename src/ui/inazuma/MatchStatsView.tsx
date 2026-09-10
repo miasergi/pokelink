@@ -110,7 +110,7 @@ export default function MatchStatsView({ match, feed, myCrest, theirCrest }: {
     : `${posTeam.name.replace('Instituto ', '')} mueve el balón`
 
   return (
-    <div className="relative flex-1 min-h-0 mx-2 my-1.5 flex flex-col gap-1.5 overflow-y-auto overscroll-contain">
+    <div className="relative flex-1 min-h-0 mx-2 my-1 flex flex-col gap-1.5 overflow-y-auto overscroll-contain">
       {/* LA POSESIÓN, a lo grande: el recuadro con los colores del club que
           tiene el balón, y la barra de campo con el balón donde está. */}
       <div
