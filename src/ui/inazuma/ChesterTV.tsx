@@ -389,11 +389,22 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
         className={`relative flex flex-col rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
         style={{ borderColor: accent, boxShadow: `0 0 18px ${accent}44` }}
       >
-        {/* LA PANTALLA a TODO LO ANCHO y EN GRANDE (subida de 96 a 150px tras
-            el playtest «las supertécnicas y fotos se ven recortadas»): los
-            vídeos y fotos van ENTEROS (object-contain) sobre su propia imagen
-            desenfocada de fondo, el truco de las retransmisiones de verdad. */}
-        <div className="relative h-[150px] w-full shrink-0 overflow-hidden bg-slate-900">
+        {/* LA PANTALLA: un ESCENARIO 16:9 FIJO en el centro (el tamaño de las
+            cinemáticas manda: vídeos, fotos y Chester van TODOS a ese mismo
+            encuadre) y dos paneles laterales de retransmisión con el hueco
+            sobrante — el CRONO a la izquierda y el DIRECTO a la derecha. */}
+        <div className="relative h-[150px] w-full shrink-0 overflow-hidden bg-slate-950 flex">
+          {/* Panel izquierdo: el CRONO de la retransmisión. */}
+          <div className="flex-1 min-w-0 grid place-items-center border-r border-slate-800/70 bg-slate-950/70">
+            <div className="text-center px-1">
+              <div className="text-xl font-black tabular-nums" style={{ color: accent === '#334155' ? '#e2e8f0' : accent }}>
+                {Math.min(120, Math.max(0, Math.floor(clock)))}′
+              </div>
+              <div className="text-[7px] uppercase tracking-widest text-slate-500">minuto</div>
+            </div>
+          </div>
+          {/* EL ESCENARIO 16:9: mismo tamaño para todo lo que se emita. */}
+          <div className="relative h-full aspect-video shrink-0 overflow-hidden bg-slate-900">
           {golCam ? (
             <div key={`gol-${golCam.key}`} className="absolute inset-0 animate-pop-in">
               <ImgFallback
@@ -407,18 +418,12 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
             </div>
           ) : saveCam ? (
             <div key={`save-${saveCam.key}-${saveCam.portrait ? 'p' : 'f'}`} className="absolute inset-0 animate-pop-in">
-              {/* La FOTO DEL PARADÓN, entera y con su reflejo desenfocado
-                  detrás. Si este portero no tiene fotograma, cae a su RETRATO;
-                  y si tampoco hay retrato, el segundo error tira el plano. */}
+              {/* La FOTO DEL PARADÓN, al mismo encuadre que las cinemáticas.
+                  Si este portero no tiene fotograma, cae a su RETRATO; y si
+                  tampoco hay retrato, el segundo error tira el plano. */}
               <img
                 src={`${BASE}inazuma/${saveCam.portrait ? 'players' : 'keepers'}/${saveCam.baseId}.png`}
-                aria-hidden
-                className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-40"
-                onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }}
-              />
-              <img
-                src={`${BASE}inazuma/${saveCam.portrait ? 'players' : 'keepers'}/${saveCam.baseId}.png`}
-                className="relative w-full h-full object-contain"
+                className={`w-full h-full ${saveCam.portrait ? 'object-contain p-1' : 'object-cover'}`}
                 alt="¡Parada!"
                 onError={() => setSaveCam((s) => (s && !s.portrait ? { ...s, portrait: true } : null))}
               />
@@ -426,25 +431,19 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
           ) : techInfo ? (
             <div key={tech!.key} className="absolute inset-0 animate-pop-in">
               {/* Con VÍDEO de la técnica cuando lo hay (streaming del CDN de
-                  inazumo): la tele enseña la supertécnica DE VERDAD y ENTERA.
-                  El póster queda debajo como respaldo si el vídeo falla o aún
-                  carga, y su versión desenfocada rellena los laterales. */}
+                  inazumo): la tele enseña la supertécnica DE VERDAD, y el
+                  vídeo LLENA el escenario (es 16:9, como él). El póster queda
+                  debajo como respaldo si el vídeo falla o aún carga. */}
               <ImgFallback
                 src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
-                className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-40"
-                alt=""
-                fallback={<span />}
-              />
-              <ImgFallback
-                src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
-                className="absolute inset-0 w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-cover"
                 alt={techInfo.name}
                 fallback={<span className="grid place-items-center w-full h-full text-[10px] font-bold text-slate-400 px-1 text-center">{techInfo.name}</span>}
               />
               {techVideo(techInfo.id) && (
                 <video
                   src={techVideo(techInfo.id)}
-                  className="absolute inset-0 w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full object-cover"
                   autoPlay
                   muted
                   playsInline
@@ -501,11 +500,16 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
               fallback={<span className="grid place-items-center w-full h-full text-2xl font-black text-slate-500">CH</span>}
             />
           )}
-          {/* Scanlines + chip EN DIRECTO: la textura de tele. */}
+          {/* Scanlines: la textura de tele, solo sobre el escenario. */}
           <span className="absolute inset-0 pointer-events-none opacity-25" style={{ background: 'repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.5) 2px 3px)' }} />
-          <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded-sm bg-slate-950/85 px-1 py-[1px] text-[7px] font-extrabold uppercase tracking-widest text-rose-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> Directo
-          </span>
+          </div>
+          {/* Panel derecho: el chip EN DIRECTO, ahora con sitio propio. */}
+          <div className="flex-1 min-w-0 grid place-items-center border-l border-slate-800/70 bg-slate-950/70">
+            <div className="flex flex-col items-center gap-1 px-1">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-[7px] font-extrabold uppercase tracking-widest text-rose-400 text-center leading-tight">En<br />directo</span>
+            </div>
+          </div>
         </div>
 
         {/* EL COMENTARIO, DEBAJO y con SU TRECHO RESERVADO (min-h fijo): el
@@ -550,9 +554,8 @@ function DuelInfo({ e, match }: { e: Extract<MatchEvent, { kind: 'duel' }>; matc
     <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${winner ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-700 bg-slate-900/60'}`}>
       <KindIcon kind={kind} className="w-3 h-3 text-slate-300" />
       {el && <Icon name={ELEMENT_INFO[el].icon} className="w-3 h-3" style={{ color: ELEMENT_INFO[el].color }} />}
-      <span className={`font-black tabular-nums ${power != null ? 'text-amber-300' : 'text-slate-500'}`}>
-        {power != null ? power : 'a pelo'}
-      </span>
+      {/* Sin técnica no hay potencia que enseñar — y el «a pelo» rallaba. */}
+      {power != null && <span className="font-black tabular-nums text-amber-300">{power}</span>}
     </span>
   )
   return (
