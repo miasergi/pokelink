@@ -37,8 +37,9 @@ export default function MatchView() {
   const simMatch = useSettings((s) => s.inazumaSimMatch)
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
-  // El desplegable de MODO de partido y el conmutador Campo/Stats.
+  // Los desplegables de MODO y VELOCIDAD, y el conmutador Campo/Stats.
   const [showModes, setShowModes] = useState(false)
+  const [showSpeed, setShowSpeed] = useState(false)
   const [statsView, setStatsView] = useState(false)
   // Último emparejamiento pintado en el césped (ver más abajo: pegajoso).
   const stickyPair = useRef<{ attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null>(null)
@@ -489,7 +490,23 @@ export default function MatchView() {
         // Pausa y Guardar se retiraron a petición («no sirven para nada»):
         // el partido ya se pausa solo en decisiones y cinemáticas.
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 flex items-center gap-2">
-          <div className="relative flex-1 min-w-0">
+          {/* CAMPO ↔ STATS a la izquierda (40 %): azul para ir a Stats, verde
+              para volver al Campo — el conmutador manda en la botonera. */}
+          <button
+            onClick={() => setStatsView((v) => !v)}
+            className={`basis-[40%] min-w-0 rounded-xl border px-2 py-3 text-xs font-extrabold transition active:scale-[0.98] ${
+              statsView
+                ? 'border-emerald-500/70 bg-emerald-500/15 text-emerald-300'
+                : 'border-sky-500/70 bg-sky-500/15 text-sky-300'
+            }`}
+            title={statsView ? 'Volver al césped' : 'Ver las plantillas con sus números en vivo'}
+          >
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <Icon name={statsView ? 'goalpost' : 'chartUp'} className="w-4 h-4" />
+              {statsView ? 'CAMPO' : 'STATS'}
+            </span>
+          </button>
+          <div className="relative basis-[40%] min-w-0">
             {(() => {
               const MODES: { id: 'dinamico' | 'completo' | 'auto' | 'sim'; icon: string; label: string; desc: string }[] = [
                 { id: 'dinamico', icon: 'bolt', label: 'Dinámico', desc: 'Decides solo las jugadas con chicha' },
@@ -547,26 +564,33 @@ export default function MatchView() {
               )
             })()}
           </div>
-          <button
-            onClick={() => setSpeed(speed > 700 ? 450 : speed > 350 ? 220 : 1100)}
-            className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs font-bold tabular-nums"
-          >
-            {speed > 700 ? '×1' : speed > 350 ? '×2' : '×4'}
-          </button>
-          {/* CAMPO ↔ STATS: el mismo botón conmuta entre el césped y la sala
-              de máquinas (plantillas con números vivos y barra de posesión). */}
-          <button
-            onClick={() => setStatsView((v) => !v)}
-            className={`rounded-xl border px-3 py-3 text-xs font-bold ${
-              statsView ? 'border-sky-500/60 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-800 text-slate-400'
-            }`}
-            title={statsView ? 'Volver al césped' : 'Ver las plantillas con sus números en vivo'}
-          >
-            <span className="inline-flex items-center gap-1">
-              <Icon name={statsView ? 'goalpost' : 'chartUp'} className="w-4 h-4" />
-              {statsView ? 'CAMPO' : 'STATS'}
-            </span>
-          </button>
+          {/* La VELOCIDAD, en su desplegable (20 %). */}
+          <div className="relative basis-[20%] min-w-0">
+            <button
+              onClick={() => setShowSpeed((v) => !v)}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-3 text-xs font-bold tabular-nums active:scale-[0.98] transition"
+            >
+              <span className="inline-flex items-center justify-center gap-1">
+                {speed > 700 ? '×1' : speed > 350 ? '×2' : '×4'}
+                <Icon name="arrowRight" className={`w-3 h-3 transition-transform ${showSpeed ? 'rotate-90' : '-rotate-90'}`} />
+              </span>
+            </button>
+            {showSpeed && (
+              <div className="absolute bottom-full mb-2 left-0 right-0 z-50 rounded-2xl border border-slate-700 bg-slate-900 shadow-[0_-8px_30px_rgba(0,0,0,.5)] overflow-hidden">
+                {([['×1', 1100], ['×2', 450], ['×4', 220]] as const).map(([label, ms]) => (
+                  <button
+                    key={ms}
+                    onClick={() => { setSpeed(ms); setShowSpeed(false) }}
+                    className={`w-full px-2 py-2 text-center text-xs font-bold tabular-nums border-b border-slate-800 last:border-0 active:scale-[0.98] transition ${
+                      speed === ms ? 'bg-amber-500/10 text-amber-200' : 'text-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -26,6 +26,40 @@ import {
   DraftView, EndView, MapView, PreviewView, ShopView, SquadView, TitleView, Toast,
 } from '@/ui/inazuma/InazumaViews'
 
+/**
+ * EL ESCENARIO de cada momento del rogue: el fondo de pantalla cambia con la
+ * fase, como los paisajes de tramo del modo Pokémon. Por defecto (título,
+ * mapa, gestión) el INSTITUTO RAIMON; los partidos se juegan bajo el estadio
+ * del Football Frontier, el entrenamiento en la ribera del río al atardecer y
+ * las compras sobre la Ciudad Inazuma. Imágenes en `public/inazuma/bg/`.
+ */
+const BG_BY_PHASE: Record<string, string> = {
+  preview: 'estadio', match: 'estadio', pachanga: 'estadio', result: 'estadio', victory: 'estadio',
+  entreno: 'ribera', gameover: 'ribera',
+  shop: 'ciudad', bag: 'ciudad', trade: 'ciudad',
+  // El resto (título, mapa, vestuario, draft, álbum…) cae al Raimon.
+}
+
+function InazumaBackdrop({ phase }: { phase: string }) {
+  const img = BG_BY_PHASE[phase] ?? 'raimon'
+  return (
+    <div
+      key={img}
+      aria-hidden
+      className="fixed inset-0 pointer-events-none animate-fade-in"
+      style={{
+        // Por ENCIMA del patrón de Pokémon del App (-10) y por debajo de todo
+        // lo demás. El velo oscuro mantiene legible la UI clara del modo.
+        zIndex: -5,
+        backgroundImage: `linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.82)), url(${import.meta.env.BASE_URL}inazuma/bg/${img}.jpg)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'saturate(1.05)',
+      }}
+    />
+  )
+}
+
 export default function InazumaScreen() {
   const { phase, initInazuma } = useInazuma()
   const [intro, setIntro] = useState(shouldShowOnboarding)
@@ -66,18 +100,20 @@ export default function InazumaScreen() {
     }
   })()
 
-  // Fondo del MODO: estadio nocturno en partidos, mapa oscuro en el resto —
-  // dibujados con CSS propio (nada opaco: lo de encima manda).
+  // Fondo del MODO: el ESCENARIO del momento (InazumaBackdrop, fijo detrás)
+  // más un tinte translúcido. OJO: nada de base opaca aquí — taparía el
+  // escenario; la oscuridad para leer la pone el velo del propio backdrop.
   const bgMatch = phase === 'match' || phase === 'pachanga'
   return (
     <div
       className="flex flex-col flex-1 min-h-0"
       style={{
         background: bgMatch
-          ? 'radial-gradient(120% 90% at 50% -10%, #14532d33, transparent 60%), repeating-linear-gradient(0deg, #0b1220 0 42px, #0d1526 42px 84px), #0b1220'
-          : 'radial-gradient(90% 60% at 80% -10%, #f59e0b14, transparent 55%), radial-gradient(80% 60% at 10% 110%, #0ea5e91a, transparent 60%), #0b1220',
+          ? 'radial-gradient(120% 90% at 50% -10%, #14532d33, transparent 60%)'
+          : 'radial-gradient(90% 60% at 80% -10%, #f59e0b14, transparent 55%), radial-gradient(80% 60% at 10% 110%, #0ea5e91a, transparent 60%)',
       }}
     >
+      <InazumaBackdrop phase={phase} />
       {view}
       <ItemFxOverlay />
       <PlayerRevealOverlay />
