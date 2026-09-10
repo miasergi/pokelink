@@ -13,6 +13,7 @@ import { useSettings } from '@/state/settingsStore'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import Odds from '@/ui/inazuma/Odds'
 import LivePitch from '@/ui/inazuma/LivePitch'
+import MatchStatsView from '@/ui/inazuma/MatchStatsView'
 import ChesterTV from '@/ui/inazuma/ChesterTV'
 import DuelStage, { type StageData } from '@/ui/inazuma/DuelStage'
 import GoalOverlay from '@/ui/inazuma/GoalOverlay'
@@ -29,13 +30,16 @@ import type { Actor, ChainStep, Element, MatchEvent, MatchState, Side, Technique
 
 export default function MatchView() {
   const {
-    match, feed, playing, speed, autoPlay, save, matchNode, clock,
+    match, feed, speed, autoPlay, save, matchNode, clock,
     halftimeSubsSummary, clearHalftimeSubsSummary, halftimeBreak,
-    setPlaying, setSpeed, setAutoPlay, decide, finishMatch, pauseAtHalftime, simulateMatch,
+    setSpeed, setAutoPlay, decide, finishMatch, simulateMatch,
   } = useInazuma()
   const simMatch = useSettings((s) => s.inazumaSimMatch)
   const bottom = useRef<HTMLDivElement>(null)
   const [stage, setStage] = useState<StageData | null>(null)
+  // El desplegable de MODO de partido y el conmutador Campo/Stats.
+  const [showModes, setShowModes] = useState(false)
+  const [statsView, setStatsView] = useState(false)
   // Último emparejamiento pintado en el césped (ver más abajo: pegajoso).
   const stickyPair = useRef<{ attackerUid: string; defenderUid: string; step: ChainStep; side: 'home' | 'away'; longShot?: boolean } | null>(null)
 
@@ -361,6 +365,14 @@ export default function MatchView() {
         else stickyPair.current = null
         return (
           <div className="relative flex-1 min-h-0 flex flex-col">
+            {statsView ? (
+            <MatchStatsView
+              match={match}
+              feed={shownFeed}
+              myCrest={teamDisplay(save ?? {}).crestId}
+              theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+            />
+            ) : (
             <LivePitch
               match={match}
               feed={shownFeed}
@@ -382,6 +394,7 @@ export default function MatchView() {
               flowing={caughtUp && !(match.phase === 'decision' && !frozen) && stage === null && gol === null
                 && !halftimeBreak && !halftimeSubsSummary}
             />
+            )}
             {/* FILOSOFÍA ENCENDIDA: el fogonazo de activación. */}
             {tacticFx && (() => {
               const t = getTactic(tacticFx.id)
@@ -471,52 +484,88 @@ export default function MatchView() {
           <Button variant="primary" full className="mt-2" onClick={finishMatch}>Ir al vestuario</Button>
         </div>
       ) : (
+        // La botonera nueva: MODO de partido en desplegable (dinámico,
+        // completo, auto, sim), la velocidad, y el conmutador Campo/Stats.
+        // Pausa y Guardar se retiraron a petición («no sirven para nada»):
+        // el partido ya se pausa solo en decisiones y cinemáticas.
         <div className="p-3 safe-bottom border-t border-slate-800 bg-slate-900/90 flex items-center gap-2">
-          <Button variant={playing ? 'secondary' : 'primary'} onClick={() => setPlaying(!playing)} className="flex-1">
-            <span className="inline-flex items-center justify-center gap-1.5">
-              <Icon name={playing ? 'timer' : 'play'} className="w-4 h-4" />
-              {playing ? 'Pausa' : 'Seguir'}
-            </span>
-          </Button>
+          <div className="relative flex-1 min-w-0">
+            {(() => {
+              const MODES: { id: 'dinamico' | 'completo' | 'auto' | 'sim'; icon: string; label: string; desc: string }[] = [
+                { id: 'dinamico', icon: 'bolt', label: 'Dinámico', desc: 'Decides solo las jugadas con chicha' },
+                { id: 'completo', icon: 'pointer', label: 'Completo', desc: 'Decides todas las jugadas' },
+                { id: 'auto', icon: 'bench', label: 'Auto', desc: 'El banquillo decide por ti' },
+                { id: 'sim', icon: 'fastForward', label: 'Sim', desc: 'Simula el resto del partido al instante' },
+              ]
+              const current = simMatch ? 'sim' : autoPlay ? 'auto' : match.decisionMode
+              const cur = MODES.find((m) => m.id === current) ?? MODES[0]
+              const pick = (id: typeof MODES[number]['id']) => {
+                setShowModes(false)
+                if (id === 'sim') {
+                  if (!useSettings.getState().inazumaSimMatch) useSettings.getState().toggleInazumaSimMatch()
+                  simulateMatch()
+                  return
+                }
+                if (useSettings.getState().inazumaSimMatch) useSettings.getState().toggleInazumaSimMatch()
+                if (id === 'auto') { setAutoPlay(true); return }
+                setAutoPlay(false)
+                // El modo de decisión se guarda para los próximos partidos y
+                // se aplica AL ACTUAL en caliente (el motor lo lee por jugada).
+                useSettings.getState().setInazumaModeMatch(id)
+                useInazuma.setState((st) => (st.match ? { match: { ...st.match, decisionMode: id } } : {}))
+              }
+              return (
+                <>
+                  <Button variant="secondary" full onClick={() => setShowModes((v) => !v)}>
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <Icon name={cur.icon} className="w-4 h-4" />
+                      {cur.label}
+                      <Icon name="arrowRight" className={`w-3 h-3 transition-transform ${showModes ? 'rotate-90' : '-rotate-90'}`} />
+                    </span>
+                  </Button>
+                  {showModes && (
+                    <div className="absolute bottom-full mb-2 left-0 right-0 z-50 rounded-2xl border border-slate-700 bg-slate-900 shadow-[0_-8px_30px_rgba(0,0,0,.5)] overflow-hidden">
+                      {MODES.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => pick(m.id)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left border-b border-slate-800 last:border-0 active:scale-[0.99] transition ${
+                            current === m.id ? 'bg-amber-500/10' : ''
+                          }`}
+                        >
+                          <Icon name={m.icon} className={`w-4 h-4 shrink-0 ${current === m.id ? 'text-amber-300' : 'text-slate-400'}`} />
+                          <span className="min-w-0">
+                            <span className={`block text-[12px] font-extrabold ${current === m.id ? 'text-amber-200' : ''}`}>{m.label}</span>
+                            <span className="block text-[10px] text-slate-400 leading-tight">{m.desc}</span>
+                          </span>
+                          {current === m.id && <Icon name="check" className="ml-auto w-4 h-4 shrink-0 text-amber-300" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
           <button
             onClick={() => setSpeed(speed > 700 ? 450 : speed > 350 ? 220 : 1100)}
             className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs font-bold tabular-nums"
           >
             {speed > 700 ? '×1' : speed > 350 ? '×2' : '×4'}
           </button>
-          {/* Guardar y salir: SOLO tras el descanso. 90 minutos del tirón en un
-              móvil es mucho; como se guarda el marcador tal cual, no sirve para
-              esquivar una derrota. */}
-          {match.halftimeDone && (
-            <button
-              onClick={pauseAtHalftime}
-              className="rounded-xl border border-emerald-600/60 bg-emerald-500/10 px-3 py-3 text-xs font-bold text-emerald-300"
-              title="Guarda el partido y vuelve al mapa"
-            >
-              GUARDAR
-            </button>
-          )}
+          {/* CAMPO ↔ STATS: el mismo botón conmuta entre el césped y la sala
+              de máquinas (plantillas con números vivos y barra de posesión). */}
           <button
-            onClick={() => {
-              const on = !useSettings.getState().inazumaSimMatch
-              useSettings.getState().toggleInazumaSimMatch()
-              if (on) simulateMatch()
-            }}
+            onClick={() => setStatsView((v) => !v)}
             className={`rounded-xl border px-3 py-3 text-xs font-bold ${
-              simMatch ? 'border-sky-500/60 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-800 text-slate-400'
+              statsView ? 'border-sky-500/60 bg-sky-500/15 text-sky-300' : 'border-slate-700 bg-slate-800 text-slate-400'
             }`}
-            title="Simula el resto del partido (y los siguientes) al instante"
+            title={statsView ? 'Volver al césped' : 'Ver las plantillas con sus números en vivo'}
           >
-            SIM
-          </button>
-          <button
-            onClick={() => setAutoPlay(!autoPlay)}
-            className={`rounded-xl border px-3 py-3 text-xs font-bold ${
-              autoPlay ? 'border-amber-500/60 bg-amber-500/15 text-amber-200' : 'border-slate-700 bg-slate-800 text-slate-400'
-            }`}
-            title="Deja que el banquillo decida las jugadas clave por ti"
-          >
-            AUTO
+            <span className="inline-flex items-center gap-1">
+              <Icon name={statsView ? 'goalpost' : 'chartUp'} className="w-4 h-4" />
+              {statsView ? 'CAMPO' : 'STATS'}
+            </span>
           </button>
         </div>
       )}

@@ -20,7 +20,7 @@ import { CoinPrice, CoinText, ComboMark, Crest, ELEMENT_ICON, ElementIcon, ItemI
 import { SettingsButton } from '@/ui/inazuma/SettingsSheet'
 import { GuideButton } from '@/ui/inazuma/GuideSheet'
 import {
-  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, ptMax, RARITY_LABEL, rarityOf,
+  buildLineup, canUpgradeTechnique, effectiveStats, lineupError, ptMax, RARITY_LABEL, rarityOf, rarityStats,
   realTechniquePower, rivalArmbandBaseId, rivalKnownTechniques, rivalPreviewStats, rivalRarityMap, rivalStartingXI, scaleStats,
   rivalBench, slotRole, techLevel, techniqueCostFor, techniquePower, transferValue,
 } from '@/engine/inazuma/roster'
@@ -1561,10 +1561,15 @@ export function DraftView() {
             {/* Los atributos con los que llegaría, para no fichar a ciegas. */}
             {o.kind === 'fichaje' && (
               <div className="mt-2 flex flex-col gap-1.5">
-                <StatGrid stats={scaleStats(getPlayerBase(o.playerId).stats, o.level)} />
+                {/* Los atributos CON LOS QUE LLEGA DE VERDAD: los de su rareza
+                    de llegada (Normal), que es lo que pinta effectiveStats en
+                    cuanto entra al vestuario. Antes se enseñaban los del
+                    catálogo (presupuesto por fama) y «al llegar al equipo
+                    tenía otras stats distintas» — feedback literal. */}
+                <StatGrid stats={scaleStats(rarityStats(o.playerId, getPlayerBase(o.playerId).position, 1), o.level)} />
                 {/* El aguante (fuera del grid) y el depósito de PT que trae. */}
                 {(() => {
-                  const agu = scaleStats(getPlayerBase(o.playerId).stats, o.level).aguante
+                  const agu = scaleStats(rarityStats(o.playerId, getPlayerBase(o.playerId).position, 1), o.level).aguante
                   return (
                     <div className="text-[10px] text-slate-400">
                       Aguante <b className="text-slate-200">{agu}</b> · PT máx ≈ <b className="text-slate-200">{Math.round(28 + agu * 0.7)}</b>
@@ -1587,7 +1592,7 @@ export function DraftView() {
                         element: b.element,
                         level: o.level,
                         rarity: 1,
-                        stats: scaleStats(b.stats, o.level),
+                        stats: scaleStats(rarityStats(b.id, b.position, 1), o.level),
                       })
                     }}
                   >
