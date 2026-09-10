@@ -389,10 +389,11 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
         className={`relative flex flex-col rounded-2xl border-2 bg-slate-950 overflow-hidden transition-colors ${mood === 'euforia' ? 'tv-shake' : ''}`}
         style={{ borderColor: accent, boxShadow: `0 0 18px ${accent}44` }}
       >
-        {/* LA PANTALLA a TODO LO ANCHO (rediseño de playtest: con la cabina a
-            un lado, la narración «se descuadraba» al crecer la pizarra):
-            Chester, la técnica en vídeo o el plano de gol, en panorámico. */}
-        <div className="relative h-[96px] w-full shrink-0 overflow-hidden bg-slate-900">
+        {/* LA PANTALLA a TODO LO ANCHO y EN GRANDE (subida de 96 a 150px tras
+            el playtest «las supertécnicas y fotos se ven recortadas»): los
+            vídeos y fotos van ENTEROS (object-contain) sobre su propia imagen
+            desenfocada de fondo, el truco de las retransmisiones de verdad. */}
+        <div className="relative h-[150px] w-full shrink-0 overflow-hidden bg-slate-900">
           {golCam ? (
             <div key={`gol-${golCam.key}`} className="absolute inset-0 animate-pop-in">
               <ImgFallback
@@ -406,13 +407,18 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
             </div>
           ) : saveCam ? (
             <div key={`save-${saveCam.key}-${saveCam.portrait ? 'p' : 'f'}`} className="absolute inset-0 animate-pop-in">
-              {/* La FOTO DEL PARADÓN: el portero con la pelota atrapada. Si
-                  este portero no tiene fotograma, cae a su RETRATO (busto
-                  centrado, no un recorte); y si tampoco hay retrato, el
-                  segundo error tira el plano y la tele sigue con lo suyo. */}
+              {/* La FOTO DEL PARADÓN, entera y con su reflejo desenfocado
+                  detrás. Si este portero no tiene fotograma, cae a su RETRATO;
+                  y si tampoco hay retrato, el segundo error tira el plano. */}
               <img
                 src={`${BASE}inazuma/${saveCam.portrait ? 'players' : 'keepers'}/${saveCam.baseId}.png`}
-                className={`w-full h-full ${saveCam.portrait ? 'object-contain p-1' : 'object-cover'}`}
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-40"
+                onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none' }}
+              />
+              <img
+                src={`${BASE}inazuma/${saveCam.portrait ? 'players' : 'keepers'}/${saveCam.baseId}.png`}
+                className="relative w-full h-full object-contain"
                 alt="¡Parada!"
                 onError={() => setSaveCam((s) => (s && !s.portrait ? { ...s, portrait: true } : null))}
               />
@@ -420,19 +426,25 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
           ) : techInfo ? (
             <div key={tech!.key} className="absolute inset-0 animate-pop-in">
               {/* Con VÍDEO de la técnica cuando lo hay (streaming del CDN de
-                  inazumo): la tele enseña la supertécnica DE VERDAD. La
-                  imagen queda DEBAJO como póster y respaldo si el vídeo
-                  falla o aún carga. */}
+                  inazumo): la tele enseña la supertécnica DE VERDAD y ENTERA.
+                  El póster queda debajo como respaldo si el vídeo falla o aún
+                  carga, y su versión desenfocada rellena los laterales. */}
               <ImgFallback
                 src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-40"
+                alt=""
+                fallback={<span />}
+              />
+              <ImgFallback
+                src={`${BASE}inazuma/techniques/${techInfo.id}.png`}
+                className="absolute inset-0 w-full h-full object-contain"
                 alt={techInfo.name}
                 fallback={<span className="grid place-items-center w-full h-full text-[10px] font-bold text-slate-400 px-1 text-center">{techInfo.name}</span>}
               />
               {techVideo(techInfo.id) && (
                 <video
                   src={techVideo(techInfo.id)}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-contain"
                   autoPlay
                   muted
                   playsInline
@@ -496,18 +508,18 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
           </span>
         </div>
 
-        {/* EL COMENTARIO, DEBAJO y a todo lo ancho: el minuto y la firma en
-            una línea, el texto ilustrado en dos como mucho, y la pizarra del
-            duelo con espacio de sobra para no descuadrarse nunca. */}
-        <div className="w-full min-w-0 px-2.5 py-1.5 flex flex-col border-t border-slate-800/70 bg-slate-950/85">
+        {/* EL COMENTARIO, DEBAJO y con SU TRECHO RESERVADO (min-h fijo): el
+            minuto y la firma en una línea, el texto ilustrado hasta en tres,
+            y la pizarra del duelo con espacio de sobra. La caja no baila
+            entre frases ni descuadra nada de lo de abajo. */}
+        <div className="w-full min-w-0 min-h-[86px] px-2.5 py-1.5 flex flex-col border-t border-slate-800/70 bg-slate-950/85">
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] font-black tabular-nums" style={{ color: accent === '#334155' ? '#94a3b8' : accent }}>
               {Math.min(120, Math.max(0, Math.floor(clock)))}&apos;
             </span>
             <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horse · comentarista</span>
           </div>
-          {/* min-h de dos líneas: que la caja no baile entre frase y frase. */}
-          <p key={feed.length} className="mt-0.5 min-h-[32px] text-[12px] leading-snug text-slate-200 font-semibold line-clamp-2 animate-fade-in">
+          <p key={feed.length} className="mt-0.5 min-h-[32px] text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
             {text ? decorate(text) : 'El balón circula. Se mastica la tensión, señores.'}
           </p>
           {/* LA PIZARRA DEL DUELO: clase de acción y elemento de cada bando,
