@@ -10,7 +10,7 @@ import {
   levelUp, MAX_RARITY, ptMax, RARITY_LABEL, rarityOf, reachableChain, rivalFromBase, rivalRarity,
   rivalRarityMap, slotRole, START_LEVEL, upgradeRarity, upgradeTechnique,
 } from './roster'
-import { createMatch } from './match'
+import { createMatch, matchTotals } from './match'
 import { createPachanga, type PachangaState } from './pachanga'
 import { bossIndexForLayer, generateMap, prizeMoney } from './tournament'
 import { buildScoutOffer } from './rewards'
@@ -469,6 +469,22 @@ export function applyMatchResult(save: InazumaSave, match: MatchState, _node: To
     result,
     scorers: match.scorers,
   }
+
+  // EL HISTORIAL DEL TORNEO: el partido queda archivado con su marcador, sus
+  // goles (autor, minuto y bando) y la estadística completa — se repasa en
+  // Estadísticas («cómo quedé en los anteriores»).
+  const goles = match.events
+    .filter((e): e is Extract<MatchEvent, { kind: 'goal' }> => e.kind === 'goal')
+    .map((e) => ({ name: e.scorer, minute: e.minute, mine: (e.side === (match.home.isPlayer ? 'home' : 'away')) }))
+  save.matchHistory = [...(save.matchHistory ?? []), {
+    rival: theirs.name,
+    rivalTeamId: _node.teamId,
+    score: [mine.goals, theirs.goals],
+    result,
+    goles,
+    ...matchTotals(match),
+    stage: match.stage !== 'reglamentario' ? match.stage : undefined,
+  }]
 
   // LA TAQUILLA: sin pachangas, el dinero de la run sale de los PARTIDOS
   // (más eventos, Momentos Chester y ventas). Ganar paga el premio entero;

@@ -5,7 +5,7 @@ import { Button, Card, ImgFallback } from '@/ui/components/kit'
 import Icon from '@/ui/components/Icon'
 import { useInazuma } from '@/state/inazumaStore'
 import { portraitUrl } from '@/ui/inazuma/PlayerCard'
-import { ELEMENT_ICON } from '@/ui/inazuma/Glyphs'
+import { Crest, ELEMENT_ICON, SvgBall } from '@/ui/inazuma/Glyphs'
 import { ELEMENT_INFO } from '@/engine/inazuma/elements'
 import { getPlayerBase, PLAYERS } from '@/data/inazuma/players'
 import { TEAM_BY_ID, TEAMS, getSaga, SAGAS, REGIONS, regionOfTeam, type RegionId, type SagaId } from '@/data/inazuma/teams'
@@ -148,6 +148,62 @@ export function StatsView() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-4 pb-6 flex flex-col gap-3">
+        {/* EL HISTORIAL DEL TORNEO: cómo quedaste en cada partido jugado,
+            con su estadística completa (posesión incluida) y sus goles. */}
+        {(save.matchHistory ?? []).length > 0 && (
+          <div>
+            <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-1.5">
+              Partidos del torneo · {save.matchHistory!.length}
+            </div>
+            <div className="flex flex-col gap-2">
+              {[...save.matchHistory!].reverse().map((m, i) => (
+                <div
+                  key={i}
+                  className={`rounded-2xl border p-2.5 ${
+                    m.result === 'win' ? 'border-emerald-500/40 bg-emerald-500/5'
+                      : m.result === 'draw' ? 'border-amber-500/40 bg-amber-500/5'
+                        : 'border-rose-500/40 bg-rose-500/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {m.rivalTeamId
+                      ? <Crest teamId={m.rivalTeamId} className="w-6 h-6 shrink-0" />
+                      : <Icon name="crest" className="w-5 h-5 shrink-0 text-slate-500" />}
+                    <span className="min-w-0 flex-1 text-[12px] font-extrabold truncate">vs {m.rival}</span>
+                    {m.stage && (
+                      <span className="shrink-0 text-[8px] uppercase tracking-widest text-amber-300">
+                        {m.stage === 'penaltis' ? 'penaltis' : 'prórroga'}
+                      </span>
+                    )}
+                    <span className={`shrink-0 text-base font-black tabular-nums ${
+                      m.result === 'win' ? 'text-emerald-300' : m.result === 'draw' ? 'text-amber-300' : 'text-rose-300'
+                    }`}>
+                      {m.score[0]} – {m.score[1]}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[9px] text-slate-400 tabular-nums">
+                    Posesión <b className="text-slate-200">{m.poss[0]}%</b>-{m.poss[1]}%
+                    {' · '}Tiros <b className="text-slate-200">{m.shots[0]}</b>-{m.shots[1]}
+                    {' · '}Duelos <b className="text-slate-200">{m.duelsW[0]}</b>-{m.duelsW[1]}
+                    {' · '}Paradas <b className="text-slate-200">{m.saves[0]}</b>-{m.saves[1]}
+                    {' · '}ST <b className="text-slate-200">{m.techs[0]}</b>-{m.techs[1]}
+                  </div>
+                  {m.goles.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
+                      {m.goles.map((g, j) => (
+                        <span key={j} className={`inline-flex items-center gap-1 text-[9px] ${g.mine ? 'text-emerald-200' : 'text-slate-400'}`}>
+                          <SvgBall className="w-2.5 h-2.5 opacity-80" />
+                          <b>{g.name}</b>
+                          <span className="tabular-nums text-slate-500">{g.minute}′</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <StatsBoard save={save} />
       </div>
 

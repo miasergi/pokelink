@@ -1124,11 +1124,14 @@ function MatchSummary({ match }: { match: MatchState }) {
     || (m && isMine(e, false) && !!e.counter)
     || (!m && isMine(e, false) && !!e.technique)
     || (!m && isMine(e, true) && !!e.counter)))
+  // La POSESIÓN, en % (petición de playtest): las posesiones en crudo no
+  // decían nada — el reparto porcentual es el idioma del fútbol.
+  const posePct = pA + pB ? Math.round((pA / (pA + pB)) * 100) : 50
+  rows.push({ label: 'Posesión %', a: posePct, b: 100 - posePct })
   rows.push({ label: 'Tiros', a: tA, b: tB })
   rows.push({ label: 'Paradas', a: sA, b: sB })
   rows.push({ label: 'Disparos bloqueados', a: bA, b: bB })
   rows.push({ label: 'Duelos ganados', a: dA, b: dB })
-  rows.push({ label: 'Posesiones', a: pA, b: pB })
   rows.push({ label: 'Supertécnicas', a: qA, b: qB })
 
   // Jugador del partido (por UID): goles ×3 + duelos ganados + paradas.

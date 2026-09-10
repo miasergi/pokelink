@@ -1742,3 +1742,38 @@ export function actorByUid(m: MatchState, uid: string): Actor | undefined {
   }
   return undefined
 }
+
+/**
+ * LA ESTADÍSTICA CERRADA de un partido, de sus eventos: posesión en % (los
+ * eventos de posesión de cada bando), tiros (sin contar cruces de defensa),
+ * duelos ganados, paradas y supertécnicas lanzadas. [tuyo, suyo] en todo.
+ * La usan el resumen del final, el historial del torneo y quien la pida.
+ */
+export function matchTotals(m: MatchState): {
+  poss: [number, number]; shots: [number, number]; duelsW: [number, number]
+  saves: [number, number]; techs: [number, number]
+} {
+  const mineSide = playerSide(m)
+  const t = {
+    poss: [0, 0] as [number, number], shots: [0, 0] as [number, number],
+    duelsW: [0, 0] as [number, number], saves: [0, 0] as [number, number],
+    techs: [0, 0] as [number, number],
+  }
+  const i = (side: Side) => (side === mineSide ? 0 : 1)
+  for (const e of m.events) {
+    if (e.kind === 'possession') t.poss[i(e.side)]++
+    else if (e.kind === 'save') { t.saves[i(e.side)]++; if (e.technique) t.techs[i(e.side)]++ }
+    else if (e.kind === 'longshotKick') { t.shots[i(e.side)]++; if (e.technique) t.techs[i(e.side)]++ }
+    else if (e.kind === 'duel') {
+      if (e.technique) t.techs[i(e.side)]++
+      if (e.counter) t.techs[i(otherSide(e.side))]++
+      if (e.step === 'definicion' && !e.intercept) t.shots[i(e.side)]++
+      else t.duelsW[i(e.success ? e.side : otherSide(e.side))]++
+    }
+  }
+  // La posesión se entrega YA en porcentaje (suma 100; sin datos, 50/50).
+  const total = t.poss[0] + t.poss[1]
+  const mine = total ? Math.round((t.poss[0] / total) * 100) : 50
+  t.poss = [mine, 100 - mine]
+  return t
+}

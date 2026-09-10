@@ -619,6 +619,25 @@ export interface InazumaItem {
 // Partida guardada
 // ---------------------------------------------------------------------------
 
+/** Un partido cerrado del torneo, tal y como quedó (para el historial). */
+export interface MatchRecord {
+  rival: string
+  rivalTeamId?: string
+  /** [tus goles, los suyos]. */
+  score: [number, number]
+  result: 'win' | 'draw' | 'loss'
+  /** Cada gol del partido: autor, minuto y de qué bando. */
+  goles: { name: string; minute: number; mine: boolean }[]
+  /** [tuyo, suyo] en cada apartado; posesión en % (suman 100). */
+  poss: [number, number]
+  shots: [number, number]
+  duelsW: [number, number]
+  saves: [number, number]
+  techs: [number, number]
+  /** Cómo acabó: prórroga o penaltis si el reglamentario no bastó. */
+  stage?: 'prorroga' | 'penaltis'
+}
+
 export type InazumaPhase =
   | 'title' | 'teamSelect' | 'setup' | 'map' | 'preview' | 'match' | 'pachanga' | 'result'
   | 'draft' | 'squad' | 'shop' | 'bag' | 'stats' | 'album' | 'evento' | 'firma' | 'trade' | 'entreno' | 'victory' | 'gameover'
@@ -736,6 +755,12 @@ export interface InazumaSave {
     result: 'win' | 'draw' | 'loss'
     scorers: string[]
   }
+  /**
+   * EL HISTORIAL del torneo: cada partido oficial jugado, con su marcador,
+   * goleadores y la estadística completa — para repasar en Estadísticas cómo
+   * quedaste en los anteriores. Se apunta al cerrar cada partido.
+   */
+  matchHistory?: MatchRecord[]
   startedAt: number
   finishedAt?: number
 }
