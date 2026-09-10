@@ -203,12 +203,14 @@ export default function App() {
             // El velo oscuro NO es decorativo: sin él la UI (texto claro sobre
             // fondos con cielo) deja de leerse en las fotos más luminosas. Pero
             // estaba tan cargado (0.68/0.86 + desenfoque) que la ruta no se
-            // reconocía y el fondo parecía una mancha. Ahora se ve la foto.
+            // reconocía y el fondo parecía una mancha. Ahora se ve el pueblo.
             backgroundImage: `linear-gradient(rgba(2,6,23,0.45), rgba(2,6,23,0.72)), url(${runBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'saturate(1.05)',
-            transform: 'scale(1.02)',
+            // Son tiles de los juegos a resolución nativa: se amplían con
+            // vecino más cercano para que se vean como en la consola y no como
+            // una foto emborronada.
+            imageRendering: 'pixelated',
           }}
         />
       ) : (

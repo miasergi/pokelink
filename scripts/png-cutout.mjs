@@ -195,6 +195,43 @@ export function decodePng(buf) {
   return { width, height, data }
 }
 
+/**
+ * PNG de paleta (color type 3) o de gris (color type 0) → sus ÍNDICES crudos,
+ * sin pasar por RGBA. Es lo que necesitan los tilesets de los juegos de GBA/GBC
+ * de los descompilados de pret: el valor de cada píxel NO es un color, es el
+ * índice dentro de la paleta que le toque a ese tile en ese mapa (la paleta
+ * del PNG es un gris de relleno). Devuelve { width, height, depth, colorType,
+ * indices } con un byte por píxel.
+ */
+export function decodePngIndices(buf) {
+  if (!isPng(buf)) throw new Error('no es un PNG (firma incorrecta)')
+  let pos = 8
+  let ihdr = null
+  const idat = []
+  while (pos + 8 <= buf.length) {
+    const len = buf.readUInt32BE(pos)
+    const type = buf.toString('ascii', pos + 4, pos + 8)
+    const data = buf.subarray(pos + 8, pos + 8 + len)
+    pos += 12 + len
+    if (type === 'IHDR') ihdr = { width: data.readUInt32BE(0), height: data.readUInt32BE(4), depth: data[8], colorType: data[9], interlace: data[12] }
+    else if (type === 'IDAT') idat.push(Buffer.from(data))
+    else if (type === 'IEND') break
+  }
+  if (!ihdr) throw new Error('PNG sin IHDR')
+  if (ihdr.interlace) throw new Error('PNG entrelazado (Adam7) no soportado')
+  const { width, height, depth, colorType } = ihdr
+  if (colorType !== 0 && colorType !== 3) throw new Error(`decodePngIndices: color type ${colorType} no es paleta ni gris`)
+  if (![1, 2, 4, 8].includes(depth)) throw new Error(`bit depth no soportado: ${depth}`)
+  const stride = Math.ceil((depth * width) / 8)
+  const raw = unfilter(inflateSync(Buffer.concat(idat)), stride, height, 1)
+  const indices = new Uint8Array(width * height)
+  for (let y = 0; y < height; y++) {
+    const line = raw.subarray(y * stride, (y + 1) * stride)
+    for (let x = 0; x < width; x++) indices[y * width + x] = sample(line, x, depth)
+  }
+  return { width, height, depth, colorType, indices }
+}
+
 // ---------------------------------------------------------------------------
 // Codificación
 // ---------------------------------------------------------------------------

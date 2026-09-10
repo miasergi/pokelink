@@ -162,7 +162,7 @@ export default function MapScreen() {
         <div
           aria-hidden
           className="absolute inset-0"
-          style={{ backgroundImage: `url(${headerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{ backgroundImage: `url(${headerImg})`, backgroundSize: 'cover', backgroundPosition: 'center', imageRendering: 'pixelated' }}
         />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(2,6,23,0.85) 0%, rgba(2,6,23,0.45) 45%, rgba(2,6,23,0.75) 100%)' }} />
         <div className="relative h-full flex items-center justify-between px-2">

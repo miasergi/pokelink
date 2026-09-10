@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.72',
+    date: '2026-09-11',
+    title: 'Los pueblos de los juegos, con sus tiles',
+    changes: [
+      'EL FONDO DE CADA TRAMO ES AHORA EL PUEBLO DE VERDAD, TILE A TILE: Ciudad Plateada, Ciudad Celeste, Isla Canela… tal cual salen en Rojo Fuego; Ciudad Malva, Pueblo Azalea o Ciudad Trigal como en Cristal, con sus tejados de colores; y Ciudad Férrica, Arborada o Arrecípolis como en Esmeralda. Fuera las fotos y los fotogramas que se emborronaban al ampliarlos: los tiles se escalan a píxel limpio, como en la consola.',
+      'Sinnoh, Teselia, Kalos, Alola, Galar y Paldea no tienen tiles (sus juegos son en 3D), así que conservan el nombre de su ciudad y toman de fondo un pueblo de Kanto, Johto o Hoenn que case con el tipo del líder: el de roca sobre Ciudad Plateada o Férrica, el de agua sobre Ciudad Celeste o Pueblo Azuliza, la Liga sobre la Meseta Añil o Ciudad Colosalia…',
+    ],
+  },
+  {
     version: 'v6.71',
     date: '2026-09-08',
     title: 'Dragon Ball Rogue se retira del menú',
