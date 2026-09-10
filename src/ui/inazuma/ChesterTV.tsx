@@ -512,18 +512,11 @@ export default function ChesterTV({ feed, clock, match, myCrest, theirCrest }: {
           </div>
         </div>
 
-        {/* EL COMENTARIO, DEBAJO y con SU TRECHO RESERVADO (min-h fijo): el
-            minuto y la firma en una línea, el texto ilustrado hasta en tres,
-            y la pizarra del duelo con espacio de sobra. La caja no baila
-            entre frases ni descuadra nada de lo de abajo. */}
-        <div className="w-full min-w-0 min-h-[86px] px-2.5 py-1.5 flex flex-col border-t border-slate-800/70 bg-slate-950/85">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] font-black tabular-nums" style={{ color: accent === '#334155' ? '#94a3b8' : accent }}>
-              {Math.min(120, Math.max(0, Math.floor(clock)))}&apos;
-            </span>
-            <span className="text-[8px] uppercase tracking-widest text-slate-500 truncate">Chester Horse · comentarista</span>
-          </div>
-          <p key={feed.length} className="mt-0.5 min-h-[32px] text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
+        {/* EL COMENTARIO, DEBAJO y con SU TRECHO RESERVADO (min-h fijo): solo
+            el texto ilustrado y la pizarra del duelo — el minuto ya vive en
+            el panel del crono y la firma de Chester no aportaba nada. */}
+        <div className="w-full min-w-0 min-h-[70px] px-2.5 py-1.5 flex flex-col border-t border-slate-800/70 bg-slate-950/85">
+          <p key={feed.length} className="min-h-[32px] text-[12px] leading-snug text-slate-200 font-semibold line-clamp-3 animate-fade-in">
             {text ? decorate(text) : 'El balón circula. Se mastica la tensión, señores.'}
           </p>
           {/* LA PIZARRA DEL DUELO: clase de acción y elemento de cada bando,
