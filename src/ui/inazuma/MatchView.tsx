@@ -312,6 +312,16 @@ export default function MatchView() {
         </div>
       )}
       <HalftimePanel />
+      {/* El orden de la retransmisión (playtest): MARCADOR arriba del todo,
+          debajo LA TELE (pantalla + comentarios de Chester) y luego el resto. */}
+      <Scoreboard
+        match={match}
+        feed={feed}
+        myTeamId={teamDisplay(save ?? {}).crestId}
+        rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
+        frozen={frozen}
+        clock={clock}
+      />
       {/* LA TELE: Chester Horse comenta el partido desde su cabina, con la
           imagen de cada supertécnica cuando salta una. Sustituye al ticker. */}
       {!finished && (
@@ -323,14 +333,6 @@ export default function MatchView() {
           theirCrest={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
         />
       )}
-      <Scoreboard
-        match={match}
-        feed={feed}
-        myTeamId={teamDisplay(save ?? {}).crestId}
-        rivalTeamId={matchNode?.kind === 'jefe' || matchNode?.kind === 'final' ? matchNode?.teamId : undefined}
-        frozen={frozen}
-        clock={clock}
-      />
       {/* EL MARCADOR DE LA TANDA: un punto por lanzamiento (verde/rojo/hueco),
           construido solo con lo ya contado — se entiende de un vistazo por
           dónde va la tanda y a quién le toca. */}
