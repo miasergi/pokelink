@@ -136,13 +136,20 @@ export default function HalftimePanel() {
                 {!items.length && (
                   <p className="text-[11px] text-slate-500 py-1">No queda nada que dar.</p>
                 )}
-                {items.map(({ id, count }) => (
+                {items.map(({ id, count }) => {
+                  // El FISIO solo tiene sentido sobre un lesionado: con el
+                  // jugador sano se agrisa y no dispara nada (el motor además
+                  // lo rechaza sin gastar — blindaje anti-missclick doble).
+                  const inutil = id === 'fisio-especial' && !target.injured
+                  return (
                   <button
                     key={id}
                     // El panel SE QUEDA ABIERTO: puedes encadenar consumibles
                     // sobre el mismo jugador sin volver a elegirlo.
-                    onClick={() => halftimeUseItem(id, target.uid)}
-                    className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-left active:scale-[0.99] transition"
+                    onClick={inutil ? undefined : () => halftimeUseItem(id, target.uid)}
+                    className={`flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-2 py-1.5 text-left transition ${
+                      inutil ? 'opacity-40' : 'active:scale-[0.99]'
+                    }`}
                   >
                     <ItemIcon itemId={id} className="w-6 h-6" />
                     <div className="min-w-0">
@@ -150,10 +157,13 @@ export default function HalftimePanel() {
                         {getItem(id)?.name}
                         {count > 1 && <span className="ml-1.5 text-[11px] font-extrabold text-amber-300">×{count}</span>}
                       </div>
-                      <div className="text-[10px] text-slate-500 truncate">{getItem(id)?.desc}</div>
+                      <div className="text-[10px] text-slate-500 truncate">
+                        {inutil ? 'No está lesionado' : getItem(id)?.desc}
+                      </div>
                     </div>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             )}
             {action === 'sub' && (

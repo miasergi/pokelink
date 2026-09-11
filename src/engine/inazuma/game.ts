@@ -731,9 +731,14 @@ export function applyConsumable(
 
   switch (itemId) {
     // --- Pociones ESTÁNDAR, en porcentaje. ---
-    case 'fisio-especial':
+    case 'fisio-especial': {
+      // BLINDAJE anti-missclick: sobre un jugador SANO no se gasta nada
+      // («hago missclick y se gasta aunque no tenga a nadie lesionado»).
+      const target = save.roster.find((p) => p.uid === uid)
+      if (!target?.injured) return { ok: false, message: 'No está lesionado: el Fisio no se gasta.' }
       one((p) => ({ ...p, injured: undefined, stamina: Math.max(40, p.stamina) }))
       return spend('Recuperado de la lesión')
+    }
     case 'pocion-pt':
       one((p) => ({ ...p, pt: Math.min(ptMax(p), p.pt + Math.round(ptMax(p) * 0.25)) }))
       return spend('+25 % del depósito de PT')
@@ -848,6 +853,8 @@ export function subActor(save: InazumaSave, uid: string, role: Position): Actor 
 export function applyConsumableToActor(a: Actor, itemId: string): { ok: boolean; message: string } {
   switch (itemId) {
     case 'fisio-especial':
+      // Mismo blindaje que en la mochila: con el actor sano, no se gasta.
+      if (!a.injured) return { ok: false, message: 'No está lesionado: el Fisio no se gasta.' }
       a.injured = undefined
       a.stamina = Math.max(40, a.stamina)
       return { ok: true, message: 'Recuperado de la lesión' }
