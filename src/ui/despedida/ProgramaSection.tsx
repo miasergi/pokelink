@@ -101,6 +101,16 @@ function Linea({ bloque: b, estado, revelado, onRevelar }: {
                   {b.titulo}
                 </h4>
                 {enCurso && <ChapaDirecto />}
+                {/* Básquet: se juega, pero ni directo ni puntos. Que se lea en
+                    el cartel y no haya que explicarlo el domingo. */}
+                {b.sinPuntos && (
+                  <span
+                    className="font-festui text-[9.5px] font-bold uppercase tracking-[0.2em] px-2 py-1 border"
+                    style={{ color: '#A1A1AA', borderColor: FILETE }}
+                  >
+                    Fuera de concurso
+                  </span>
+                )}
               </div>
               <p className="font-festui text-[13px] sm:text-[15px] text-zinc-400 mt-2.5 leading-relaxed max-w-2xl">{b.desc}</p>
 
@@ -143,7 +153,7 @@ function Linea({ bloque: b, estado, revelado, onRevelar }: {
         </div>
 
         {/* Puntos en juego */}
-        {retos.length > 0 && (
+        {retos.length > 0 ? (
           <div className="sm:w-28 shrink-0 sm:text-right">
             <div className="font-fest text-3xl sm:text-4xl leading-none tabular-nums" style={{ color: LIMA }}>
               {puntosEnJuego}
@@ -152,7 +162,14 @@ function Linea({ bloque: b, estado, revelado, onRevelar }: {
               pts en juego
             </div>
           </div>
-        )}
+        ) : revelado && b.sinPuntos ? (
+          <div className="sm:w-28 shrink-0 sm:text-right">
+            <div className="font-fest text-3xl sm:text-4xl leading-none text-zinc-700">—</div>
+            <div className="font-festui text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mt-1">
+              sin puntos
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

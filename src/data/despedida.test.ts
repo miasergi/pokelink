@@ -19,10 +19,24 @@ describe('datos de la despedida', () => {
     for (const r of RETOS) expect(ids.has(r.bloque), `reto ${r.id}`).toBe(true)
   })
 
-  it('cada bloque del horario tiene al menos un reto', () => {
-    // Un bloque sin retos sale en el cartel sin puntos en juego y parece roto.
+  it('cada bloque puntuable tiene retos y los de fuera de concurso no', () => {
+    // Un bloque puntuable sin retos sale en el cartel sin puntos en juego y
+    // parece roto. Y al revés: el básquet quedó fuera de concurso (la
+    // despedida acaba el sábado), así que no puede tener retos colgando.
     for (const b of BLOQUES) {
-      expect(RETOS.some((r) => r.bloque === b.id), `bloque ${b.id} sin retos`).toBe(true)
+      const tiene = RETOS.some((r) => r.bloque === b.id)
+      if (b.sinPuntos) expect(tiene, `${b.id} está fuera de concurso pero tiene retos`).toBe(false)
+      else expect(tiene, `bloque ${b.id} sin retos`).toBe(true)
+    }
+  })
+
+  it('los logros ocultos dicen algo sin destriparse', () => {
+    // La idea de Cla: hasta que caiga por primera vez solo se ve la pista. Sin
+    // pista, en la web saldría un hueco mudo.
+    for (const r of RETOS) {
+      if (!r.oculto) continue
+      expect(r.pista, `el logro oculto ${r.id} no tiene pista`).toBeTruthy()
+      expect(r.castigo, `${r.id} es oculto pero no resta: no tiene sentido`).toBe(true)
     }
   })
 

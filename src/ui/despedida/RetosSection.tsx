@@ -101,6 +101,11 @@ export default function RetosSection() {
 
 function Tarjeta({ reto: r, ok }: { reto: Reto; ok: boolean }) {
   const castigo = !!r.castigo
+  // Idea de Cla: los ocultos no se enseñan hasta que caen por primera vez. Se
+  // ve que hay algo, que resta, y una pista — lo justo para que sospeche sin
+  // saber de qué se tiene que cuidar.
+  const tapado = !!r.oculto && !ok
+
   return (
     <div
       className="relative p-5 flex flex-col justify-between sm:min-h-[130px] transition-colors"
@@ -110,28 +115,46 @@ function Tarjeta({ reto: r, ok }: { reto: Reto; ok: boolean }) {
       }}
     >
       <div className="flex items-start justify-between gap-4">
-        <p
-          className={`font-festui text-[14px] font-medium leading-snug ${ok && !castigo ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}
-        >
-          {castigo && '💀 '}{r.texto}
-        </p>
+        {tapado ? (
+          <p className="font-fest uppercase text-zinc-700 text-lg leading-none tracking-[0.2em]">??????</p>
+        ) : (
+          <p
+            className={`font-festui text-[14px] font-medium leading-snug ${ok && !castigo ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}
+          >
+            {castigo && '💀 '}{r.texto}
+          </p>
+        )}
         <span
           className="font-fest text-3xl leading-none tabular-nums shrink-0"
           style={{ color: castigo ? DIRECTO : ok ? LIMA : '#3F3F46' }}
         >
-          {puntosDe(r) > 0 ? `+${puntosDe(r)}` : puntosDe(r)}
+          {tapado ? '−??' : puntosDe(r) > 0 ? `+${puntosDe(r)}` : puntosDe(r)}
         </span>
       </div>
 
       <div className="mt-4">
-        {r.detalle && <p className="font-festui text-[11.5px] italic text-zinc-600 leading-snug">{r.detalle}</p>}
-        {ok && (
-          <div
-            className="font-festui text-[10px] font-bold uppercase tracking-[0.24em] mt-2"
-            style={{ color: castigo ? DIRECTO : LIMA }}
-          >
-            {castigo ? 'La ha liado' : 'Conseguido'}
-          </div>
+        {tapado ? (
+          <>
+            <p className="font-festui text-[11.5px] italic text-zinc-500 leading-snug">{r.pista}</p>
+            <div
+              className="font-festui text-[10px] font-bold uppercase tracking-[0.24em] mt-2"
+              style={{ color: DIRECTO }}
+            >
+              Logro oculto · resta
+            </div>
+          </>
+        ) : (
+          <>
+            {r.detalle && <p className="font-festui text-[11.5px] italic text-zinc-600 leading-snug">{r.detalle}</p>}
+            {ok && (
+              <div
+                className="font-festui text-[10px] font-bold uppercase tracking-[0.24em] mt-2"
+                style={{ color: castigo ? DIRECTO : LIMA }}
+              >
+                {castigo ? 'La ha liado' : 'Conseguido'}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

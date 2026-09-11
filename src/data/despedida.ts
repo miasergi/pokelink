@@ -41,6 +41,8 @@ export interface Bloque {
   participantes: string[]
   /** Movimientos de gente / logística que pasa AL ACABAR el bloque. */
   logistica?: string
+  /** Se juega, pero fuera de concurso: ni directo, ni retos, ni puntos. */
+  sinPuntos?: boolean
 }
 
 export const BLOQUES: Bloque[] = [
@@ -123,7 +125,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'minecraft',
     titulo: 'Minecraft',
     color: '#34d399',
-    desc: 'PENDIENTE decidir el formato: mundo normal a por logros, contrarreloj o partida conjunta a matar al dragón. Es el bloque colchón: se estira o se recorta según cómo vaya el día.',
+    desc: 'Partida conjunta: todos a por el dragón antes de que se acabe el tiempo. Es el bloque colchón, así que se estira o se recorta según cómo vaya el día.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla', 'Agus', 'Greñas'],
     logistica: 'Se vuelve a casa de Óscar.',
   },
@@ -159,7 +161,7 @@ export const BLOQUES: Bloque[] = [
     marca: 'dado',
     titulo: 'La noche',
     color: '#a78bfa',
-    desc: 'PENDIENTE decidir: juegos de mesa, una run rápida de Pokémon tipo soullocke o un juego de terror con castigos.',
+    desc: 'Libre: decide Óscar. Tiene juegos de mesa (el Isaac, el Slay the Spire) y el de One Piece nuevo.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla'],
   },
   {
@@ -170,8 +172,9 @@ export const BLOQUES: Bloque[] = [
     marca: 'balon',
     titulo: 'Partido de baloncesto',
     color: '#38bdf8',
-    desc: 'Pista por confirmar. Y hay que conseguir una pelota.',
+    desc: 'Fuera de concurso: la despedida acaba el sábado. Esto se juega quien pueda y quiera, sin directo y sin puntos.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla'],
+    sinPuntos: true,
   },
 ]
 
@@ -202,6 +205,13 @@ export interface Reto {
   detalle?: string
   /** Los castigos restan: son las cagadas con premio inverso. */
   castigo?: boolean
+  /**
+   * Logro OCULTO (idea de Cla): no se enseña hasta que lo hace la primera vez.
+   * Ahí se le revela qué era y por qué le ha restado, y a partir de entonces le
+   * toca evitar repetirlo. Hasta ese momento solo se ve la pista.
+   */
+  oculto?: boolean
+  pista?: string
 }
 
 /** Lo que vale un reto: su dificultad, salvo que lleve puntos propios. */
@@ -223,19 +233,17 @@ export const BLOQUE_GLOBAL = {
 } as const
 
 export const RETOS: Reto[] = [
-  // --- Todo el fin de semana ---
-  { id: 'glo-1', bloque: 'global', texto: 'Cada vez que va al baño', dificultad: 'facil', puntos: -5, castigo: true, detalle: 'Una marca por viaje. Sí, cuenta el del bar.' },
-  { id: 'glo-2', bloque: 'global', texto: 'Cada vez que le pillen hablando con María', dificultad: 'facil', puntos: -20, castigo: true },
+  // --- Todo el fin de semana. OCULTOS: no se enseñan hasta que caen. ---
+  { id: 'glo-1', bloque: 'global', texto: 'Cada vez que va al baño', dificultad: 'facil', puntos: -5, castigo: true, oculto: true, pista: 'Algo que haces varias veces al día te está costando caro.', detalle: 'Una marca por viaje. Sí, cuenta el del bar.' },
+  { id: 'glo-2', bloque: 'global', texto: 'Cada vez que le pillen hablando con María', dificultad: 'facil', puntos: -20, castigo: true, oculto: true, pista: 'Hay una persona con la que hablar te sale muy caro.' },
 
   // --- Inauguración ---
-  { id: 'ina-1', bloque: 'inauguracion', texto: 'Leer el manifiesto de la despedida a cámara', dificultad: 'facil', detalle: 'De pie y sin reírse. Si se ríe, se repite.' },
-  { id: 'ina-2', bloque: 'inauguracion', texto: 'Poner "ÓscarSeCasa" como título del directo', dificultad: 'facil' },
-  { id: 'ina-3', bloque: 'inauguracion', texto: 'Presentar bien a los ocho de la cuadrilla sin guion', dificultad: 'medio', detalle: 'Un fallo de nombre y no cuenta.' },
+  { id: 'ina-1', bloque: 'inauguracion', texto: 'Leer el manifiesto de la despedida a cámara', dificultad: 'facil', puntos: 5, detalle: 'De pie y sin reírse. Si se ríe, se repite.' },
+  { id: 'ina-2', bloque: 'inauguracion', texto: 'Poner "ÓscarSeCasa" como título del directo', dificultad: 'facil', puntos: 5 },
+  { id: 'ina-3', bloque: 'inauguracion', texto: 'Presentar bien a los ocho de la cuadrilla sin guion', dificultad: 'medio', puntos: 10, detalle: 'Un fallo de nombre y no cuenta.' },
 
   // --- One Piece TCG ---
-  // Los cerraron Luis P. y Cla montando los mazos del torneo, con sus puntos
-  // ya asignados a mano: aquí manda su nivelación, no la tabla.
-  { id: 'op-0', bloque: 'onepiece', texto: 'Explicar a cámara por qué este juego le importa', dificultad: 'facil', puntos: 5 },
+  { id: 'op-0', bloque: 'onepiece', texto: 'Presentar el juego: explicar a cámara por qué le importa', dificultad: 'facil', puntos: 5 },
   { id: 'op-1', bloque: 'onepiece', texto: 'Jugar un Trafalgar Law', dificultad: 'facil', puntos: 5 },
   { id: 'op-2', bloque: 'onepiece', texto: 'Superando a los creadores: ganar una partida contra Cla y Luis P.', dificultad: 'medio', puntos: 15 },
   { id: 'op-3', bloque: 'onepiece', texto: '¡Déjame jugar!: inutilizar los characters rivales dos turnos seguidos', dificultad: 'medio', puntos: 10 },
@@ -244,73 +252,73 @@ export const RETOS: Reto[] = [
   { id: 'op-7', bloque: 'onepiece', texto: 'Inclusivo: trashear cartas al rival de tres colores distintos', dificultad: 'dificil', puntos: 25 },
 
   // --- Elsword ---
-  { id: 'els-4', bloque: 'elsword', texto: 'Explicar el lore de Elsword en menos de 60 s', dificultad: 'facil', detalle: 'Con cronómetro. Vale que nadie lo entienda.' },
-  { id: 'els-1', bloque: 'elsword', texto: 'Subir un personaje nuevo a nivel 20', dificultad: 'medio', detalle: 'PENDIENTE: nadie sabe si esto es un paseo o imposible. Que lo ajuste quien controle.' },
-  { id: 'els-2', bloque: 'elsword', texto: 'Que los tres noobs aguanten el bloque entero sin morir', dificultad: 'dificil', detalle: 'Luis M., Sergi y Román. Una sola mazmorra era demasiado fácil.' },
-  { id: 'els-3', bloque: 'elsword', texto: 'Completar tres mazmorras con rango S', dificultad: 'medio' },
+  { id: 'els-0', bloque: 'elsword', texto: 'Presentar el juego: explicar el lore en menos de 60 s', dificultad: 'facil', puntos: 5, detalle: 'Con cronómetro. Vale que nadie lo entienda.' },
+  { id: 'els-1', bloque: 'elsword', texto: 'Convencer a todos de llevar cada uno un personaje distinto', dificultad: 'facil', puntos: 5 },
+  { id: 'els-2', bloque: 'elsword', texto: 'Llegar al pueblo de Altera', dificultad: 'facil', puntos: 15 },
+  { id: 'els-3', bloque: 'elsword', texto: 'Subir su personaje a nivel 50 antes de que los demás se cansen', dificultad: 'medio', puntos: 20 },
+  { id: 'els-4', bloque: 'elsword', texto: 'Que ningún noob muera en ningún momento', dificultad: 'facil', puntos: 15 },
+  { id: 'els-5', bloque: 'elsword', texto: 'Carreador excesivo: olvidarse de enseñar y ponerse a avanzar él solo', dificultad: 'medio', puntos: -20, castigo: true },
 
   // --- Comida ---
-  { id: 'com-1', bloque: 'comida', texto: 'Brindis en japonés antes de empezar', dificultad: 'facil' },
-  { id: 'com-2', bloque: 'comida', texto: 'Comerse el primer plato sin usar las manos', dificultad: 'dificil' },
-  { id: 'com-3', bloque: 'comida', texto: 'Comerse el segundo plato sin cubiertos', dificultad: 'medio', detalle: 'Uno excluye al otro: decidid cuál va en cada plato.' },
-
-  // --- Valorant ---
-  { id: 'val-0', bloque: 'valorant', texto: 'Explicar el lore de Valorant o soltar una anécdota', dificultad: 'facil' },
-  { id: 'val-6', bloque: 'valorant', texto: 'Jugar una partida con agente aleatorio', dificultad: 'facil' },
-  { id: 'val-1', bloque: 'valorant', texto: 'Conseguir un ace', dificultad: 'dificil' },
-  { id: 'val-2', bloque: 'valorant', texto: 'Ganar un duelo a pistola en la primera ronda', dificultad: 'medio' },
-  { id: 'val-3', bloque: 'valorant', texto: 'Matar a alguien solo con el cuchillo', dificultad: 'dificil' },
-  { id: 'val-4', bloque: 'valorant', texto: 'Ganar la partida', dificultad: 'medio' },
-  { id: 'val-7', bloque: 'valorant', texto: 'Conseguir matar a un compañero', dificultad: 'dificil', detalle: 'En Valorant no se puede por error: tiene que buscarlo. Por eso SUMA.' },
-
-  // --- Fortnite ---
-  { id: 'for-0', bloque: 'fortnite', texto: 'Presentarse explicando el lore o una anécdota', dificultad: 'facil' },
-  { id: 'for-4', bloque: 'fortnite', texto: 'Bailar encima de un rival eliminado', dificultad: 'facil' },
-  { id: 'for-3', bloque: 'fortnite', texto: 'Quedar entre los 5 últimos con la squad', dificultad: 'medio' },
-  { id: 'for-2', bloque: 'fortnite', texto: 'Una eliminación con el pico', dificultad: 'dificil' },
-  { id: 'for-1', bloque: 'fortnite', texto: 'Victory Royale', dificultad: 'dificil' },
+  { id: 'com-1', bloque: 'comida', texto: 'Brindis en japonés antes de empezar', dificultad: 'facil', puntos: 5 },
+  { id: 'com-2', bloque: 'comida', texto: 'Comer en el suelo', dificultad: 'facil', puntos: 10 },
+  { id: 'com-3', bloque: 'comida', texto: 'Comerse el plato sin usar las manos', dificultad: 'dificil', puntos: 25, detalle: 'Ni para los cubiertos, ni para la comida, ni para el plato. Con el de comer en el suelo: como un perro.' },
 
   // --- LoL ---
-  { id: 'lol-0', bloque: 'lol', texto: 'Presentarse explicando el lore o una anécdota', dificultad: 'facil' },
-  { id: 'lol-1', bloque: 'lol', texto: 'Ganar una ranked', dificultad: 'medio' },
-  { id: 'lol-2', bloque: 'lol', texto: 'Pentakill', dificultad: 'brutal', detalle: 'El clip se guarda o no ha pasado.' },
-  { id: 'lol-3', bloque: 'lol', texto: 'Jugar una partida con campeón aleatorio', dificultad: 'facil' },
-  { id: 'lol-7', bloque: 'lol', texto: 'AllRandom: ganar una ranked todos polivalentes y con campeón aleatorio', dificultad: 'brutal' },
-  { id: 'lol-8', bloque: 'lol', texto: 'Por los viejos tiempos: ganar con las posiciones y campeones míticos de cada uno', dificultad: 'medio' },
-  { id: 'lol-9', bloque: 'lol', texto: 'Por los viejos tiempos: perder esa misma partida', dificultad: 'facil', puntos: -10, castigo: true },
-  { id: 'lol-10', bloque: 'lol', texto: "Jugar de Cho'Gath sin comprar botas", dificultad: 'facil' },
-  { id: 'lol-11', bloque: 'lol', texto: 'Conseguir que Agustín no se tiltee', dificultad: 'dificil' },
-  { id: 'lol-4', bloque: 'lol', texto: 'Acabar una partida con 10 o más kills', dificultad: 'medio' },
-  { id: 'lol-5', bloque: 'lol', texto: 'Acabar una partida sin morir ni una vez', dificultad: 'dificil' },
-  { id: 'lol-6', bloque: 'lol', texto: 'Morir antes del minuto 3', dificultad: 'facil', puntos: -10, castigo: true },
+  { id: 'lol-0', bloque: 'lol', texto: 'Presentar el juego: lore, anécdota o lo que salga', dificultad: 'facil', puntos: 5 },
+  { id: 'lol-1', bloque: 'lol', texto: 'LJX: ganar una ranked cada uno en su posición y con sus campeones míticos', dificultad: 'medio', puntos: 15 },
+  { id: 'lol-2', bloque: 'lol', texto: 'Ganar una partida todos polivalentes y con campeón aleatorio', dificultad: 'medio', puntos: 20 },
+  { id: 'lol-3', bloque: 'lol', texto: "Jugar de Cho'Gath sin comprar botas", dificultad: 'facil', puntos: 10 },
+  { id: 'lol-4', bloque: 'lol', texto: 'Conseguir que Agustín no se tiltee', dificultad: 'medio', puntos: 15 },
+  { id: 'lol-5', bloque: 'lol', texto: 'Acabar una partida con 10 o más kills', dificultad: 'medio', puntos: 15 },
+  { id: 'lol-6', bloque: 'lol', texto: 'Acabar una partida sin morir ni una vez', dificultad: 'medio', puntos: 20 },
+  { id: 'lol-7', bloque: 'lol', texto: 'Pentakill', dificultad: 'brutal', puntos: 30, detalle: 'El clip se guarda o no ha pasado.' },
+  { id: 'lol-8', bloque: 'lol', texto: 'Morir antes del minuto 3', dificultad: 'facil', puntos: -20, castigo: true },
 
-  // --- Minecraft ---
-  { id: 'mc-1', bloque: 'minecraft', texto: 'Sobrevivir la primera noche sin morir', dificultad: 'facil' },
-  { id: 'mc-6', bloque: 'minecraft', texto: 'Montarse en un cerdo', dificultad: 'medio' },
-  { id: 'mc-7', bloque: 'minecraft', texto: 'Encontrar una mazmorra', dificultad: 'medio' },
-  { id: 'mc-2', bloque: 'minecraft', texto: 'Acabar con una casa más chula que la de Luis P.', dificultad: 'medio', detalle: 'Se vota a mano alzada: 4 de 6 y cuenta.' },
-  { id: 'mc-3', bloque: 'minecraft', texto: 'Bajar al Nether y volver vivo', dificultad: 'dificil' },
-  { id: 'mc-5', bloque: 'minecraft', texto: 'Morir en la lava con el inventario lleno', dificultad: 'facil', puntos: -10, castigo: true },
+  // --- Valorant ---
+  { id: 'val-0', bloque: 'valorant', texto: 'Presentar el juego: lore, anécdota o lo que salga', dificultad: 'facil', puntos: 5 },
+  { id: 'val-1', bloque: 'valorant', texto: 'Jugar una partida con agente aleatorio', dificultad: 'facil', puntos: 10 },
+  { id: 'val-2', bloque: 'valorant', texto: 'Buen comienzo: ganar un duelo a pistola', dificultad: 'medio', puntos: 15 },
+  { id: 'val-3', bloque: 'valorant', texto: 'Matar a tres en una ronda con la Bulldog', dificultad: 'medio', puntos: 15 },
+  { id: 'val-4', bloque: 'valorant', texto: 'Matar a alguien con el cuchillo', dificultad: 'dificil', puntos: 20 },
+  { id: 'val-5', bloque: 'valorant', texto: 'Ganar una partida', dificultad: 'facil', puntos: 10 },
+  { id: 'val-6', bloque: 'valorant', texto: 'Conseguir matar a un compañero', dificultad: 'brutal', puntos: 20, detalle: 'En Valorant no se puede por error: tiene que buscarlo. Por eso SUMA.' },
+  { id: 'val-7', bloque: 'valorant', texto: 'Conseguir un ace', dificultad: 'brutal', puntos: 30 },
+
+  // --- Minecraft: partida conjunta a por el dragón ---
+  { id: 'mc-1', bloque: 'minecraft', texto: 'El brillo del monitor está para algo: por cada antorcha que ponga', dificultad: 'facil', puntos: -5, castigo: true, detalle: 'Se marca una vez por antorcha. Sin piedad.' },
+  { id: 'mc-2', bloque: 'minecraft', texto: 'Carrera por el diamante: ser el primero en encontrar diamantes', dificultad: 'medio', puntos: 15 },
+  { id: 'mc-3', bloque: 'minecraft', texto: 'Montarse en un cerdo', dificultad: 'facil', puntos: 10 },
+  { id: 'mc-4', bloque: 'minecraft', texto: 'Como grupo: encontrar una dungeon', dificultad: 'medio', puntos: 10, detalle: 'No cuenta el spawner de arañas de una mineshaft.' },
+  { id: 'mc-5', bloque: 'minecraft', texto: 'Craftear y desgastar del todo una azada de diamante', dificultad: 'brutal', puntos: 20 },
+  { id: 'mc-6', bloque: 'minecraft', texto: 'Morir en la lava con el inventario lleno', dificultad: 'facil', puntos: -10, castigo: true },
+  { id: 'mc-7', bloque: 'minecraft', texto: 'Como grupo: encontrar una fortaleza del Nether', dificultad: 'medio', puntos: 15 },
+  { id: 'mc-8', bloque: 'minecraft', texto: 'Activar el portal al End', dificultad: 'dificil', puntos: 15 },
+  { id: 'mc-9', bloque: 'minecraft', texto: 'Speedrunners: matar al dragón dentro del tiempo', dificultad: 'dificil', puntos: 15 },
+  { id: 'mc-10', bloque: 'minecraft', texto: 'Óscar va sobrado: hacer un vuelo con elytra', dificultad: 'brutal', puntos: 25 },
+
+  // --- Fortnite ---
+  { id: 'for-0', bloque: 'fortnite', texto: 'Presentar el juego: lore, anécdota o lo que salga', dificultad: 'facil', puntos: 5 },
+  { id: 'for-1', bloque: 'fortnite', texto: 'Extraer 5 espíritus en una partida', dificultad: 'facil', puntos: 10 },
+  { id: 'for-2', bloque: 'fortnite', texto: 'Sacar un espíritu raro y extraerlo a nivel máximo', dificultad: 'dificil', puntos: 20 },
+  { id: 'for-3', bloque: 'fortnite', texto: 'No usar ninguna curación en una partida de más de 10 minutos', dificultad: 'medio', puntos: 15 },
+  { id: 'for-4', bloque: 'fortnite', texto: 'Bailar encima de un rival eliminado', dificultad: 'facil', puntos: 10 },
+  { id: 'for-5', bloque: 'fortnite', texto: 'Quedar entre los 5 últimos con la squad', dificultad: 'medio', puntos: 15 },
+  { id: 'for-6', bloque: 'fortnite', texto: 'Una eliminación con el pico', dificultad: 'dificil', puntos: 20 },
+  { id: 'for-7', bloque: 'fortnite', texto: 'Victory Royale', dificultad: 'brutal', puntos: 25 },
 
   // --- Cena disfrazado (aquí está la sal de la despedida) ---
-  { id: 'cen-1', bloque: 'cena', texto: 'Salir de casa disfrazado y sin taparse', dificultad: 'medio' },
-  { id: 'cen-2', bloque: 'cena', texto: 'Pedir el kebab sin salirse del personaje', dificultad: 'medio' },
-  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación de Sailor Moon en plena calle', dificultad: 'facil' },
-  { id: 'cen-4', bloque: 'cena', texto: 'Que un desconocido se haga una foto con él o salude al directo', dificultad: 'medio' },
-  { id: 'cen-7', bloque: 'cena', texto: 'Conseguir que un desconocido le siga en Twitch y salte la alerta', dificultad: 'dificil' },
-  { id: 'cen-5', bloque: 'cena', texto: 'Discurso lunar en alto antes de cenar', dificultad: 'facil' },
-  { id: 'cen-6', bloque: 'cena', texto: 'Convencer a un camarero de que es su despedida', dificultad: 'facil' },
+  { id: 'cen-1', bloque: 'cena', texto: 'Dale un beso a un marroquí', dificultad: 'brutal', puntos: 35 },
+  { id: 'cen-2', bloque: 'cena', texto: 'Pedir el kebab sin salirse del personaje', dificultad: 'medio', puntos: 10 },
+  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación de Sailor Moon en plena calle', dificultad: 'medio', puntos: 10 },
+  { id: 'cen-4', bloque: 'cena', texto: 'Que un desconocido se haga una foto con él o salude al directo', dificultad: 'medio', puntos: 15 },
+  { id: 'cen-5', bloque: 'cena', texto: 'Conseguir que un desconocido le siga en Twitch y salte la alerta', dificultad: 'medio', puntos: 20 },
+  { id: 'cen-6', bloque: 'cena', texto: 'Discurso lunar en alto antes de cenar', dificultad: 'medio', puntos: 10 },
 
   // --- La noche ---
-  { id: 'noc-1', bloque: 'noche', texto: 'Ganar la partida al juego de mesa', dificultad: 'medio' },
-  { id: 'noc-2', bloque: 'noche', texto: 'Aguantar despierto hasta el final de la peli', dificultad: 'facil' },
-  { id: 'noc-3', bloque: 'noche', texto: 'Ser el último en irse a dormir', dificultad: 'medio' },
-
-  // --- Domingo: baloncesto ---
-  { id: 'bas-1', bloque: 'basquet', texto: 'Meter un triple', dificultad: 'medio' },
-  { id: 'bas-2', bloque: 'basquet', texto: 'Ganar el partido con su equipo', dificultad: 'medio' },
-  { id: 'bas-3', bloque: 'basquet', texto: 'Encestar con los ojos cerrados', dificultad: 'medio' },
-  { id: 'bas-4', bloque: 'basquet', texto: 'Meter desde medio campo', dificultad: 'dificil' },
+  { id: 'noc-1', bloque: 'noche', texto: 'Llenarse la boca de papas y cantar el opening de One Piece de memoria', dificultad: 'facil', puntos: 10 },
+  { id: 'noc-2', bloque: 'noche', texto: 'Bailar con música de Chayanne de fondo', dificultad: 'facil', puntos: 10 },
+  { id: 'noc-3', bloque: 'noche', texto: 'Enseñar un huevo sin que salga en el directo', dificultad: 'facil', puntos: 10 },
 ]
 
 export interface Recompensa {
@@ -351,7 +359,7 @@ export interface Recompensa {
  */
 export const RECOMPENSAS: Recompensa[] = [
   {
-    id: 'r01', umbral: 10, marca: 'comodin', jugoso: true,
+    id: 'r01', umbral: 2, marca: 'comodin', jugoso: true,
     titulo: 'Vale de 5 € en Cardmarket',
     detalle: 'Cinco euros de cartón, a gastar en lo que quieras.',
     pista: 'Sirve para comprar cartón. Del que te gusta.',
@@ -371,7 +379,7 @@ export const RECOMPENSAS: Recompensa[] = [
     penalizacion: 'No llegaste a tiempo: los macarrones te los cocinas tú.',
   },
   {
-    id: 'r04', umbral: 65, marca: 'vaso',
+    id: 'r04', umbral: 70, marca: 'vaso',
     titulo: 'Combustible',
     detalle: 'Una Monster para cuando el cuerpo la pida.',
     pista: 'Frío, verde y con demasiada cafeína.',
@@ -383,46 +391,46 @@ export const RECOMPENSAS: Recompensa[] = [
     pista: 'Un viaje sale gratis. Solo uno.',
   },
   {
-    id: 'r06', umbral: 95, marca: 'onepiece',
+    id: 'r06', umbral: 100, marca: 'onepiece',
     titulo: '¡SOMOS MUGIWARA!',
     detalle: 'Se pone la canción a todo lo que dé el equipo. Ahora mismo.',
     pista: 'Se va a oír en todo el edificio.',
   },
   {
-    id: 'r07', umbral: 115, marca: 'caramelo',
+    id: 'r07', umbral: 125, marca: 'caramelo',
     titulo: 'Picoteo',
     detalle: 'Se abren las papas y las bebidas. A partir de aquí se pica durante todo el día.',
     pista: 'Cruje, y se comparte.',
   },
   {
-    id: 'r08', umbral: 140, marca: 'mando', jugoso: true,
+    id: 'r08', umbral: 150, marca: 'mando', jugoso: true,
     titulo: 'Vale de 5 € en Steam',
     detalle: 'Cinco euros para gastar sin salir de casa.',
     pista: 'Para gastarlo sin levantarte de la silla.',
   },
   {
-    id: 'r09', umbral: 165, marca: 'pesa',
+    id: 'r09', umbral: 175, marca: 'pesa',
     titulo: 'Diez flexiones ajenas',
     detalle: 'Vale para obligar a un amigo a hacer 10 flexiones en el directo.',
     pista: 'Alguien va a sudar. Tú no.',
   },
   {
-    id: 'r10', umbral: 195, marca: 'luna', legendario: true,
+    id: 'r10', umbral: 200, marca: 'luna', legendario: true,
     limite: 'cena',
     titulo: 'Skin legendaria',
     detalle: 'Desbloqueas el disfraz de Sailor Moon.',
     pista: 'La recompensa más rara del día. Te va a cambiar el aspecto.',
     penalizacion: 'No la desbloqueaste: te toca algo todavía más ridículo. Y cantando.',
-    nota: 'Es EL premio. Montadlo como si fuera un drop de verdad para que se lo crea.',
+    nota: 'Es EL premio. Montadlo como si fuera un drop de verdad para que se lo crea. Tiene que caer antes de las 21:00.',
   },
   {
-    id: 'r11', umbral: 225, marca: 'dado',
+    id: 'r11', umbral: 250, marca: 'dado',
     titulo: 'Derecho a retar',
     detalle: 'Vale para retar a quien quieras entre las 21:00 y las 23:00. Lo que se te ocurra.',
     pista: 'Entre las nueve y las once mandas tú una vez.',
   },
   {
-    id: 'r12', umbral: 255, marca: 'balon', jugoso: true,
+    id: 'r12', umbral: 275, marca: 'balon', jugoso: true,
     limite: 'basquet',
     titulo: 'La pelota es tuya',
     detalle: 'Te llevas la pelota de básquet. Tuya para siempre.',
@@ -430,43 +438,44 @@ export const RECOMPENSAS: Recompensa[] = [
     penalizacion: 'No llegaste: vas andando hasta la pista botándola todo el camino.',
   },
   {
-    id: 'r13', umbral: 285, marca: 'cafe',
-    limite: 'basquet',
-    titulo: 'Desayuno de campeones',
-    detalle: 'Desayuno de verdad el domingo, comprado por la cuadrilla.',
-    pista: 'Mañana por la mañana lo vas a agradecer mucho.',
-    penalizacion: 'Todos desayunamos lo que hemos traído. Tú, lo que encuentres por casa.',
-  },
-  {
-    id: 'r14', umbral: 330, marca: 'antifaz', jugoso: true,
+    id: 'r14', umbral: 300, marca: 'antifaz', jugoso: true,
     titulo: 'Striptease',
     detalle: 'Striptease. No hay más que explicar.',
     pista: 'Va a entrar alguien por esa puerta.',
     nota: 'El montaje: antifaz y esposas, música, y hacemos como que entra alguien en casa. Él solo debe ver el desbloqueo.',
   },
   {
-    id: 'r15', umbral: 375, marca: 'comodin', jugoso: true,
+    id: 'r15', umbral: 350, marca: 'comodin', jugoso: true,
     titulo: 'Otros 5 € en Cardmarket',
     detalle: 'Más cartón.',
     pista: 'Otra vez lo del principio.',
   },
   {
-    id: 'r16', umbral: 420, marca: 'mando', jugoso: true,
+    id: 'r16', umbral: 355, marca: 'mando', jugoso: true,
     titulo: 'Otros 5 € en Steam',
     detalle: 'Más biblioteca.',
     pista: 'Y otra vez lo otro.',
   },
   {
-    id: 'r17', umbral: 465, marca: 'comodin', jugoso: true,
+    id: 'r17', umbral: 360, marca: 'comodin', jugoso: true,
     titulo: 'Y otros 5 € en Cardmarket',
     detalle: 'Sí, más cartón todavía.',
     pista: 'A estas alturas ya sabes de qué va.',
   },
   {
-    id: 'r18', umbral: 510, marca: 'mando', jugoso: true,
+    id: 'r18', umbral: 369, marca: 'mando', jugoso: true,
     titulo: 'Y otros 5 € en Steam',
-    detalle: 'El último. Si has llegado aquí, te lo has ganado.',
-    pista: 'El último de todos. Nadie espera que llegues.',
+    detalle: 'Si has llegado aquí, te lo has ganado.',
+    pista: 'Nadie esperaba que llegases tan lejos.',
+  },
+  {
+    // Lo puso Román por su cuenta y es el único regalo de verdad de la lista:
+    // se abre con la ceremonia completa, como el drop que es.
+    id: 'r19', umbral: 500, marca: 'regalo', jugoso: true, legendario: true,
+    titulo: 'Un juego de Steam. Sorpresa.',
+    detalle: 'Regalo de Román: un juego entero, elegido por él, sin decirte cuál hasta que lo tengas.',
+    pista: 'Alguien ha puesto algo gordo aquí arriba. Nadie cuenta con que llegues.',
+    nota: 'Lo pone Román. Que lo diga él en el directo cuando caiga.',
   },
 ]
 
