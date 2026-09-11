@@ -1656,11 +1656,20 @@ describe('coherencia', () => {
         const s2 = {
           ...save,
           bag: [item.id],
-          roster: save.roster.map((x) => ({ ...x, stamina: 40, pt: 5 })),
+          // El FISIO solo actúa sobre lesionados (y sobre un sano NO se
+          // gasta): su sujeto de pruebas llega roto.
+          roster: save.roster.map((x) => ({ ...x, stamina: 40, pt: 5, injured: item.id === 'fisio-especial' || undefined })),
         }
         const res = applyConsumable(s2, item.id, s2.roster[0].uid)
         expect(res.ok, `${item.id}: ${res.message}`).toBe(true)
         expect(s2.bag).toHaveLength(0)
+        if (item.id === 'fisio-especial') {
+          // Y el blindaje anti-missclick: sobre un jugador SANO no se gasta.
+          const sano = { ...save, bag: [item.id], roster: save.roster.slice() }
+          const rechazo = applyConsumable(sano, item.id, sano.roster[0].uid)
+          expect(rechazo.ok, 'el fisio no debe gastarse en un sano').toBe(false)
+          expect(sano.bag, 'el fisio se gastó en un sano').toHaveLength(1)
+        }
       }
     }
     // El manual avanzado avanza la cadena característica.
