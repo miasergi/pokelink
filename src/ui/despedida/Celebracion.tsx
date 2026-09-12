@@ -99,7 +99,7 @@ export default function Celebracion() {
     <div
       className="fixed inset-0 z-[60] overflow-hidden font-festui"
       style={{ background: 'rgba(4,5,10,.985)', pointerEvents: abierto ? 'auto' : 'none' }}
-      onClick={() => { if (abierto) { play('confirm'); cerrar(null) } }}
+      onClick={() => { if (abierto && !r.video) { play('confirm'); cerrar(null) } }}
       role="dialog"
       aria-label={`Caja abierta: ${r.titulo}`}
     >
@@ -199,6 +199,27 @@ export default function Celebracion() {
               >
                 {r.detalle}
               </p>
+
+              {/* Hay una caja que no contiene una cosa. Arranca cuando ya se
+                  ha leído el título, para que el golpe llegue en orden:
+                  fanfarria, título, y entonces la canción. */}
+              {r.video && abierto && (
+                <div className="caja-texto mt-5" style={{ animationDelay: '0s' }}>
+                  <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+                    <iframe
+                      className="absolute inset-0 w-full h-full border"
+                      style={{ borderColor: `${acento}44` }}
+                      src={`https://www.youtube.com/embed/${r.video}?autoplay=1&rel=0&modestbranding=1`}
+                      title={r.titulo}
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
+                    />
+                  </div>
+                  <p className="text-[11px] text-zinc-600 mt-2.5">
+                    Si no suena, dale al play. Y súbelo.
+                  </p>
+                </div>
+              )}
             </div>
             <div
               className="caja-texto py-4 text-center font-fest uppercase text-3xl leading-none tabular-nums border-t"
@@ -208,12 +229,24 @@ export default function Celebracion() {
             </div>
           </div>
 
-          <p
-            className="caja-texto text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-600 mt-6"
-            style={{ animationDelay: '1s' }}
-          >
-            {abierto ? 'Toca para seguir' : ' '}
-          </p>
+          {r.video ? (
+            abierto && (
+              <button
+                onClick={() => { play('confirm'); cerrar(null) }}
+                className="caja-texto text-[11px] font-bold uppercase tracking-[0.24em] px-6 py-3.5 border mt-6 text-zinc-400 hover:text-white transition"
+                style={{ animationDelay: '0s', borderColor: FILETE }}
+              >
+                Ya vale, cerrar
+              </button>
+            )
+          ) : (
+            <p
+              className="caja-texto text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-600 mt-6"
+              style={{ animationDelay: '1s' }}
+            >
+              {abierto ? 'Toca para seguir' : ' '}
+            </p>
+          )}
         </div>
       </div>
     </div>

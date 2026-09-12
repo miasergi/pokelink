@@ -133,7 +133,14 @@ describe('render de pantallas (smoke)', () => {
 
     // ANTES DE LA HORA el sitio está cerrado: lo pidió el grupo para que Óscar
     // no vea nada hasta el sábado. Sin PIN no debe asomar ni una sección.
+    //
+    // Con el reloj parado a propósito: el 12 de septiembre de 2026 a las 10:00
+    // el cerrojo se abre DE VERDAD, y a partir de esa hora este test dejaba de
+    // probar nada (se caía solo, el mismo día del evento).
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-10T12:00:00'))
     const cerrado = mount(DespedidaScreen)
+    vi.useRealTimers()
     expect(cerrado).toContain('Acceso cerrado')
     for (const secreto of ['Los retos', 'Las cajas', 'El álbum']) {
       expect(cerrado, `el cerrojo deja ver "${secreto}"`).not.toContain(secreto)

@@ -103,7 +103,13 @@ describe('marcador compartido, de punta a punta', () => {
     }
     await useDespedida.getState().sincronizar()
 
+    // La que salta es la MÁS ALTA de las que se abren con esos puntos, y se
+    // saca de los datos: con un id a mano, el día que se cuele una caja nueva
+    // por debajo el test miente en vez de romperse por lo que importa.
+    const { RECOMPENSAS } = await import('@/data/despedida')
+    const esperada = [...RECOMPENSAS].reverse().find((r) => r.umbral <= 10)!
+
     expect(useDespedida.getState().puntos()).toBe(10)
-    expect(useDespedida.getState().celebrando, 'la caja no ha saltado en esta pantalla').toBe('r01')
+    expect(useDespedida.getState().celebrando, 'la caja no ha saltado en esta pantalla').toBe(esperada.id)
   })
 })

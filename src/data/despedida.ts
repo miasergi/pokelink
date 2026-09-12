@@ -344,6 +344,12 @@ export interface Recompensa {
   legendario?: boolean
   /** Solo para los organizadores: el montaje que hay detrás. */
   nota?: string
+  /**
+   * Id de YouTube. Si lo lleva, la caja no contiene una cosa: contiene un
+   * vídeo, y se pone solo al abrirla. De momento solo hay uno, y es el que
+   * te imaginas.
+   */
+  video?: string
 }
 
 /**
@@ -357,12 +363,48 @@ export interface Recompensa {
  *  - Los que llevan `limite` son los que TIENE que conseguir antes de una hora.
  *    Si no llega, la caja se abre sola con la penalización dentro.
  */
+/**
+ * EL MANIFIESTO. Lo que Óscar lee a cámara a las 10:00 para abrir el directo
+ * (reto `ina-1`). De pie y sin reírse; si se ríe, se repite.
+ *
+ * Cuidado al tocarlo: NO puede nombrar el disfraz de Sailor Moon (es el premio
+ * legendario), ni los logros ocultos, ni qué juegos tocan. A las diez de la
+ * mañana todavía no sabe nada de eso y la gracia es que siga sin saberlo.
+ */
+export const MANIFIESTO = {
+  entradilla:
+    'Yo, Óscar, en pleno uso de unas facultades que voy a perder a lo largo del día, declaro a cámara y ante los ocho testigos aquí presentes:',
+  articulos: [
+    'Que a partir de este momento esta casa deja de ser mía. Hoy es un servidor, y yo soy el evento.',
+    'Que durante las próximas veinticuatro horas no elijo nada: ni el juego, ni el personaje, ni la comida, ni la ropa.',
+    'Que enseñaré a jugar con paciencia a gente que no se la merece.',
+    'Que aceptaré cada reto sin negociar los puntos, porque los puntos estaban escritos antes de que yo me levantara.',
+    'Que haré el ridículo en todos los juegos que me pongan por delante, y que no pediré partida privada en ninguno.',
+    'Que no diré «una más y lo dejo».',
+    'Que a las nueve me pondré lo que haya en esa bolsa y saldré a la calle con ello puesto.',
+    'Que todo queda grabado, y que el marcador no se discute.',
+    'Que me caso. Y que esto venía incluido en el paquete.',
+  ],
+  cierre: 'Firmado de pie, a cámara y sin reírme.',
+  firma: 'Servidor Elfia 12 · 12 de septiembre de 2026',
+} as const
+
 export const RECOMPENSAS: Recompensa[] = [
   {
     id: 'r01', umbral: 2, marca: 'comodin', jugoso: true,
     titulo: 'Vale de 5 € en Cardmarket',
     detalle: 'Cinco euros de cartón, a gastar en lo que quieras.',
     pista: 'Sirve para comprar cartón. Del que te gusta.',
+  },
+  {
+    // LA BROMA. Va con jugoso para que se abra con confeti y fanfarria, que
+    // el chiste es exactamente ese: el montaje entero para nada.
+    id: 'rick', umbral: 10, marca: 'cascos', jugoso: true,
+    video: 'dQw4w9WgXcQ',
+    titulo: 'Never gonna give you up',
+    detalle: 'Enhorabuena. Te has ganado una canción. Entera.',
+    pista: 'Un clásico. Lleva veinte años esperando a que abras esta caja.',
+    nota: 'Rickroll. Subid el volumen del directo antes de marcarlo y no digáis nada.',
   },
   {
     id: 'r02', umbral: 25, marca: 'micro',

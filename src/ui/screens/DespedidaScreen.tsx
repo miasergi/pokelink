@@ -15,6 +15,7 @@ import { play } from '@/utils/sfx'
 import { ARRANQUE, Antetitulo, FILETE, LIMA, NEGRO, irA, useAhora } from '@/ui/despedida/despedidaKit'
 import Cerrojo from '@/ui/despedida/Cerrojo'
 import HeroSection from '@/ui/despedida/HeroSection'
+import ManifiestoSection from '@/ui/despedida/ManifiestoSection'
 import ProgramaSection from '@/ui/despedida/ProgramaSection'
 import MarcadorSection from '@/ui/despedida/MarcadorSection'
 import RetosSection from '@/ui/despedida/RetosSection'
@@ -26,6 +27,7 @@ import OverlayView from '@/ui/despedida/OverlayView'
 import Celebracion from '@/ui/despedida/Celebracion'
 
 const ENLACES = [
+  { id: 'manifiesto', rotulo: 'Manifiesto' },
   { id: 'programa', rotulo: 'Programa' },
   { id: 'marcador', rotulo: 'Marcador' },
   { id: 'retos', rotulo: 'Retos' },
@@ -154,6 +156,7 @@ export default function DespedidaScreen() {
       </nav>
 
       <HeroSection />
+      <ManifiestoSection />
       <ProgramaSection />
       <MarcadorSection />
       <RetosSection />
