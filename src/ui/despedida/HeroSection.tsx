@@ -22,7 +22,9 @@ const TITULARES = [
   `${HORAS} horas de despedida`,
   `${RETOS.length} retos`,
   `${RECOMPENSAS.length} premios bajo llave`,
-  '1 disfraz de Sailor Moon',
+  // SEÑUELO. El disfraz real es el premio legendario y no se dice hasta
+  // que cae; aquí se le da uno falso para que vaya con la idea equivocada.
+  '1 disfraz de Vaporeon',
   `${PANDILLA.length} asaltantes`,
   'Elfia 12 será raideado',
 ]

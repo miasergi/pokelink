@@ -149,7 +149,9 @@ export const BLOQUES: Bloque[] = [
     marca: 'luna',
     titulo: 'Cena disfrazado',
     color: '#f472b6',
-    desc: 'Al puerto, a cenar un kebab con Óscar de Sailor Moon. Aquí caen los retos gordos.',
+    // Los bloques se pueden destapar al tocarlos, así que aquí tampoco se dice
+    // el disfraz: se sigue con el señuelo de Vaporeon del cartel.
+    desc: 'Al puerto, a cenar un kebab con Óscar de Vaporeon. Aquí caen los retos gordos.',
     participantes: ['Óscar', 'Sergi', 'Luis P.', 'Luis M.', 'Román', 'Cla'],
     logistica: 'Vuelta a casa de Óscar.',
   },
@@ -310,10 +312,10 @@ export const RETOS: Reto[] = [
   // --- Cena disfrazado (aquí está la sal de la despedida) ---
   { id: 'cen-1', bloque: 'cena', texto: 'Dale un beso a un marroquí', dificultad: 'brutal', puntos: 35 },
   { id: 'cen-2', bloque: 'cena', texto: 'Pedir el kebab sin salirse del personaje', dificultad: 'medio', puntos: 10 },
-  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación de Sailor Moon en plena calle', dificultad: 'medio', puntos: 10 },
+  { id: 'cen-3', bloque: 'cena', texto: 'Hacer la transformación del personaje en plena calle, con pose y frase', dificultad: 'medio', puntos: 10 },
   { id: 'cen-4', bloque: 'cena', texto: 'Que un desconocido se haga una foto con él o salude al directo', dificultad: 'medio', puntos: 15 },
   { id: 'cen-5', bloque: 'cena', texto: 'Conseguir que un desconocido le siga en Twitch y salte la alerta', dificultad: 'medio', puntos: 20 },
-  { id: 'cen-6', bloque: 'cena', texto: 'Discurso lunar en alto antes de cenar', dificultad: 'medio', puntos: 10 },
+  { id: 'cen-6', bloque: 'cena', texto: 'Discurso en alto antes de cenar, sin salirse del personaje', dificultad: 'medio', puntos: 10 },
 
   // --- La noche ---
   { id: 'noc-1', bloque: 'noche', texto: 'Llenarse la boca de papas y cantar el opening de One Piece de memoria', dificultad: 'facil', puntos: 10 },
