@@ -495,19 +495,19 @@ export const RECOMPENSAS: Recompensa[] = [
     pista: 'Otra vez lo del principio.',
   },
   {
-    id: 'r16', umbral: 355, marca: 'mando', jugoso: true,
+    id: 'r16', umbral: 375, marca: 'mando', jugoso: true,
     titulo: 'Otros 5 € en Steam',
     detalle: 'Más biblioteca.',
     pista: 'Y otra vez lo otro.',
   },
   {
-    id: 'r17', umbral: 360, marca: 'comodin', jugoso: true,
+    id: 'r17', umbral: 400, marca: 'comodin', jugoso: true,
     titulo: 'Y otros 5 € en Cardmarket',
     detalle: 'Sí, más cartón todavía.',
     pista: 'A estas alturas ya sabes de qué va.',
   },
   {
-    id: 'r18', umbral: 369, marca: 'mando', jugoso: true,
+    id: 'r18', umbral: 425, marca: 'mando', jugoso: true,
     titulo: 'Y otros 5 € en Steam',
     detalle: 'Si has llegado aquí, te lo has ganado.',
     pista: 'Nadie esperaba que llegases tan lejos.',
