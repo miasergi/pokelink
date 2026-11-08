@@ -16,7 +16,8 @@ import { forceUpdate } from '@/utils/appUpdate'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
-import { loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { loadCorsarios, loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { resumen as corsariosResumen } from '@/engine/corsarios/game'
 import { setInazumaEntry } from '@/state/inazumaStore'
 import { dragonSummary } from '@/state/dragonStore'
 
@@ -119,9 +120,11 @@ export default function HomeScreen() {
   // empezada sin tener que entrar a mirar.
   const [inazumaRound, setInazumaRound] = useState<string | null>(null)
   const [dragonRun, setDragonRun] = useState<string | null>(null)
+  const [corsariosRun, setCorsariosRun] = useState<string | null>(null)
   const today = dailyChallenge().date
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
+    void loadCorsarios().then((s) => setCorsariosRun(s ? corsariosResumen(s) : null))
     if (MOSTRAR_DRAGON) void loadDragon().then((s) => setDragonRun(s && !s.finished ? dragonSummary(s) : null))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).
@@ -194,6 +197,18 @@ export default function HomeScreen() {
           <Chip icon={<Icon name="album" className="w-3.5 h-3.5 text-amber-300" />} label="Álbum de cromos" onClick={() => { setInazumaEntry('album'); navigate('inazuma') }} />
           <Chip icon={<Icon name="gear" className="w-3.5 h-3.5 text-slate-400" />} label="Opciones" onClick={() => { setInazumaEntry('title'); navigate('inazuma') }} />
         </div>
+
+        {/* ---- CORSARIOS (gacha de piratas por islas) ---- */}
+        <CoverCard
+          art={`${import.meta.env.BASE_URL}covers/corsarios-cover.svg`}
+          logo={`${import.meta.env.BASE_URL}corsarios/logo.svg`}
+          alt="Corsarios"
+          title="Corsarios"
+          color="#f59e0b"
+          status={corsariosRun ?? 'Recluta en la taberna y conquista seis islas'}
+          cta={corsariosRun ? 'Continuar' : 'Jugar'}
+          onPlay={() => navigate('corsarios')}
+        />
 
         {/* ---- DRAGON BALL ROGUE (oculto, ver MOSTRAR_DRAGON) ---- */}
         {MOSTRAR_DRAGON && (

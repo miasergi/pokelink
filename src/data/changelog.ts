@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.73',
+    date: '2026-11-08',
+    title: 'Nuevo juego: Corsarios',
+    changes: [
+      'CORSARIOS LLEGA A LA SALA DE JUEGOS: empiezas como un capitán cualquiera con un grumete y un bote, y tienes que conquistar seis islas peleando contra 3 o 4 piratas en cada escenario. Los combates son automáticos (a x1, x2 o x4, o te los saltas) y cada pirata lanza su especial cuando llena la energía.',
+      'LA TABERNA ES EL GACHA: una ronda de grog gratis al día (o por doblones) para marineros de puerto, y el cofre del capitán con perlas para los buenos: épicos y legendarios, con un legendario asegurado cada 40 tiradas. Los repetidos suben estrellas. Y cada jefe que derrotas se pasa luego por la taberna buscando barco.',
+      'Treinta piratas propios con su retrato, cuatro oficios (Espadachín vence a Luchador, Luchador a Tirador y Tirador a Espadachín; el Navegante cura y protege) y huecos nuevos en la formación al vencer las islas 1 y 3.',
+      'BOTÍN Y EQUIPO: los combates sueltan armas (+ataque) y amuletos (+vida y defensa) de cuatro rarezas; los jefes, siempre. Se equipan desde la ficha de cada pirata y lo que sobra se vende en la bodega del puerto.',
+      'HISTORIA Y MAR ABIERTO: cada isla se presenta al llegar, cada jefe suelta su frase antes de pelear y vencer al Almirante tiene su final. Después se abre el Mar Abierto, pisos sin fin con un jefe cada cinco y tu récord en el cuaderno de bitácora.',
+      'Y para el día a día: tres encargos diarios con premio, saqueo rápido de los escenarios con 3 estrellas y un tutorial la primera vez.',
+    ],
+  },
+  {
     version: 'v6.72',
     date: '2026-09-11',
     title: 'Los pueblos de los juegos, con sus tiles',

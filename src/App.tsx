@@ -43,6 +43,7 @@ const PartyScreen = lazy(() => import('@/ui/screens/PartyScreen'))
 const DragonScreen = lazy(() => import('@/ui/screens/DragonScreen'))
 const DespedidaScreen = lazy(() => import('@/ui/screens/DespedidaScreen'))
 const InvitacionScreen = lazy(() => import('@/ui/screens/InvitacionScreen'))
+const CorsariosScreen = lazy(() => import('@/ui/screens/CorsariosScreen'))
 
 const SCREENS: Record<ScreenName, React.ComponentType> = {
   home: HomeScreen,
@@ -80,6 +81,7 @@ const SCREENS: Record<ScreenName, React.ComponentType> = {
   dragon: DragonScreen,
   despedida: DespedidaScreen,
   invitacion: InvitacionScreen,
+  corsarios: CorsariosScreen,
 }
 
 const ONBOARD_KEY = 'pokerogue:onboarded'

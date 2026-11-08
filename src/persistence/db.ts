@@ -240,6 +240,20 @@ export async function clearInazuma(): Promise<void> {
   await d.delete('runs', 'inazuma')
 }
 
+// ---- Corsarios (gacha de piratas por islas) ----
+export async function saveCorsarios(s: import('@/engine/corsarios/types').CorsariosSave): Promise<void> {
+  const d = await db()
+  await d.put('runs', s, 'corsarios')
+}
+export async function loadCorsarios(): Promise<import('@/engine/corsarios/types').CorsariosSave | null> {
+  const d = await db()
+  return (await d.get('runs', 'corsarios')) ?? null
+}
+export async function clearCorsarios(): Promise<void> {
+  const d = await db()
+  await d.delete('runs', 'corsarios')
+}
+
 // ---- Dragon Ball Rogue ----
 export async function saveDragon(s: import('@/engine/dragon/run').DragonSave): Promise<void> {
   const d = await db()
@@ -410,7 +424,8 @@ export async function exportData(): Promise<string> {
   const cyber = await loadCyber()
   const inazuma = await loadInazuma()
   const dragon = await loadDragon()
-  const json = JSON.stringify({ v: 1, meta, run, cyber, inazuma, dragon })
+  const corsarios = await loadCorsarios()
+  const json = JSON.stringify({ v: 1, meta, run, cyber, inazuma, dragon, corsarios })
   // base64 seguro para UTF-8
   return btoa(unescape(encodeURIComponent(json)))
 }
@@ -424,6 +439,7 @@ export async function importData(code: string): Promise<boolean> {
       cyber?: import('@/engine/cyber/types').CyberSave | null
       inazuma?: import('@/engine/inazuma/types').InazumaSave | null
       dragon?: import('@/engine/dragon/run').DragonSave | null
+      corsarios?: import('@/engine/corsarios/types').CorsariosSave | null
     }
     if (data.meta) await saveMeta({ ...structuredClone(EMPTY_META), ...data.meta })
     if (data.run) await saveRun(data.run)
@@ -437,6 +453,8 @@ export async function importData(code: string): Promise<boolean> {
     // Y con Dragon Ball: un código exportado antes de este modo no lo borra.
     if (data.dragon) await saveDragon(data.dragon)
     else if ('dragon' in data) await clearDragon()
+    if (data.corsarios) await saveCorsarios(data.corsarios)
+    else if ('corsarios' in data) await clearCorsarios()
     return true
   } catch {
     return false
