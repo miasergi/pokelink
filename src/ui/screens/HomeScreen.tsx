@@ -16,7 +16,8 @@ import { forceUpdate } from '@/utils/appUpdate'
 import { STARTERS_BY_GEN } from '@/data/starters'
 import { GENERATIONS } from '@/data/generations'
 import { getSpecies } from '@/data'
-import { loadCorsarios, loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { loadCorsarios, loadCorsariosMods, loadDragon, loadInazuma, loadMeta, type BestRun } from '@/persistence/db'
+import { aplicarMod } from '@/data/corsarios/mods'
 import { resumen as corsariosResumen } from '@/engine/corsarios/game'
 import { setInazumaEntry } from '@/state/inazumaStore'
 import { dragonSummary } from '@/state/dragonStore'
@@ -124,7 +125,11 @@ export default function HomeScreen() {
   const today = dailyChallenge().date
   useEffect(() => {
     void loadInazuma().then((s) => setInazumaRound(s ? `Continuar · ${layerName(s.layer, s.teamId, s.saga)}` : null))
-    void loadCorsarios().then((s) => setCorsariosRun(s ? corsariosResumen(s) : null))
+    // El resumen nombra la isla: con un mod activo, con su nombre.
+    void Promise.all([loadCorsarios(), loadCorsariosMods()]).then(([s, reg]) => {
+      aplicarMod(reg.mods.find((m) => m.id === reg.activo) ?? null)
+      setCorsariosRun(s ? corsariosResumen(s) : null)
+    })
     if (MOSTRAR_DRAGON) void loadDragon().then((s) => setDragonRun(s && !s.finished ? dragonSummary(s) : null))
   }, [])
   // Carga las runs con las que ya ganaste el reto de HOY (al abrir el modal).

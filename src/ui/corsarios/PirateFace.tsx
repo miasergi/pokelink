@@ -126,6 +126,10 @@ function PirateFaceRaw({ look, rareza, size = 64, apagado, className }: {
           <path d="M40 61 Q45 56 50 59 Q55 56 60 61 Q55 59 50 61 Q45 59 40 61Z" fill={look.pelo} />}
         {look.cicatriz && <path d="M36 52 L42 60 M37 56 L40 54 M39 58 L42 56" stroke="#9f1239" strokeWidth="1.4" strokeLinecap="round" opacity=".8" />}
         <Sombrero look={look} />
+        {/* Retrato de un mod: tapa el dibujo entero. */}
+        {look.retrato && <rect width="100" height="100" fill="#0b1426" />}
+        {look.retrato && <rect width="100" height="100" fill={`url(#${id}bg)`} />}
+        {look.retrato && <image href={look.retrato} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" />}
       </g>
       <rect x="1.5" y="1.5" width="97" height="97" rx="17" fill="none" stroke={marco.color} strokeWidth="3" />
     </svg>

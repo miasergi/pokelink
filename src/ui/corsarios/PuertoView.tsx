@@ -6,6 +6,7 @@ import { useCorsarios, type Escena } from '@/state/corsariosStore'
 import { getPirata, PIRATAS, RAREZA_INFO } from '@/data/corsarios/piratas'
 import { FINAL, INTRO_ISLA, TUTORIAL } from '@/data/corsarios/historia'
 import { VENTA } from '@/data/corsarios/equipo'
+import { imagenPieza, nombrePieza } from '@/data/corsarios/mods'
 import { ISLAS } from '@/data/corsarios/islas'
 import {
   campanaTerminada, diarioHoy, ENCARGOS, encargoListo, INVENTARIO_MAX, pisoActual, poderEquipo,
@@ -23,6 +24,7 @@ export default function PuertoView() {
       <Encargos />
       <MarAbierto />
       <Bodega />
+      <Mods />
       <Records />
       <Opciones />
     </div>
@@ -143,7 +145,7 @@ function Bodega() {
                   <div key={p.uid} className="flex items-center gap-2 rounded-xl bg-slate-800/60 px-2 py-1.5">
                     <IconoPieza p={p} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-bold text-slate-100 truncate">{p.nombre}</div>
+                      <div className="text-[12px] font-bold text-slate-100 truncate">{nombrePieza(p)}</div>
                       <div className="text-[10.5px] text-slate-400">{textoBonus(p)}{quien && <> · lo lleva <b className="text-amber-200">{quien === 'capitan' ? save.capitan.nombre : getPirata(quien).nombre}</b></>}</div>
                     </div>
                     <button onClick={() => vender(p.uid)} className="shrink-0 flex items-center gap-1 rounded-lg bg-slate-900 px-2 py-1 text-[11px] font-black text-amber-300 active:scale-95">
@@ -164,13 +166,34 @@ export const textoBonus = (p: Pieza) => p.tipo === 'arma' ? `+${Math.round(p.bon
 
 export function IconoPieza({ p, size = 32 }: { p: Pieza; size?: number }) {
   const c = RAREZA_INFO[p.rareza].color
+  const img = imagenPieza(p)
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} className="shrink-0" aria-hidden>
+      <defs><clipPath id={`ip-${p.uid}`}><rect x="2" y="2" width="28" height="28" rx="7" /></clipPath></defs>
       <rect x="1" y="1" width="30" height="30" rx="8" fill={`${c}22`} stroke={c} strokeWidth="2" />
-      {p.tipo === 'arma'
+      {img ? <image href={img} x="2" y="2" width="28" height="28" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ip-${p.uid})`} />
+      : p.tipo === 'arma'
         ? <g><path d="M9 23 L21 8 L24 8 L24 11 L12 26 Z" fill="#e2e8f0" /><path d="M8 20 L15 27 M7 26 L10 23" stroke={c} strokeWidth="2.5" strokeLinecap="round" /></g>
         : <g><path d="M10 7 Q16 13 22 7" fill="none" stroke="#e2e8f0" strokeWidth="1.6" /><circle cx="16" cy="19" r="6.5" fill={c} stroke="#e2e8f0" strokeWidth="1.6" /><circle cx="14" cy="17" r="1.8" fill="#fff" opacity=".8" /></g>}
     </svg>
+  )
+}
+
+function Mods() {
+  const { mods, modActivo, irA } = useCorsarios()
+  const activo = mods.find((m) => m.id === modActivo)
+  return (
+    <div className="rounded-2xl border border-violet-500/40 p-3"
+      style={{ background: 'radial-gradient(120% 90% at 0% 0%, #8b5cf633, transparent 60%), #0f172acc' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black uppercase tracking-wide text-violet-300">Mods</span>
+        <span className="text-[10.5px] font-bold text-slate-400">{mods.length} guardado{mods.length === 1 ? '' : 's'}</span>
+      </div>
+      <div className="mt-1 text-[12px] text-slate-300 leading-snug">
+        {activo ? <>Activo: <b className="text-violet-200">{activo.nombre}</b></> : 'Personaliza retratos, nombres, especiales, objetos e islas con tus propios packs.'}
+      </div>
+      <Boton tono="perla" className="w-full mt-2.5" onClick={() => irA('mods')}>Abrir el editor de mods</Boton>
+    </div>
   )
 }
 

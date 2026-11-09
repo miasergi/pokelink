@@ -254,6 +254,20 @@ export async function clearCorsarios(): Promise<void> {
   await d.delete('runs', 'corsarios')
 }
 
+/** Mods de Corsarios: los packs creados o importados y cuál está activo. */
+export interface CorsariosModsRecord {
+  activo: string | null
+  mods: import('@/data/corsarios/mods').Mod[]
+}
+export async function saveCorsariosMods(r: CorsariosModsRecord): Promise<void> {
+  const d = await db()
+  await d.put('runs', r, 'corsarios-mods')
+}
+export async function loadCorsariosMods(): Promise<CorsariosModsRecord> {
+  const d = await db()
+  return (await d.get('runs', 'corsarios-mods')) ?? { activo: null, mods: [] }
+}
+
 // ---- Dragon Ball Rogue ----
 export async function saveDragon(s: import('@/engine/dragon/run').DragonSave): Promise<void> {
   const d = await db()

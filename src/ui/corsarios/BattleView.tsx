@@ -7,6 +7,7 @@ import { getPirata } from '@/data/corsarios/piratas'
 import { ISLAS } from '@/data/corsarios/islas'
 import { FRASE_JEFE } from '@/data/corsarios/historia'
 import { IconoPieza, textoBonus } from './PuertoView'
+import { nombrePieza } from '@/data/corsarios/mods'
 import type { Evento, Impacto, Unidad } from '@/engine/corsarios/types'
 import PirateFace from './PirateFace'
 import { Boton, ClaseChip, Doblon, Estrellas, fmt, Perla, Triangulo } from './Bits'
@@ -235,7 +236,7 @@ function Resumen({ onVolver, onRepetir }: { onVolver: () => void; onRepetir: () 
           <div className="mt-2 rounded-xl bg-violet-500/10 border border-violet-500/40 p-2 flex items-center gap-2 text-left">
             <IconoPieza p={b.pieza} />
             <div className="min-w-0">
-              <div className="text-[12.5px] font-black text-violet-100">{b.pieza.nombre}</div>
+              <div className="text-[12.5px] font-black text-violet-100">{nombrePieza(b.pieza)}</div>
               <div className="text-[10.5px] text-slate-400">{textoBonus(b.pieza)}{b.piezaVendida ? ' · bodega llena: vendido' : ' · a la bodega'}</div>
             </div>
           </div>

@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: 'v6.74',
+    date: '2026-11-08',
+    title: 'Corsarios: editor de mods',
+    changes: [
+      'CREA TUS PROPIOS MODS DESDE LA WEB: en Puerto → Mods puedes cambiar el retrato (sube una foto o pega un enlace), el nombre, el apodo, la frase y el especial de cada pirata (capitán, taberna, jefes y rivales), el nombre y el icono de cada arma y amuleto, y los nombres e historias de las islas.',
+      'Las estadísticas no cambian, así que tu partida vale con cualquier mod. Si cambias el efecto de un especial, su potencia se ajusta sola a la rareza.',
+      'COMPARTIR E INSTALAR EN UN TOQUE: el botón Compartir abre el menú del móvil (WhatsApp, Telegram…) con el mod adjunto, imágenes incluidas. Quien lo recibe pulsa Importar, elige el archivo y el mod se activa solo. Se quita con un botón cuando quieras.',
+    ],
+  },
+  {
     version: 'v6.73',
     date: '2026-11-08',
     title: 'Nuevo juego: Corsarios',

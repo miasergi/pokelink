@@ -11,9 +11,12 @@ import BattleView from '@/ui/corsarios/BattleView'
 import TabernaView from '@/ui/corsarios/TabernaView'
 import TripulacionView from '@/ui/corsarios/TripulacionView'
 import PuertoView, { Aviso, EscenaOverlay } from '@/ui/corsarios/PuertoView'
+import ModsView from '@/ui/corsarios/ModsView'
 
 export default function CorsariosScreen() {
   const { cargado, vista, init, batalla } = useCorsarios()
+  // Un mod cambia datos de módulo: suscribirse a su versión repinta todo.
+  useCorsarios((s) => s.modVersion)
   useEffect(() => { void init() }, [init])
 
   const music = useSettings((s) => s.music)
@@ -30,6 +33,7 @@ export default function CorsariosScreen() {
       {!cargado ? null
         : vista === 'setup' ? <SetupView />
         : vista === 'batalla' ? <BattleView />
+        : vista === 'mods' ? <ModsView />
         : (
           <>
             <Cabecera />

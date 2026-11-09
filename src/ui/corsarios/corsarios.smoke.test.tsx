@@ -11,6 +11,7 @@ import {
   aplicarMar, aplicarResultado, combatir, combatirMar, equipar, nuevaPartida, tirar,
 } from '@/engine/corsarios/game'
 import { ISLAS } from '@/data/corsarios/islas'
+import { modVacio } from '@/data/corsarios/mods'
 import type { CorsariosSave } from '@/engine/corsarios/types'
 
 function avanzada(): CorsariosSave {
@@ -80,6 +81,15 @@ describe('Corsarios · humo de la UI', () => {
     const bm = aplicarMar(save, rm).botin
     useCorsarios.setState({ batalla: { isla: -1, fase: 10, mar: true, resultado: rm, botin: bm } })
     expect(pinta()).toContain('Mar Abierto')
+  })
+
+  it('pinta la lista de mods', () => {
+    const m = modVacio('Pack de prueba')
+    m.piratas.tomas = { nombre: 'Pepe' }
+    useCorsarios.setState({ cargado: true, save: avanzada(), vista: 'mods', mods: [m], modActivo: m.id, escena: null, batalla: null })
+    const html = pinta()
+    expect(html).toContain('Pack de prueba')
+    expect(html).toContain('ACTIVO')
   })
 
   it('pinta el revelado de la taberna', () => {

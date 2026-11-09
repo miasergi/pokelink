@@ -224,6 +224,9 @@ export function getPirata(id: string): PirataDef {
   return d
 }
 
+/** Lo que un mod cambia del capitán (lo rellena `aplicarMod`). */
+export const capitanExtra: { retrato?: string; apodo?: string; frase?: string; skill?: Partial<Skill> } = {}
+
 /** El capitán: genérico, de oficio a elegir, con stats de Épico. */
 export function capitanDef(nombre: string, clase: Exclude<Clase, 'apoyo'>): PirataDef {
   const skills: Record<Exclude<Clase, 'apoyo'>, Skill> = {
@@ -231,10 +234,11 @@ export function capitanDef(nombre: string, clase: Exclude<Clase, 'apoyo'>): Pira
     puno: { nombre: 'Puño de capitán', kind: 'aturde', mult: 1.9, desc: 'Golpe que aturde a un rival.' },
     tirador: { nombre: 'Disparo de mando', kind: 'golpe', mult: 2.4, desc: 'Un disparo enorme a un rival.' },
   }
+  const look: Look = { piel: '#e8b68f', pelo: '#3f2a1d', ropa: '#b91c1c', sombrero: 'tricornio', barba: 'corta' }
+  if (capitanExtra.retrato) look.retrato = capitanExtra.retrato
   return {
-    id: 'capitan', nombre, apodo: '', clase, rareza: 'E',
-    base: base('E', clase, { hp: 1.05 }), skill: skills[clase],
-    look: { piel: '#e8b68f', pelo: '#3f2a1d', ropa: '#b91c1c', sombrero: 'tricornio', barba: 'corta' },
-    frase: '',
+    id: 'capitan', nombre, apodo: capitanExtra.apodo ?? '', clase, rareza: 'E',
+    base: base('E', clase, { hp: 1.05 }), skill: { ...skills[clase], ...capitanExtra.skill },
+    look, frase: capitanExtra.frase ?? '',
   }
 }

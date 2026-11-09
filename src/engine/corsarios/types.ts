@@ -38,6 +38,8 @@ export interface Look {
   cicatriz?: boolean
   pendiente?: boolean
   melena?: boolean
+  /** Imagen que sustituye al dibujo (la ponen los mods). */
+  retrato?: string
 }
 
 export interface Stats { hp: number; atk: number; def: number; spd: number }

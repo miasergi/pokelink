@@ -6,7 +6,8 @@
 import { create } from 'zustand'
 import { play } from '@/utils/sfx'
 import { useGame } from '@/state/gameStore'
-import { clearCorsarios, loadCorsarios, saveCorsarios } from '@/persistence/db'
+import { clearCorsarios, loadCorsarios, loadCorsariosMods, saveCorsarios, saveCorsariosMods } from '@/persistence/db'
+import { aplicarMod, nombrePieza, type Mod } from '@/data/corsarios/mods'
 import {
   alternarFormacion, aplicarMar, aplicarResultado, cobrarEncargo, combatir, combatirMar, desequipar,
   entrenar, equipar, islaAbierta, marcarVisto, migrar, nuevaPartida, tirar, vender, venderSobrantes,
@@ -16,7 +17,7 @@ import type { Clase, CorsariosSave, Rareza, Resultado, TipoPieza } from '@/engin
 import { ISLAS } from '@/data/corsarios/islas'
 import { fmt } from '@/ui/corsarios/fmt'
 
-export type Vista = 'setup' | 'islas' | 'taberna' | 'tripulacion' | 'puerto' | 'batalla'
+export type Vista = 'setup' | 'islas' | 'taberna' | 'tripulacion' | 'puerto' | 'batalla' | 'mods'
 
 export interface BatallaActiva {
   /** -1 en el Mar Abierto. */
@@ -39,6 +40,13 @@ interface CorsariosState {
   tiradas: Tirada[] | null
   escena: Escena | null
   aviso: string | null
+  mods: Mod[]
+  modActivo: string | null
+  /** Sube cada vez que cambia lo que se ve por un mod (fuerza el repintado). */
+  modVersion: number
+  guardarMod: (m: Mod) => void
+  borrarMod: (id: string) => void
+  activarMod: (id: string | null) => void
   init: () => Promise<void>
   crear: (nombre: string, clase: Exclude<Clase, 'apoyo'>) => void
   irA: (v: Exclude<Vista, 'setup' | 'batalla'>) => void
@@ -85,9 +93,40 @@ export const useCorsarios = create<CorsariosState>((set, get) => {
     tiradas: null,
     escena: null,
     aviso: null,
+    mods: [],
+    modActivo: null,
+    modVersion: 0,
+
+    guardarMod: (m) => {
+      const mods = get().mods.some((x) => x.id === m.id) ? get().mods.map((x) => (x.id === m.id ? m : x)) : [...get().mods, m]
+      const activo = get().modActivo
+      if (activo === m.id) aplicarMod(m)
+      void saveCorsariosMods({ activo, mods })
+      set({ mods, modVersion: get().modVersion + 1 })
+    },
+    borrarMod: (id) => {
+      const mods = get().mods.filter((x) => x.id !== id)
+      let activo = get().modActivo
+      if (activo === id) { activo = null; aplicarMod(null) }
+      void saveCorsariosMods({ activo, mods })
+      play('back')
+      set({ mods, modActivo: activo, modVersion: get().modVersion + 1 })
+    },
+    activarMod: (id) => {
+      const mod = id ? get().mods.find((x) => x.id === id) ?? null : null
+      aplicarMod(mod)
+      const activo = mod?.id ?? null
+      void saveCorsariosMods({ activo, mods: get().mods })
+      play(mod ? 'confirm' : 'back')
+      set({ modActivo: activo, modVersion: get().modVersion + 1, aviso: mod ? `Mod «${mod.nombre}» activado.` : 'Mod desactivado: vuelven los piratas originales.' })
+    },
 
     init: async () => {
       if (get().cargado) return
+      const reg = await loadCorsariosMods()
+      const activoMod = reg.activo ? reg.mods.find((m) => m.id === reg.activo) ?? null : null
+      aplicarMod(activoMod)
+      set({ mods: reg.mods, modActivo: activoMod?.id ?? null, modVersion: get().modVersion + 1 })
       const raw = await loadCorsarios()
       const save = raw ? migrar(raw) : null
       // Abre en la última isla abierta.
@@ -130,7 +169,7 @@ export const useCorsarios = create<CorsariosState>((set, get) => {
       play('buy')
       const partes = [`+${fmt(botin.doblones)} doblones`, `+${fmt(botin.xp)} XP`]
       if (botin.perlas) partes.push(`+${botin.perlas} perlas`)
-      if (botin.pieza) partes.push(botin.piezaVendida ? `${botin.pieza.nombre} (vendido: bodega llena)` : botin.pieza.nombre)
+      if (botin.pieza) partes.push(botin.piezaVendida ? `${nombrePieza(botin.pieza)} (vendido: bodega llena)` : nombrePieza(botin.pieza))
       if (botin.subidas) partes.push(`¡nivel ${save.nivel}!`)
       poner(save, { aviso: `Saqueo: ${partes.join(' · ')}` })
     },

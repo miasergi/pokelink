@@ -9,6 +9,7 @@ import {
 } from '@/engine/corsarios/game'
 import type { PirataDef, TipoPieza } from '@/engine/corsarios/types'
 import { IconoPieza, textoBonus } from './PuertoView'
+import { nombrePieza } from '@/data/corsarios/mods'
 import PirateFace from './PirateFace'
 import { Boton, ClaseChip, Doblon, fmt, RarezaChip } from './Bits'
 
@@ -141,7 +142,7 @@ function Ficha({ id, onClose }: { id: string; onClose: () => void }) {
                 {p ? <IconoPieza p={p} size={28} /> : <div className="w-7 h-7 rounded-lg border border-dashed border-slate-600 grid place-items-center text-slate-500">+</div>}
                 <div className="min-w-0">
                   <div className="text-[9.5px] font-black uppercase text-slate-400">{tipo === 'arma' ? 'Arma' : 'Amuleto'}</div>
-                  <div className="text-[11px] font-bold text-slate-100 truncate">{p ? p.nombre : 'Vacío'}</div>
+                  <div className="text-[11px] font-bold text-slate-100 truncate">{p ? nombrePieza(p) : 'Vacío'}</div>
                 </div>
               </button>
             )
@@ -199,7 +200,7 @@ function SelectorPieza({ tipo, quien, actual, onElegir, onQuitar }: {
           <button key={p.uid} onClick={() => onElegir(p.uid)} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2 py-1.5 text-left active:scale-[0.98]">
             <IconoPieza p={p} size={26} />
             <div className="min-w-0 flex-1">
-              <div className="text-[11.5px] font-bold text-slate-100 truncate">{p.nombre}</div>
+              <div className="text-[11.5px] font-bold text-slate-100 truncate">{nombrePieza(p)}</div>
               <div className="text-[10px] text-slate-400">{textoBonus(p)}{otro && otro !== quien && <> · se lo quita a {otro === 'capitan' ? save.capitan.nombre : getPirata(otro).nombre}</>}</div>
             </div>
           </button>
